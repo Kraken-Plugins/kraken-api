@@ -1,5 +1,6 @@
 package com.kraken.api.plugins.packetmapper;
 
+import com.kraken.api.core.packet.ObfuscatedNames;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 
@@ -26,7 +27,7 @@ public class PacketQueueMonitor {
 
     private volatile boolean monitoring = false;
     private Thread monitorThread;
-    private Queue<PacketSnapshot> packetHistory = new ConcurrentLinkedQueue<>();
+    private final Queue<PacketSnapshot> packetHistory = new ConcurrentLinkedQueue<>();
     private static final int MAX_HISTORY = 1000;
 
     /**
@@ -75,8 +76,7 @@ public class PacketQueueMonitor {
                     inspectPacketWriter(packetWriter, seenPackets);
                 }
 
-                // Sleep briefly to avoid excessive CPU usage
-                Thread.sleep(5);
+                Thread.sleep(20);
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

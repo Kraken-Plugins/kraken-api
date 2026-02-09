@@ -1,5 +1,6 @@
 package com.kraken.api.plugins.packetmapper;
 
+import com.kraken.api.core.packet.ObfuscatedNames;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -172,13 +173,8 @@ public class PacketMappingTool {
      */
     public void analyzePacket(Object packetBufferNode) {
         try {
-            // Extract the packet definition
-            Field packetField = packetBufferNode.getClass().getDeclaredField("a"); // Adjust field name
-            packetField.setAccessible(true);
-            Object clientPacketDef = packetField.get(packetBufferNode);
-            
             // Get packet name
-            String packetName = getPacketName(clientPacketDef);
+            String packetName = "";
             
             // Get the buffer
             Field bufferField = packetBufferNode.getClass().getDeclaredField(ObfuscatedNames.packetBufferFieldName);
@@ -284,31 +280,6 @@ public class PacketMappingTool {
         }
         
         return operations;
-    }
-
-    /**
-     * Extracts the packet name from a ClientPacket definition
-     */
-    private String getPacketName(Object clientPacketDef) throws Exception {
-        Class<?> clientPacketClass = loadGameClientClass(ObfuscatedNames.clientPacketClassName);
-        
-        if (clientPacketClass == null) {
-            return "UNKNOWN";
-        }
-        
-        // Iterate through static fields to find matching packet definition
-        for (Field field : clientPacketClass.getDeclaredFields()) {
-            if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-                field.setAccessible(true);
-                Object fieldValue = field.get(null);
-                
-                if (fieldValue == clientPacketDef) {
-                    return field.getName();
-                }
-            }
-        }
-        
-        return "UNKNOWN";
     }
 
     /**

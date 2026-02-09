@@ -2,9 +2,10 @@ package com.kraken.api.plugins.packetmapper;
 
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -38,9 +39,6 @@ import java.awt.image.BufferedImage;
 public class PacketMappingPlugin extends Plugin {
 
     @Inject
-    private Client client;
-
-    @Inject
     private ClientToolbar clientToolbar;
 
     @Inject
@@ -50,7 +48,7 @@ public class PacketMappingPlugin extends Plugin {
     private PacketMappingTool mappingTool;
 
     @Inject
-    private PacketQueueMonitor queueMonitor;
+    private PacketInterceptor interceptor;
 
     @Inject
     private PacketMappingPanel panel;
@@ -58,13 +56,9 @@ public class PacketMappingPlugin extends Plugin {
     private NavigationButton navButton;
 
     @Override
-    protected void startUp() throws Exception {
-        log.info("Packet Mapping Plugin started");
-
-        // Register the mapping tool with the event bus so it can listen to menu events
+    protected void startUp() {
         eventBus.register(mappingTool);
-
-        // Create and add the sidebar panel
+        eventBus.register(interceptor);
         final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/packet_icon.png");
         
         navButton = NavigationButton.builder()
@@ -75,26 +69,28 @@ public class PacketMappingPlugin extends Plugin {
             .build();
 
         clientToolbar.addNavigation(navButton);
-        
-        log.info("Packet Mapper UI added to sidebar");
     }
 
     @Override
-    protected void shutDown() throws Exception {
+    protected void shutDown() {
         log.info("Packet Mapping Plugin stopped");
-
-        // Stop monitoring if active
-        queueMonitor.stopMonitoring();
-
-        // Unregister from event bus
+        interceptor.stopInterception();
         eventBus.unregister(mappingTool);
-
-        // Remove sidebar panel
         clientToolbar.removeNavigation(navButton);
     }
 
     @Provides
     PacketMappingConfig provideConfig(ConfigManager configManager) {
         return configManager.getConfig(PacketMappingConfig.class);
+    }
+
+    @Subscribe
+    private void onMenuOptionClicked(MenuOptionClicked event) {
+
+    }
+
+    @Subscribe
+    private void onPacketSent(PacketSent event) {
+        log.info("Packet sent: {}", event.getPacketBuffer());
     }
 }

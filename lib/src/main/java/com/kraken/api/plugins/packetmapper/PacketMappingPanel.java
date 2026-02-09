@@ -1,6 +1,7 @@
 package com.kraken.api.plugins.packetmapper;
 
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 
 import javax.inject.Inject;
@@ -19,7 +20,7 @@ public class PacketMappingPanel extends PluginPanel {
 
     private final PacketMappingTool mappingTool;
     private final PacketQueueMonitor queueMonitor;
-    
+    private final PacketInterceptor interceptor;
     private JButton startMonitoringBtn;
     private JButton stopMonitoringBtn;
     private JButton exportAllBtn;
@@ -29,149 +30,184 @@ public class PacketMappingPanel extends PluginPanel {
     private JComboBox<String> packetSelector;
 
     @Inject
-    public PacketMappingPanel(PacketMappingTool mappingTool, PacketQueueMonitor queueMonitor) {
+    public PacketMappingPanel(PacketMappingTool mappingTool, PacketQueueMonitor queueMonitor, PacketInterceptor interceptor) {
         this.mappingTool = mappingTool;
         this.queueMonitor = queueMonitor;
-        
+        this.interceptor = interceptor;
+
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(10, 10, 10, 10));
-        
+        setBackground(ColorScheme.DARK_GRAY_COLOR);
+
         add(createControlPanel(), BorderLayout.NORTH);
         add(createMappingsPanel(), BorderLayout.CENTER);
         add(createStatusPanel(), BorderLayout.SOUTH);
     }
 
-    /**
-     * Creates the control panel with buttons
-     */
     private JPanel createControlPanel() {
         JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
-        panel.setBorder(BorderFactory.createTitledBorder("Controls"));
-        
-        startMonitoringBtn = new JButton("Start Monitoring");
+        panel.setBackground(ColorScheme.DARK_GRAY_COLOR);
+        panel.setBorder(new EmptyBorder(0, 0, 10, 0));
+
+        startMonitoringBtn = createStyledButton("Start Monitoring");
         startMonitoringBtn.addActionListener(e -> startMonitoring());
-        
-        stopMonitoringBtn = new JButton("Stop Monitoring");
+
+        stopMonitoringBtn = createStyledButton("Stop Monitoring");
         stopMonitoringBtn.setEnabled(false);
         stopMonitoringBtn.addActionListener(e -> stopMonitoring());
-        
-        exportAllBtn = new JButton("Export All Mappings");
+
+        exportAllBtn = createStyledButton("Export All Mappings");
         exportAllBtn.addActionListener(e -> exportAllMappings());
-        
-        JButton exportSelectedBtn = new JButton("Export Selected");
+
+        JButton exportSelectedBtn = createStyledButton("Export Selected");
         exportSelectedBtn.addActionListener(e -> exportSelectedMapping());
-        
-        JButton copyToClipboardBtn = new JButton("Copy to Clipboard");
+
+        JButton copyToClipboardBtn = createStyledButton("Copy to Clipboard");
         copyToClipboardBtn.addActionListener(e -> copyToClipboard());
-        
-        clearMappingsBtn = new JButton("Clear Mappings");
+
+        clearMappingsBtn = createStyledButton("Clear Mappings");
         clearMappingsBtn.addActionListener(e -> clearMappings());
-        
+
         panel.add(startMonitoringBtn);
         panel.add(stopMonitoringBtn);
         panel.add(exportAllBtn);
         panel.add(exportSelectedBtn);
         panel.add(copyToClipboardBtn);
         panel.add(clearMappingsBtn);
-        
+
         return panel;
     }
 
-    /**
-     * Creates the panel displaying mappings
-     */
     private JPanel createMappingsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Packet Mappings"));
-        
+        JPanel panel = new JPanel(new BorderLayout(0, 5));
+        panel.setBackground(ColorScheme.DARK_GRAY_COLOR);
+        panel.setBorder(new EmptyBorder(10, 0, 10, 0));
+
         // Packet selector dropdown
         packetSelector = new JComboBox<>();
+        packetSelector.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+        packetSelector.setForeground(Color.WHITE);
+        packetSelector.setFocusable(false);
+        packetSelector.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                                                          int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (isSelected) {
+                    setBackground(ColorScheme.BRAND_ORANGE);
+                } else {
+                    setBackground(ColorScheme.DARKER_GRAY_COLOR);
+                }
+                setForeground(Color.WHITE);
+                return this;
+            }
+        });
         packetSelector.addActionListener(e -> updateMappingDisplay());
         panel.add(packetSelector, BorderLayout.NORTH);
-        
+
         // Text area for displaying mapping
         mappingsTextArea = new JTextArea();
         mappingsTextArea.setEditable(false);
         mappingsTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        
+        mappingsTextArea.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+        mappingsTextArea.setForeground(Color.WHITE);
+        mappingsTextArea.setBorder(new EmptyBorder(5, 5, 5, 5));
+
         JScrollPane scrollPane = new JScrollPane(mappingsTextArea);
+        scrollPane.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+        scrollPane.setBorder(BorderFactory.createLineBorder(ColorScheme.MEDIUM_GRAY_COLOR));
         scrollPane.setPreferredSize(new Dimension(400, 400));
         panel.add(scrollPane, BorderLayout.CENTER);
-        
+
         return panel;
     }
 
-    /**
-     * Creates the status panel
-     */
     private JPanel createStatusPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Status"));
-        
+        panel.setBackground(ColorScheme.DARK_GRAY_COLOR);
+        panel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
         statusLabel = new JLabel("Ready");
+        statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
         panel.add(statusLabel, BorderLayout.CENTER);
-        
+
         return panel;
     }
 
-    /**
-     * Starts packet monitoring
-     */
+    // Helper method to create RuneLite-styled buttons
+    private JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(new EmptyBorder(5, 10, 5, 10));
+
+        // Hover effect
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (button.isEnabled()) {
+                    button.setBackground(ColorScheme.DARKER_GRAY_HOVER_COLOR);
+                }
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+            }
+        });
+
+        return button;
+    }
+
     private void startMonitoring() {
         try {
-            queueMonitor.startMonitoring();
+            //queueMonitor.startMonitoring();
+            interceptor.startInterception();
             startMonitoringBtn.setEnabled(false);
             stopMonitoringBtn.setEnabled(true);
-            statusLabel.setText("Monitoring active - perform actions in game");
-            statusLabel.setForeground(Color.GREEN);
+            statusLabel.setText("Monitoring active");
+            statusLabel.setForeground(ColorScheme.PROGRESS_COMPLETE_COLOR); // Green
         } catch (Exception e) {
             log.error("Failed to start monitoring", e);
-            JOptionPane.showMessageDialog(this, 
-                "Failed to start monitoring: " + e.getMessage(),
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Failed to start monitoring: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    /**
-     * Stops packet monitoring
-     */
     private void stopMonitoring() {
-        queueMonitor.stopMonitoring();
+//        queueMonitor.stopMonitoring();
+        try {
+            interceptor.stopInterception();
+        } catch (Exception e) {
+            log.error("Failed to stop monitoring", e);
+        }
         startMonitoringBtn.setEnabled(true);
         stopMonitoringBtn.setEnabled(false);
         statusLabel.setText("Monitoring stopped");
-        statusLabel.setForeground(Color.ORANGE);
-        
-        // Refresh the packet selector
+        statusLabel.setForeground(ColorScheme.PROGRESS_ERROR_COLOR); // Orange/Red
         updatePacketSelector();
     }
 
-    /**
-     * Updates the packet selector dropdown
-     */
     private void updatePacketSelector() {
         packetSelector.removeAllItems();
         packetSelector.addItem("-- Select a packet --");
-        
+
         for (String packetName : mappingTool.getMappings().keySet()) {
             packetSelector.addItem(packetName);
         }
-        
+
         statusLabel.setText("Found " + mappingTool.getMappings().size() + " unique packets");
+        statusLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
     }
 
-    /**
-     * Updates the mapping display based on selected packet
-     */
     private void updateMappingDisplay() {
         String selectedPacket = (String) packetSelector.getSelectedItem();
-        
+
         if (selectedPacket == null || selectedPacket.startsWith("--")) {
             mappingsTextArea.setText("");
             return;
         }
-        
+
         String mapping = mappingTool.exportMapping(selectedPacket);
         mappingsTextArea.setText(mapping);
     }

@@ -1,16 +1,20 @@
 package com.kraken.api.plugins.packetmapper;
 
+import com.kraken.api.core.packet.ObfuscatedNames;
 import lombok.extern.slf4j.Slf4j;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.agent.ByteBuddyAgent;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
+import net.bytebuddy.matcher.ElementMatchers;
 import net.runelite.api.Client;
+import net.runelite.client.RuneLite;
+import net.runelite.client.eventbus.EventBus;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.lang.reflect.*;
-import java.util.Arrays;
+import java.lang.reflect.Field;
 
-/**
- * Advanced packet interceptor that hooks into the addNode method using dynamic proxy
- */
 @Slf4j
 @Singleton
 public class PacketInterceptor {
@@ -18,100 +22,72 @@ public class PacketInterceptor {
     @Inject
     private Client client;
 
-    @Inject
-    private PacketMappingTool mappingTool;
+    public static final EventBus eventBus = RuneLite.getInjector().getInstance(EventBus.class);
+    public static PacketInterceptor instance;
+    public volatile boolean isIntercepting = false;
+    public boolean injected = false;
 
-    private Object originalPacketWriter;
-    private Object proxyPacketWriter;
-    private boolean isIntercepting = false;
-
-    /**
-     * Starts intercepting packets by replacing the PacketWriter with a proxy
-     */
-    public void startInterception() throws Exception {
-        if (isIntercepting) {
-            log.warn("Already intercepting packets");
-            return;
-        }
-
-        // Get the PacketWriter field
-        Field packetWriterField = client.getClass().getDeclaredField(ObfuscatedNames.packetWriterFieldName);
-        packetWriterField.setAccessible(true);
-        originalPacketWriter = packetWriterField.get(null);
-
-        if (originalPacketWriter == null) {
-            throw new IllegalStateException("PacketWriter is null");
-        }
-
-        Class<?> packetWriterClass = originalPacketWriter.getClass();
-        
-        // Create a proxy that intercepts method calls
-        proxyPacketWriter = Proxy.newProxyInstance(
-            packetWriterClass.getClassLoader(),
-            packetWriterClass.getInterfaces(),
-            new PacketWriterInvocationHandler(originalPacketWriter, this)
-        );
-
-        // Replace the PacketWriter with our proxy
-        // Note: This may not work if PacketWriter is a concrete class, not an interface
-        // In that case, we need a different approach
-        
-        log.info("Packet interception started (proxy approach)");
-        isIntercepting = true;
+    public PacketInterceptor() {
+        instance = this;
     }
 
     /**
-     * Stops packet interception
+     * The Advice class. This code is injected DIRECTLY into the start of the 'ah' method.
+     * It must be public and static.
      */
-    public void stopInterception() throws Exception {
-        if (!isIntercepting) {
-            return;
-        }
-
-        // Restore the original PacketWriter
-        Field packetWriterField = client.getClass().getDeclaredField(ObfuscatedNames.packetWriterFieldName);
-        packetWriterField.setAccessible(true);
-        packetWriterField.set(null, originalPacketWriter);
-
-        isIntercepting = false;
-        log.info("Packet interception stopped");
-    }
-
-    /**
-     * Called when a packet is intercepted
-     */
-    public void onPacketIntercepted(Object packetBufferNode) {
-        try {
-            log.debug("Packet intercepted, analyzing...");
-            mappingTool.analyzePacket(packetBufferNode);
-        } catch (Exception e) {
-            log.error("Error analyzing intercepted packet: ", e);
-        }
-    }
-
-    /**
-     * Invocation handler for the PacketWriter proxy
-     */
-    private static class PacketWriterInvocationHandler implements InvocationHandler {
-        private final Object target;
-        private final PacketInterceptor interceptor;
-
-        public PacketWriterInvocationHandler(Object target, PacketInterceptor interceptor) {
-            this.target = target;
-            this.interceptor = interceptor;
-        }
-
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            // Check if this is the addNode method
-            if (method.getName().equals(ObfuscatedNames.addNodeMethodName) && args != null && args.length > 0) {
-                // First argument should be the PacketBufferNode
-                Object packetBufferNode = args[0];
-                interceptor.onPacketIntercepted(packetBufferNode);
+    public static class PacketHookAdvice {
+        @Advice.OnMethodEnter
+        public static void onEnter(@Advice.Argument(0) Object packetBufferNode) {
+            if (instance != null && instance.isIntercepting) {
+                try {
+                    eventBus.post(new PacketSent(packetBufferNode));
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
             }
-
-            // Forward the call to the original object
-            return method.invoke(target, args);
         }
+    }
+
+    public void startInterception() throws Exception {
+        if (isIntercepting) return;
+
+        if(injected) {
+            log.info("Already injected, skipping");
+            return;
+        }
+
+        // 1. Install the ByteBuddy Agent to the current JVM
+        // This gives us permission to redefine loaded classes
+        try {
+            ByteBuddyAgent.install();
+        } catch (IllegalStateException e) {
+            log.warn("Agent already installed or failed: " + e.getMessage());
+        }
+
+        // 2. Identify the target class (dh) TODO Exists on the client this revision (236), could exist in packet writer other revisions
+        Field packetWriterField = client.getClass().getDeclaredField(ObfuscatedNames.packetWriterFieldName);
+        packetWriterField.setAccessible(true);
+        Object writerInstance = packetWriterField.get(null);
+
+        if (writerInstance == null) throw new IllegalStateException("PacketWriter is null");
+        Class<?> packetWriterClass = writerInstance.getClass();
+
+        log.info("Redefining class: {}", packetWriterClass.getName());
+
+        // Redefine the class in memory by patch the bytecode of the existing class.
+        new ByteBuddy()
+                .redefine(packetWriterClass)
+                .visit(Advice.to(PacketHookAdvice.class).on(ElementMatchers.named(ObfuscatedNames.addNodeMethodName)))
+                .make()
+                .load(packetWriterClass.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+
+        isIntercepting = true;
+        injected = true;
+        log.info("Packet interception hooked");
+    }
+
+    public void stopInterception() {
+        isIntercepting = false;
+        log.info("Packet interception paused");
     }
 }
