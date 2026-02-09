@@ -1,6 +1,7 @@
-package com.kraken.api.plugins.packetmapper;
+package com.kraken.api.core.packet;
 
-import com.kraken.api.core.packet.ObfuscatedNames;
+import com.kraken.api.core.packet.model.PacketData;
+import com.kraken.api.core.packet.model.PacketSent;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -19,28 +20,28 @@ import java.lang.reflect.Field;
 @Singleton
 public class PacketInterceptor {
 
-    @Inject
-    private Client client;
-
     public static final EventBus eventBus = RuneLite.getInjector().getInstance(EventBus.class);
     public static PacketInterceptor instance;
-    public volatile boolean isIntercepting = false;
     public boolean injected = false;
+    public Client client;
 
-    public PacketInterceptor() {
+    @Inject
+    public PacketInterceptor(Client client) {
         instance = this;
+        this.client = client;
     }
 
     /**
-     * The Advice class. This code is injected DIRECTLY into the start of the 'ah' method.
+     * The Advice class. This code is injected DIRECTLY into the start of the "addNode" method.
      * It must be public and static.
      */
     public static class PacketHookAdvice {
         @Advice.OnMethodEnter
         public static void onEnter(@Advice.Argument(0) Object packetBufferNode) {
-            if (instance != null && instance.isIntercepting) {
+            if (instance != null) {
                 try {
-                    eventBus.post(new PacketSent(packetBufferNode));
+                    PacketData data = PacketBufferReader.readPacketBuffer(packetBufferNode);
+                    eventBus.post(new PacketSent(packetBufferNode, data));
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
@@ -48,15 +49,20 @@ public class PacketInterceptor {
         }
     }
 
-    public void startInterception() throws Exception {
-        if (isIntercepting) return;
-
+    /**
+     * Modifies the bytecode of the "addNode" method within the client at runtime to invoke
+     * the {@link PacketHookAdvice} class whenever the method is called. This will publish
+     * the {@link PacketSent} event to the eventbus which can be {@link net.runelite.client.eventbus.Subscribe}
+     * to within plugins who need access to low level packets.
+     * @throws Exception
+     */
+    public void injectHook() throws Exception {
         if(injected) {
             log.info("Already injected, skipping");
             return;
         }
 
-        // 1. Install the ByteBuddy Agent to the current JVM
+        // Install the ByteBuddy Agent to the current JVM
         // This gives us permission to redefine loaded classes
         try {
             ByteBuddyAgent.install();
@@ -64,15 +70,12 @@ public class PacketInterceptor {
             log.warn("Agent already installed or failed: " + e.getMessage());
         }
 
-        // 2. Identify the target class (dh) TODO Exists on the client this revision (236), could exist in packet writer other revisions
         Field packetWriterField = client.getClass().getDeclaredField(ObfuscatedNames.packetWriterFieldName);
         packetWriterField.setAccessible(true);
         Object writerInstance = packetWriterField.get(null);
 
         if (writerInstance == null) throw new IllegalStateException("PacketWriter is null");
         Class<?> packetWriterClass = writerInstance.getClass();
-
-        log.info("Redefining class: {}", packetWriterClass.getName());
 
         // Redefine the class in memory by patch the bytecode of the existing class.
         new ByteBuddy()
@@ -81,13 +84,7 @@ public class PacketInterceptor {
                 .make()
                 .load(packetWriterClass.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
 
-        isIntercepting = true;
         injected = true;
         log.info("Packet interception hooked");
-    }
-
-    public void stopInterception() {
-        isIntercepting = false;
-        log.info("Packet interception paused");
     }
 }

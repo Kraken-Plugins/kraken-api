@@ -122,7 +122,7 @@ public class PacketClient {
         // Map the PacketType to the expected parameter order.
         // This is necessary because the varargs 'objects' must be written in a specific
         // sequence defined by the packet structure, not just the order they are passed in.
-        List<String> params = def.getParams();
+        List<String> params = def.getType().getParams();
 
         // If the packet type is recognized, write the data into the buffer.
         if (params != null) {
