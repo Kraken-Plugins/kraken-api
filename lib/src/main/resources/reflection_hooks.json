@@ -2,22 +2,16 @@
     "setLoginIndexGarbageValue": 1725227271,
     "setLoginIndexMethodName": "at",
     "setLoginIndexClassName": "mw",
-
     "jxSessionFieldName": "ot",
     "jxSessionClassName": "vh",
-
     "jxAccountIdFieldName": "ox",
     "jxAccountIdClassName": "lr",
-
     "jxDisplayNameFieldName": "le",
     "jxDisplayNameClassName": "lt",
-
     "jxAccountCheckFieldName": "fd",
     "jxAccountCheckClassName": "client",
-
     "jxJagexValueFieldName": "ax",
     "jxJagexValueClassName": "xi",
-
     "jxLegacyValueFieldName": "ac",
     "jxLegacyValueClassName": "xi"
 }
