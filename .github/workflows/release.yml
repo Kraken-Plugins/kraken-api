@@ -75,6 +75,13 @@ jobs:
           echo "$COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
+      - name: Publish to GitHub Packages
+        run: |
+          echo "Publishing version $VERSION to GitHub Packages"
+          ./gradlew publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Git tag
         run: |
           git config user.name "github-actions[bot]"
@@ -88,13 +95,6 @@ jobs:
           tag_name: ${{ env.VERSION }}
           name: Release ${{ env.VERSION }}
           body: ${{ env.COMMITS }}
-
-      - name: Publish to GitHub Packages
-        run: |
-          echo "Publishing version $VERSION to GitHub Packages"
-          ./gradlew publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install MinIO client
         run: |
