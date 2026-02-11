@@ -402,6 +402,61 @@ public class PacketDefFactory {
         ));
     }
 
+    public PacketDefinition getDefinitionForType(PacketType type) {
+        switch (type) {
+            case OPOBJ: return getOpObj1();
+            case OPLOC: return getOpLoc1();
+            case OPNPC: return getOpNpc1();
+            case OPPLAYER: return getOpPlayer1();
+            case OPLOCT: return getOpLocT();
+            case OPNPCT: return getOpNpcT();
+            case OPPLAYERT: return getOpPlayerT();
+            case OPOBJT: return getOpObjT();
+            case IF_BUTTONT: return getIfButtonT();
+            case IF_BUTTONX:
+            case IF_BUTTON:
+                return getIfButtonX();
+            case IF_SUBOP: return getIfSubOp();
+            case OPHELDD: return getOpHeldd();
+            case RESUME_PAUSEBUTTON: return getResumePausebutton();
+            case RESUME_COUNTDIALOG: return getResumeCountDialog();
+            case RESUME_OBJDIALOG: return getResumeObjDialog();
+            case RESUME_NAMEDIALOG: return getResumeNameDialog();
+            case RESUME_STRINGDIALOG: return getResumeStringDialog();
+            case MOVE_GAMECLICK: return getMoveGameClick();
+            case EVENT_MOUSE_CLICK: return getEventMouseClick();
+            case SET_HEADING: return getSetHeading();
+            default: throw new IllegalArgumentException("Unknown packet type: " + type);
+        }
+    }
+
+    public PacketDefinition getDefinitionForType(PacketType type, int action) {
+        switch (type) {
+            case OPOBJ: return getOpObj(action);
+            case OPLOC: return getOpLoc(action);
+            case OPNPC: return getOpNpc(action);
+            case OPPLAYER: return getOpPlayer(action);
+            case OPLOCT: return getOpLocT();
+            case OPNPCT: return getOpNpcT();
+            case OPPLAYERT: return getOpPlayerT();
+            case OPOBJT: return getOpObjT();
+            case IF_BUTTON:
+            case IF_BUTTONX: return getIfButtonX();
+            case IF_BUTTONT: return getIfButtonT();
+            case IF_SUBOP: return getIfSubOp();
+            case OPHELDD: return getOpHeldd();
+            case RESUME_PAUSEBUTTON: return getResumePausebutton();
+            case RESUME_COUNTDIALOG: return getResumeCountDialog();
+            case RESUME_OBJDIALOG: return getResumeObjDialog();
+            case RESUME_NAMEDIALOG: return getResumeNameDialog();
+            case RESUME_STRINGDIALOG: return getResumeStringDialog();
+            case MOVE_GAMECLICK: return getMoveGameClick();
+            case EVENT_MOUSE_CLICK: return getEventMouseClick();
+            case SET_HEADING: return getSetHeading();
+            default: throw new IllegalArgumentException("Unknown packet type: " + type);
+        }
+    }
+
     public PacketDefinition getOpObj(int action) {
         switch (action) {
             case 1: return getOpObj1();

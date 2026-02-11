@@ -529,12 +529,12 @@ public final class ObfuscatedNames {
 
     public static final String getPacketBufferNodeGarbageValue = "-1779200100";
     public static final String packetWriterFieldName = "ca";
-    public static final String isaacCipherFieldName = "af";
-    public static final String addNodeMethodName = "ah";
-    public static final String clientPacketClassName = "mu";
     public static final String packetWriterClassName = "dh";
+    public static final String addNodeMethodName = "ah";
+    public static final String isaacCipherFieldName = "af";
+    public static final String clientPacketClassName = "mu";
     public static final String classContainingGetPacketBufferNodeName = "hi";
-    public static final String packetBufferNodeClassName = "mw";
+    public static final String packetBufferNodeClassName = "mw"; // mw.al (class.field) PacketBufferNode.packetBuffer
     public static final String packetBufferFieldName = "al";
     public static final String bufferOffsetField = "ai";
     public static final String bufferArrayField = "av";

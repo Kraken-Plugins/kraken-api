@@ -43,6 +43,7 @@ public class PacketMethodLocator {
     private static final Path WORKING_DIRECTORY = RuneLite.RUNELITE_DIR.toPath().resolve("kraken");
     private static String loadedCacheFileName = "";
     private static final Gson gson = new Gson();
+    private static final PacketInterceptor interceptor = RuneLite.getInjector().getInstance(PacketInterceptor.class);
 
     /**
      * Initializes the packet method locator. This is the main entry point.
@@ -68,6 +69,7 @@ public class PacketMethodLocator {
         }
 
         try {
+            interceptor.injectHook();
             findPacketMethods(client, RuneLiteProperties.getVersion());
             cleanupStaleFiles();
 
