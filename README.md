@@ -193,7 +193,7 @@ allprojects {
         // You must declare this maven repository to be able to search and pull Kraken API packages
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/cbartram/kraken-api")
+            url = uri("https://maven.pkg.github.com/Kraken-Plugins/kraken-api")
             credentials {
                 username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
@@ -207,8 +207,7 @@ allprojects {
 
 
 dependencies {
-    compileOnly group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
-    implementation group: 'com.github.cbartram', name:'shortest-path', version: '1.0.3'
+    compileOnly group: 'com.github.kraken', name:'kraken-api', version: krakenApiVersion
     // ... other dependencies
 }
 ```
