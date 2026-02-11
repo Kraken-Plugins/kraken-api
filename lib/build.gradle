@@ -80,7 +80,7 @@ publishing {
             pom {
                 name = 'Kraken API'
                 description = 'Kraken API Library'
-                url = 'https://github.com/cbartram/kraken-api'
+                url = 'https://github.com/Kraken-Plugins/kraken-api'
 
                 licenses {
                     license {
@@ -98,9 +98,9 @@ publishing {
                 }
 
                 scm {
-                    connection = 'scm:git:git://github.com/cbartram/kraken-api.git'
-                    developerConnection = 'scm:git:ssh://github.com/cbartram/kraken-api.git'
-                    url = 'https://github.com/cbartram/kraken-api'
+                    connection = 'scm:git:git://github.com/Kraken-Plugins/kraken-api.git'
+                    developerConnection = 'scm:git:ssh://github.com/Kraken-Plugins/kraken-api.git'
+                    url = 'https://github.com/Kraken-Plugins/kraken-api'
                 }
             }
         }
