@@ -54,7 +54,7 @@ public class PacketInterceptor {
      * the {@link PacketHookAdvice} class whenever the method is called. This will publish
      * the {@link PacketSent} event to the eventbus which can be {@link net.runelite.client.eventbus.Subscribe}
      * to within plugins who need access to low level packets.
-     * @throws Exception
+     * @throws Exception Throws an Illegal state exception if the hook is not able to be injected.
      */
     public void injectHook() throws Exception {
         if(injected) {

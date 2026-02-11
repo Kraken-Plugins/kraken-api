@@ -10,7 +10,9 @@ import java.util.Arrays;
 public class PacketBufferReader {
 
     /**
-     * Reads the raw byte data from a packet buffer node
+     * Reads the raw byte data from a packet buffer node using reflection.
+     * @param packetBufferNode The object containing the packet buffer field.
+     * @return A {@link PacketData} object containing the extracted bytes;
      */
     public static PacketData readPacketBuffer(Object packetBufferNode) {
         PacketData empty = new PacketData(new byte[0], 0, System.currentTimeMillis());
@@ -35,11 +37,9 @@ public class PacketBufferReader {
             int obfuscatedOffset = offsetField.getInt(packetBuffer);
 
             // 4. Calculate real length
-            // The offset field tracks the NEXT write position, so its value is the count of bytes written.
             int length = obfuscatedOffset * Integer.parseInt(ObfuscatedNames.indexMultiplier);
 
             // 5. Return only the written portion of the buffer
-            // Safety check to ensure we don't exceed array bounds if obfuscation data is stale
             if (length > payload.length) {
                 log.warn("Calculated packet length {} exceeds payload size {}", length, payload.length);
                 length = payload.length;
@@ -54,6 +54,13 @@ public class PacketBufferReader {
         }
     }
 
+    /**
+     * Recursively searches for a field within the class hierarchy.
+     * @param clazz The class to start the search from.
+     * @param fieldName The name of the field to find.
+     * @return The {@link Field} object if found.
+     * @throws NoSuchFieldException If the field is not found in the class or any of its superclasses.
+     */
     private static Field findField(Class<?> clazz, String fieldName) throws NoSuchFieldException {
         Class<?> current = clazz;
         while (current != null) {
@@ -67,7 +74,9 @@ public class PacketBufferReader {
     }
 
     /**
-     * Converts byte array to hex string for display
+     * Converts byte array to hex string for display.
+     * @param bytes The byte array to convert.
+     * @return A formatted hex string with spaces and newlines every 16 bytes.
      */
     public static String toHexString(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
@@ -81,7 +90,10 @@ public class PacketBufferReader {
     }
 
     /**
-     * Reads an integer from the byte array at the given position
+     * Reads an integer from the byte array at the given position.
+     * @param data The byte array.
+     * @param pos The starting index (expects 4 bytes available).
+     * @return The 32-bit integer value, or 0 if the position is out of bounds.
      */
     public static int readInt(byte[] data, int pos) {
         if (pos + 3 >= data.length) return 0;
@@ -92,7 +104,10 @@ public class PacketBufferReader {
     }
 
     /**
-     * Reads a short from the byte array at the given position
+     * Reads a short from the byte array at the given position.
+     * @param data The byte array.
+     * @param pos The starting index (expects 2 bytes available).
+     * @return The 16-bit value as an integer, or 0 if out of bounds.
      */
     public static int readShort(byte[] data, int pos) {
         if (pos + 1 >= data.length) return 0;
@@ -100,7 +115,10 @@ public class PacketBufferReader {
     }
 
     /**
-     * Reads a byte from the array at the given position
+     * Reads a single byte from the array at the given position.
+     * @param data The byte array.
+     * @param pos The index to read.
+     * @return The unsigned byte value as an integer, or 0 if out of bounds.
      */
     public static int readByte(byte[] data, int pos) {
         if (pos >= data.length) return 0;
@@ -111,18 +129,15 @@ public class PacketBufferReader {
      * Reads a CP1252 null-terminated string from the byte array.
      * Format: [string bytes][0x00]
      *
-     * @param data The byte array
-     * @param startPos The starting position in the array
-     * @return The decoded string
+     * @param data The byte array.
+     * @param startPos The starting position in the array.
+     * @return The decoded string.
      */
     public static String readStringCp1252NullTerminated(byte[] data, int startPos) {
-        // Find the null terminator
         int endPos = startPos;
         while (endPos < data.length && data[endPos] != 0) {
             endPos++;
         }
-
-        // Decode the bytes between startPos and endPos (exclusive)
         return decodeStringCp1252(data, startPos, endPos);
     }
 
@@ -130,21 +145,16 @@ public class PacketBufferReader {
      * Reads a CP1252 null-circumfixed string from the byte array.
      * Format: [0x00][string bytes][0x00]
      *
-     * @param data The byte array
-     * @param startPos The starting position (should be at the leading null byte)
-     * @return The decoded string
+     * @param data The byte array.
+     * @param startPos The starting position (should be at the leading null byte).
+     * @return The decoded string.
      */
     public static String readStringCp1252NullCircumfixed(byte[] data, int startPos) {
-        // Skip the leading null byte
         int stringStart = startPos + 1;
-
-        // Find the trailing null terminator
         int endPos = stringStart;
         while (endPos < data.length && data[endPos] != 0) {
             endPos++;
         }
-
-        // Decode the bytes between the two null bytes
         return decodeStringCp1252(data, stringStart, endPos);
     }
 
@@ -152,10 +162,10 @@ public class PacketBufferReader {
      * Decodes a byte array range from CP1252 encoding back to a Java String.
      * This reverses the encodeStringCp1252 method.
      *
-     * @param data The byte array containing CP1252 encoded data
-     * @param startIndex The starting index in the array
-     * @param endIndex The ending index (exclusive)
-     * @return The decoded string
+     * @param data The byte array containing CP1252 encoded data.
+     * @param startIndex The starting index in the array.
+     * @param endIndex The ending index (exclusive).
+     * @return The decoded string.
      */
     public static String decodeStringCp1252(byte[] data, int startIndex, int endIndex) {
         StringBuilder sb = new StringBuilder(endIndex - startIndex);
