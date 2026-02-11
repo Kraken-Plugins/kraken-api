@@ -33,9 +33,6 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:1.7.25")
     implementation("net.bytebuddy:byte-buddy:1.18.4")
     implementation("net.bytebuddy:byte-buddy-agent:1.18.4")
-//    implementation 'org.ow2.asm:asm:9.6'
-//    implementation 'org.ow2.asm:asm-tree:9.6'
-//    implementation 'org.ow2.asm:asm-util:9.6'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
@@ -109,7 +106,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/cbartram/kraken-api")
+            url = uri("https://maven.pkg.github.com/Kraken-Plugins/kraken-api")
             credentials {
                 username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
