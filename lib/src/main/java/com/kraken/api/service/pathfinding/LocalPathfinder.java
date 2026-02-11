@@ -14,6 +14,7 @@ import javax.inject.Singleton;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 /**
@@ -90,6 +91,96 @@ public class LocalPathfinder {
         sparsePath.add(densePath.get(densePath.size() - 1));
 
         return sparsePath;
+    }
+
+    /**
+     * Creates a randomized variation of a sparse path by slightly offsetting waypoints
+     * while ensuring each candidate waypoint is still reachable.
+     *
+     * <p>The method samples up to {@code attemptsPerPoint} random offsets per waypoint within
+     * {@code maxOffset} tiles. A candidate is accepted only if it is present in the set of
+     * reachable tiles from the selected origin (the start for the first waypoint when provided,
+     * otherwise the original waypoint). If no candidate is valid, the original waypoint is kept.</p>
+     *
+     * @param start The starting point for the path. Used as the reachability origin for the first
+     *              waypoint when provided.
+     * @param sparsePath The sparse path to randomize.
+     * @param maxOffset The maximum offset (in tiles) to apply to a waypoint in any direction.
+     * @param attemptsPerPoint The number of random candidates to try per waypoint.
+     * @param keepEndpoints Whether to keep the first and last waypoint unchanged.
+     * @return A new list of WorldPoints representing the randomized sparse path.
+     */
+    public List<WorldPoint> randomizeSparsePath(WorldPoint start, List<WorldPoint> sparsePath, int maxOffset, int attemptsPerPoint, boolean keepEndpoints) {
+        if (sparsePath == null || sparsePath.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (maxOffset <= 0 || attemptsPerPoint <= 0) {
+            return new ArrayList<>(sparsePath);
+        }
+
+        Random rng = ThreadLocalRandom.current();
+        List<WorldPoint> randomized = new ArrayList<>(sparsePath.size());
+
+        for (int i = 0; i < sparsePath.size(); i++) {
+            WorldPoint original = sparsePath.get(i);
+            if (original == null) {
+                randomized.add(null); // Preserves the list size
+                continue;
+            }
+
+            boolean isEndpoint = (i == 0 || i == sparsePath.size() - 1);
+            if (keepEndpoints && isEndpoint) {
+                randomized.add(original);
+                continue;
+            }
+
+            WorldPoint reachOrigin = (i == 0 && start != null) ? start : original;
+            List<WorldPoint> reachable = reachableTiles(reachOrigin);
+            if (reachable == null || reachable.isEmpty()) {
+                randomized.add(original);
+                continue;
+            }
+
+            Set<WorldPoint> reachableSet = new HashSet<>(reachable);
+            WorldPoint chosen = original;
+
+            for (int attempt = 0; attempt < attemptsPerPoint; attempt++) {
+                int dx = rng.nextInt(2 * maxOffset + 1) - maxOffset;
+                int dy = rng.nextInt(2 * maxOffset + 1) - maxOffset;
+                if (dx == 0 && dy == 0) {
+                    continue;
+                }
+
+                WorldPoint candidate = new WorldPoint(
+                        original.getX() + dx,
+                        original.getY() + dy,
+                        original.getPlane()
+                );
+
+                if (!reachableSet.contains(candidate)) {
+                    continue;
+                }
+
+                chosen = candidate;
+                break;
+            }
+
+            randomized.add(chosen);
+        }
+
+        return randomized;
+    }
+
+    /**
+     * Convenience overload that keeps endpoints and uses a default attempt count.
+     *
+     * @param start The starting point for the path.
+     * @param sparsePath The sparse path to randomize.
+     * @param maxOffset The maximum offset (in tiles) to apply to a waypoint in any direction.
+     * @return A new list of WorldPoints representing the randomized sparse path.
+     */
+    public List<WorldPoint> randomizeSparsePath(WorldPoint start, List<WorldPoint> sparsePath, int maxOffset) {
+        return randomizeSparsePath(start, sparsePath, maxOffset, 10, true);
     }
 
     /**

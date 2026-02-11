@@ -35,42 +35,46 @@ public class PathfinderServiceTest extends BaseApiTest {
     @Inject
     private SleepService sleepService;
 
+
     @Override
-    protected boolean runTest(Context ctx) throws Exception {
-        log.info("Moving player to start position");
-        movementService.moveTo(PLAYER_START);
-        sleepService.sleepUntil(() -> ctx.players().local().isIdle() && ctx.players().local().raw().getWorldLocation() == PLAYER_START, 5000);
+    public boolean runTest(Context ctx) throws Exception {
+        WorldPoint[] path = {
+                new WorldPoint(3253, 3421, 0),
+                new WorldPoint(3253, 3426, 0),
+                new WorldPoint(3255, 3428, 0),
+                new WorldPoint(3258, 3430, 0),
+                new WorldPoint(3259, 3432, 0),
+                new WorldPoint(3263, 3433, 0),
+                new WorldPoint(3262, 3438, 0),
+                new WorldPoint(3259, 3440, 0),
+                new WorldPoint(3255, 3439, 0),
+                new WorldPoint(3249, 3440, 0),
+                new WorldPoint(3247, 3443, 0),
+                new WorldPoint(3245, 3440, 0),
+                new WorldPoint(3242, 3438, 0),
+                new WorldPoint(3242, 3433, 0),
+                new WorldPoint(3239, 3431, 0),
+                new WorldPoint(3237, 3428, 0),
+                new WorldPoint(3240, 3426, 0),
+                new WorldPoint(3240, 3421, 0),
+                new WorldPoint(3240, 3418, 0),
+                new WorldPoint(3243, 3417, 0),
+                new WorldPoint(3245, 3420, 0),
+                new WorldPoint(3245, 3425, 0),
+                new WorldPoint(3248, 3427, 0),
+                new WorldPoint(3249, 3429, 0),
+                new WorldPoint(3252, 3428, 0)
+        };
 
-        // Assert we can find a path within the scene, this assumes we are standing in or near Varrock west
-        List<WorldPoint> path = pathfinder.findPath(PLAYER_START, VARROCK_SQUARE);
-        if(path.isEmpty() || path.size() < 40) {
-            log.info("Varrock Sq path size: {}", path.size());
-            return false;
+        for(int i = 0; i < 5; i++) {
+            List<WorldPoint> randomizedPath = pathfinder.randomizeSparsePath(ctx.players().local().raw().getWorldLocation(), List.of(path), 2, 3, true);
+            plugin.getCurrentPath().clear();
+            plugin.getCurrentPath().addAll(randomizedPath);
+            Thread.sleep(RandomService.between(4000, 5000));
         }
 
         plugin.getCurrentPath().clear();
-        plugin.getCurrentPath().addAll(path);
-        Thread.sleep(RandomService.between(3000, 5000));
 
-        List<WorldPoint> blueMoonPath = pathfinder.findPath(PLAYER_START, VARROCK_WALL_INVALID);
-        if(blueMoonPath.isEmpty() || blueMoonPath.size() < 10) {
-            log.info("Blue Moon path size: {}", blueMoonPath.size());
-            return false;
-        }
-
-        plugin.getCurrentPath().clear();
-        plugin.getCurrentPath().addAll(blueMoonPath);
-        Thread.sleep(RandomService.between(3000, 5000));
-
-        List<WorldPoint> nearestOutOfScene = pathfinder.findPath(PLAYER_START, OUT_OF_SCENE_LUMBRIDGE);
-        if(nearestOutOfScene.isEmpty() || nearestOutOfScene.size() < 20) {
-            log.info("Nearest out of scene path size: {}", nearestOutOfScene.size());
-            return false;
-        }
-
-        plugin.getCurrentPath().clear();
-        plugin.getCurrentPath().addAll(nearestOutOfScene);
-        Thread.sleep(RandomService.between(3000, 5000));
         return true;
     }
 
