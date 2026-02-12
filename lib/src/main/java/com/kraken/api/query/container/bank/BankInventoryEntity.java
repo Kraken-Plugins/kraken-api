@@ -102,6 +102,22 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
 
 
     /**
+     * Attempts to wield or wear an item in the inventory while the bank interface is open.
+     * The method will find the first matching action on {@link BankInventoryEntity} either "wield" or "wear"
+     * and invoke the action. This is useful when you have a combination of weapons and items in the inventory
+     * that need to be equipped or wielded.
+     *
+     * @return True if the wield/wear action was successfully invoked and false otherwise.
+     */
+    public boolean wieldOrWear() {
+        ContainerItem raw = raw();
+        if (raw == null) return false;
+        ctx.getInteractionManager().interact(raw, "wield", "wear");
+        return true;
+    }
+
+
+    /**
      * Attempts to wear an item in the inventory while the bank interface is open.
      * <p>
      * The action is typically used to equip wearable items
