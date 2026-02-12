@@ -99,6 +99,34 @@ public class InteractionManager {
     }
 
     /**
+     * Interacts with an item with the specified ID in an item container (inventory, inventory while banking, equipment, etc...)
+     * using the first matching specified action. For example, passing "wield" and "wear" as actions would result in
+     * wielding weapons and wearing armor when invoked on the given container item.
+     *
+     * <p>
+     * @param item The Container Item to interact with. A container item is an item stored in a container like an inventory, a inventory while banking
+     *             or the equipment interface.
+     * @param actions A variable number of actions to take. i.e. "Eat", "Remove", "Wield", "Wear", or "Use" The first action which matches
+     *                the list of actions on the container item will be used.
+     */
+    public void interact(ContainerItem item, String... actions) {
+        if(!ctxProvider.get().isPacketsLoaded()) return;
+        ctxProvider.get().runOnClientThread(() -> {
+            if(item == null) return;
+
+            Widget w = item.getWidget();
+            if (w == null) {
+                log.error("Failed to resolve widget for item interaction: {}", item.getName());
+                return;
+            }
+
+            Point pt = UIService.getClickbox(item);
+            mousePackets.queueClickPacket(pt.getX(), pt.getY());
+            widgetPackets.queueWidgetAction(w, actions);
+        });
+    }
+
+    /**
      * Interacts with a widget in the players bank using the specific action.
      * @param item The bank item widget to interact with
      * @param action The action to take i.e. Withdraw-1, Withdraw-X, Examine
