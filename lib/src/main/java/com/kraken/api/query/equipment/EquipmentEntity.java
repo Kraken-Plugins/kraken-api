@@ -31,6 +31,18 @@ public class EquipmentEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
+     * Wields or wears an equippable item dependent on the item. If the items
+     * actions contain "wear," then the item will be worn, else it will be wielded.
+     * @return true if the item was equipped and false otherwise
+     */
+    public boolean wieldOrWear() {
+        ContainerItem raw = raw();
+        if (raw == null) return false;
+        ctx.getInteractionManager().interact(raw, "wield", "wear");
+        return true;
+    }
+
+    /**
      * Wears an equippable item
      * @return true if the item was equipped and false otherwise
      */
