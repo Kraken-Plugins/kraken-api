@@ -274,5 +274,4 @@ public class InteractionManager {
             groundItemPackets.queueGroundItemAction(item.getTileItem(), item.getLocation(), false);
         }
     }
-
 }

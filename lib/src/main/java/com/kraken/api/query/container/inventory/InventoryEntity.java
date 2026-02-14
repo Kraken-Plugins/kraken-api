@@ -75,7 +75,7 @@ public class InventoryEntity extends AbstractEntity<ContainerItem> {
     public boolean useOn(NPC npc) {
         ContainerItem item = raw();
 
-        if(item.getWidget() != null && npc!= null) {
+        if(item.getWidget() != null && npc != null) {
             ctx.getInteractionManager().interact(item.getWidget(), npc);
             return true;
         }
