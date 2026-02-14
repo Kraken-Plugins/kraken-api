@@ -112,7 +112,7 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
     public boolean wieldOrWear() {
         ContainerItem raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, "wield", "wear");
+        ctx.getInteractionManager().interact(raw, "wield", "wear", "equip");
         return true;
     }
 
@@ -157,7 +157,7 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
      */
     public boolean wield() {
         // TODO This doesn't validate that the wield action exists on this bank inventory entity.
-        ctx.getInteractionManager().interact(raw, "wield");
+        ctx.getInteractionManager().interact(raw, "wield", "equip");
         return true;
     }
 }
