@@ -4,7 +4,6 @@ import com.kraken.api.core.packet.model.PacketData;
 import com.kraken.api.core.packet.model.PacketSent;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.matcher.ElementMatchers;
@@ -60,14 +59,6 @@ public class PacketInterceptor {
         if(injected) {
             log.info("Already injected, skipping");
             return;
-        }
-
-        // Install the ByteBuddy Agent to the current JVM
-        // This gives us permission to redefine loaded classes
-        try {
-            ByteBuddyAgent.install();
-        } catch (IllegalStateException e) {
-            log.warn("Agent already installed or failed: " + e.getMessage());
         }
 
         Field packetWriterField = client.getClass().getDeclaredField(ObfuscatedNames.packetWriterFieldName);
