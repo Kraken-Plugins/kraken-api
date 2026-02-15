@@ -14,6 +14,7 @@ import net.runelite.api.events.ScriptCallbackEvent;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.VarClientID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.eventbus.Subscribe;
@@ -167,6 +168,37 @@ public class BankService {
         return false;
     }
 
+    /**
+     * Sets the X number of items to withdraw or deposit. The X variable can be set to any arbitrary integer
+     * value to withdraw or deposit X amount of a given item.
+     * @param amount The number of items to withdraw or deposit
+     */
+    public void setXAmount(int amount) {
+        int withdrawMode = ctxProvider.get().getVarbitValue(VarbitID.BANK_QUANTITY_TYPE);
+        WidgetPackets widgetPackets = ctxProvider.get().getService(WidgetPackets.class);
+
+
+        if(withdrawMode != 3) {
+            widgetPackets.queueWidgetActionPacket(InterfaceID.Bankmain.QUANTITYX, -1, -1, 1);
+        }
+
+        int quantity = getXAmount();
+        if(quantity != amount && amount != 1 && amount != 5 && amount != 10 && amount != -1) {
+            widgetPackets.queueWidgetActionPacket(InterfaceID.Bankmain.QUANTITYX, -1, -1, 2);
+            widgetPackets.queueResumeCount(amount);
+            UIService.closeNumberDialogue();
+        }
+    }
+
+
+    /**
+     * Returns the current amount the X variable is set to. The X variable can be set to any arbitrary integer
+     * value to withdraw or deposit X amount of a given item.
+     * @return The current X amount
+     */
+    public int getXAmount() {
+        return ctxProvider.get().getVarbitValue(VarbitID.BANK_REQUESTEDQUANTITY);
+    }
 
     /**
      * Closes the bank interface if it is open.

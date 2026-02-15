@@ -3,7 +3,9 @@ package example.tests.query;
 
 import com.google.inject.Inject;
 import com.kraken.api.Context;
+import com.kraken.api.query.container.bank.BankEntity;
 import com.kraken.api.service.bank.BankService;
+import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
 import example.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +38,13 @@ public class BankTest extends BaseApiTest {
             testsPassed &= ctx.bank().withName("Rune full helm").first().withdraw(1, false);
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
             testsPassed &= ctx.bank().withId(373).first().withdraw(4, false); // swordfish
+
+            SleepService.sleepFor(3);
+            BankEntity lobster = ctx.bank().withName("Lobster").first();
+            lobster.withdraw(6, false);
+            SleepService.sleepFor(3);
+            lobster.withdraw(7, true);
+
             testsPassed &= bankService.close();
         } catch (Exception e) {
             log.error("Exception during bank query test", e);
