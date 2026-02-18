@@ -1,8 +1,5 @@
-package com.kraken.api.sim.colosim.model;
+package com.kraken.api.sim.colosim;
 
-import lombok.AllArgsConstructor;
-
-@AllArgsConstructor
 public enum NpcType {
     PLAYER(0),
     SERPENT_SHAMAN(1),
@@ -14,6 +11,10 @@ public enum NpcType {
     REINFORCEMENT_SHAMAN(7);
 
     public final int typeId;
+
+    NpcType(int typeId) {
+        this.typeId = typeId;
+    }
 
     public static NpcType fromTypeId(int typeId) {
         for (NpcType value : values()) {

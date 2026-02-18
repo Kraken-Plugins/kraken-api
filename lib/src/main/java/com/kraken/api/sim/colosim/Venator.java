@@ -1,18 +1,17 @@
 package com.kraken.api.sim.colosim;
 
-import com.kraken.api.sim.colosim.model.Tile;
-import lombok.NoArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.List;
 
-@NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public final class Venator {
     private static final int RANGE = 2;
 
+    private Venator() {
+    }
+
     private static boolean isInRange(Tile from, Tile to) {
-        int dxAbs = Math.abs(from.getX() - to.getX());
-        int dyAbs = Math.abs(from.getY() - to.getY());
+        int dxAbs = Math.abs(from.x - to.x);
+        int dyAbs = Math.abs(from.y - to.y);
         return dxAbs <= RANGE && dyAbs <= RANGE;
     }
 

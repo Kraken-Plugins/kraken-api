@@ -1,0 +1,49 @@
+package example.tests.sim;
+
+import com.kraken.api.sim.colosim.Mob;
+import com.kraken.api.sim.colosim.NpcType;
+import com.kraken.api.sim.colosim.Simulation;
+import org.junit.jupiter.api.Test;
+
+import static example.tests.sim.SimulationTestUtils.assertMobPosition;
+import static example.tests.sim.SimulationTestUtils.mobAt;
+import static org.junit.Assert.assertEquals;
+
+class FromWaveStartTest {
+
+    @Test
+    void firstTickNoMovementSecondTickMoves() {
+        Simulation simulation = new Simulation();
+        simulation.setFromWaveStart(true);
+        simulation.placeMob(20, 13, NpcType.JAVELIN_COLOSSUS, null);
+        simulation.setPlayer(7, 8);
+
+        simulation.step();
+        assertMobPosition(mobAt(simulation, 0), 20, 13);
+
+        simulation.step();
+        assertMobPosition(mobAt(simulation, 0), 19, 12);
+    }
+
+    @Test
+    void attacksDelayedUntilFourthTick() {
+        Simulation simulation = new Simulation();
+        simulation.setFromWaveStart(true);
+        simulation.placeMob(12, 12, NpcType.JAVELIN_COLOSSUS, null);
+        simulation.setPlayer(16, 16);
+
+        simulation.step();
+        Mob javelin = mobAt(simulation, 0);
+        assertEquals(-1, javelin.cooldown);
+
+        simulation.step();
+        assertMobPosition(javelin, 13, 13);
+        assertEquals(-2, javelin.cooldown);
+
+        simulation.step();
+        assertEquals(-3, javelin.cooldown);
+
+        simulation.step();
+        assertEquals(5, javelin.cooldown);
+    }
+}

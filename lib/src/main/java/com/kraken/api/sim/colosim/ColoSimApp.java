@@ -1,9 +1,5 @@
 package com.kraken.api.sim.colosim;
 
-import com.kraken.api.sim.colosim.model.Mob;
-import com.kraken.api.sim.colosim.model.NpcType;
-import com.kraken.api.sim.colosim.model.Tile;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -14,24 +10,48 @@ import java.util.List;
 
 public class ColoSimApp {
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new ColoSimApp().start());
+        SwingUtilities.invokeLater(() -> {
+            AppTheme.install();
+            new ColoSimApp().start();
+        });
     }
 
     private void start() {
         final Simulation simulation = new Simulation();
         final SimulationPanel panel = new SimulationPanel(simulation);
+        final TimelinePanel timelinePanel = new TimelinePanel(simulation);
 
         JFrame frame = new JFrame("OSRS Colosseum Java Simulator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new BorderLayout(8, 8));
+        frame.setLayout(new BorderLayout(12, 12));
+        frame.getContentPane().setBackground(AppTheme.BG);
 
-        JPanel controls = new JPanel();
-        controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
-        controls.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        controls.setPreferredSize(new Dimension(260, 800));
+        JPanel rootLeft = new JPanel(new BorderLayout(8, 8));
+        rootLeft.setOpaque(false);
+        rootLeft.setPreferredSize(new Dimension(340, 860));
+
+        JPanel topActions = new JPanel(new GridLayout(2, 2, 8, 8));
+        AppTheme.styleCard(topActions);
 
         JComboBox<SimulationPanel.Tool> toolBox = new JComboBox<SimulationPanel.Tool>(SimulationPanel.Tool.values());
         toolBox.addActionListener(e -> panel.setTool((SimulationPanel.Tool) toolBox.getSelectedItem()));
+
+        JButton stepButton = new JButton("Step");
+        JButton autoButton = new JButton("Play");
+        JButton resetButton = new JButton("Reset");
+        JButton clearButton = new JButton("Clear");
+        AppTheme.styleButton(stepButton);
+        AppTheme.styleButton(autoButton);
+        AppTheme.styleButton(resetButton);
+        AppTheme.styleButton(clearButton);
+
+        topActions.add(stepButton);
+        topActions.add(autoButton);
+        topActions.add(resetButton);
+        topActions.add(clearButton);
+
+        JPanel setupPanel = new JPanel(new GridLayout(0, 1, 6, 6));
+        AppTheme.styleCard(setupPanel);
 
         List<NpcType> npcTypes = new ArrayList<NpcType>();
         for (NpcType value : NpcType.values()) {
@@ -55,27 +75,49 @@ public class ColoSimApp {
         JCheckBox showVenator = new JCheckBox("Show Venator Bounce", true);
         showVenator.addActionListener(e -> panel.setShowVenatorBounce(showVenator.isSelected()));
 
-        JLabel tickLabel = new JLabel("Tick: 0");
+        setupPanel.add(new JLabel("Tool"));
+        setupPanel.add(toolBox);
+        setupPanel.add(new JLabel("NPC Type"));
+        setupPanel.add(npcTypeBox);
+        setupPanel.add(new JLabel("Manticore Extra"));
+        setupPanel.add(mantiExtraBox);
+        setupPanel.add(new JSeparator());
+        setupPanel.add(fromWaveStart);
+        setupPanel.add(mantimayhem3);
+        setupPanel.add(showPlayerLos);
+        setupPanel.add(showVenator);
 
-        JTextArea infoArea = new JTextArea(18, 30);
+        JPanel statusPanel = new JPanel(new BorderLayout(6, 6));
+        AppTheme.styleCard(statusPanel);
+        JLabel tickLabel = new JLabel("Tick: 0");
+        tickLabel.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 18));
+        statusPanel.add(tickLabel, BorderLayout.NORTH);
+
+        JTextArea infoArea = new JTextArea(20, 34);
         infoArea.setEditable(false);
-        infoArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        infoArea.setLineWrap(true);
+        infoArea.setWrapStyleWord(true);
+        infoArea.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         JScrollPane infoScroll = new JScrollPane(infoArea);
+        infoScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        infoScroll.getVerticalScrollBar().setUnitIncrement(14);
+        statusPanel.add(infoScroll, BorderLayout.CENTER);
+
+        JScrollPane timelineScroll = new JScrollPane(timelinePanel);
+        timelineScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        timelineScroll.getVerticalScrollBar().setUnitIncrement(14);
+        timelineScroll.setPreferredSize(new Dimension(240, panel.getPreferredSize().height));
 
         Timer timer = new Timer(600, e -> {
             simulation.step();
-            panel.repaint();
-            refreshInfo(simulation, panel, infoArea, tickLabel);
+            refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
         });
 
-        JButton stepButton = new JButton("Step");
         stepButton.addActionListener(e -> {
             simulation.step();
-            panel.repaint();
-            refreshInfo(simulation, panel, infoArea, tickLabel);
+            refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
         });
 
-        JButton autoButton = new JButton("Play");
         autoButton.addActionListener(e -> {
             if (timer.isRunning()) {
                 timer.stop();
@@ -86,83 +128,75 @@ public class ColoSimApp {
             }
         });
 
-        JButton resetButton = new JButton("Reset");
         resetButton.addActionListener(e -> {
             simulation.reset();
-            panel.repaint();
-            refreshInfo(simulation, panel, infoArea, tickLabel);
+            refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
         });
 
-        JButton clearButton = new JButton("Clear");
         clearButton.addActionListener(e -> {
             simulation.clear();
-            panel.repaint();
-            refreshInfo(simulation, panel, infoArea, tickLabel);
+            refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
         });
 
-        controls.add(new JLabel("Tool"));
-        controls.add(toolBox);
-        controls.add(new JLabel("NPC Type"));
-        controls.add(npcTypeBox);
-        controls.add(new JLabel("Manticore Extra"));
-        controls.add(mantiExtraBox);
-        controls.add(fromWaveStart);
-        controls.add(mantimayhem3);
-        controls.add(showPlayerLos);
-        controls.add(showVenator);
-        controls.add(new JLabel(" "));
-        controls.add(stepButton);
-        controls.add(autoButton);
-        controls.add(resetButton);
-        controls.add(clearButton);
-        controls.add(new JLabel(" "));
-        controls.add(tickLabel);
-        controls.add(new JLabel(" "));
-        controls.add(infoScroll);
+        JPanel leftStack = new JPanel();
+        leftStack.setOpaque(false);
+        leftStack.setLayout(new GridLayout(0, 1, 8, 8));
+        leftStack.add(topActions);
+        leftStack.add(setupPanel);
+        leftStack.add(statusPanel);
+        rootLeft.add(leftStack, BorderLayout.NORTH);
 
         panel.setPlacementNpcType((NpcType) npcTypeBox.getSelectedItem());
         panel.setPlacementManticoreExtra((String) mantiExtraBox.getSelectedItem());
-        panel.setStateChangedCallback(() -> refreshInfo(simulation, panel, infoArea, tickLabel));
+        panel.setStateChangedCallback(() -> refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel));
 
-        frame.add(controls, BorderLayout.WEST);
-        frame.add(panel, BorderLayout.CENTER);
+        JPanel centerWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 12));
+        centerWrap.setOpaque(false);
+        centerWrap.add(panel);
+        centerWrap.add(timelineScroll);
 
-        bindKeys(frame, simulation, panel, infoArea, tickLabel);
-        refreshInfo(simulation, panel, infoArea, tickLabel);
+        frame.add(rootLeft, BorderLayout.WEST);
+        frame.add(centerWrap, BorderLayout.CENTER);
+
+        bindKeys(frame, simulation, panel, timelinePanel, infoArea, tickLabel);
+        refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
 
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
-    private void bindKeys(JFrame frame, Simulation simulation, SimulationPanel panel, JTextArea infoArea, JLabel tickLabel) {
+    private void bindKeys(JFrame frame, Simulation simulation, SimulationPanel panel, TimelinePanel timelinePanel, JTextArea infoArea, JLabel tickLabel) {
         frame.getRootPane().getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "step");
-        frame.getRootPane().getActionMap().put("step", new javax.swing.AbstractAction() {
+        frame.getRootPane().getActionMap().put("step", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 simulation.step();
-                panel.repaint();
-                refreshInfo(simulation, panel, infoArea, tickLabel);
+                refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
             }
         });
         frame.getRootPane().getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "reset");
-        frame.getRootPane().getActionMap().put("reset", new javax.swing.AbstractAction() {
+        frame.getRootPane().getActionMap().put("reset", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 simulation.reset();
-                panel.repaint();
-                refreshInfo(simulation, panel, infoArea, tickLabel);
+                refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
             }
         });
         frame.getRootPane().getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, InputEvent.SHIFT_DOWN_MASK), "clear");
-        frame.getRootPane().getActionMap().put("clear", new javax.swing.AbstractAction() {
+        frame.getRootPane().getActionMap().put("clear", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 simulation.clear();
-                panel.repaint();
-                refreshInfo(simulation, panel, infoArea, tickLabel);
+                refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
             }
         });
+    }
+
+    private void refreshUi(Simulation simulation, SimulationPanel panel, TimelinePanel timelinePanel, JTextArea infoArea, JLabel tickLabel) {
+        panel.repaint();
+        timelinePanel.repaint();
+        refreshInfo(simulation, panel, infoArea, tickLabel);
     }
 
     private void refreshInfo(Simulation simulation, SimulationPanel panel, JTextArea infoArea, JLabel tickLabel) {
@@ -170,28 +204,26 @@ public class ColoSimApp {
         Tile player = simulation.getPlayer();
 
         tickLabel.setText("Tick: " + simulation.getTickCount());
-        sb.append("Player: (").append(player.getX()).append(", ").append(player.getY()).append(")\n");
+        sb.append("Player: (").append(player.x).append(", ").append(player.y).append(")\n");
         sb.append("Mobs: ").append(simulation.getMobs().size()).append('\n');
         sb.append('\n');
 
         for (int i = 0; i < simulation.getMobs().size(); i++) {
             Mob mob = simulation.getMobs().get(i);
-            sb.append(String.format(
-                    "#%d %-24s pos=(%2d,%2d) cd=%3d extra=%-6s%n",
-                    i,
-                    simulation.getNpcName(mob.getType()),
-                    mob.getX(),
-                    mob.getY(),
-                    mob.getCooldown(),
-                    mob.getExtra() == null ? "-" : mob.getExtra()
-            ));
+            sb.append("#").append(i).append(" ").append(simulation.getNpcName(mob.type))
+                    .append(" | pos=(").append(mob.x).append(",").append(mob.y).append(")")
+                    .append(" | cd=").append(mob.cooldown);
+            if (mob.extra != null) {
+                sb.append(" | extra=").append(mob.extra);
+            }
+            sb.append('\n');
         }
 
         int selectedMobIndex = panel.getSelectedMobIndex();
         if (selectedMobIndex >= 0 && selectedMobIndex < simulation.getMobs().size()) {
             Mob mob = simulation.getMobs().get(selectedMobIndex);
             sb.append('\n');
-            sb.append("Selected: #").append(selectedMobIndex).append(" ").append(simulation.getNpcName(mob.getType())).append('\n');
+            sb.append("Selected: #").append(selectedMobIndex).append(" ").append(simulation.getNpcName(mob.type)).append('\n');
             sb.append("Can attack player: ").append(simulation.canAttackPlayer(mob)).append('\n');
         }
 
@@ -206,8 +238,8 @@ public class ColoSimApp {
                     continue;
                 }
                 Mob mob = simulation.getMobs().get(i);
-                sb.append(" - #").append(i).append(" ").append(simulation.getNpcName(mob.getType())).append(" attacked");
-                if (mob.getType() == Simulation.MANTICORE) {
+                sb.append(" - #").append(i).append(" ").append(simulation.getNpcName(mob.type)).append(" attacked");
+                if (mob.type == Simulation.MANTICORE) {
                     int style = (value >> 8) & 0xff;
                     sb.append(" [").append(simulation.decodeManticoreAttack(style)).append("]");
                 }

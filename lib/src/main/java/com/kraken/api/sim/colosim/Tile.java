@@ -1,13 +1,17 @@
-package com.kraken.api.sim.colosim.model;
+package com.kraken.api.sim.colosim;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Data
+@Getter
+@Setter
 @AllArgsConstructor
 public class Tile {
-    private int x;
-    private int y;
+    public int x;
+    public int y;
 
     public Tile copy() {
         return new Tile(x, y);
