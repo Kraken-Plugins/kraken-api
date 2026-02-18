@@ -1,5 +1,8 @@
 package com.kraken.api.sim.colosim;
 
+import com.kraken.api.sim.colosim.model.Mob;
+import com.kraken.api.sim.colosim.model.Tile;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -204,17 +207,17 @@ public class ColoSimApp {
         Tile player = simulation.getPlayer();
 
         tickLabel.setText("Tick: " + simulation.getTickCount());
-        sb.append("Player: (").append(player.x).append(", ").append(player.y).append(")\n");
+        sb.append("Player: (").append(player.getX()).append(", ").append(player.getY()).append(")\n");
         sb.append("Mobs: ").append(simulation.getMobs().size()).append('\n');
         sb.append('\n');
 
         for (int i = 0; i < simulation.getMobs().size(); i++) {
             Mob mob = simulation.getMobs().get(i);
-            sb.append("#").append(i).append(" ").append(simulation.getNpcName(mob.type))
-                    .append(" | pos=(").append(mob.x).append(",").append(mob.y).append(")")
-                    .append(" | cd=").append(mob.cooldown);
-            if (mob.extra != null) {
-                sb.append(" | extra=").append(mob.extra);
+            sb.append("#").append(i).append(" ").append(simulation.getNpcName(mob.getType()))
+                    .append(" | pos=(").append(mob.getX()).append(",").append(mob.getY()).append(")")
+                    .append(" | cd=").append(mob.getCooldown());
+            if (mob.getExtra() != null) {
+                sb.append(" | extra=").append(mob.getExtra());
             }
             sb.append('\n');
         }
@@ -223,7 +226,7 @@ public class ColoSimApp {
         if (selectedMobIndex >= 0 && selectedMobIndex < simulation.getMobs().size()) {
             Mob mob = simulation.getMobs().get(selectedMobIndex);
             sb.append('\n');
-            sb.append("Selected: #").append(selectedMobIndex).append(" ").append(simulation.getNpcName(mob.type)).append('\n');
+            sb.append("Selected: #").append(selectedMobIndex).append(" ").append(simulation.getNpcName(mob.getType())).append('\n');
             sb.append("Can attack player: ").append(simulation.canAttackPlayer(mob)).append('\n');
         }
 
@@ -238,8 +241,8 @@ public class ColoSimApp {
                     continue;
                 }
                 Mob mob = simulation.getMobs().get(i);
-                sb.append(" - #").append(i).append(" ").append(simulation.getNpcName(mob.type)).append(" attacked");
-                if (mob.type == Simulation.MANTICORE) {
+                sb.append(" - #").append(i).append(" ").append(simulation.getNpcName(mob.getType())).append(" attacked");
+                if (mob.getType() == Simulation.MANTICORE) {
                     int style = (value >> 8) & 0xff;
                     sb.append(" [").append(simulation.decodeManticoreAttack(style)).append("]");
                 }

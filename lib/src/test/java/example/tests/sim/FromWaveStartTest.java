@@ -1,8 +1,8 @@
 package example.tests.sim;
 
-import com.kraken.api.sim.colosim.Mob;
 import com.kraken.api.sim.colosim.NpcType;
 import com.kraken.api.sim.colosim.Simulation;
+import com.kraken.api.sim.colosim.model.Mob;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -34,16 +34,16 @@ class FromWaveStartTest {
 
         simulation.step();
         Mob javelin = mobAt(simulation, 0);
-        Assertions.assertEquals(-1, javelin.cooldown);
+        Assertions.assertEquals(-1, javelin.getCooldown());
 
         simulation.step();
         assertMobPosition(javelin, 13, 13);
-        Assertions.assertEquals(-2, javelin.cooldown);
+        Assertions.assertEquals(-2, javelin.getCooldown());
 
         simulation.step();
-        Assertions.assertEquals(-3, javelin.cooldown);
+        Assertions.assertEquals(-3, javelin.getCooldown());
 
         simulation.step();
-        Assertions.assertEquals(5, javelin.cooldown);
+        Assertions.assertEquals(5, javelin.getCooldown());
     }
 }

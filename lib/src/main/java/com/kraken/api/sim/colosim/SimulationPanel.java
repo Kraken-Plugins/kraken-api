@@ -1,5 +1,9 @@
 package com.kraken.api.sim.colosim;
 
+import com.kraken.api.sim.colosim.model.Mob;
+import com.kraken.api.sim.colosim.model.NpcInfo;
+import com.kraken.api.sim.colosim.model.Tile;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -95,13 +99,13 @@ public class SimulationPanel extends JPanel implements MouseListener, MouseMotio
         if (showPlayerLos) {
             NpcInfo playerInfo = simulation.getNpcInfo(NpcType.PLAYER.typeId);
             Tile player = simulation.getPlayer();
-            drawLosOverlay(g, player.x, player.y, playerInfo.size, playerInfo.range, false, new Color(255, 0, 0, 45));
+            drawLosOverlay(g, player.getX(), player.getY(), playerInfo.getSize(), playerInfo.getRange(), false, new Color(255, 0, 0, 45));
         }
 
         if (selectedMobIndex >= 0 && selectedMobIndex < simulation.getMobs().size()) {
             Mob selected = simulation.getMobs().get(selectedMobIndex);
-            NpcInfo info = simulation.getNpcInfo(selected.type);
-            drawLosOverlay(g, selected.x, selected.y, info.size, info.range, true, new Color(0, 120, 255, 45));
+            NpcInfo info = simulation.getNpcInfo(selected.getType());
+            drawLosOverlay(g, selected.getX(), selected.getY(), info.getSize(), info.getRange(), true, new Color(0, 120, 255, 45));
         }
 
         drawUnits(g);
@@ -162,41 +166,41 @@ public class SimulationPanel extends JPanel implements MouseListener, MouseMotio
 
     private void drawUnits(Graphics2D g) {
         Tile player = simulation.getPlayer();
-        drawSpriteOrFallback(g, NpcType.PLAYER.typeId, player.x, player.y, 1, Color.RED, true);
+        drawSpriteOrFallback(g, NpcType.PLAYER.typeId, player.getX(), player.getY(), 1, Color.RED, true);
 
         List<Mob> mobs = simulation.getMobs();
         for (int i = 0; i < mobs.size(); i++) {
             Mob mob = mobs.get(i);
-            NpcInfo info = simulation.getNpcInfo(mob.type);
-            int size = info.size;
-            int topY = (mob.y - size + 1) * TILE_SIZE;
+            NpcInfo info = simulation.getNpcInfo(mob.getType());
+            int size = info.getSize();
+            int topY = (mob.getY() - size + 1) * TILE_SIZE;
 
-            Color c = namedColor(info.color);
+            Color c = namedColor(info.getColor());
             g.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 120));
-            g.fillRect(mob.x * TILE_SIZE, topY, size * TILE_SIZE, size * TILE_SIZE);
+            g.fillRect(mob.getX() * TILE_SIZE, topY, size * TILE_SIZE, size * TILE_SIZE);
             g.setColor(c);
             g.setStroke(new BasicStroke(2f));
-            g.drawRect(mob.x * TILE_SIZE + 1, topY + 1, size * TILE_SIZE - 2, size * TILE_SIZE - 2);
+            g.drawRect(mob.getX() * TILE_SIZE + 1, topY + 1, size * TILE_SIZE - 2, size * TILE_SIZE - 2);
             g.setStroke(new BasicStroke(1f));
 
-            drawSpriteOrFallback(g, mob.type, mob.x, mob.y, size, c, false);
+            drawSpriteOrFallback(g, mob.getType(), mob.getX(), mob.getY(), size, c, false);
 
             if (simulation.canAttackPlayer(mob)) {
                 g.setColor(Color.BLACK);
-                g.fillRect(mob.x * TILE_SIZE, mob.y * TILE_SIZE, TILE_SIZE / 4, TILE_SIZE / 4);
+                g.fillRect(mob.getX() * TILE_SIZE, mob.getY() * TILE_SIZE, TILE_SIZE / 4, TILE_SIZE / 4);
             }
 
-            if (mob.type == Simulation.MANTICORE && mob.extra != null && !"u".equals(mob.extra)) {
-                drawManticorePattern(g, mob.x, mob.y, mob.extra);
+            if (mob.getType() == Simulation.MANTICORE && mob.getExtra() != null && !"u".equals(mob.getExtra())) {
+                drawManticorePattern(g, mob.getX(), mob.getY(), mob.getExtra());
             }
 
             if (showVenatorBounce && hoveredMobIndex >= 0 && hoveredMobIndex < mobs.size() && hoveredMobIndex != i) {
                 Mob source = mobs.get(hoveredMobIndex);
-                int sourceSize = simulation.getNpcInfo(source.type).size;
-                if (Venator.canBounce(source.x, source.y, sourceSize, mob.x, mob.y, size)) {
+                int sourceSize = simulation.getNpcInfo(source.getType()).getSize();
+                if (Venator.canBounce(source.getX(), source.getY(), sourceSize, mob.getX(), mob.getY(), size)) {
                     g.setColor(new Color(255, 105, 180));
                     g.setStroke(new BasicStroke(3f));
-                    g.drawRect(mob.x * TILE_SIZE + 1, topY + 1, size * TILE_SIZE - 2, size * TILE_SIZE - 2);
+                    g.drawRect(mob.getX() * TILE_SIZE + 1, topY + 1, size * TILE_SIZE - 2, size * TILE_SIZE - 2);
                     g.setStroke(new BasicStroke(1f));
                 }
             }
@@ -204,11 +208,11 @@ public class SimulationPanel extends JPanel implements MouseListener, MouseMotio
 
         if (selectedMobIndex >= 0 && selectedMobIndex < mobs.size()) {
             Mob selected = mobs.get(selectedMobIndex);
-            int size = simulation.getNpcInfo(selected.type).size;
-            int topY = (selected.y - size + 1) * TILE_SIZE;
+            int size = simulation.getNpcInfo(selected.getType()).getSize();
+            int topY = (selected.getY() - size + 1) * TILE_SIZE;
             g.setColor(Color.WHITE);
             g.setStroke(new BasicStroke(3f));
-            g.drawRect(selected.x * TILE_SIZE + 1, topY + 1, size * TILE_SIZE - 2, size * TILE_SIZE - 2);
+            g.drawRect(selected.getX() * TILE_SIZE + 1, topY + 1, size * TILE_SIZE - 2, size * TILE_SIZE - 2);
             g.setStroke(new BasicStroke(1f));
         }
     }
@@ -289,32 +293,32 @@ public class SimulationPanel extends JPanel implements MouseListener, MouseMotio
         }
 
         if (e.getButton() == MouseEvent.BUTTON3) {
-            toggleManticoreCharge(tile.x, tile.y);
+            toggleManticoreCharge(tile.getX(), tile.getY());
             return;
         }
 
         if (tool == Tool.SET_PLAYER) {
-            simulation.setPlayer(tile.x, tile.y);
+            simulation.setPlayer(tile.getX(), tile.getY());
             onStateChanged();
             repaint();
             return;
         }
         if (tool == Tool.ADD_NPC) {
             String extra = placementNpcType == NpcType.MANTICORE ? placementManticoreExtra : null;
-            simulation.placeMob(tile.x, tile.y, placementNpcType, extra);
+            simulation.placeMob(tile.getX(), tile.getY(), placementNpcType, extra);
             onStateChanged();
             repaint();
             return;
         }
         if (tool == Tool.REMOVE_NPC) {
-            simulation.removeMobAtTile(tile.x, tile.y);
+            simulation.removeMobAtTile(tile.getX(), tile.getY());
             selectedMobIndex = -1;
             onStateChanged();
             repaint();
             return;
         }
 
-        selectedMobIndex = simulation.findMobIndexAtTile(tile.x, tile.y);
+        selectedMobIndex = simulation.findMobIndexAtTile(tile.getX(), tile.getY());
         onStateChanged();
         repaint();
     }
@@ -325,24 +329,24 @@ public class SimulationPanel extends JPanel implements MouseListener, MouseMotio
             return;
         }
         Mob mob = simulation.getMobs().get(idx);
-        if (mob.type != Simulation.MANTICORE) {
+        if (mob.getType() != Simulation.MANTICORE) {
             return;
         }
-        String currentExtra = mob.extra;
-        String originalExtra = mob.originalExtra;
+        String currentExtra = mob.getExtra();
+        String originalExtra = mob.getOriginalExtra();
         if (currentExtra == null || "u".equals(originalExtra)) {
             return;
         }
         boolean isCurrentlyUncharged = currentExtra.startsWith("u");
         if (isCurrentlyUncharged) {
-            mob.extra = currentExtra.substring(1);
-            mob.originalExtra = currentExtra.substring(1);
+            mob.setExtra(currentExtra.substring(1));
+            mob.setOriginalExtra(currentExtra.substring(1));
         } else {
             String uncharged = "u" + currentExtra;
-            mob.extra = uncharged;
-            mob.originalExtra = uncharged;
+            mob.setExtra(uncharged);
+            mob.setOriginalExtra(uncharged);
         }
-        mob.cooldown = 0;
+        mob.setCooldown(0);
         onStateChanged();
         repaint();
     }
@@ -353,7 +357,7 @@ public class SimulationPanel extends JPanel implements MouseListener, MouseMotio
         if (tile == null) {
             hoveredMobIndex = -1;
         } else {
-            hoveredMobIndex = simulation.findMobIndexAtTile(tile.x, tile.y);
+            hoveredMobIndex = simulation.findMobIndexAtTile(tile.getX(), tile.getY());
         }
         repaint();
     }
@@ -380,3 +384,4 @@ public class SimulationPanel extends JPanel implements MouseListener, MouseMotio
     public void mouseDragged(MouseEvent e) {
     }
 }
+

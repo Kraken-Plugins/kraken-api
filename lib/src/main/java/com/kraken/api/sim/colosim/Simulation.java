@@ -1,5 +1,12 @@
 package com.kraken.api.sim.colosim;
 
+import com.kraken.api.sim.colosim.model.Mob;
+import com.kraken.api.sim.colosim.model.NpcInfo;
+import com.kraken.api.sim.colosim.model.Tile;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.*;
 
 public class Simulation {
@@ -55,8 +62,8 @@ public class Simulation {
             {{0, 13}, {15, 19}, {21, 34}},
     };
 
-    private static final Map<Integer, NpcInfo> NPC_INFO = new HashMap<Integer, NpcInfo>();
-    private static final Map<String, int[]> MANTICORE_PATTERNS = new LinkedHashMap<String, int[]>();
+    private static final Map<Integer, NpcInfo> NPC_INFO = new HashMap<>();
+    private static final Map<String, int[]> MANTICORE_PATTERNS = new LinkedHashMap<>();
 
     static {
         NpcInfo shaman = new NpcInfo(1, 1, 10, 5, "cyan");
@@ -69,7 +76,7 @@ public class Simulation {
         NPC_INFO.put(NpcType.SHOCKWAVE_COLOSSUS.typeId, new NpcInfo(3, 3, 15, 5, "blue"));
         NPC_INFO.put(NpcType.REINFORCEMENT_SHAMAN.typeId, new NpcInfo(6, 1, 10, 5, "cyan"));
 
-        Map<String, int[]> base = new LinkedHashMap<String, int[]>();
+        Map<String, int[]> base = new LinkedHashMap<>();
         base.put("r", new int[]{0, 1, 2});
         base.put("m", new int[]{1, 0, 2});
         base.put("Mrm", new int[]{2, 0, 1});
@@ -82,16 +89,13 @@ public class Simulation {
         }
     }
 
+    @AllArgsConstructor
     public static final class StepResult {
         public final int tick;
         public final int[] line;
-
-        private StepResult(int tick, int[] line) {
-            this.tick = tick;
-            this.line = line;
-        }
     }
 
+    @Getter
     private final int[][] pillars = {
             {8, 10},
             {23, 10},
@@ -101,41 +105,31 @@ public class Simulation {
     private final boolean[] filters = {true, true, true, true};
     private final Random random = new Random();
 
-    private final List<Mob> mobs = new ArrayList<Mob>();
-    private final List<int[]> tape = new ArrayList<int[]>();
-    private final List<Tile> playerTape = new ArrayList<Tile>();
+    @Getter
+    private final List<Mob> mobs = new ArrayList<>();
+    @Getter
+    private final List<int[]> tape = new ArrayList<>();
+    private final List<Tile> playerTape = new ArrayList<>();
     private final Map<Integer, Integer> manticoreTicksRemaining = new HashMap<Integer, Integer>();
 
     private final Tile b5Tile = new Tile(7, 15);
+    @Getter
     private Tile player = b5Tile.copy();
     private Tile stepStartPosition;
 
+    @Setter
+    @Getter
     private boolean fromWaveStart;
+
+    @Getter
+    @Setter
     private boolean mantimayhem3;
+
+    @Getter
     private int tickCount;
-
-    public List<Mob> getMobs() {
-        return mobs;
-    }
-
-    public List<int[]> getTape() {
-        return tape;
-    }
-
-    public int getTickCount() {
-        return tickCount;
-    }
-
-    public Tile getPlayer() {
-        return player;
-    }
 
     public int[][][] getBlockedTileRanges() {
         return BLOCKED_TILE_RANGES;
-    }
-
-    public int[][] getPillars() {
-        return pillars;
     }
 
     public boolean[] getPillarFilters() {
@@ -144,22 +138,6 @@ public class Simulation {
 
     public void setPlayer(int x, int y) {
         player = new Tile(x, y);
-    }
-
-    public boolean isFromWaveStart() {
-        return fromWaveStart;
-    }
-
-    public void setFromWaveStart(boolean fromWaveStart) {
-        this.fromWaveStart = fromWaveStart;
-    }
-
-    public boolean isMantimayhem3() {
-        return mantimayhem3;
-    }
-
-    public void setMantimayhem3(boolean mantimayhem3) {
-        this.mantimayhem3 = mantimayhem3;
     }
 
     public NpcInfo getNpcInfo(int type) {
@@ -182,7 +160,7 @@ public class Simulation {
     }
 
     public int getMobCenterOffset(int type) {
-        int size = getNpcInfo(type).size;
+        int size = getNpcInfo(type).getSize();
         return (size - 1) / 2;
     }
 
@@ -191,7 +169,7 @@ public class Simulation {
             return false;
         }
         for (Mob mob : mobs) {
-            if (mob.spawnX == x && mob.spawnY == y) {
+            if (mob.getSpawnX() == x && mob.getSpawnY() == y) {
                 return false;
             }
         }
@@ -216,11 +194,11 @@ public class Simulation {
 
     public void reset() {
         for (Mob mob : mobs) {
-            mob.x = mob.spawnX;
-            mob.y = mob.spawnY;
-            mob.cooldown = 0;
-            if (mob.type == MANTICORE && mob.originalExtra != null) {
-                mob.extra = mob.originalExtra;
+            mob.setX(mob.getSpawnX());
+            mob.setY(mob.getSpawnY());
+            mob.setCooldown(0);
+            if (mob.getType() == MANTICORE && mob.getOriginalExtra() != null) {
+                mob.setExtra(mob.getOriginalExtra());
             }
         }
         manticoreTicksRemaining.clear();
@@ -235,8 +213,8 @@ public class Simulation {
     public int findMobIndexAtTile(int x, int y) {
         for (int i = 0; i < mobs.size(); i++) {
             Mob mob = mobs.get(i);
-            int size = getNpcInfo(mob.type).size;
-            if (doesCollide(x, y, 1, mob.x, mob.y, size)) {
+            int size = getNpcInfo(mob.getType()).getSize();
+            if (doesCollide(x, y, 1, mob.getX(), mob.getY(), size)) {
                 return i;
             }
         }
@@ -257,9 +235,9 @@ public class Simulation {
 
         int[] line = null;
         if (!mobs.isEmpty()) {
-            boolean canAttack = fromWaveStart ? tickCount >= DELAY_FIRST_ATTACK_TICKS : true;
-            boolean canMove = fromWaveStart ? tickCount > 0 : true;
-            boolean canGainLos = fromWaveStart ? tickCount > 1 : true;
+            boolean canAttack = !fromWaveStart || tickCount >= DELAY_FIRST_ATTACK_TICKS;
+            boolean canMove = !fromWaveStart || tickCount > 0;
+            boolean canGainLos = !fromWaveStart || tickCount > 1;
 
             moveMobs(canMove, canGainLos);
             handleManticoreCharging(canAttack);
@@ -342,8 +320,8 @@ public class Simulation {
     }
 
     public boolean canAttackPlayer(Mob mob) {
-        NpcInfo info = getNpcInfo(mob.type);
-        return hasLOS(mob.x, mob.y, player.x, player.y, info.size, info.range, true);
+        NpcInfo info = getNpcInfo(mob.getType());
+        return hasLOS(mob.getX(), mob.getY(), player.getX(), player.getY(), info.getSize(), info.getRange(), true);
     }
 
     private static final class ProcessResult {
@@ -357,13 +335,10 @@ public class Simulation {
     }
 
     private void sortMobs() {
-        Collections.sort(mobs, new Comparator<Mob>() {
-            @Override
-            public int compare(Mob a, Mob b) {
-                int aId = getNpcInfo(a.type).npcId;
-                int bId = getNpcInfo(b.type).npcId;
-                return Integer.compare(aId, bId);
-            }
+        mobs.sort((a, b) -> {
+            int aId = getNpcInfo(a.getType()).getNpcId();
+            int bId = getNpcInfo(b.getType()).getNpcId();
+            return Integer.compare(aId, bId);
         });
     }
 
@@ -441,9 +416,9 @@ public class Simulation {
         }
         for (int i = 0; i < mobs.size(); i++) {
             Mob mob = mobs.get(i);
-            if (mob.type < 8) {
-                int otherSize = getNpcInfo(mob.type).size;
-                if (i != index && doesCollide(x, y, size, mob.x, mob.y, otherSize)) {
+            if (mob.getType() < 8) {
+                int otherSize = getNpcInfo(mob.getType()).getSize();
+                if (i != index && doesCollide(x, y, size, mob.getX(), mob.getY(), otherSize)) {
                     return false;
                 }
             }
@@ -454,27 +429,27 @@ public class Simulation {
     private void moveMobs(boolean canMove, boolean canGainLos) {
         for (int i = 0; i < mobs.size(); i++) {
             Mob mob = mobs.get(i);
-            if (mob.type < 8) {
-                mob.cooldown--;
-                int x = mob.x;
-                int y = mob.y;
-                NpcInfo info = getNpcInfo(mob.type);
-                int s = info.size;
-                int r = info.range;
+            if (mob.getType() < 8) {
+                mob.setCooldown(mob.getCooldown() - 1);
+                int x = mob.getX();
+                int y = mob.getY();
+                NpcInfo info = getNpcInfo(mob.getType());
+                int s = info.getSize();
+                int r = info.getRange();
 
-                if (canMove && !(canGainLos && hasLOS(x, y, player.x, player.y, s, r, true))) {
-                    int dx = x + Integer.signum(player.x - x);
-                    int dy = y + Integer.signum(player.y - y);
-                    if (doesCollide(dx, dy, s, player.x, player.y, 1)) {
-                        dy = mob.y;
+                if (canMove && !(canGainLos && hasLOS(x, y, player.getX(), player.getY(), s, r, true))) {
+                    int dx = x + Integer.signum(player.getX() - x);
+                    int dy = y + Integer.signum(player.getY() - y);
+                    if (doesCollide(dx, dy, s, player.getX(), player.getY(), 1)) {
+                        dy = mob.getY();
                     }
                     if (legalPosition(dx, dy, s, i) && (s > 1 || (legalPosition(dx, y, s, i) && legalPosition(x, dy, s, i)))) {
-                        mob.x = dx;
-                        mob.y = dy;
+                        mob.setX(dx);
+                        mob.setY(dy);
                     } else if (legalPosition(dx, y, s, i)) {
-                        mob.x = dx;
+                        mob.setX(dx);
                     } else if (legalPosition(x, dy, s, i)) {
-                        mob.y = dy;
+                        mob.setY(dy);
                     }
                 }
             }
@@ -485,10 +460,10 @@ public class Simulation {
         List<Integer> manticoresStartingToCharge = new ArrayList<Integer>();
         for (int i = 0; i < mobs.size(); i++) {
             Mob mob = mobs.get(i);
-            if (mob.type == MANTICORE) {
-                String currentExtra = mob.extra;
+            if (mob.getType() == MANTICORE) {
+                String currentExtra = mob.getExtra();
                 boolean isUncharged = currentExtra != null && currentExtra.startsWith("u");
-                if (isUncharged && canAttack && hasLOS(mob.x, mob.y, player.x, player.y, getNpcInfo(MANTICORE).size, getNpcInfo(MANTICORE).range, true)) {
+                if (isUncharged && canAttack && hasLOS(mob.getX(), mob.getY(), player.getX(), player.getY(), getNpcInfo(MANTICORE).getSize(), getNpcInfo(MANTICORE).getRange(), true)) {
                     manticoresStartingToCharge.add(i);
                 }
             }
@@ -503,8 +478,8 @@ public class Simulation {
                 continue;
             }
             Mob mob = mobs.get(i);
-            if (mob.type == MANTICORE) {
-                String currentExtra = mob.extra;
+            if (mob.getType() == MANTICORE) {
+                String currentExtra = mob.getExtra();
                 boolean isChargedOrCharging = currentExtra != null && !currentExtra.startsWith("u");
                 if (isChargedOrCharging) {
                     establishedStyle = currentExtra;
@@ -513,10 +488,10 @@ public class Simulation {
             }
         }
 
-        List<String> knownStyles = new ArrayList<String>();
+        List<String> knownStyles = new ArrayList<>();
         if (establishedStyle == null) {
             for (Integer idx : manticoresStartingToCharge) {
-                String originalExtra = mobs.get(idx).originalExtra;
+                String originalExtra = mobs.get(idx).getOriginalExtra();
                 if (originalExtra != null && !"u".equals(originalExtra)) {
                     String baseStyle = originalExtra.startsWith("u") ? originalExtra.substring(1) : originalExtra;
                     if (!knownStyles.contains(baseStyle)) {
@@ -534,8 +509,8 @@ public class Simulation {
 
         for (Integer idx : manticoresStartingToCharge) {
             Mob mob = mobs.get(idx);
-            String originalExtra = mob.originalExtra;
-            String currentExtra = mob.extra;
+            String originalExtra = mob.getOriginalExtra();
+            String currentExtra = mob.getExtra();
             String chargedStyle = null;
 
             if (establishedStyle != null) {
@@ -559,12 +534,12 @@ public class Simulation {
             }
 
             if (chargedStyle != null) {
-                mob.extra = chargedStyle;
-                mob.cooldown = MANTICORE_CHARGE_TIME;
+                mob.setExtra(chargedStyle);
+                mob.setCooldown(MANTICORE_CHARGE_TIME);
             }
 
             if ("u".equals(originalExtra) && chargedStyle != null && establishedStyle == null && knownStyles.isEmpty()) {
-                mob.originalExtra = "u" + chargedStyle;
+                mob.setOriginalExtra("u" + chargedStyle);
             }
         }
     }
@@ -575,26 +550,26 @@ public class Simulation {
 
         for (int i = 0; i < mobs.size(); i++) {
             Mob mob = mobs.get(i);
-            if (mob.type < 8) {
-                int x = mob.x;
-                int y = mob.y;
-                int t = mob.type;
+            if (mob.getType() < 8) {
+                int x = mob.getX();
+                int y = mob.getY();
+                int t = mob.getType();
                 NpcInfo info = getNpcInfo(t);
                 int attacked = 0;
 
-                if (canAttack && hasLOS(x, y, player.x, player.y, info.size, info.range, true)) {
+                if (canAttack && hasLOS(x, y, player.getX(), player.getY(), info.getSize(), info.getRange(), true)) {
                     if (t == MANTICORE) {
-                        String currentExtra = mob.extra;
+                        String currentExtra = mob.getExtra();
                         boolean isCharged = currentExtra != null && !currentExtra.startsWith("u");
-                        if (isCharged && mob.cooldown <= 0 && !manticoreFiredThisTick) {
+                        if (isCharged && mob.getCooldown() <= 0 && !manticoreFiredThisTick) {
                             manticoreTicksRemaining.put(i, 3);
                             attacked = 1;
-                            mob.cooldown = info.cooldown;
+                            mob.setCooldown(info.getCooldown());
                             manticoreFiredThisTick = true;
                         }
-                    } else if (mob.cooldown <= 0) {
+                    } else if (mob.getCooldown() <= 0) {
                         attacked = 1;
-                        mob.cooldown = info.cooldown;
+                        mob.setCooldown(info.getCooldown());
                     }
                 }
                 line[i] = attacked | ((x & 0xff) << 16) | ((y & 0xff) << 24);
@@ -611,7 +586,7 @@ public class Simulation {
             int index = entry.getKey();
             int ticks = entry.getValue();
             if (ticks > 0 && index >= 0 && index < mobs.size()) {
-                String manticoreMode = mobs.get(index).extra;
+                String manticoreMode = mobs.get(index).getExtra();
                 int[] manticoreStyles = MANTICORE_PATTERNS.get(manticoreMode);
                 if (manticoreStyles == null) {
                     iterator.remove();
@@ -629,13 +604,14 @@ public class Simulation {
 
     private void delayAllReadyMantis() {
         for (Mob mob : mobs) {
-            if (mob.type != MANTICORE || mob.cooldown > 0) {
+            if (mob.getType() != MANTICORE || mob.getCooldown() > 0) {
                 continue;
             }
-            String currentExtra = mob.extra;
+            String currentExtra = mob.getExtra();
             if (currentExtra != null && !currentExtra.startsWith("u")) {
-                mob.cooldown = MANTICORE_DELAY;
+                mob.setCooldown(MANTICORE_DELAY);
             }
         }
     }
 }
+

@@ -1,8 +1,8 @@
 package example.tests.sim;
 
-import com.kraken.api.sim.colosim.Mob;
 import com.kraken.api.sim.colosim.NpcType;
 import com.kraken.api.sim.colosim.Simulation;
+import com.kraken.api.sim.colosim.model.Mob;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -27,10 +27,10 @@ class PlacementAndSortingTest {
 
         assertEquals(1, simulation.getMobs().size());
         Mob mob = simulation.getMobs().get(0);
-        assertEquals(1, mob.x);
-        assertEquals(1, mob.y);
-        assertEquals(NpcType.SERPENT_SHAMAN.typeId, mob.type);
-        assertEquals(0, mob.cooldown);
+        assertEquals(1, mob.getX());
+        assertEquals(1, mob.getY());
+        assertEquals(NpcType.SERPENT_SHAMAN.typeId, mob.getType());
+        assertEquals(0, mob.getCooldown());
     }
 
     @Test
@@ -42,7 +42,7 @@ class PlacementAndSortingTest {
         simulation.placeMob(0, 3, NpcType.JAVELIN_COLOSSUS, null);
         simulation.placeMob(0, 4, NpcType.MANTICORE, "u");
 
-        List<Integer> types = simulation.getMobs().stream().map(m -> m.type).collect(Collectors.toList());
+        List<Integer> types = simulation.getMobs().stream().map(Mob::getType).collect(Collectors.toList());
         assertEquals(List.of(
                 NpcType.MANTICORE.typeId,
                 NpcType.SERPENT_SHAMAN.typeId,

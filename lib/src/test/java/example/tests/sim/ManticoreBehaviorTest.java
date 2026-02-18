@@ -1,8 +1,8 @@
 package example.tests.sim;
 
-import com.kraken.api.sim.colosim.Mob;
 import com.kraken.api.sim.colosim.NpcType;
 import com.kraken.api.sim.colosim.Simulation;
+import com.kraken.api.sim.colosim.model.Mob;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -23,10 +23,10 @@ class ManticoreBehaviorTest {
         Mob first = mobAt(simulation, 0);
         Mob second = mobAt(simulation, 1);
 
-        assertTrue(first.cooldown > 0);
-        assertTrue(second.cooldown > 0);
-        assertEquals(first.extra, second.extra);
-        assertTrue(Set.of("r", "m").contains(first.extra));
+        assertTrue(first.getCooldown() > 0);
+        assertTrue(second.getCooldown() > 0);
+        assertEquals(first.getExtra(), second.getExtra());
+        assertTrue(Set.of("r", "m").contains(first.getExtra()));
     }
 
     @Test
@@ -39,8 +39,8 @@ class ManticoreBehaviorTest {
         simulation.step();
         Mob unknown = mobAt(simulation, 0);
         Mob known = mobAt(simulation, 1);
-        assertEquals("m", unknown.extra);
-        assertEquals("m", known.extra);
+        assertEquals("m", unknown.getExtra());
+        assertEquals("m", known.getExtra());
 
         simulation.clear();
         simulation.setPlayer(16, 18);
@@ -50,8 +50,8 @@ class ManticoreBehaviorTest {
 
         unknown = mobAt(simulation, 0);
         known = mobAt(simulation, 1);
-        assertEquals("r", unknown.extra);
-        assertEquals("r", known.extra);
+        assertEquals("r", unknown.getExtra());
+        assertEquals("r", known.getExtra());
     }
 
     @Test
@@ -64,14 +64,14 @@ class ManticoreBehaviorTest {
         simulation.step();
         Mob urManti = mobAt(simulation, 0);
         Mob uManti = mobAt(simulation, 1);
-        assertEquals("r", urManti.extra);
-        assertEquals("r", uManti.extra);
-        assertEquals("ur", urManti.originalExtra);
-        assertEquals("u", uManti.originalExtra);
+        assertEquals("r", urManti.getExtra());
+        assertEquals("r", uManti.getExtra());
+        assertEquals("ur", urManti.getOriginalExtra());
+        assertEquals("u", uManti.getOriginalExtra());
 
         simulation.reset();
-        assertEquals("ur", mobAt(simulation, 0).extra);
-        assertEquals("u", mobAt(simulation, 1).extra);
+        assertEquals("ur", mobAt(simulation, 0).getExtra());
+        assertEquals("u", mobAt(simulation, 1).getExtra());
     }
 
     @Test
@@ -82,13 +82,13 @@ class ManticoreBehaviorTest {
 
         simulation.step();
         Mob manti = mobAt(simulation, 0);
-        assertTrue(Set.of("r", "m").contains(manti.extra));
+        assertTrue(Set.of("r", "m").contains(manti.getExtra()));
 
-        String expectedOriginal = "r".equals(manti.extra) ? "ur" : "um";
-        assertEquals(expectedOriginal, manti.originalExtra);
+        String expectedOriginal = "r".equals(manti.getExtra()) ? "ur" : "um";
+        assertEquals(expectedOriginal, manti.getOriginalExtra());
 
         simulation.reset();
-        assertEquals(expectedOriginal, mobAt(simulation, 0).extra);
+        assertEquals(expectedOriginal, mobAt(simulation, 0).getExtra());
     }
 
     @Test
@@ -107,6 +107,6 @@ class ManticoreBehaviorTest {
             }
         }
         assertEquals(1, attackedCount);
-        assertEquals(5, mobAt(simulation, 1).cooldown);
+        assertEquals(5, mobAt(simulation, 1).getCooldown());
     }
 }

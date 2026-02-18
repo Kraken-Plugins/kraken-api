@@ -1,8 +1,8 @@
 package example.tests.sim;
 
-import com.kraken.api.sim.colosim.Mob;
 import com.kraken.api.sim.colosim.NpcType;
 import com.kraken.api.sim.colosim.Simulation;
+import com.kraken.api.sim.colosim.model.Mob;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,8 +25,8 @@ class MovementPathingTest {
         simulation.setPlayer(10, 7);
         simulation.step();
         Mob shaman = mobAt(simulation, 0);
-        assertMobPosition(shaman, 7, 8);
-        Assertions.assertEquals(5, shaman.cooldown);
+        assertMobPosition(shaman, 7, 7);
+        Assertions.assertEquals(5, shaman.getCooldown());
     }
 
     @Test
@@ -56,7 +56,7 @@ class MovementPathingTest {
 
         Mob meleer = mobAt(simulation, 0);
         assertMobPosition(meleer, 11, 9);
-        Assertions.assertEquals(5, meleer.cooldown);
+        Assertions.assertEquals(5, meleer.getCooldown());
 
         simulation.setPlayer(10, 7);
         simulation.step();

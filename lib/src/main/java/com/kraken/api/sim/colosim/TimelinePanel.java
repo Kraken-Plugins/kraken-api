@@ -1,5 +1,7 @@
 package com.kraken.api.sim.colosim;
 
+import com.kraken.api.sim.colosim.model.Mob;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
@@ -92,10 +94,10 @@ public class TimelinePanel extends JPanel {
                 int x = PADDING + TICK_LABEL_WIDTH + col * CELL_SIZE;
                 int y = PADDING + row * CELL_SIZE;
 
-                g.setColor(namedColor(simulation.getNpcInfo(mob.type).color));
+                g.setColor(namedColor(simulation.getNpcInfo(mob.getType()).getColor()));
                 g.fillRect(x, y, CELL_SIZE, CELL_SIZE);
 
-                if (mob.type == Simulation.MANTICORE) {
+                if (mob.getType() == Simulation.MANTICORE) {
                     int style = (value >> 8) & 0xff;
                     if (style >= 0 && style < MANTICORE_STYLE_COLORS.length) {
                         g.setColor(MANTICORE_STYLE_COLORS[style]);

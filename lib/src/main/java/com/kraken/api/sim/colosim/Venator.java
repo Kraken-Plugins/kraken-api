@@ -1,5 +1,7 @@
 package com.kraken.api.sim.colosim;
 
+import com.kraken.api.sim.colosim.model.Tile;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,8 +12,8 @@ public final class Venator {
     }
 
     private static boolean isInRange(Tile from, Tile to) {
-        int dxAbs = Math.abs(from.x - to.x);
-        int dyAbs = Math.abs(from.y - to.y);
+        int dxAbs = Math.abs(from.getX() - to.getX());
+        int dyAbs = Math.abs(from.getY() - to.getY());
         return dxAbs <= RANGE && dyAbs <= RANGE;
     }
 
