@@ -1,6 +1,8 @@
 package com.kraken.api.sim.colosim;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicButtonUI;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 
 public final class AppTheme {
@@ -59,5 +61,94 @@ public final class AppTheme {
         b.setFocusPainted(false);
         b.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         b.setPreferredSize(new Dimension(90, 34));
+    }
+
+    public static void styleActionButton(JButton button, Color baseColor) {
+        button.setUI(new BasicButtonUI());
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+        button.setBorderPainted(false);
+        button.setBackground(baseColor);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        button.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 12));
+        button.setPreferredSize(new Dimension(68, 24));
+        button.setMinimumSize(new Dimension(68, 24));
+    }
+
+    public static void styleCleanScrollBars(JScrollPane scrollPane) {
+        scrollPane.setOpaque(false);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setOpaque(false);
+        JScrollBar vertical = scrollPane.getVerticalScrollBar();
+        JScrollBar horizontal = scrollPane.getHorizontalScrollBar();
+        vertical.setUI(new CleanScrollBarUI());
+        horizontal.setUI(new CleanScrollBarUI());
+        vertical.setPreferredSize(new Dimension(10, 0));
+        horizontal.setPreferredSize(new Dimension(0, 10));
+        vertical.setUnitIncrement(14);
+        horizontal.setUnitIncrement(14);
+    }
+
+    private static final class CleanScrollBarUI extends BasicScrollBarUI {
+        private static final Color TRACK = new Color(223, 231, 240);
+        private static final Color THUMB = new Color(104, 118, 137);
+        private static final Color THUMB_HOVER = new Color(86, 100, 119);
+
+        @Override
+        protected void configureScrollBarColors() {
+            trackColor = TRACK;
+            thumbColor = THUMB;
+            thumbDarkShadowColor = THUMB;
+            thumbLightShadowColor = THUMB;
+            thumbHighlightColor = THUMB_HOVER;
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return createScrollButton();
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return createScrollButton();
+        }
+
+        @Override
+        protected Dimension getMinimumThumbSize() {
+            return scrollbar != null && scrollbar.getOrientation() == Adjustable.HORIZONTAL
+                    ? new Dimension(24, 8)
+                    : new Dimension(8, 24);
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(TRACK);
+            g2.fillRoundRect(trackBounds.x + 1, trackBounds.y + 1, trackBounds.width - 2, trackBounds.height - 2, 8, 8);
+            g2.dispose();
+        }
+
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
+            if (!scrollbar.isEnabled() || thumbBounds.width <= 0 || thumbBounds.height <= 0) {
+                return;
+            }
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover() ? THUMB_HOVER : THUMB);
+            g2.fillRoundRect(thumbBounds.x + 1, thumbBounds.y + 1, thumbBounds.width - 2, thumbBounds.height - 2, 8, 8);
+            g2.dispose();
+        }
+
+        private static JButton createScrollButton() {
+            JButton button = new JButton();
+            button.setPreferredSize(new Dimension(0, 0));
+            button.setMinimumSize(new Dimension(0, 0));
+            button.setMaximumSize(new Dimension(0, 0));
+            return button;
+        }
     }
 }

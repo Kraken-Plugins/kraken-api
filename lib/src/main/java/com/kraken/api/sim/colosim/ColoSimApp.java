@@ -31,9 +31,9 @@ public class ColoSimApp {
 
         JPanel rootLeft = new JPanel(new BorderLayout(8, 8));
         rootLeft.setOpaque(false);
-        rootLeft.setPreferredSize(new Dimension(340, 860));
+        rootLeft.setPreferredSize(new Dimension(300, 860));
 
-        JPanel topActions = new JPanel(new GridLayout(2, 2, 8, 8));
+        JPanel topActions = new JPanel(new GridLayout(1, 4, 6, 6));
         AppTheme.styleCard(topActions);
 
         JComboBox<SimulationPanel.Tool> toolBox = new JComboBox<SimulationPanel.Tool>(SimulationPanel.Tool.values());
@@ -43,10 +43,15 @@ public class ColoSimApp {
         JButton autoButton = new JButton("Play");
         JButton resetButton = new JButton("Reset");
         JButton clearButton = new JButton("Clear");
-        AppTheme.styleButton(stepButton);
-        AppTheme.styleButton(autoButton);
-        AppTheme.styleButton(resetButton);
-        AppTheme.styleButton(clearButton);
+        final Color stepColor = new Color(26, 115, 232);
+        final Color playColor = new Color(34, 163, 74);
+        final Color playActiveColor = new Color(24, 127, 58);
+        final Color resetColor = new Color(239, 132, 32);
+        final Color clearColor = new Color(220, 53, 69);
+        AppTheme.styleActionButton(stepButton, stepColor);
+        AppTheme.styleActionButton(autoButton, playColor);
+        AppTheme.styleActionButton(resetButton, resetColor);
+        AppTheme.styleActionButton(clearButton, clearColor);
 
         topActions.add(stepButton);
         topActions.add(autoButton);
@@ -91,25 +96,39 @@ public class ColoSimApp {
         setupPanel.add(showVenator);
 
         JPanel statusPanel = new JPanel(new BorderLayout(6, 6));
-        AppTheme.styleCard(statusPanel);
+        statusPanel.setOpaque(true);
+        statusPanel.setBackground(new Color(27, 33, 39));
+        statusPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(53, 62, 74), 1, true),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        statusPanel.setPreferredSize(new Dimension(0, 220));
         JLabel tickLabel = new JLabel("Tick: 0");
-        tickLabel.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 18));
+        tickLabel.setForeground(new Color(205, 216, 229));
+        tickLabel.setFont(new Font("Consolas", Font.BOLD, 14));
         statusPanel.add(tickLabel, BorderLayout.NORTH);
 
-        JTextArea infoArea = new JTextArea(20, 34);
+        JTextArea infoArea = new JTextArea(10, 120);
         infoArea.setEditable(false);
-        infoArea.setLineWrap(true);
-        infoArea.setWrapStyleWord(true);
-        infoArea.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        infoArea.setLineWrap(false);
+        infoArea.setWrapStyleWord(false);
+        infoArea.setBackground(new Color(27, 33, 39));
+        infoArea.setForeground(new Color(210, 219, 230));
+        infoArea.setCaretColor(new Color(210, 219, 230));
+        infoArea.setFont(new Font("Consolas", Font.PLAIN, 13));
         JScrollPane infoScroll = new JScrollPane(infoArea);
-        infoScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        infoScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        infoScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        infoScroll.setBorder(BorderFactory.createEmptyBorder());
+        infoScroll.getViewport().setBackground(new Color(27, 33, 39));
         infoScroll.getVerticalScrollBar().setUnitIncrement(14);
         statusPanel.add(infoScroll, BorderLayout.CENTER);
 
         JScrollPane timelineScroll = new JScrollPane(timelinePanel);
         timelineScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        timelineScroll.getVerticalScrollBar().setUnitIncrement(14);
-        timelineScroll.setPreferredSize(new Dimension(240, panel.getPreferredSize().height));
+        timelineScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        timelineScroll.setPreferredSize(new Dimension(270, panel.getPreferredSize().height));
+        AppTheme.styleCleanScrollBars(timelineScroll);
 
         Timer timer = new Timer(600, e -> {
             simulation.step();
@@ -125,9 +144,11 @@ public class ColoSimApp {
             if (timer.isRunning()) {
                 timer.stop();
                 autoButton.setText("Play");
+                autoButton.setBackground(playColor);
             } else {
                 timer.start();
                 autoButton.setText("Pause");
+                autoButton.setBackground(playActiveColor);
             }
         });
 
@@ -146,25 +167,30 @@ public class ColoSimApp {
         leftStack.setLayout(new GridLayout(0, 1, 8, 8));
         leftStack.add(topActions);
         leftStack.add(setupPanel);
-        leftStack.add(statusPanel);
         rootLeft.add(leftStack, BorderLayout.NORTH);
 
         panel.setPlacementNpcType((NpcType) npcTypeBox.getSelectedItem());
         panel.setPlacementManticoreExtra((String) mantiExtraBox.getSelectedItem());
         panel.setStateChangedCallback(() -> refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel));
 
-        JPanel centerWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 12));
+        JPanel centerWrap = new JPanel(new BorderLayout(12, 12));
         centerWrap.setOpaque(false);
-        centerWrap.add(panel);
-        centerWrap.add(timelineScroll);
+        centerWrap.add(panel, BorderLayout.CENTER);
+        centerWrap.add(timelineScroll, BorderLayout.EAST);
 
         frame.add(rootLeft, BorderLayout.WEST);
         frame.add(centerWrap, BorderLayout.CENTER);
+        frame.add(statusPanel, BorderLayout.SOUTH);
 
         bindKeys(frame, simulation, panel, timelinePanel, infoArea, tickLabel);
         refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
 
         frame.pack();
+        frame.setMinimumSize(new Dimension(1500, 900));
+        frame.setSize(new Dimension(
+                Math.max(frame.getWidth(), 1680),
+                Math.max(frame.getHeight(), 980)
+        ));
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
