@@ -1,5 +1,6 @@
 package example.tests.sim;
 
+import com.kraken.api.sim.colosim.Simulation;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

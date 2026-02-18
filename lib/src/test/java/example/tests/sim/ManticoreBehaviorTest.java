@@ -1,10 +1,13 @@
 package example.tests.sim;
 
+import com.kraken.api.sim.colosim.Mob;
+import com.kraken.api.sim.colosim.NpcType;
+import com.kraken.api.sim.colosim.Simulation;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
-import static colosim.SimulationTestUtils.mobAt;
+import static example.tests.sim.SimulationTestUtils.mobAt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

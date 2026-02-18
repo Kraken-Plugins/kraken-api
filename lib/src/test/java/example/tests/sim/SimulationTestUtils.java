@@ -1,5 +1,8 @@
 package example.tests.sim;
 
+import com.kraken.api.sim.colosim.Mob;
+import com.kraken.api.sim.colosim.Simulation;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public final class SimulationTestUtils {

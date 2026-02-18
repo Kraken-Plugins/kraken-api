@@ -45,15 +45,21 @@ dependencies {
     testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.0'
 }
 
-testing {
-    suites {
-        test {
-            useJUnit('4.13.2')
+test {
+    useJUnitPlatform()
+}
+
+sourceSets {
+    test {
+        java {
+            srcDirs = ['src/test/java', 'tests/sim']
         }
     }
 }
+
 
 java {
     withSourcesJar()

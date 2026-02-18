@@ -1,13 +1,14 @@
 package example.tests.sim;
 
+import com.kraken.api.sim.colosim.Mob;
+import com.kraken.api.sim.colosim.NpcType;
+import com.kraken.api.sim.colosim.Simulation;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PlacementAndSortingTest {
     @Test
