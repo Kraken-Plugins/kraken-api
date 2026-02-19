@@ -101,7 +101,15 @@ public class SceneOverlay extends Overlay {
             renderAreaService(graphics);
         }
 
+        if(config.showNpcLoS()) {
+            renderNpcLoS(graphics);
+        }
+
         return null;
+    }
+
+    private void renderNpcLoS(Graphics2D g) {
+
     }
 
     private void renderAreaService(Graphics2D graphics) {

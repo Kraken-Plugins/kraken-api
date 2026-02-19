@@ -662,4 +662,27 @@ public class TileService {
     public static Integer localToWorldDistance(int distance) {
         return distance / Perspective.LOCAL_TILE_SIZE;
     }
+
+
+    /**
+     * Returns the Tile for a given {@link WorldPoint}.
+     * @param point WorldPoint to get the tile for
+     * @return The tile for a given WorldPoint.
+     */
+    public Tile getTile(WorldPoint point) {
+        Client client = ctxProvider.get().getClient();
+        WorldView worldView = client.getTopLevelWorldView();
+
+        LocalPoint lp = LocalPoint.fromWorld(worldView, point.getX(), point.getY());
+        Tile[][][] tiles = worldView.getScene().getTiles();
+
+        if(lp == null || tiles == null) return null;
+
+        try {
+            return tiles[point.getPlane()][lp.getSceneX()][lp.getSceneY()];
+        } catch (Exception e) {
+            log.error("Failed to get tile for world point: x={}, y={}, z={}", point.getX(), point.getY(), point.getPlane(), e);
+            return null;
+        }
+    }
 }

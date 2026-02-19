@@ -549,4 +549,15 @@ public interface ExampleConfig extends Config {
     default boolean showVisualizer() {
         return false;
     }
+
+    @ConfigItem(
+            name = "Show NPC Line of Sight",
+            keyName = "showLos",
+            description = "Shows the line of sight for NPC's around the player",
+            position = 17,
+            section = overlaySettings
+    )
+    default boolean showNpcLoS() {
+        return false;
+    }
 }
