@@ -3,7 +3,8 @@ package example;
 
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import net.runelite.client.config.*;
-import java.awt.Color;
+
+import java.awt.*;
 
 @ConfigGroup("testapi")
 public interface ExampleConfig extends Config {
@@ -698,6 +699,18 @@ public interface ExampleConfig extends Config {
     default boolean npcPathStopOnLos() {
         return true;
     }
+
+//    Build an old school runescape simulation engine optimized for a decision tree search with the goal of having an actionable outcome in the game.
+//    The engine should be able to ingest a snapshot of the game, the players position, NPC's around the player, and simulate NPC movement, obstacle/collision detection
+//    and line of sight mechanics. You can use the ActorService for some of this functionality and reference the com.kraken.api.sim.colosim package for an example of how a simulation virtually
+//    moves NPCs, players, and re-calculates line of sight and pathing. Keep in mind the colosim is specific to the colosseum and the simulation I am asking you to build
+//    should be generic enough to be used in a variety of old school runescape content.
+//    Key requirements of the simulation are:
+//            - Must be able to ingest (copy) snapshot data from the game to build the simulation state.
+//            - The simulation snapshot data should directly come RuneLite and be compatible with RuneLite i.e. it should use RuneLite WorldPoints for coordinate systems, RuneLite local collision maps, etc... so that a decision made from the simulation can be directly translated back into the game to execute.
+//            - Must be able to be compatible with a decision tree search algorithm. You can implement a decision tree search as well if it helps build the simulation but this is not a strict requirement right now.
+//      - The simulation may be run hundreds or thousands of times in 1 game tick 0.6 seconds to find the best outcome in the game so it must be very fast and efficient to run
+//    Implement this old school runescape simulation system within a new package called com.kraken.api.simulation
 
     @ConfigItem(
             name = "Show Path Termination Tile",
