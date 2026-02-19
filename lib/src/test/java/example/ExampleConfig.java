@@ -559,7 +559,7 @@ public interface ExampleConfig extends Config {
             description = "General configurations for NPC line of sight mechanics.",
             position = 99
     )
-    String los = "Line of Sight Settings";
+    String los = "NPC LoS & Pathing";
 
     @ConfigItem(
             name = "Show NPC Line of Sight",
@@ -663,5 +663,97 @@ public interface ExampleConfig extends Config {
     )
     default int npcLoSBorderAlpha() {
         return 150;
+    }
+
+    @ConfigItem(
+            name = "Show NPC Pathing",
+            keyName = "showNpcPathing",
+            description = "Shows predicted NPC movement pathing towards the player.",
+            position = 10,
+            section = los
+    )
+    default boolean showNpcPathing() {
+        return false;
+    }
+
+    @Range(min = 1, max = 25)
+    @ConfigItem(
+            name = "NPC Path Scan Range",
+            keyName = "npcPathScanRange",
+            description = "How far from the player to include NPCs for path rendering.",
+            position = 11,
+            section = los
+    )
+    default int npcPathScanRange() {
+        return 15;
+    }
+
+    @ConfigItem(
+            name = "Stop Path On LoS",
+            keyName = "npcPathStopOnLos",
+            description = "Stops each rendered NPC path at the first tile where line of sight to the player is gained.",
+            position = 12,
+            section = los
+    )
+    default boolean npcPathStopOnLos() {
+        return true;
+    }
+
+    @ConfigItem(
+            name = "Show Path Termination Tile",
+            keyName = "npcPathShowTerminationTile",
+            description = "Highlights the tile where the rendered path ends.",
+            position = 13,
+            section = los
+    )
+    default boolean npcPathShowTerminationTile() {
+        return true;
+    }
+
+    @ConfigItem(
+            name = "Use Per-NPC Path Colors",
+            keyName = "npcPathUsePerNpcColors",
+            description = "Color each NPC path uniquely based on NPC id.",
+            position = 14,
+            section = los
+    )
+    default boolean npcPathUsePerNpcColors() {
+        return true;
+    }
+
+    @Alpha
+    @ConfigItem(
+            name = "NPC Path Base Color",
+            keyName = "npcPathColor",
+            description = "Base path color used when per-NPC path colors are disabled.",
+            position = 15,
+            section = los
+    )
+    default Color npcPathColor() {
+        return new Color(255, 165, 0, 160);
+    }
+
+    @Range(min = 0, max = 255)
+    @ConfigItem(
+            name = "NPC Path Fill Alpha",
+            keyName = "npcPathFillAlpha",
+            description = "Tile fill alpha for NPC path overlays.",
+            position = 16,
+            section = los
+    )
+    default int npcPathFillAlpha() {
+        return 30;
+    }
+
+    @Range(min = 0, max = 255)
+    @ConfigItem(
+            name = "NPC Path Border Alpha",
+            keyName = "npcPathBorderAlpha",
+            description = "Tile border alpha for NPC path overlays.",
+            position = 17,
+            section = los
+    )
+    default int npcPathBorderAlpha() {
+        return 190;
     }
 }

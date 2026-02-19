@@ -16,8 +16,125 @@ import java.util.List;
  */
 public class ActorService {
 
+    private static final int MAX_ACTOR_PATH_STEPS = 256;
     private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
     private static final TileService tileService = RuneLite.getInjector().getInstance(TileService.class);
+
+    /**
+     * Computes the movement path an NPC would take towards the local player using local collision data.
+     * The returned list does not include the NPC's current tile.
+     *
+     * @param npc The source NPC.
+     * @return The predicted step-by-step path toward the local player.
+     */
+    public static List<WorldPoint> getActorPath(NPC npc) {
+        return ctx.runOnClientThread(() -> {
+            Player localPlayer = ctx.getClient().getLocalPlayer();
+            if (localPlayer == null) {
+                return new ArrayList<>();
+            }
+            return getActorPathInternal(npc, localPlayer.getWorldLocation());
+        });
+    }
+
+    /**
+     * Computes the movement path an actor would take towards a target player using local collision data.
+     * The returned list does not include the actor's current tile.
+     *
+     * @param actor  The source actor.
+     * @param player The target player.
+     * @return The predicted step-by-step path.
+     */
+    public static List<WorldPoint> getActorPath(Actor actor, Player player) {
+        return ctx.runOnClientThread(() -> {
+            if (player == null) {
+                return new ArrayList<>();
+            }
+            return getActorPathInternal(actor, player.getWorldLocation());
+        });
+    }
+
+    /**
+     * Computes the movement path an actor would take towards a destination tile using local collision data.
+     * The returned list does not include the actor's current tile.
+     *
+     * @param actor       The source actor.
+     * @param destination The destination world tile.
+     * @return The predicted step-by-step path.
+     */
+    public static List<WorldPoint> getActorPath(Actor actor, WorldPoint destination) {
+        return ctx.runOnClientThread(() -> getActorPathInternal(actor, destination));
+    }
+
+    /**
+     * Computes the movement path an NPC would take towards the local player and truncates it at the
+     * first tile where the NPC gains line of sight to the player.
+     *
+     * @param npc The source NPC.
+     * @return Path steps up to and including the first line-of-sight tile. Returns an empty list
+     * when line of sight is already available from the NPC's current tile.
+     */
+    public static List<WorldPoint> getActorPathUntilLineOfSight(NPC npc) {
+        return ctx.runOnClientThread(() -> {
+            Player localPlayer = ctx.getClient().getLocalPlayer();
+            if (localPlayer == null) {
+                return new ArrayList<>();
+            }
+            return getActorPathUntilLineOfSightInternal(npc, localPlayer.getWorldLocation());
+        });
+    }
+
+    /**
+     * Computes the movement path an NPC would take towards a target player and truncates it at the
+     * first tile where the NPC gains line of sight to that player.
+     *
+     * @param npc    The source NPC.
+     * @param player The target player.
+     * @return Path steps up to and including the first line-of-sight tile. Returns an empty list
+     * when line of sight is already available from the NPC's current tile.
+     */
+    public static List<WorldPoint> getActorPathUntilLineOfSight(NPC npc, Player player) {
+        return ctx.runOnClientThread(() -> {
+            if (player == null) {
+                return new ArrayList<>();
+            }
+            return getActorPathUntilLineOfSightInternal(npc, player.getWorldLocation());
+        });
+    }
+
+    /**
+     * Finds the tile where an NPC path would terminate once the NPC has line of sight to the local player.
+     * If line of sight is already available, the NPC's current tile is returned.
+     *
+     * @param npc The source NPC.
+     * @return The termination tile, or null when inputs are invalid.
+     */
+    public static WorldPoint getActorLineOfSightTerminationTile(NPC npc) {
+        return ctx.runOnClientThread(() -> {
+            Player localPlayer = ctx.getClient().getLocalPlayer();
+            if (localPlayer == null) {
+                return null;
+            }
+            return getActorLineOfSightTerminationTileInternal(npc, localPlayer.getWorldLocation());
+        });
+    }
+
+    /**
+     * Finds the tile where an NPC path would terminate once the NPC has line of sight to the target player.
+     * If line of sight is already available, the NPC's current tile is returned.
+     *
+     * @param npc    The source NPC.
+     * @param player The target player.
+     * @return The termination tile, or null when inputs are invalid.
+     */
+    public static WorldPoint getActorLineOfSightTerminationTile(NPC npc, Player player) {
+        return ctx.runOnClientThread(() -> {
+            if (player == null) {
+                return null;
+            }
+            return getActorLineOfSightTerminationTileInternal(npc, player.getWorldLocation());
+        });
+    }
 
     /**
      * Checks if there is a clear line of sight between two world points.
@@ -176,6 +293,404 @@ public class ActorService {
         }
 
         return true;
+    }
+
+    /**
+     * Internal path resolver that predicts movement from an actor's current tile toward a destination.
+     * Validates plane/world-view/collision-map availability before pathing.
+     *
+     * @param actor The actor being simulated.
+     * @param destination The destination tile.
+     * @return A predicted path excluding the starting tile, or an empty list when invalid/unreachable.
+     */
+    private static List<WorldPoint> getActorPathInternal(Actor actor, WorldPoint destination) {
+        if (actor == null || destination == null) {
+            return new ArrayList<>();
+        }
+
+        WorldPoint start = actor.getWorldLocation();
+        if (start == null || start.getPlane() != destination.getPlane()) {
+            return new ArrayList<>();
+        }
+
+        Client client = ctx.getClient();
+        WorldView worldView = client.getTopLevelWorldView();
+        if (worldView == null || worldView.getPlane() != start.getPlane()) {
+            return new ArrayList<>();
+        }
+
+        CollisionData[] collisionData = worldView.getCollisionMaps();
+        if (collisionData == null || worldView.getPlane() < 0 || worldView.getPlane() >= collisionData.length) {
+            return new ArrayList<>();
+        }
+
+        int actorSize = getActorSize(actor);
+        int[][] collisionDataFlags = collisionData[worldView.getPlane()].getFlags();
+        return computeActorPath(start, destination, actorSize, worldView, collisionDataFlags);
+    }
+
+    /**
+     * Internal LoS-aware path resolver. Computes full actor pathing and truncates at the first step
+     * where the actor has line of sight to the target tile.
+     *
+     * @param actor The actor being simulated.
+     * @param target The target tile that line of sight is checked against.
+     * @return Steps up to the first LoS tile, or an empty list when LoS is already available/invalid.
+     */
+    private static List<WorldPoint> getActorPathUntilLineOfSightInternal(Actor actor, WorldPoint target) {
+        if (actor == null || target == null) {
+            return new ArrayList<>();
+        }
+
+        WorldPoint start = actor.getWorldLocation();
+        if (start == null || start.getPlane() != target.getPlane()) {
+            return new ArrayList<>();
+        }
+
+        Client client = ctx.getClient();
+        WorldView worldView = client.getTopLevelWorldView();
+        if (worldView == null || worldView.getPlane() != start.getPlane()) {
+            return new ArrayList<>();
+        }
+
+        CollisionData[] collisionData = worldView.getCollisionMaps();
+        Tile[][][] tiles = worldView.getScene().getTiles();
+        if (collisionData == null || tiles == null || worldView.getPlane() < 0 || worldView.getPlane() >= collisionData.length) {
+            return new ArrayList<>();
+        }
+
+        int actorSize = getActorSize(actor);
+        int[][] collisionDataFlags = collisionData[worldView.getPlane()].getFlags();
+        List<WorldPoint> fullPath = computeActorPath(start, target, actorSize, worldView, collisionDataFlags);
+        List<WorldPoint> losPath = new ArrayList<>();
+
+        if (hasActorLineOfSightAt(start, actorSize, target, worldView, tiles, collisionDataFlags)) {
+            return losPath;
+        }
+
+        for (WorldPoint step : fullPath) {
+            losPath.add(step);
+            if (hasActorLineOfSightAt(step, actorSize, target, worldView, tiles, collisionDataFlags)) {
+                break;
+            }
+        }
+
+        return losPath;
+    }
+
+    /**
+     * Internal helper to resolve the tile where actor movement would stop once line of sight is obtained.
+     *
+     * @param actor The actor being simulated.
+     * @param target The target tile used for LoS checks.
+     * @return Current tile if LoS already exists, otherwise the first path tile with LoS, or null when invalid.
+     */
+    private static WorldPoint getActorLineOfSightTerminationTileInternal(Actor actor, WorldPoint target) {
+        if (actor == null || target == null) {
+            return null;
+        }
+
+        WorldPoint start = actor.getWorldLocation();
+        if (start == null || start.getPlane() != target.getPlane()) {
+            return null;
+        }
+
+        Client client = ctx.getClient();
+        WorldView worldView = client.getTopLevelWorldView();
+        if (worldView == null || worldView.getPlane() != start.getPlane()) {
+            return null;
+        }
+
+        CollisionData[] collisionData = worldView.getCollisionMaps();
+        Tile[][][] tiles = worldView.getScene().getTiles();
+        if (collisionData == null || tiles == null || worldView.getPlane() < 0 || worldView.getPlane() >= collisionData.length) {
+            return null;
+        }
+
+        int actorSize = getActorSize(actor);
+        int[][] collisionDataFlags = collisionData[worldView.getPlane()].getFlags();
+
+        if (hasActorLineOfSightAt(start, actorSize, target, worldView, tiles, collisionDataFlags)) {
+            return start;
+        }
+
+        List<WorldPoint> fullPath = computeActorPath(start, target, actorSize, worldView, collisionDataFlags);
+        WorldPoint termination = start;
+        for (WorldPoint step : fullPath) {
+            termination = step;
+            if (hasActorLineOfSightAt(step, actorSize, target, worldView, tiles, collisionDataFlags)) {
+                break;
+            }
+        }
+        return termination;
+    }
+
+    /**
+     * Computes greedy step-by-step movement toward a destination using collision checks and cardinal
+     * fallbacks when diagonal movement is blocked.
+     *
+     * @param start Actor origin tile (south-west for multi-tile NPCs).
+     * @param destination Target tile.
+     * @param actorSize Actor footprint size.
+     * @param worldView Active world view used for base coordinates.
+     * @param collisionDataFlags Plane collision flags.
+     * @return Path excluding the start tile; may be partial when blocked.
+     */
+    private static List<WorldPoint> computeActorPath(
+            WorldPoint start,
+            WorldPoint destination,
+            int actorSize,
+            WorldView worldView,
+            int[][] collisionDataFlags
+    ) {
+        List<WorldPoint> path = new ArrayList<>();
+        if (start == null || destination == null || start.getPlane() != destination.getPlane()) {
+            return path;
+        }
+
+        int curX = start.getX();
+        int curY = start.getY();
+        int destX = destination.getX();
+        int destY = destination.getY();
+        int plane = start.getPlane();
+        int steps = 0;
+
+        while ((curX != destX || curY != destY) && steps < MAX_ACTOR_PATH_STEPS) {
+            int difX = destX - curX;
+            int difY = destY - curY;
+            int dx = Integer.signum(difX);
+            int dy = Integer.signum(difY);
+
+            if (canActorStep(worldView, collisionDataFlags, curX, curY, plane, dx, dy, actorSize)) {
+                curX += dx;
+                curY += dy;
+            } else if (dx != 0 && canActorStep(worldView, collisionDataFlags, curX, curY, plane, dx, 0, actorSize)) {
+                curX += dx;
+            } else if (dy != 0 && canActorStep(worldView, collisionDataFlags, curX, curY, plane, 0, dy, actorSize)) {
+                curY += dy;
+            } else {
+                break;
+            }
+
+            path.add(new WorldPoint(curX, curY, plane));
+            steps++;
+        }
+
+        return path;
+    }
+
+    /**
+     * Returns whether an actor footprint can move one step in the specified direction.
+     * Every occupied tile in the footprint must pass movement checks.
+     *
+     * @param worldView Active world view.
+     * @param collisionDataFlags Plane collision flags.
+     * @param currX Current world x (south-west anchor).
+     * @param currY Current world y (south-west anchor).
+     * @param plane Current plane.
+     * @param dx Step delta x.
+     * @param dy Step delta y.
+     * @param actorSize Actor footprint size.
+     * @return True when the step is valid for the full footprint.
+     */
+    private static boolean canActorStep(
+            WorldView worldView,
+            int[][] collisionDataFlags,
+            int currX,
+            int currY,
+            int plane,
+            int dx,
+            int dy,
+            int actorSize
+    ) {
+        if (dx == 0 && dy == 0) {
+            return true;
+        }
+
+        for (int x = 0; x < actorSize; x++) {
+            for (int y = 0; y < actorSize; y++) {
+                int tileX = currX + x;
+                int tileY = currY + y;
+                if (plane != worldView.getPlane()) {
+                    return false;
+                }
+
+                int sceneX = tileX - worldView.getBaseX();
+                int sceneY = tileY - worldView.getBaseY();
+                if (!isWalkable(collisionDataFlags, sceneX, sceneY, dx, dy)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Performs single-tile movement validation against RuneLite collision flags.
+     * Supports cardinal and diagonal movement, including side-tile checks for diagonals.
+     *
+     * @param flags Plane collision flags.
+     * @param sceneX Source scene x.
+     * @param sceneY Source scene y.
+     * @param dx Step delta x.
+     * @param dy Step delta y.
+     * @return True when the movement is allowed by collision data.
+     */
+    private static boolean isWalkable(int[][] flags, int sceneX, int sceneY, int dx, int dy) {
+        if (!isInScene(flags, sceneX, sceneY)) {
+            return false;
+        }
+
+        int targetX = sceneX + dx;
+        int targetY = sceneY + dy;
+        if (!isInScene(flags, targetX, targetY)) {
+            return false;
+        }
+
+        int sourceFlags = flags[sceneX][sceneY];
+        int targetFlags = flags[targetX][targetY];
+
+        if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) != 0) {
+            return false;
+        }
+
+        if (dx == 0 && dy == 0) {
+            return true;
+        }
+
+        if (dx == 0 || dy == 0) {
+            if (dx > 0) {
+                return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) == 0
+                        && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) == 0;
+            }
+            if (dx < 0) {
+                return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) == 0
+                        && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) == 0;
+            }
+            if (dy > 0) {
+                return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) == 0
+                        && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) == 0;
+            }
+            return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) == 0
+                    && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) == 0;
+        }
+
+        int xFlags = flags[sceneX + dx][sceneY];
+        int yFlags = flags[sceneX][sceneY + dy];
+
+        if (dx > 0 && dy > 0) { // NE
+            if ((sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) != 0
+                    || (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) != 0) {
+                return false;
+            }
+            if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) != 0
+                    || (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) != 0) {
+                return false;
+            }
+            return (xFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0
+                    && (yFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0;
+        }
+        if (dx < 0 && dy > 0) { // NW
+            if ((sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) != 0
+                    || (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) != 0) {
+                return false;
+            }
+            if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) != 0
+                    || (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) != 0) {
+                return false;
+            }
+            return (xFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0
+                    && (yFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0;
+        }
+        if (dx > 0 && dy < 0) { // SE
+            if ((sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) != 0
+                    || (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) != 0) {
+                return false;
+            }
+            if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) != 0
+                    || (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) != 0) {
+                return false;
+            }
+            return (xFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0
+                    && (yFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0;
+        }
+        if (dx < 0 && dy < 0) { // SW
+            if ((sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) != 0
+                    || (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) != 0) {
+                return false;
+            }
+            if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) != 0
+                    || (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) != 0) {
+                return false;
+            }
+            return (xFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0
+                    && (yFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0;
+        }
+
+        return false;
+    }
+
+    /**
+     * Bounds-check utility for scene-indexed collision arrays.
+     *
+     * @param flags Plane collision flags.
+     * @param sceneX Scene x index.
+     * @param sceneY Scene y index.
+     * @return True when the indices are inside the loaded collision grid.
+     */
+    private static boolean isInScene(int[][] flags, int sceneX, int sceneY) {
+        return sceneX >= 0
+                && sceneY >= 0
+                && sceneX < flags.length
+                && sceneY < flags[sceneX].length;
+    }
+
+    /**
+     * Checks whether an actor at a given south-west anchor has line of sight to a target tile.
+     * For multi-tile actors, LoS is tested from the footprint tile closest to the target.
+     *
+     * @param actorSouthWest Actor south-west anchor tile.
+     * @param actorSize Actor footprint size.
+     * @param target LoS target tile.
+     * @param worldView Active world view.
+     * @param tiles Scene tile grid.
+     * @param collisionDataFlags Plane collision flags.
+     * @return True when a valid source/target tile pair has unobstructed LoS.
+     */
+    private static boolean hasActorLineOfSightAt(
+            WorldPoint actorSouthWest,
+            int actorSize,
+            WorldPoint target,
+            WorldView worldView,
+            Tile[][][] tiles,
+            int[][] collisionDataFlags
+    ) {
+        WorldPoint source = getClosestNpcTileToTarget(actorSouthWest, actorSize, target);
+        Tile sourceTile = getTileAtWorldPoint(worldView, tiles, source);
+        Tile targetTile = getTileAtWorldPoint(worldView, tiles, target);
+        if (sourceTile == null || targetTile == null) {
+            return false;
+        }
+
+        return hasLineOfSightToInternal(sourceTile, targetTile, collisionDataFlags);
+    }
+
+    /**
+     * Resolves actor footprint size in tiles.
+     * NPC size is read from composition; non-NPC actors default to size 1.
+     *
+     * @param actor Actor to inspect.
+     * @return Footprint size in tiles.
+     */
+    private static int getActorSize(Actor actor) {
+        if (actor instanceof NPC) {
+            NPCComposition composition = ((NPC) actor).getComposition();
+            if (composition != null && composition.getSize() > 0) {
+                return composition.getSize();
+            }
+        }
+        return 1;
     }
 
     /**

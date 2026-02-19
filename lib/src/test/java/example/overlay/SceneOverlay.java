@@ -116,7 +116,122 @@ public class SceneOverlay extends Overlay {
             hideNpcRangeEditor();
         }
 
+        if (config.showNpcPathing()) {
+            renderNpcPathing(graphics);
+        }
+
         return null;
+    }
+
+    private void renderNpcPathing(Graphics2D g) {
+        Player localPlayer = ctx.getClient().getLocalPlayer();
+        if (localPlayer == null) {
+            return;
+        }
+
+        WorldPoint playerLocation = localPlayer.getWorldLocation();
+        if (playerLocation == null) {
+            return;
+        }
+
+        int scanRange = Math.max(1, config.npcPathScanRange());
+        List<NPC> nearbyNpcs = ctx.npcs()
+                .attackable()
+                .toRuneLite()
+                .filter(Objects::nonNull)
+                .filter(npc -> npc.getWorldLocation() != null && npc.getWorldLocation().distanceTo2D(playerLocation) <= scanRange)
+                .collect(Collectors.toList());
+
+        for (NPC npc : nearbyNpcs) {
+            List<WorldPoint> path = config.npcPathStopOnLos()
+                    ? ActorService.getActorPathUntilLineOfSight(npc, localPlayer)
+                    : ActorService.getActorPath(npc, localPlayer);
+
+            Color baseColor = config.npcPathUsePerNpcColors()
+                    ? colorForNpcId(npc.getId())
+                    : config.npcPathColor();
+            Color fillColor = withAlpha(baseColor, config.npcPathFillAlpha());
+            Color borderColor = withAlpha(baseColor, config.npcPathBorderAlpha());
+
+            if (!path.isEmpty()) {
+                renderPathTiles(g, path, fillColor, borderColor);
+            }
+
+            if (config.npcPathShowTerminationTile()) {
+                WorldPoint terminationTile;
+                if (config.npcPathStopOnLos()) {
+                    terminationTile = path.isEmpty()
+                            ? ActorService.getActorLineOfSightTerminationTile(npc, localPlayer)
+                            : path.get(path.size() - 1);
+                } else {
+                    terminationTile = path.isEmpty() ? npc.getWorldLocation() : path.get(path.size() - 1);
+                }
+
+                renderPathTerminationTile(g, terminationTile, fillColor, borderColor);
+            }
+
+            if (config.showDebugInfo()) {
+                String name = npc.getName() == null ? "Unknown" : npc.getName();
+                String debug = String.format("%s path=%d", name, path.size());
+                net.runelite.api.Point text = npc.getCanvasTextLocation(g, debug, npc.getLogicalHeight() + 75);
+                if (text != null) {
+                    OverlayUtil.renderTextLocation(g, text, debug, borderColor);
+                }
+            }
+        }
+    }
+
+    private void renderPathTiles(Graphics2D graphics, List<WorldPoint> path, Color fillColor, Color borderColor) {
+        net.runelite.api.Point previousCenter = null;
+
+        for (WorldPoint point : path) {
+            LocalPoint localPoint = LocalPoint.fromWorld(ctx.getClient().getTopLevelWorldView(), point);
+            if (localPoint == null) {
+                continue;
+            }
+
+            Polygon polygon = Perspective.getCanvasTilePoly(ctx.getClient(), localPoint);
+            if (polygon != null) {
+                graphics.setColor(fillColor);
+                graphics.fillPolygon(polygon);
+                graphics.setColor(borderColor);
+                graphics.drawPolygon(polygon);
+            }
+
+            net.runelite.api.Point center = Perspective.localToCanvas(
+                    ctx.getClient(),
+                    localPoint,
+                    ctx.getClient().getTopLevelWorldView().getPlane()
+            );
+            if (center != null && previousCenter != null) {
+                graphics.setColor(borderColor);
+                graphics.setStroke(new BasicStroke(1f));
+                graphics.drawLine(previousCenter.getX(), previousCenter.getY(), center.getX(), center.getY());
+            }
+            previousCenter = center;
+        }
+    }
+
+    private void renderPathTerminationTile(Graphics2D graphics, WorldPoint tile, Color fillColor, Color borderColor) {
+        if (tile == null) {
+            return;
+        }
+
+        LocalPoint localPoint = LocalPoint.fromWorld(ctx.getClient().getTopLevelWorldView(), tile);
+        if (localPoint == null) {
+            return;
+        }
+
+        Polygon polygon = Perspective.getCanvasTilePoly(ctx.getClient(), localPoint);
+        if (polygon == null) {
+            return;
+        }
+
+        graphics.setColor(fillColor);
+        graphics.fillPolygon(polygon);
+        graphics.setColor(borderColor);
+        graphics.setStroke(new BasicStroke(2f));
+        graphics.drawPolygon(polygon);
     }
 
     private void renderNpcLoS(Graphics2D g) {
