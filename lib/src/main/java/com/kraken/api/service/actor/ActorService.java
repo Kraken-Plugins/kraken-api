@@ -10,11 +10,22 @@ import net.runelite.client.RuneLite;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility service for calculating line of sight (LoS), collision, and reachability
+ * for actors and tiles within the game world.
+ */
 public class ActorService {
 
     private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
     private static final TileService tileService = RuneLite.getInjector().getInstance(TileService.class);
 
+    /**
+     * Checks if there is a clear line of sight between two world points.
+     *
+     * @param source The starting {@link WorldPoint}.
+     * @param other  The target {@link WorldPoint}.
+     * @return True if there is an unobstructed line of sight, false otherwise.
+     */
     public static boolean hasLineOfSightTo(WorldPoint source, WorldPoint other) {
         Tile sourceTile = tileService.getTile(source.getX(), source.getY());
         Tile otherTile = tileService.getTile(other.getX(), other.getY());
@@ -24,6 +35,14 @@ public class ActorService {
         return hasLineOfSightTo(sourceTile, otherTile);
     }
 
+    /**
+     * Checks if there is a clear line of sight between two scene tiles.
+     * Automatically dispatches to the client thread to safely access collision maps.
+     *
+     * @param source The starting {@link Tile}.
+     * @param other  The target {@link Tile}.
+     * @return True if there is an unobstructed line of sight, false otherwise.
+     */
     public static boolean hasLineOfSightTo(Tile source, Tile other) {
         return ctx.runOnClientThread(() -> {
             if(source == null || other == null) {
@@ -47,15 +66,15 @@ public class ActorService {
         });
     }
 
-    public static List<WorldPoint> getLineOfSightTiles(
-            WorldPoint source,
-            int sourceSize,
-            int range,
-            boolean sourceIsNpc
-    ) {
-        return ctx.runOnClientThread(() -> getLineOfSightTilesInternal(source, sourceSize, range, sourceIsNpc));
-    }
-
+    /**
+     * Retrieves a list of all tiles within a specified radius that an NPC currently has line of sight to.
+     * <br>
+     *
+     *
+     * @param npc   The source {@link NPC}.
+     * @param range The radius to check for visible tiles.
+     * @return A list of {@link WorldPoint}s representing visible tiles. Returns an empty list if none are found.
+     */
     public static List<WorldPoint> getLineOfSightTiles(NPC npc, int range) {
         return ctx.runOnClientThread(() -> {
             if (npc == null) {
@@ -73,6 +92,18 @@ public class ActorService {
         });
     }
 
+    /**
+     * Core line of sight algorithm utilizing a grid-based raycasting approach.
+     * Full credit to Vitalite's {@code SceneAPI} class for this implementation.
+     * <a href="https://github.com/Tonic-Box/VitaLite/blob/main/api/src/main/java/com/tonic/api/game/SceneAPI.java">Source</a>
+     * <br>
+     *
+     *
+     * @param source             The starting {@link Tile}.
+     * @param other              The target {@link Tile}.
+     * @param collisionDataFlags 2D array of collision flags for the current plane.
+     * @return True if the path is unobstructed by collision flags.
+     */
     private static boolean hasLineOfSightToInternal(Tile source, Tile other, int[][] collisionDataFlags) {
         Point p1 = source.getSceneLocation();
         Point p2 = other.getSceneLocation();
@@ -147,6 +178,16 @@ public class ActorService {
         return true;
     }
 
+    /**
+     * Scans a square area around a source point to find all tiles within line of sight.
+     * Takes multi-tile entity footprints into account.
+     *
+     * @param source      The starting {@link WorldPoint} (south-west tile of the entity).
+     * @param sourceSize  The tile size of the source entity (e.g., 1x1, 2x2).
+     * @param range       The maximum distance in tiles to check.
+     * @param sourceIsNpc True if the source is an NPC, altering how distances from the footprint are calculated.
+     * @return A list of visible {@link WorldPoint}s.
+     */
     private static List<WorldPoint> getLineOfSightTilesInternal(
             WorldPoint source,
             int sourceSize,
@@ -218,6 +259,14 @@ public class ActorService {
         return visibleTiles;
     }
 
+    /**
+     * Resolves a {@link Tile} object from the scene based on a {@link WorldPoint}.
+     *
+     * @param worldView The current top-level WorldView.
+     * @param tiles     3D array representing all currently loaded scene tiles.
+     * @param point     The target {@link WorldPoint} to resolve.
+     * @return The {@link Tile} at the specified location, or null if out of bounds/unloaded.
+     */
     private static Tile getTileAtWorldPoint(WorldView worldView, Tile[][][] tiles, WorldPoint point) {
         if (point == null) {
             return null;
@@ -244,6 +293,18 @@ public class ActorService {
         return planeTiles[sceneX][sceneY];
     }
 
+    /**
+     * Checks for Axis-Aligned Bounding Box (AABB) intersection between two entities based on their
+     * south-west coordinate anchors and footprint sizes.
+     * <br>
+     *
+     *
+     * @param first      The south-west {@link WorldPoint} of the first entity.
+     * @param firstSize  The square footprint size of the first entity.
+     * @param second     The south-west {@link WorldPoint} of the second entity.
+     * @param secondSize The square footprint size of the second entity.
+     * @return True if the two bounding boxes overlap, false otherwise.
+     */
     private static boolean collidesSouthWest(WorldPoint first, int firstSize, WorldPoint second, int secondSize) {
         if (first.getPlane() != second.getPlane()) {
             return false;
@@ -265,12 +326,32 @@ public class ActorService {
                 || secondMaxY < firstMinY);
     }
 
+    /**
+     * Calculates the coordinate within a source entity's bounding box that is physically closest to a target point.
+     * Used to establish the origin point for line of sight calculations on multi-tile NPCs.
+     *
+     * @param source     The south-west {@link WorldPoint} of the entity.
+     * @param sourceSize The square footprint size of the entity.
+     * @param target     The destination {@link WorldPoint}.
+     * @return The closest {@link WorldPoint} within the source's footprint to the target.
+     */
     private static WorldPoint getClosestNpcTileToTarget(WorldPoint source, int sourceSize, WorldPoint target) {
         int tx = Math.max(source.getX(), Math.min(source.getX() + sourceSize - 1, target.getX()));
         int ty = Math.max(source.getY(), Math.min(source.getY() + sourceSize - 1, target.getY()));
         return new WorldPoint(tx, ty, source.getPlane());
     }
 
+    /**
+     * Determines if a target tile is reachable via melee from a source entity.
+     * Requires orthogonal adjacency (no diagonals) to the outer edge of the source's bounding box.
+     * <br>
+     *
+     *
+     * @param source     The south-west {@link WorldPoint} of the attacker.
+     * @param sourceSize The square footprint size of the attacker.
+     * @param target     The {@link WorldPoint} of the target.
+     * @return True if the target is orthogonally adjacent to the source footprint.
+     */
     private static boolean isMeleeReachable(WorldPoint source, int sourceSize, WorldPoint target) {
         int dx = target.getX() - source.getX();
         int dy = target.getY() - source.getY();

@@ -17,3 +17,12 @@ The simulation engine supports:
 Currently, there isn't a full-fledged API for performing a simulation in the context of the game; however, 
 this is actively being developed and is open to some contributions!
 
+## ColoSim
+
+I have created a port of the [OSRS Colosseum Line of Sight Simulator found here](https://los.colosim.com/) to java
+within the `com.kraken.api.sim.colosim` package. It shows an example of a simulation for the Colosseum NPCs but 
+is not a generic simulation engine which can be used in other contexts or within the context of a RuneLite plugin.
+
+I've added it to the API as an example which hopefully I and others can build upon to create an open source 
+generic simulation engine for Old School RuneScape!
+

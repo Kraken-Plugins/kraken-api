@@ -8,6 +8,7 @@ import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.query.player.LocalPlayerEntity;
 import com.kraken.api.query.player.PlayerEntity;
 import com.kraken.api.query.widget.WidgetEntity;
+import com.kraken.api.service.actor.ActorService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.tile.GameArea;
 import com.kraken.api.service.tile.TileService;
@@ -24,8 +25,11 @@ import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.ui.overlay.*;
 
+import javax.swing.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,6 +43,11 @@ public class SceneOverlay extends Overlay {
     private final ExampleConfig config;
     private final TileService tileService;
     private final AreaServiceTest areaServiceTest;
+    private final Map<Integer, Integer> npcManualRangeOverrides = new HashMap<>();
+    private JFrame npcRangeEditorFrame;
+    private JTable npcRangeEditorTable;
+    private DefaultTableModel npcRangeEditorModel;
+    private long lastNpcRangeUiRefresh;
 
     @Inject
     public SceneOverlay(ExamplePlugin plugin, LocalPathfinder pathfinder, Context ctx, ExampleConfig config,
@@ -103,13 +112,246 @@ public class SceneOverlay extends Overlay {
 
         if(config.showNpcLoS()) {
             renderNpcLoS(graphics);
+        } else {
+            hideNpcRangeEditor();
         }
 
         return null;
     }
 
     private void renderNpcLoS(Graphics2D g) {
+        Player localPlayer = ctx.getClient().getLocalPlayer();
+        if (localPlayer == null) {
+            return;
+        }
 
+        WorldPoint playerLocation = localPlayer.getWorldLocation();
+        if (playerLocation == null) {
+            return;
+        }
+
+        int scanRange = Math.max(1, config.npcLoSScanRange());
+        List<NPC> nearbyNpcs = ctx.npcs()
+                .attackable()
+                .toRuneLite()
+                .filter(Objects::nonNull)
+                .filter(npc -> npc.getWorldLocation() != null && npc.getWorldLocation().distanceTo2D(playerLocation) <= scanRange)
+                .collect(Collectors.toList());
+
+        if (config.showNpcLoSRangeEditor()) {
+            updateNpcRangeEditor(nearbyNpcs);
+        } else {
+            hideNpcRangeEditor();
+        }
+
+        for (NPC npc : nearbyNpcs) {
+            int range = resolveNpcRange(npc);
+            if (range <= 0) {
+                continue;
+            }
+
+            List<WorldPoint> losTiles = ActorService.getLineOfSightTiles(npc, range);
+            if (losTiles.isEmpty()) {
+                continue;
+            }
+
+            Color baseColor = config.npcLoSUsePerNpcColors()
+                    ? colorForNpcId(npc.getId())
+                    : config.npcLoSColor();
+            Color fillColor = withAlpha(baseColor, config.npcLoSFillAlpha());
+            Color borderColor = withAlpha(baseColor, config.npcLoSBorderAlpha());
+
+            for (WorldPoint tile : losTiles) {
+                LocalPoint localPoint = LocalPoint.fromWorld(ctx.getClient().getTopLevelWorldView(), tile);
+                if (localPoint == null) {
+                    continue;
+                }
+
+                Polygon polygon = Perspective.getCanvasTilePoly(ctx.getClient(), localPoint);
+                if (polygon == null) {
+                    continue;
+                }
+
+                g.setColor(fillColor);
+                g.fillPolygon(polygon);
+                g.setColor(borderColor);
+                g.drawPolygon(polygon);
+            }
+
+            if (config.showDebugInfo()) {
+                String debug = String.format("%s r=%d", npc.getName(), range);
+                net.runelite.api.Point text = npc.getCanvasTextLocation(g, debug, npc.getLogicalHeight() + 60);
+                if (text != null) {
+                    OverlayUtil.renderTextLocation(g, text, debug, borderColor);
+                }
+            }
+        }
+    }
+
+    private int resolveNpcRange(NPC npc) {
+        int manualRange = npcManualRangeOverrides.getOrDefault(npc.getId(), 0);
+        if (manualRange > 0) {
+            return manualRange;
+        }
+
+        if (config.npcLoSUseDetectedRanges()) {
+            int detectedRange = detectNpcRange(npc);
+            if (detectedRange > 0) {
+                return detectedRange;
+            }
+        }
+
+        return Math.max(1, config.npcLoSDefaultRange());
+    }
+
+    private int detectNpcRange(NPC npc) {
+        if (npc.getComposition() == null) {
+            return -1;
+        }
+
+        // RL composition int param 13 usually tracks attack range for many NPCs.
+        int detected = npc.getComposition().getIntValue(13);
+        if (detected > 0 && detected <= 25) {
+            return detected;
+        }
+
+        String[] actions = npc.getComposition().getActions();
+        if (actions == null) {
+            return -1;
+        }
+
+        for (String action : actions) {
+            if ("attack".equalsIgnoreCase(action)) {
+                return 1;
+            }
+        }
+
+        return -1;
+    }
+
+    private void updateNpcRangeEditor(List<NPC> nearbyNpcs) {
+        long now = System.currentTimeMillis();
+        if (now - lastNpcRangeUiRefresh < 750) {
+            return;
+        }
+        lastNpcRangeUiRefresh = now;
+
+        List<Object[]> rows = new ArrayList<>();
+        for (NPC npc : nearbyNpcs) {
+            if (npc == null || npc.getComposition() == null) {
+                continue;
+            }
+
+            int npcId = npc.getId();
+            String name = npc.getName() == null ? "Unknown" : npc.getName();
+            int detectedRange = detectNpcRange(npc);
+            Integer override = npcManualRangeOverrides.get(npcId);
+            rows.add(new Object[]{
+                    npcId,
+                    name,
+                    detectedRange > 0 ? detectedRange : "",
+                    override == null ? "" : override
+            });
+        }
+        rows.sort((a, b) -> Integer.compare((Integer) a[0], (Integer) b[0]));
+
+        SwingUtilities.invokeLater(() -> {
+            ensureNpcRangeEditor();
+            npcRangeEditorModel.setRowCount(0);
+            for (Object[] row : rows) {
+                npcRangeEditorModel.addRow(row);
+            }
+        });
+    }
+
+    private void ensureNpcRangeEditor() {
+        if (npcRangeEditorFrame != null) {
+            if (!npcRangeEditorFrame.isVisible()) {
+                npcRangeEditorFrame.setVisible(true);
+            }
+            return;
+        }
+
+        npcRangeEditorModel = new DefaultTableModel(new Object[]{"Npc ID", "Name", "Detected", "Manual"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 3;
+            }
+        };
+
+        npcRangeEditorModel.addTableModelListener(event -> {
+            if (event.getType() != TableModelEvent.UPDATE || event.getColumn() != 3) {
+                return;
+            }
+
+            int row = event.getFirstRow();
+            if (row < 0 || row >= npcRangeEditorModel.getRowCount()) {
+                return;
+            }
+
+            Object idValue = npcRangeEditorModel.getValueAt(row, 0);
+            Object manualValue = npcRangeEditorModel.getValueAt(row, 3);
+            if (!(idValue instanceof Integer)) {
+                return;
+            }
+
+            int npcId = (Integer) idValue;
+            int manualRange = parseManualRange(manualValue);
+            if (manualRange <= 0) {
+                npcManualRangeOverrides.remove(npcId);
+            } else {
+                npcManualRangeOverrides.put(npcId, manualRange);
+            }
+        });
+
+        npcRangeEditorTable = new JTable(npcRangeEditorModel);
+        npcRangeEditorTable.setFillsViewportHeight(true);
+
+        npcRangeEditorFrame = new JFrame("NPC LoS Range Editor");
+        npcRangeEditorFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        npcRangeEditorFrame.add(new JScrollPane(npcRangeEditorTable), BorderLayout.CENTER);
+        npcRangeEditorFrame.setSize(420, 360);
+        npcRangeEditorFrame.setLocationByPlatform(true);
+        npcRangeEditorFrame.setVisible(true);
+    }
+
+    private void hideNpcRangeEditor() {
+        if (npcRangeEditorFrame == null || !npcRangeEditorFrame.isVisible()) {
+            return;
+        }
+        SwingUtilities.invokeLater(() -> {
+            if (npcRangeEditorFrame != null) {
+                npcRangeEditorFrame.setVisible(false);
+            }
+        });
+    }
+
+    private int parseManualRange(Object value) {
+        if (value == null) {
+            return -1;
+        }
+
+        String text = value.toString().trim();
+        if (text.isEmpty()) {
+            return -1;
+        }
+
+        try {
+            int parsed = Integer.parseInt(text);
+            return (parsed > 0 && parsed <= 25) ? parsed : -1;
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
+    }
+
+    private Color colorForNpcId(int npcId) {
+        float hue = ((npcId * 37) % 360) / 360f;
+        return Color.getHSBColor(hue, 0.75f, 1.0f);
+    }
+
+    private Color withAlpha(Color color, int alpha) {
+        int safeAlpha = Math.max(0, Math.min(255, alpha));
+        return new Color(color.getRed(), color.getGreen(), color.getBlue(), safeAlpha);
     }
 
     private void renderAreaService(Graphics2D graphics) {

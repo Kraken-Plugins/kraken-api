@@ -3,6 +3,7 @@ package example;
 
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import net.runelite.client.config.*;
+import java.awt.Color;
 
 @ConfigGroup("testapi")
 public interface ExampleConfig extends Config {
@@ -377,7 +378,7 @@ public interface ExampleConfig extends Config {
     @ConfigSection(
             name = "Overlay Settings",
             description = "General overlay configuration for tests, debugging, and sim visualization",
-            position = 99
+            position = 90
     )
     String overlaySettings = "Overlay Settings";
 
@@ -550,14 +551,117 @@ public interface ExampleConfig extends Config {
         return false;
     }
 
+    // ==============================================
+    // ========== GENERAL OVERLAY SETTINGS ==========
+    // ==============================================
+    @ConfigSection(
+            name = "Line of Sight Settings",
+            description = "General configurations for NPC line of sight mechanics.",
+            position = 99
+    )
+    String los = "Line of Sight Settings";
+
     @ConfigItem(
             name = "Show NPC Line of Sight",
             keyName = "showLos",
             description = "Shows the line of sight for NPC's around the player",
-            position = 17,
-            section = overlaySettings
+            position = 1,
+            section = los
     )
     default boolean showNpcLoS() {
         return false;
+    }
+
+    @Range(min = 1, max = 25)
+    @ConfigItem(
+            name = "NPC LoS Scan Range",
+            keyName = "npcLoSScanRange",
+            description = "How far from the player to include NPCs for LoS rendering.",
+            position = 2,
+            section = los
+    )
+    default int npcLoSScanRange() {
+        return 15;
+    }
+
+    @Range(min = 1, max = 25)
+    @ConfigItem(
+            name = "NPC LoS Default Range",
+            keyName = "npcLoSDefaultRange",
+            description = "Fallback range used when a range can't be detected and no manual override exists.",
+            position = 3,
+            section = los
+    )
+    default int npcLoSDefaultRange() {
+        return 1;
+    }
+
+    @ConfigItem(
+            name = "Use Detected NPC Ranges",
+            keyName = "npcLoSUseDetectedRanges",
+            description = "Use composition-based detected NPC ranges when available.",
+            position = 4,
+            section = los
+    )
+    default boolean npcLoSUseDetectedRanges() {
+        return true;
+    }
+
+    @ConfigItem(
+            name = "Show LoS Range Editor",
+            keyName = "showNpcLoSRangeEditor",
+            description = "Shows a small table for manual per-NPC range overrides while LoS is enabled.",
+            position = 5,
+            section = los
+    )
+    default boolean showNpcLoSRangeEditor() {
+        return false;
+    }
+
+    @ConfigItem(
+            name = "Use Per-NPC LoS Colors",
+            keyName = "npcLoSUsePerNpcColors",
+            description = "Color each NPC's LoS tiles uniquely based on NPC id.",
+            position = 6,
+            section = los
+    )
+    default boolean npcLoSUsePerNpcColors() {
+        return true;
+    }
+
+    @Alpha
+    @ConfigItem(
+            name = "NPC LoS Base Color",
+            keyName = "npcLoSColor",
+            description = "Base LoS color used when per-NPC colors are disabled.",
+            position = 7,
+            section = los
+    )
+    default Color npcLoSColor() {
+        return new Color(0, 255, 255, 120);
+    }
+
+    @Range(min = 0, max = 255)
+    @ConfigItem(
+            name = "NPC LoS Fill Alpha",
+            keyName = "npcLoSFillAlpha",
+            description = "Tile fill alpha for NPC LoS overlays.",
+            position = 8,
+            section = los
+    )
+    default int npcLoSFillAlpha() {
+        return 40;
+    }
+
+    @Range(min = 0, max = 255)
+    @ConfigItem(
+            name = "NPC LoS Border Alpha",
+            keyName = "npcLoSBorderAlpha",
+            description = "Tile border alpha for NPC LoS overlays.",
+            position = 9,
+            section = los
+    )
+    default int npcLoSBorderAlpha() {
+        return 150;
     }
 }
