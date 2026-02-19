@@ -29,6 +29,7 @@ public class ColoSimApp {
         frame.setLayout(new BorderLayout(12, 12));
         frame.getContentPane().setBackground(AppTheme.BG);
 
+        // --- Left Sidebar (Tools) ---
         JPanel rootLeft = new JPanel(new BorderLayout(8, 8));
         rootLeft.setOpaque(false);
         rootLeft.setPreferredSize(new Dimension(300, 860));
@@ -95,6 +96,32 @@ public class ColoSimApp {
         setupPanel.add(showPlayerLos);
         setupPanel.add(showVenator);
 
+        JPanel leftStack = new JPanel(new GridBagLayout());
+        leftStack.setOpaque(false);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTH;
+        gbc.insets = new Insets(0, 0, 8, 0);
+
+        leftStack.add(topActions, gbc);
+
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        leftStack.add(setupPanel, gbc);
+
+        gbc.gridy = 2;
+        gbc.weighty = 1.0;
+        JPanel spacer = new JPanel();
+        spacer.setOpaque(false);
+        leftStack.add(spacer, gbc);
+
+        rootLeft.add(leftStack, BorderLayout.CENTER);
+
+        // --- Status / Console Panel ---
         JPanel statusPanel = new JPanel(new BorderLayout(6, 6));
         statusPanel.setOpaque(true);
         statusPanel.setBackground(new Color(27, 33, 39));
@@ -128,6 +155,7 @@ public class ColoSimApp {
         timelineScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         timelineScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         timelineScroll.setPreferredSize(new Dimension(270, panel.getPreferredSize().height));
+        timelineScroll.setBorder(BorderFactory.createEmptyBorder());
         AppTheme.styleCleanScrollBars(timelineScroll);
 
         Timer timer = new Timer(600, e -> {
@@ -162,24 +190,36 @@ public class ColoSimApp {
             refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel);
         });
 
-        JPanel leftStack = new JPanel();
-        leftStack.setOpaque(false);
-        leftStack.setLayout(new GridLayout(0, 1, 8, 8));
-        leftStack.add(topActions);
-        leftStack.add(setupPanel);
-        rootLeft.add(leftStack, BorderLayout.NORTH);
-
         panel.setPlacementNpcType((NpcType) npcTypeBox.getSelectedItem());
         panel.setPlacementManticoreExtra((String) mantiExtraBox.getSelectedItem());
         panel.setStateChangedCallback(() -> refreshUi(simulation, panel, timelinePanel, infoArea, tickLabel));
 
-        JPanel centerWrap = new JPanel(new BorderLayout(12, 12));
-        centerWrap.setOpaque(false);
-        centerWrap.add(panel, BorderLayout.CENTER);
-        centerWrap.add(timelineScroll, BorderLayout.EAST);
+        // --- Center Layout ---
+        JScrollPane boardScroll = new JScrollPane(panel);
+        boardScroll.setBorder(BorderFactory.createEmptyBorder());
+        boardScroll.getViewport().setBackground(AppTheme.BG);
+        // If your AppTheme method supports it, you can style these scrollbars too!
+        // AppTheme.styleCleanScrollBars(boardScroll);
 
+        // 2. Set strict minimum sizes so they never disappear
+        boardScroll.setMinimumSize(new Dimension(400, 400));
+        timelineScroll.setMinimumSize(new Dimension(200, 400));
+
+        // 3. Use a JSplitPane instead of GridBagLayout
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, boardScroll, timelineScroll);
+        splitPane.setBorder(BorderFactory.createEmptyBorder());
+        splitPane.setOpaque(false);
+        splitPane.setDividerSize(5); // Clean, thin draggable divider
+        splitPane.setContinuousLayout(true);
+        splitPane.setResizeWeight(1.0); // 1.0 means the left side (board) gets the extra space when maximizing
+
+        // --- Main Frame Composition ---
         frame.add(rootLeft, BorderLayout.WEST);
-        frame.add(centerWrap, BorderLayout.CENTER);
+        frame.add(splitPane, BorderLayout.CENTER); // Add the splitPane here instead of centerWrap
+        frame.add(statusPanel, BorderLayout.SOUTH);
+
+        // Pushing the status panel to the JFrame's SOUTH region allows it to
+        // stretch horizontally across the entire application width
         frame.add(statusPanel, BorderLayout.SOUTH);
 
         bindKeys(frame, simulation, panel, timelinePanel, infoArea, tickLabel);

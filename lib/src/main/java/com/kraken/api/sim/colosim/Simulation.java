@@ -358,7 +358,7 @@ public class Simulation {
                 tape.set(i, next);
             }
         }
-        Map<Integer, Integer> shifted = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> shifted = new HashMap<>();
         for (Map.Entry<Integer, Integer> entry : manticoreTicksRemaining.entrySet()) {
             int key = entry.getKey();
             if (key == index) {
