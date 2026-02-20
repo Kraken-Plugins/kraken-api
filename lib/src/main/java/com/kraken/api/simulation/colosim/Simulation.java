@@ -1,8 +1,8 @@
-package com.kraken.api.sim.colosim;
+package com.kraken.api.simulation.colosim;
 
-import com.kraken.api.sim.colosim.model.Mob;
-import com.kraken.api.sim.colosim.model.NpcInfo;
-import com.kraken.api.sim.colosim.model.Tile;
+import com.kraken.api.simulation.colosim.model.Mob;
+import com.kraken.api.simulation.colosim.model.NpcInfo;
+import com.kraken.api.simulation.colosim.model.Tile;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

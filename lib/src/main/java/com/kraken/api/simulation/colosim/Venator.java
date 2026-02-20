@@ -1,6 +1,6 @@
-package com.kraken.api.sim.colosim;
+package com.kraken.api.simulation.colosim;
 
-import com.kraken.api.sim.colosim.model.Tile;
+import com.kraken.api.simulation.colosim.model.Tile;
 
 import java.util.ArrayList;
 import java.util.List;

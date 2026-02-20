@@ -1,4 +1,4 @@
-package com.kraken.api.sim.colosim;
+package com.kraken.api.simulation.colosim;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

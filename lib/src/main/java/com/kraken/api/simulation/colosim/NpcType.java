@@ -1,4 +1,4 @@
-package com.kraken.api.sim.colosim;
+package com.kraken.api.simulation.colosim;
 
 public enum NpcType {
     PLAYER(0),

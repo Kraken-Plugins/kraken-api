@@ -1,6 +1,6 @@
 package example.tests.sim;
 
-import com.kraken.api.sim.colosim.Venator;
+import com.kraken.api.simulation.colosim.Venator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

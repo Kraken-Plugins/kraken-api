@@ -1,4 +1,4 @@
-package com.kraken.api.sim.colosim.model;
+package com.kraken.api.simulation.colosim.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

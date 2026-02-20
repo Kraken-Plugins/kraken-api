@@ -1,8 +1,8 @@
 package example.tests.sim;
 
-import com.kraken.api.sim.colosim.NpcType;
-import com.kraken.api.sim.colosim.Simulation;
-import com.kraken.api.sim.colosim.model.Mob;
+import com.kraken.api.simulation.colosim.NpcType;
+import com.kraken.api.simulation.colosim.Simulation;
+import com.kraken.api.simulation.colosim.model.Mob;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
