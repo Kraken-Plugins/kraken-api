@@ -56,6 +56,9 @@ public final class SimulationDecisionAdapter {
 
         /**
          * Creates movement step.
+         *
+         * @param destination movement destination in world coordinates.
+         * @return executable movement step.
          */
         public static ExecutableStep move(WorldPoint destination) {
             return new ExecutableStep(ExecutableStepType.MOVE, destination, null, null, null, null, null);
@@ -63,6 +66,10 @@ public final class SimulationDecisionAdapter {
 
         /**
          * Creates npc interaction step.
+         *
+         * @param npcIndex RuneLite npc index to target.
+         * @param action npc interaction menu action text.
+         * @return executable npc-interaction step.
          */
         public static ExecutableStep npcInteract(int npcIndex, String action) {
             return new ExecutableStep(ExecutableStepType.NPC_INTERACT, null, npcIndex, action, null, null, null);
@@ -70,6 +77,9 @@ public final class SimulationDecisionAdapter {
 
         /**
          * Creates prayer switch step.
+         *
+         * @param prayer overhead prayer to activate.
+         * @return executable prayer-switch step.
          */
         public static ExecutableStep switchPrayer(Prayer prayer) {
             return new ExecutableStep(ExecutableStepType.SWITCH_PRAYER, null, null, null, prayer, null, null);
@@ -77,6 +87,9 @@ public final class SimulationDecisionAdapter {
 
         /**
          * Creates equipment step.
+         *
+         * @param itemId inventory item id to equip.
+         * @return executable equip-item step.
          */
         public static ExecutableStep equipItem(int itemId) {
             return new ExecutableStep(ExecutableStepType.EQUIP_ITEM, null, null, null, null, itemId, null);
@@ -84,6 +97,10 @@ public final class SimulationDecisionAdapter {
 
         /**
          * Creates inventory interaction step.
+         *
+         * @param itemId inventory item id to interact with.
+         * @param action interaction action text (for example, Eat/Drink/Use).
+         * @return executable inventory-interaction step.
          */
         public static ExecutableStep inventoryInteract(int itemId, String action) {
             return new ExecutableStep(ExecutableStepType.INVENTORY_INTERACT, null, null, action, null, itemId, null);
@@ -91,6 +108,10 @@ public final class SimulationDecisionAdapter {
 
         /**
          * Creates spell cast step.
+         *
+         * @param spell spell to cast.
+         * @param targetNpcIndex optional target npc index, null for untargeted cast.
+         * @return executable spell-cast step.
          */
         public static ExecutableStep castSpell(CastableSpell spell, Integer targetNpcIndex) {
             return new ExecutableStep(ExecutableStepType.CAST_SPELL, null, targetNpcIndex, null, null, null, spell);

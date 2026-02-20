@@ -2,136 +2,364 @@
 
 The API provides two simulation areas:
 
-- `com.kraken.api.sim` and `com.kraken.api.sim.colosim`: existing simulation/visualizer tooling, including Colosseum-specific examples.
 - `com.kraken.api.simulation`: generic, RuneLite-compatible simulation for decision-tree search and in-game action execution.
+- `com.kraken.api.simulation.colosim`: Colosseum-focused simulator/visualizer tooling.
 
-This is intended for plugins that need to evaluate many candidate actions per game tick (0.6s) and choose an actionable outcome.
+Use `com.kraken.api.simulation` when you need to evaluate many candidate actions every game tick and choose one executable result.
 
 ![sim-example-image](../images/sim.png)
 
-## Generic Simulation Package
+## What Is New
 
-The generic simulation package is `com.kraken.api.simulation`.
+`com.kraken.api.simulation` now supports much more than movement:
 
-Core classes:
+- NPC combat metadata in snapshots (style, range, speed, max-hit).
+- Simulated player state (HP, active overhead prayer, inventory/equipment snapshots).
+- Action types beyond movement:
+  - prayer switching
+  - equipment swaps
+  - inventory interactions (including eat/heal)
+  - spell casts
+  - custom action markers
+- Step-based executable outcomes in `SimulationDecisionAdapter`.
+- A dedicated `SimulationActionPolicy` API to unify:
+  - snapshot capture settings
+  - candidate action generation
+  - state scoring
+  - adapter options
+  - allowed executable step types
 
-- `SimulationSnapshotService`: captures immutable snapshots directly from live RuneLite state.
-- `SimulationSnapshot`: immutable snapshot model (RuneLite `WorldPoint`, local collision flags, base coords, plane, NPCs).
-- `SimulationState`: mutable state optimized for fast copying/branching (`copy()`).
-- `SimulationEngine`: simulates ticks, movement, collision, and line-of-sight.
-- `DecisionTreeSearch`: depth-limited tree search over candidate player actions.
-- `SimulationDecisionAdapter`: converts tree-search result into executable movement + interaction actions.
+## Core Classes
 
-### RuneLite Compatibility
+- `SimulationSnapshotService`: captures immutable snapshots from live RuneLite state.
+- `SimulationSnapshot`: immutable scene + player + npc snapshot.
+- `SimulationPlayerSnapshot`: immutable player metadata in snapshot.
+- `SimulationNpcSnapshot`: immutable npc metadata in snapshot.
+- `SimulationState`: mutable branchable state (`copy()`).
+- `SimulationEngine`: simulates ticks, movement, LoS, NPC attacks, prayer threats, and non-movement actions.
+- `DecisionTreeSearch`: depth-limited search over candidate actions.
+- `SimulationAction`: typed simulation action model.
+- `SimulationDecisionAdapter`: converts best simulation action into ordered executable steps and executes them.
+- `SimulationActionPolicy`: dedicated policy for capture + generation + scoring + execution controls.
 
-Snapshot and simulation data stay in RuneLite-compatible coordinate space:
-
-- Uses `WorldPoint` for entities/decisions.
-- Uses copied RuneLite local collision flags (`CollisionData` flags).
-- Uses `baseX/baseY/plane` from the active `WorldView`.
-
-This allows direct translation from simulated decisions back to in-game packets/interactions.
-
-## Quick Start (Programmatic)
+## Quick Start (Policy-Based)
 
 ```java
 import com.kraken.api.simulation.*;
 
-// 1) Capture snapshot from live game state
-SimulationSnapshot snapshot = SimulationSnapshotService.capture(24); // NPC radius
-
-// 2) Create mutable state + engine
 SimulationEngine engine = new SimulationEngine();
+
+SimulationActionPolicy policy = SimulationActionPolicy.builder()
+    .captureOptions(new SimulationSnapshotService.CaptureOptions()
+        .withNpcRadius(24))
+    .addActionProvider(ctx -> SimulationAction.standardWalkActions())
+    .addScoringRule(ctx -> {
+        int losThreats = ctx.getEngine().countNpcsWithLineOfSightToPlayer(ctx.getState());
+        return -losThreats * 25.0;
+    })
+    .build();
+
+SimulationSnapshot snapshot = SimulationSnapshotService.capture(policy.getCaptureOptions());
 SimulationState root = snapshot.createState();
 
-// 3) Run decision search
-DecisionTreeSearch search = new DecisionTreeSearch(engine, 4000); // max nodes
+DecisionTreeSearch search = new DecisionTreeSearch(engine, 4000);
 DecisionTreeSearch.Result result = search.search(
     root,
-    2, // depth
-    (state, depthRemaining) -> SimulationAction.standardWalkActions(),
-    state -> {
-        int threats = engine.countNpcsWithLineOfSightToPlayer(state);
-        return -threats * 25.0;
-    }
+    2,
+    policy.toActionGenerator(engine),
+    policy.toStateEvaluator(engine)
 );
-
-// 4) Optionally inspect resulting state
-SimulationState bestAfterOneTick = engine.simulateTickCopy(root, result.getBestAction());
 ```
 
-## Action Adapter (Simulation -> Executable Game Action)
+## SimulationAction Types
 
-Use `SimulationDecisionAdapter` to translate search result into real movement and optional NPC interaction.
+The decision tree can return any of these:
+
+- `SimulationAction.move(dx, dy)` / `SimulationAction.run(dx, dy)`
+- `SimulationAction.switchPrayer(Prayer.PROTECT_FROM_MAGIC)`
+- `SimulationAction.equipItem(itemId)`
+- `SimulationAction.inventoryInteract(itemId, "Drink")`
+- `SimulationAction.eat(itemId, healAmount)`
+- `SimulationAction.castSpell(spell)`
+- `SimulationAction.castSpellOnNpc(spell, npcIndex)`
+- `SimulationAction.custom("my-action-id")`
+
+## Capture Options Examples
+
+### 1) Default Capture
 
 ```java
-import com.kraken.api.simulation.*;
+SimulationSnapshot snapshot = SimulationSnapshotService.capture();
+```
 
-@Inject 
-private SimulationDecisionAdapter decisionAdapter;
+### 2) Capture With Radius
+
+```java
+SimulationSnapshot snapshot = SimulationSnapshotService.capture(20);
+```
+
+### 3) Capture With NPC Combat Overrides
+
+```java
+Map<Integer, SimulationSnapshotService.NpcMetadata> npcOverrides = Map.of(
+    415,  new SimulationSnapshotService.NpcMetadata(1, 4, NpcAttackStyle.MELEE, 30, true, false),
+    3129, new SimulationSnapshotService.NpcMetadata(10, 4, NpcAttackStyle.MAGIC, 20, true, true),
+    3130, new SimulationSnapshotService.NpcMetadata(10, 4, NpcAttackStyle.RANGED, 22, true, true)
+);
+
+SimulationSnapshotService.CaptureOptions options = new SimulationSnapshotService.CaptureOptions()
+    .withNpcRadius(30)
+    .withNpcMetadataProvider((npc, composition) -> npcOverrides.get(npc.getId()));
+
+SimulationSnapshot snapshot = SimulationSnapshotService.capture(options);
+```
+
+### 4) Capture With Food-Heal Mapping
+
+```java
+Map<Integer, Integer> foodHealing = Map.of(
+    385, 20,   // Shark
+    3144, 18,  // Karambwan
+    379, 12    // Lobster
+);
+
+SimulationSnapshotService.CaptureOptions options = new SimulationSnapshotService.CaptureOptions()
+    .withNpcRadius(24)
+    .withFoodHealingByItemId(foodHealing);
+```
+
+## Dedicated Action Policy
+
+`SimulationActionPolicy` is the main extension point for plugin developers.
+
+It lets you keep all combat logic in one object:
+
+- action providers: what actions are legal candidates
+- scoring rules: how states are ranked
+- capture options: what metadata is captured
+- adapt options: optional runtime interaction targeting
+- allowed step types: execution safety gates
+
+### Policy Example: Movement-Only Escape
+
+```java
+SimulationActionPolicy movementOnly = SimulationActionPolicy.builder()
+    .captureOptions(new SimulationSnapshotService.CaptureOptions().withNpcRadius(20))
+    .addActionProvider(ctx -> SimulationAction.standardWalkActions())
+    .addScoringRule(ctx -> {
+        SimulationEngine engine = ctx.getEngine();
+        SimulationState state = ctx.getState();
+        int threats = engine.countNpcsWithLineOfSightToPlayer(state);
+        return -threats * 30.0;
+    })
+    .allowedExecutionSteps(Set.of(SimulationDecisionAdapter.ExecutableStepType.MOVE))
+    .build();
+```
+
+### Policy Example: Prayer-Aware Defensive Policy
+
+```java
+SimulationActionPolicy prayerAware = SimulationActionPolicy.builder()
+    .captureOptions(captureOptionsWithNpcMetadata)
+    .addActionProvider(ctx -> {
+        LinkedHashSet<SimulationAction> actions = new LinkedHashSet<>(SimulationAction.standardWalkActions());
+        Prayer recommended = ctx.getEngine().recommendProtectionPrayer(ctx.getState());
+        if (recommended != null && recommended != ctx.getState().getActiveProtectionPrayer()) {
+            actions.add(SimulationAction.switchPrayer(recommended));
+        }
+        return new ArrayList<>(actions);
+    })
+    .addScoringRule(ctx -> {
+        SimulationEngine engine = ctx.getEngine();
+        SimulationState state = ctx.getState();
+        int unprotected = engine.countUnprotectedNpcThreats(state);
+        return -unprotected * 40.0;
+    })
+    .addScoringRule(ctx -> {
+        Prayer recommended = ctx.getEngine().recommendProtectionPrayer(ctx.getState());
+        return (recommended != null && recommended == ctx.getState().getActiveProtectionPrayer()) ? 20.0 : 0.0;
+    })
+    .build();
+```
+
+### Policy Example: Eat + Gear Swap + Spell Cast
+
+```java
+int gearItemId = 12924; // Toxic blowpipe, example
+CastableSpell spell = Standard.WIND_STRIKE;
+
+SimulationActionPolicy hybrid = SimulationActionPolicy.builder()
+    .captureOptions(new SimulationSnapshotService.CaptureOptions()
+        .withNpcRadius(24)
+        .withFoodHealingByItemId(Map.of(385, 20, 3144, 18)))
+    .addActionProvider(ctx -> {
+        SimulationState state = ctx.getState();
+        LinkedHashSet<SimulationAction> actions = new LinkedHashSet<>(SimulationAction.standardWalkActions());
+
+        // Eat action
+        if (state.getPlayerHitpoints() <= 40) {
+            int heal = state.getFoodHealAmount(385);
+            if (heal > 0 && state.hasInventoryItem(385)) {
+                actions.add(SimulationAction.eat(385, heal));
+            }
+        }
+
+        // Gear swap action
+        if (state.hasInventoryItem(gearItemId) && !state.isItemEquipped(gearItemId)) {
+            actions.add(SimulationAction.equipItem(gearItemId));
+        }
+
+        // Spell action
+        int nearestNpcIndex = -1;
+        int nearest = Integer.MAX_VALUE;
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (!state.isNpcActive(slot)) continue;
+            int dx = Math.abs(state.getNpcX(slot) - state.getPlayerX());
+            int dy = Math.abs(state.getNpcY(slot) - state.getPlayerY());
+            int dist = Math.max(dx, dy);
+            if (dist < nearest) {
+                nearest = dist;
+                nearestNpcIndex = state.getNpcIndex(slot);
+            }
+        }
+        if (nearestNpcIndex >= 0) {
+            actions.add(SimulationAction.castSpellOnNpc(spell, nearestNpcIndex));
+        } else {
+            actions.add(SimulationAction.castSpell(spell));
+        }
+
+        return new ArrayList<>(actions);
+    })
+    .addScoringRule(ctx -> ctx.getState().getPlayerHitpoints() * 1.2)
+    .addScoringRule(ctx -> -ctx.getEngine().countUnprotectedNpcThreats(ctx.getState()) * 45.0)
+    .allowedExecutionSteps(Set.of(
+        SimulationDecisionAdapter.ExecutableStepType.MOVE,
+        SimulationDecisionAdapter.ExecutableStepType.SWITCH_PRAYER,
+        SimulationDecisionAdapter.ExecutableStepType.EQUIP_ITEM,
+        SimulationDecisionAdapter.ExecutableStepType.INVENTORY_INTERACT,
+        SimulationDecisionAdapter.ExecutableStepType.CAST_SPELL
+    ))
+    .build();
+```
+
+### Policy Example: Multi-Rule Scoring Composition
+
+```java
+SimulationActionPolicy composed = SimulationActionPolicy.builder()
+    .addActionProvider(ctx -> SimulationAction.standardWalkActions())
+    .addScoringRule(ctx -> {
+        int los = ctx.getEngine().countNpcsWithLineOfSightToPlayer(ctx.getState());
+        return -los * 20.0;
+    })
+    .addScoringRule(ctx -> {
+        int attackThreats = ctx.getEngine().countNpcsAbleToAttackPlayer(ctx.getState());
+        return -attackThreats * 25.0;
+    })
+    .addScoringRule(ctx -> {
+        SimulationState s = ctx.getState();
+        int nearest = Integer.MAX_VALUE;
+        for (int i = 0; i < s.getNpcCount(); i++) {
+            if (!s.isNpcActive(i)) continue;
+            int dx = Math.abs(s.getNpcX(i) - s.getPlayerX());
+            int dy = Math.abs(s.getNpcY(i) - s.getPlayerY());
+            nearest = Math.min(nearest, Math.max(dx, dy));
+        }
+        return nearest == Integer.MAX_VALUE ? 0.0 : Math.min(nearest, 12) * 2.0;
+    })
+    .build();
+```
+
+## Adapter and Executable Steps
+
+`SimulationDecisionAdapter` now emits ordered steps, not just movement.
+
+Possible step types:
+
+- `MOVE`
+- `NPC_INTERACT`
+- `SWITCH_PRAYER`
+- `EQUIP_ITEM`
+- `INVENTORY_INTERACT`
+- `CAST_SPELL`
+
+### Adapt and Execute
+
+```java
+SimulationDecisionAdapter.ExecutableAction executable = decisionAdapter.adapt(
+    result,
+    rootState,
+    policy.getAdaptOptions()
+);
+
+// Execute only allowed step types from your policy
+decisionAdapter.execute(executable, policy.getAllowedExecutionSteps());
+```
+
+### Adapt Options Example
+
+```java
+SimulationDecisionAdapter.AdaptOptions adaptOptions =
+    new SimulationDecisionAdapter.AdaptOptions(
+        "Attack", // optional NPC interaction action
+        1,        // interaction distance
+        10        // spell target distance fallback
+    );
+```
+
+## End-to-End Loop Example
+
+```java
+SimulationEngine engine = new SimulationEngine();
+DecisionTreeSearch search = new DecisionTreeSearch(engine, 5000);
+
+SimulationActionPolicy policy = buildMyPolicy(); // your policy builder method
+
+SimulationSnapshot snapshot = SimulationSnapshotService.capture(policy.getCaptureOptions());
+SimulationState root = snapshot.createState();
+
+DecisionTreeSearch.Result result = search.search(
+    root,
+    2,
+    policy.toActionGenerator(engine),
+    policy.toStateEvaluator(engine)
+);
 
 SimulationDecisionAdapter.ExecutableAction executable = decisionAdapter.adapt(
     result,
     root,
-    "Attack", // null to disable interactions
-    1         // interaction distance
+    policy.getAdaptOptions()
 );
 
-// Execute movement + optional interaction on client thread
-decisionAdapter.execute(executable);
+decisionAdapter.execute(executable, policy.getAllowedExecutionSteps());
 ```
 
-What the adapter does:
+## Example Plugin in This Repo
 
-- Converts chosen `SimulationAction` into destination `WorldPoint` movement.
-- Optionally selects an NPC target by simulated proximity.
-- Executes via `MovementService` and NPC interaction APIs.
+Updated sample plugin classes:
 
-## RuneLite Plugin Example
+- `lib/src/test/java/com/kraken/api/simulation/plugin/SimulationPlugin.java`
+- `lib/src/test/java/com/kraken/api/simulation/plugin/SimulationPluginConfig.java`
+- `lib/src/test/java/com/kraken/api/simulation/plugin/SimulationSceneOverlay.java`
+- `lib/src/test/java/com/kraken/api/simulation/plugin/SimulationInfoOverlay.java`
 
-A full plugin using this simulation is included in the test package of this repository
-in the following classes:
+This plugin now demonstrates:
 
-- `com.kraken.api.simulation.plugin.SimulationPlugin`
-- `com.kraken.api.simulation.plugin.SimulationPluginConfig`
-- `com.kraken.api.simulation.plugin.SimulationSceneOverlay`
-- `com.kraken.api.simulation.plugin.SimulationInfoOverlay`
+- policy-based simulation loop
+- configurable action families (movement/prayer/eat/gear/spell)
+- configurable NPC combat metadata mapping
+- configurable food healing mapping
+- configurable executable-step allow-list
 
-Plugin features:
+## Performance Tips
 
-- Captures a fresh simulation snapshot each game tick.
-- Runs decision-tree search and computes best action.
-- Visualizes best tile, predicted NPC paths, and optional NPC LoS tiles.
-- Optional automatic execution of adapted movement/interaction action.
+- Keep depth low (`1-3`) and node cap bounded.
+- Restrict snapshot radius to local encounter scope.
+- Keep action provider sets focused to avoid action explosion.
+- Prefer adding multiple small scoring rules instead of one giant scorer.
+- Use allowed execution step filtering when testing risky policies.
 
-### Plugin Config Highlights
+## ColoSim Note
 
-- Search: snapshot radius, depth, max nodes, include run actions.
-- Execution: auto-execute best action, interaction action text, interaction distance.
-- Overlay: scene/info overlays, best move tile, path/LoS visualization options.
+`com.kraken.api.simulation.colosim` remains a useful domain-specific reference for Colosseum behavior and timeline tooling.
 
-## Running the Plugin
-
-In this repository setup, you can launch RuneLite with the bundled plugin classes using the existing test harness (`ExamplePluginTest`) and then enable the plugin in RuneLite:
-
-1. Run the main test harness class that launches RuneLite (see `docs/TESTS.md`).
-2. In RuneLite plugin list, enable `Simulation Sandbox`.
-3. Configure search depth/node cap and overlay options.
-4. Optionally enable `Auto Execute Best Action` once overlays/search output looks correct.
-
-For consumption in your own plugin repo, include this API as a dependency and wire the same simulation classes in your plugin loop.
-
-## Performance Notes
-
-- Keep search depth and node cap bounded (`depth 1-3`, moderate `maxNodes`) for stable per-tick runtime.
-- Restrict snapshot NPC radius and overlay NPC counts.
-- Prefer immutable snapshot + mutable state copies (already provided) for branch expansion.
-
-## ColoSim
-
-`com.kraken.api.sim.colosim` is a Java port of the Colosseum LoS simulator and remains useful as a domain-specific reference:
-
-- [OSRS Colosseum LoS Simulator](https://los.colosim.com/)
-
-It is intentionally specialized and adapted to the Colosseum specifically but shows a general example of a simulation game loop running 
-outside the RuneLite plugin context; use `com.kraken.api.simulation` for more generic RuneLite specific context. 
+For generic RuneLite plugin combat/action simulation, use `com.kraken.api.simulation`.

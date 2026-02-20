@@ -9,6 +9,7 @@ import com.kraken.api.service.magic.spellbook.Standard;
 import com.kraken.api.simulation.DecisionTreeSearch;
 import com.kraken.api.simulation.NpcAttackStyle;
 import com.kraken.api.simulation.SimulationAction;
+import com.kraken.api.simulation.SimulationActionPolicy;
 import com.kraken.api.simulation.SimulationDecisionAdapter;
 import com.kraken.api.simulation.SimulationEngine;
 import com.kraken.api.simulation.SimulationSnapshot;
@@ -95,6 +96,9 @@ public class SimulationPlugin extends Plugin {
 
     @Getter
     private SimulationDecisionAdapter.ExecutableAction lastExecutableAction;
+
+    @Getter
+    private SimulationActionPolicy lastPolicy;
 
     @Getter
     private long lastSearchMicros;
@@ -184,34 +188,19 @@ public class SimulationPlugin extends Plugin {
     }
 
     private void runSimulationTick() {
-        int radius = Math.max(1, config.snapshotNpcRadius());
+        SimulationActionPolicy policy = buildPolicy();
+        lastPolicy = policy;
 
-        Map<Integer, SimulationSnapshotService.NpcMetadata> npcOverrides = parseNpcCombatOverrides(config.npcCombatOverrides());
-        Map<Integer, Integer> foodHealMapping = parseFoodHealOverrides(config.foodHealingOverrides());
-
-        SimulationSnapshotService.CaptureOptions captureOptions = new SimulationSnapshotService.CaptureOptions()
-                .withNpcRadius(radius)
-                .withFoodHealingByItemId(foodHealMapping);
-
-        if (!npcOverrides.isEmpty()) {
-            captureOptions = captureOptions.withNpcMetadataProvider((npc, composition) -> npcOverrides.get(npc.getId()));
-        }
-
-        lastSnapshot = SimulationSnapshotService.capture(captureOptions);
+        lastSnapshot = SimulationSnapshotService.capture(policy.getCaptureOptions());
         rootState = lastSnapshot.createState();
-
-        List<SimulationAction> candidates = generateCandidateActions(rootState);
-        if (candidates.isEmpty()) {
-            candidates = Collections.singletonList(SimulationAction.WAIT);
-        }
 
         DecisionTreeSearch search = new DecisionTreeSearch(engine, Math.max(64, config.maxSearchNodes()));
         long startedNanos = System.nanoTime();
         lastDecisionResult = search.search(
                 rootState,
                 Math.max(1, config.searchDepth()),
-                (state, depth) -> generateCandidateActions(state),
-                this::evaluateState
+                policy.toActionGenerator(engine),
+                policy.toStateEvaluator(engine)
         );
         lastSearchMicros = (System.nanoTime() - startedNanos) / 1000L;
 
@@ -227,17 +216,39 @@ public class SimulationPlugin extends Plugin {
 
         updateNpcVisualizationCaches(rootState);
 
+        lastExecutableAction = decisionAdapter.adapt(lastDecisionResult, rootState, policy.getAdaptOptions());
+
+        if (config.autoExecuteBestAction()) {
+            decisionAdapter.execute(lastExecutableAction, policy.getAllowedExecutionSteps());
+        }
+    }
+
+    private SimulationActionPolicy buildPolicy() {
+        int radius = Math.max(1, config.snapshotNpcRadius());
+        Map<Integer, SimulationSnapshotService.NpcMetadata> npcOverrides = parseNpcCombatOverrides(config.npcCombatOverrides());
+        Map<Integer, Integer> foodHealMapping = parseFoodHealOverrides(config.foodHealingOverrides());
+
+        SimulationSnapshotService.CaptureOptions captureOptions = new SimulationSnapshotService.CaptureOptions()
+                .withNpcRadius(radius)
+                .withFoodHealingByItemId(foodHealMapping);
+        if (!npcOverrides.isEmpty()) {
+            captureOptions = captureOptions.withNpcMetadataProvider((npc, composition) -> npcOverrides.get(npc.getId()));
+        }
+
         String optionalNpcInteraction = config.executeNpcInteraction() ? config.interactionAction() : null;
         SimulationDecisionAdapter.AdaptOptions adaptOptions = new SimulationDecisionAdapter.AdaptOptions(
                 optionalNpcInteraction,
                 config.interactionDistance(),
                 config.spellTargetDistance()
         );
-        lastExecutableAction = decisionAdapter.adapt(lastDecisionResult, rootState, adaptOptions);
 
-        if (config.autoExecuteBestAction()) {
-            decisionAdapter.execute(lastExecutableAction, buildExecutionAllowList());
-        }
+        return SimulationActionPolicy.builder()
+                .captureOptions(captureOptions)
+                .adaptOptions(adaptOptions)
+                .allowedExecutionSteps(buildExecutionAllowList())
+                .addActionProvider(ctx -> generateCandidateActions(ctx.getState()))
+                .addScoringRule(ctx -> evaluateState(ctx.getState()))
+                .build();
     }
 
     private Set<SimulationDecisionAdapter.ExecutableStepType> buildExecutionAllowList() {
@@ -470,6 +481,7 @@ public class SimulationPlugin extends Plugin {
         bestActionState = null;
         lastDecisionResult = null;
         lastExecutableAction = null;
+        lastPolicy = null;
         lastSearchMicros = 0L;
         rootThreatCount = 0;
         bestThreatCount = 0;
