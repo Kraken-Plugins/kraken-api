@@ -5,7 +5,6 @@ import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.query.player.LocalPlayerEntity;
-import com.kraken.api.sim.MovementFlag;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;

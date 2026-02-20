@@ -12,7 +12,6 @@ import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.service.map.WorldMapService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.ui.login.LoginService;
-import com.kraken.api.sim.ui.SimulationVisualizer;
 import example.overlay.InfoPanelOverlay;
 import example.overlay.SceneOverlay;
 import example.tests.input.MouseTest;
@@ -72,8 +71,6 @@ public class ExamplePlugin extends Plugin {
     @Inject
     private TestResultManager testResultManager;
 
-    @Inject
-    private SimulationVisualizer visualizer;
 
     @Inject
     private Client client;
@@ -224,12 +221,7 @@ public class ExamplePlugin extends Plugin {
             mouseRecorder.stop();
         }
 
-        if (key.equals("simVisualizer")) {
-            if (client.getGameState() == GameState.LOGGED_IN && config.showVisualizer()) {
-                visualizer.init();
-                visualizer.setVisible(true);
-            }
-        } else if (key.equalsIgnoreCase("showMouse")) {
+      if (key.equalsIgnoreCase("showMouse")) {
             if (config.showMouse()) {
                 overlayManager.add(mouseOverlay);
             } else {

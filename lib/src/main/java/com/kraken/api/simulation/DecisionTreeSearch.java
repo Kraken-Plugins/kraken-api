@@ -12,22 +12,43 @@ import java.util.List;
  * Depth-limited decision tree search utility for simulation outcomes.
  */
 public final class DecisionTreeSearch {
+    /**
+     * Provides candidate actions for a given node state and remaining search depth.
+     */
     @FunctionalInterface
     public interface ActionGenerator {
         List<SimulationAction> generate(SimulationState state, int depthRemaining);
     }
 
+    /**
+     * Scores a state, where larger values are considered better.
+     */
     @FunctionalInterface
     public interface StateEvaluator {
         double evaluate(SimulationState state);
     }
 
+    /**
+     * Search output for the root decision.
+     */
     @Getter
     @AllArgsConstructor
     public static final class Result {
+        /**
+         * Best first action selected at root.
+         */
         private final SimulationAction bestAction;
+        /**
+         * Best score discovered from this root action.
+         */
         private final double bestScore;
+        /**
+         * Total expanded node count for this search call.
+         */
         private final int exploredNodes;
+        /**
+         * Player destination after applying best root action for one tick.
+         */
         private final WorldPoint bestPlayerWorldPoint;
     }
 
@@ -38,10 +59,21 @@ public final class DecisionTreeSearch {
     private final SimulationEngine engine;
     private final int maxNodes;
 
+    /**
+     * Creates a search instance with default node cap.
+     *
+     * @param engine simulation engine used for stepping branches.
+     */
     public DecisionTreeSearch(SimulationEngine engine) {
         this(engine, 100_000);
     }
 
+    /**
+     * Creates a search instance with explicit node cap.
+     *
+     * @param engine simulation engine used for stepping branches.
+     * @param maxNodes hard limit on expanded nodes per search call.
+     */
     public DecisionTreeSearch(SimulationEngine engine, int maxNodes) {
         if (engine == null) {
             throw new IllegalArgumentException("engine cannot be null");
@@ -53,6 +85,15 @@ public final class DecisionTreeSearch {
         this.maxNodes = maxNodes;
     }
 
+    /**
+     * Runs depth-limited best-first root action search.
+     *
+     * @param root root state.
+     * @param depth search depth in ticks.
+     * @param actionGenerator candidate action provider.
+     * @param evaluator state evaluator where larger values are better.
+     * @return best root action result.
+     */
     public Result search(
             SimulationState root,
             int depth,

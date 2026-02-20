@@ -25,6 +25,17 @@ public final class SimulationSnapshot {
     @Getter
     private final List<SimulationNpcSnapshot> npcs;
 
+    /**
+     * Creates an immutable snapshot used to seed one or more simulation states.
+     *
+     * @param gameTick RuneLite client tick at capture time.
+     * @param plane active scene plane.
+     * @param baseX world-view base x.
+     * @param baseY world-view base y.
+     * @param collisionFlags copied scene collision flags indexed by [sceneX][sceneY].
+     * @param playerWorldPoint local player world position at capture time.
+     * @param npcs captured NPC snapshots.
+     */
     public SimulationSnapshot(
             int gameTick,
             int plane,
@@ -56,22 +67,49 @@ public final class SimulationSnapshot {
                 : List.copyOf(npcs);
     }
 
+    /**
+     * @return scene width in tiles.
+     */
     public int getSceneWidth() {
         return collisionFlags.length;
     }
 
+    /**
+     * @return scene height in tiles.
+     */
     public int getSceneHeight() {
         return collisionFlags[0].length;
     }
 
+    /**
+     * Checks whether the provided scene coordinates are inside the captured collision grid.
+     *
+     * @param sceneX scene x coordinate.
+     * @param sceneY scene y coordinate.
+     * @return true when in bounds.
+     */
     public boolean isSceneInBounds(int sceneX, int sceneY) {
         return sceneX >= 0 && sceneY >= 0 && sceneX < getSceneWidth() && sceneY < getSceneHeight();
     }
 
+    /**
+     * Checks whether a world tile is inside the captured scene bounds.
+     *
+     * @param worldX world x coordinate.
+     * @param worldY world y coordinate.
+     * @return true when in bounds.
+     */
     public boolean isWorldInBounds(int worldX, int worldY) {
         return isSceneInBounds(worldX - baseX, worldY - baseY);
     }
 
+    /**
+     * Reads a collision flag by scene coordinate.
+     *
+     * @param sceneX scene x coordinate.
+     * @param sceneY scene y coordinate.
+     * @return collision flags, or {@code 0} when out of bounds.
+     */
     public int getCollisionFlagAtScene(int sceneX, int sceneY) {
         if (!isSceneInBounds(sceneX, sceneY)) {
             return 0;
@@ -79,14 +117,29 @@ public final class SimulationSnapshot {
         return collisionFlags[sceneX][sceneY];
     }
 
+    /**
+     * Reads a collision flag by world coordinate.
+     *
+     * @param worldX world x coordinate.
+     * @param worldY world y coordinate.
+     * @return collision flags, or {@code 0} when out of bounds.
+     */
     public int getCollisionFlagAtWorld(int worldX, int worldY) {
         return getCollisionFlagAtScene(worldX - baseX, worldY - baseY);
     }
 
+    /**
+     * @return deep copy of the captured collision flags.
+     */
     public int[][] copyCollisionFlags() {
         return deepCopy(collisionFlags);
     }
 
+    /**
+     * Creates a mutable simulation state initialized from this snapshot.
+     *
+     * @return simulation state rooted at this snapshot.
+     */
     public SimulationState createState() {
         return SimulationState.fromSnapshot(this);
     }

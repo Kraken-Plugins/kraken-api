@@ -24,13 +24,21 @@ import java.util.List;
 public final class SimulationSnapshotService {
     private static final int DEFAULT_NPC_RADIUS = 32;
 
+    /**
+     * Captures a snapshot with the default NPC inclusion radius.
+     *
+     * @return immutable simulation snapshot.
+     */
     public static SimulationSnapshot capture() {
         return capture(DEFAULT_NPC_RADIUS);
     }
 
     /**
      * Captures a snapshot using a Chebyshev-distance radius from the local player.
-     * Set radius <= 0 to include all loaded NPCs on the same plane.
+     * Set radius {@literal <=} 0 to include all loaded NPCs on the same plane.
+     *
+     * @param npcRadius NPC inclusion radius in tiles.
+     * @return immutable simulation snapshot.
      */
     public static SimulationSnapshot capture(int npcRadius) {
         Context context = RuneLite.getInjector().getInstance(Context.class);

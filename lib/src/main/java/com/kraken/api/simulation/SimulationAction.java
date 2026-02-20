@@ -48,6 +48,13 @@ public final class SimulationAction {
         this.run = run;
     }
 
+    /**
+     * Creates (or reuses) a walk action with one-tile directional deltas.
+     *
+     * @param dx x step in range [-1, 1].
+     * @param dy y step in range [-1, 1].
+     * @return canonical walk action when available, otherwise a new custom walk action.
+     */
     public static SimulationAction move(int dx, int dy) {
         if (dx == 0 && dy == 0) {
             return WAIT;
@@ -79,6 +86,13 @@ public final class SimulationAction {
         return new SimulationAction(dx, dy, false);
     }
 
+    /**
+     * Creates a run action for a directional delta.
+     *
+     * @param dx x step in range [-1, 1].
+     * @param dy y step in range [-1, 1].
+     * @return run action.
+     */
     public static SimulationAction run(int dx, int dy) {
         if (dx == 0 && dy == 0) {
             return WAIT;
@@ -86,10 +100,19 @@ public final class SimulationAction {
         return new SimulationAction(dx, dy, true);
     }
 
+    /**
+     * @return canonical walk-only action set including {@link #WAIT}.
+     */
     public static List<SimulationAction> standardWalkActions() {
         return STANDARD_WALK_ACTIONS;
     }
 
+    /**
+     * Converts this directional action into a world-space destination from an origin.
+     *
+     * @param origin source world point.
+     * @return destination world point after applying one (walk) or two (run) steps.
+     */
     public WorldPoint destinationFrom(WorldPoint origin) {
         if (origin == null) {
             throw new IllegalArgumentException("origin cannot be null");
