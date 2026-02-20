@@ -2,6 +2,7 @@ package com.kraken.api.simulation;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NonNull;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.ArrayList;
@@ -74,10 +75,7 @@ public final class DecisionTreeSearch {
      * @param engine simulation engine used for stepping branches.
      * @param maxNodes hard limit on expanded nodes per search call.
      */
-    public DecisionTreeSearch(SimulationEngine engine, int maxNodes) {
-        if (engine == null) {
-            throw new IllegalArgumentException("engine cannot be null");
-        }
+    public DecisionTreeSearch(@NonNull SimulationEngine engine, int maxNodes) {
         if (maxNodes <= 0) {
             throw new IllegalArgumentException("maxNodes must be > 0");
         }
@@ -95,22 +93,13 @@ public final class DecisionTreeSearch {
      * @return best root action result.
      */
     public Result search(
-            SimulationState root,
+            @NonNull SimulationState root,
             int depth,
-            ActionGenerator actionGenerator,
-            StateEvaluator evaluator
+            @NonNull ActionGenerator actionGenerator,
+            @NonNull StateEvaluator evaluator
     ) {
-        if (root == null) {
-            throw new IllegalArgumentException("root cannot be null");
-        }
         if (depth <= 0) {
             throw new IllegalArgumentException("depth must be > 0");
-        }
-        if (actionGenerator == null) {
-            throw new IllegalArgumentException("actionGenerator cannot be null");
-        }
-        if (evaluator == null) {
-            throw new IllegalArgumentException("evaluator cannot be null");
         }
 
         NodeCounter counter = new NodeCounter();

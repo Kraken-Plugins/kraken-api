@@ -140,10 +140,6 @@ public final class SimulationAction {
 
     @Override
     public String toString() {
-        return "SimulationAction{"
-                + "dx=" + dx
-                + ", dy=" + dy
-                + ", run=" + run
-                + '}';
+        return "SimulationAction{dx=" + dx + "," + "dy=" + dy + "," + "run=" + run + "}";
     }
 }
