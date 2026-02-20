@@ -17,20 +17,47 @@ import java.util.Objects;
 @Singleton
 public final class SimulationDecisionAdapter {
 
+    /**
+     * Runtime action payload translated from a simulation decision.
+     */
     @Getter
     @AllArgsConstructor
     public static final class ExecutableAction {
+        /**
+         * Best simulation action chosen at root.
+         */
         private final SimulationAction simulationAction;
+        /**
+         * World destination for movement execution, or null when no movement should be issued.
+         */
         private final WorldPoint movementDestination;
+        /**
+         * RuneLite NPC index selected for interaction, or null when no interaction target is selected.
+         */
         private final Integer targetNpcIndex;
+        /**
+         * NPC interaction menu action (for example, "Attack"), or null.
+         */
         private final String interactionAction;
+        /**
+         * Search score associated with this action.
+         */
         private final double score;
+        /**
+         * Number of explored search nodes used to produce this result.
+         */
         private final int exploredNodes;
 
+        /**
+         * @return true when this action includes a movement destination.
+         */
         public boolean hasMovement() {
             return movementDestination != null;
         }
 
+        /**
+         * @return true when this action includes a target and interaction option.
+         */
         public boolean hasInteraction() {
             return targetNpcIndex != null
                     && interactionAction != null
@@ -42,6 +69,12 @@ public final class SimulationDecisionAdapter {
     private final MovementService movementService;
     private final SimulationEngine engine;
 
+    /**
+     * Constructs a decision adapter for converting and executing simulation outcomes.
+     *
+     * @param ctx shared API context.
+     * @param movementService movement executor service.
+     */
     @Inject
     public SimulationDecisionAdapter(Context ctx, MovementService movementService) {
         this.ctx = Objects.requireNonNull(ctx, "ctx");
@@ -51,6 +84,9 @@ public final class SimulationDecisionAdapter {
 
     /**
      * Converts a decision result into a movement-only executable action.
+     * @param result The decision tree search result
+     * @param rootState The root simulation state
+     * @return ExecutableAction an action which can be taken by the player
      */
     public ExecutableAction adapt(DecisionTreeSearch.Result result, SimulationState rootState) {
         return adapt(result, rootState, null, 1);
@@ -114,7 +150,7 @@ public final class SimulationDecisionAdapter {
 
     /**
      * Executes movement and optional NPC interaction in the game client.
-     *
+     * @param action An executable action to perform
      * @return true when at least one action was executed.
      */
     public boolean execute(ExecutableAction action) {

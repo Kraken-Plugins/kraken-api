@@ -13,12 +13,21 @@ import java.util.List;
 public final class SimulationEngine {
     private static final int BLOCKED_MOVEMENT_MASK = CollisionDataFlag.BLOCK_MOVEMENT_FULL | CollisionDataFlag.BLOCK_MOVEMENT_OBJECT;
 
+    /**
+     * Creates a fresh mutable simulation state from an immutable snapshot.
+     *
+     * @param snapshot immutable simulation input.
+     * @return mutable state for stepping and branching.
+     */
     public SimulationState createState(SimulationSnapshot snapshot) {
         return SimulationState.fromSnapshot(snapshot);
     }
 
     /**
      * Copies the provided state and simulates a single tick on the copy.
+     * @param state The state to copy
+     * @param playerAction The player action to simulate
+     * @return SimulationState the copied simulation state
      */
     public SimulationState simulateTickCopy(SimulationState state, SimulationAction playerAction) {
         if (state == null) {
@@ -31,6 +40,9 @@ public final class SimulationEngine {
 
     /**
      * Simulates one game tick in-place: apply player action, then move NPCs.
+     * @param state The current state of the simulation
+     * @param playerAction The player action to simulate
+     * @return SimulationState the simulation state after the single tick
      */
     public SimulationState simulateTick(SimulationState state, SimulationAction playerAction) {
         if (state == null) {
@@ -45,6 +57,10 @@ public final class SimulationEngine {
 
     /**
      * Simulates many ticks using an ordered action list. If actions run out, WAIT is used.
+     * @param state The current state of the simulation
+     * @param playerActions The list of player action to simulate
+     * @param ticks The number of ticks to simulate
+     * @return SimulationState the simulation state after the ticks have been simulated
      */
     public SimulationState simulateTicks(SimulationState state, List<SimulationAction> playerActions, int ticks) {
         if (ticks <= 0) {
@@ -62,6 +78,9 @@ public final class SimulationEngine {
 
     /**
      * Returns true when a single player step/run action is currently legal.
+     * @param state The state of the simulation
+     * @param action The action to simulate
+     * @return Boolean  true when a single player step/run action is currently legal.
      */
     public boolean canApplyPlayerAction(SimulationState state, SimulationAction action) {
         if (state == null || action == null) {
@@ -83,6 +102,9 @@ public final class SimulationEngine {
 
     /**
      * Returns true when the given NPC currently has line of sight to the local simulated player.
+     * @param state The state of the simulation
+     * @param npcSlot The npc slot to check line of sight for
+     * @return Boolean, true when the given NPC currently has line of sight to the local simulated player.
      */
     public boolean hasNpcLineOfSightToPlayer(SimulationState state, int npcSlot) {
         if (state == null || !state.isNpcActive(npcSlot)) {
@@ -100,6 +122,12 @@ public final class SimulationEngine {
         );
     }
 
+    /**
+     * Counts currently active NPCs that have line of sight to the player.
+     *
+     * @param state simulation state.
+     * @return number of threatening NPCs with current LoS.
+     */
     public int countNpcsWithLineOfSightToPlayer(SimulationState state) {
         if (state == null) {
             return 0;
@@ -116,6 +144,9 @@ public final class SimulationEngine {
 
     /**
      * Returns the line-of-sight tile set for the specified NPC using its configured attack range.
+     * @param state The state of the simulation
+     * @param npcSlot The npc slot to check line of sight for
+     * @return List, the tiles that the NPC has line of sight to
      */
     public List<WorldPoint> getNpcLineOfSightTiles(SimulationState state, int npcSlot) {
         if (state == null || !state.isNpcActive(npcSlot)) {
@@ -126,6 +157,10 @@ public final class SimulationEngine {
 
     /**
      * Returns the line-of-sight tile set for the specified NPC using an explicit range override.
+     * @param state The state of the simulation
+     * @param npcSlot The npc slot to check line of sight for
+     * @param range The range of the NPC (how far it can see)
+     * @return List The tiles that the NPC has line of sight to
      */
     public List<WorldPoint> getNpcLineOfSightTiles(SimulationState state, int npcSlot, int range) {
         if (state == null || !state.isNpcActive(npcSlot) || range <= 0) {
@@ -161,10 +196,25 @@ public final class SimulationEngine {
         return visibleTiles;
     }
 
+    /**
+     * @param state simulation state.
+     * @return true when no active NPC has current line of sight to the player.
+     */
     public boolean isPlayerTileSafe(SimulationState state) {
         return countNpcsWithLineOfSightToPlayer(state) == 0;
     }
 
+    /**
+     * World-point overload for line-of-sight checks.
+     *
+     * @param state simulation state.
+     * @param source source tile.
+     * @param sourceSize source footprint size.
+     * @param target target tile.
+     * @param range max allowed LoS range.
+     * @param sourceIsNpc true when source is an NPC footprint anchor.
+     * @return true when LoS exists under range/footprint constraints.
+     */
     public boolean hasLineOfSight(
             SimulationState state,
             WorldPoint source,
@@ -184,6 +234,10 @@ public final class SimulationEngine {
 
     /**
      * Predicts the NPC's greedy movement path toward the simulated player without mutating the state.
+     * @param state The current state of the simulation
+     * @param npcSlot The NPC to predict pathing for
+     * @param maxSteps The maximum number of pathing steps to predict
+     * @return List of points for the NPC's greedy path toward the simulated player
      */
     public List<WorldPoint> predictNpcGreedyPathToPlayer(SimulationState state, int npcSlot, int maxSteps) {
         if (state == null || maxSteps <= 0 || !state.isNpcActive(npcSlot)) {

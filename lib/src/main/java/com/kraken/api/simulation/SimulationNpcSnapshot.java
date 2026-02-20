@@ -18,6 +18,18 @@ public final class SimulationNpcSnapshot {
     private final boolean collidable;
     private final boolean stopWhenPlayerInLineOfSight;
 
+    /**
+     * Creates a snapshot model for a single NPC.
+     *
+     * @param index RuneLite NPC index for runtime lookup.
+     * @param id RuneLite NPC id.
+     * @param name NPC display name.
+     * @param worldPoint NPC world tile (south-west anchor for multi-tile NPCs).
+     * @param size NPC tile footprint.
+     * @param attackRange NPC attack/line-of-sight range used by simulation.
+     * @param collidable true when movement overlap checks should treat this NPC as blocking.
+     * @param stopWhenPlayerInLineOfSight true when movement should stop once LoS to player is available.
+     */
     public SimulationNpcSnapshot(
             int index,
             int id,

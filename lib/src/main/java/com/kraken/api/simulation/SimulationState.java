@@ -113,6 +113,13 @@ public final class SimulationState {
         this.npcActive = npcActive;
     }
 
+    /**
+     * Creates a branch-safe copy of this state.
+     *
+     * <p>Static snapshot metadata is shared; mutable entity arrays are copied.</p>
+     *
+     * @return deep-enough copy for decision-tree expansion.
+     */
     public SimulationState copy() {
         return new SimulationState(
                 snapshot,
@@ -132,80 +139,146 @@ public final class SimulationState {
         );
     }
 
+    /**
+     * Internal tick increment used by {@link SimulationEngine}.
+     */
     void incrementTick() {
         tick++;
     }
 
+    /**
+     * @return player world position.
+     */
     public WorldPoint getPlayerWorldPoint() {
         return new WorldPoint(playerX, playerY, snapshot.getPlane());
     }
 
+    /**
+     * Internal player position mutator used during simulation stepping.
+     */
     void setPlayerPosition(int worldX, int worldY) {
         playerX = worldX;
         playerY = worldY;
     }
 
+    /**
+     * Returns captured NPC index for a simulation slot.
+     *
+     * @param npcSlot internal slot index.
+     * @return RuneLite NPC index.
+     */
     public int getNpcIndex(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcIndices[npcSlot];
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return RuneLite NPC id.
+     */
     public int getNpcId(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcIds[npcSlot];
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return NPC tile footprint size.
+     */
     public int getNpcSize(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcSizes[npcSlot];
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return NPC attack/LoS range used by simulation.
+     */
     public int getNpcAttackRange(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcAttackRanges[npcSlot];
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return true when NPC overlap should block movement.
+     */
     public boolean isNpcCollidable(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcCollidable[npcSlot];
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return true when NPC movement should stop after gaining player LoS.
+     */
     public boolean isNpcStopWhenLineOfSight(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcStopWhenLineOfSight[npcSlot];
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return true when the NPC is active in this state.
+     */
     public boolean isNpcActive(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcActive[npcSlot];
     }
 
+    /**
+     * Enables or disables an NPC slot.
+     *
+     * @param npcSlot internal slot index.
+     * @param active active flag.
+     */
     public void setNpcActive(int npcSlot, boolean active) {
         assertNpcSlot(npcSlot);
         npcActive[npcSlot] = active;
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return NPC world x coordinate.
+     */
     public int getNpcX(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcX[npcSlot];
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return NPC world y coordinate.
+     */
     public int getNpcY(int npcSlot) {
         assertNpcSlot(npcSlot);
         return npcY[npcSlot];
     }
 
+    /**
+     * @param npcSlot internal slot index.
+     * @return NPC world point.
+     */
     public WorldPoint getNpcWorldPoint(int npcSlot) {
         assertNpcSlot(npcSlot);
         return new WorldPoint(npcX[npcSlot], npcY[npcSlot], snapshot.getPlane());
     }
 
+    /**
+     * Internal NPC position mutator used during simulation stepping.
+     */
     void setNpcPosition(int npcSlot, int worldX, int worldY) {
         assertNpcSlot(npcSlot);
         npcX[npcSlot] = worldX;
         npcY[npcSlot] = worldY;
     }
 
+    /**
+     * Resolves an internal NPC slot by RuneLite NPC index.
+     *
+     * @param npcIndex RuneLite NPC index.
+     * @return internal slot index, or {@code -1} when not present.
+     */
     public int findNpcSlotByIndex(int npcIndex) {
         for (int i = 0; i < npcCount; i++) {
             if (npcIndices[i] == npcIndex) {
