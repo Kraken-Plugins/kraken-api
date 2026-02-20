@@ -9,9 +9,7 @@ Use `com.kraken.api.simulation` when you need to evaluate many candidate actions
 
 ![sim-example-image](../images/sim.png)
 
-## What Is New
-
-`com.kraken.api.simulation` now supports much more than movement:
+## Generalized Simulation Overview
 
 - NPC combat metadata in snapshots (style, range, speed, max-hit).
 - Simulated player state (HP, active overhead prayer, inventory/equipment snapshots).
@@ -39,7 +37,7 @@ Use `com.kraken.api.simulation` when you need to evaluate many candidate actions
 - `SimulationEngine`: simulates ticks, movement, LoS, NPC attacks, prayer threats, and non-movement actions.
 - `DecisionTreeSearch`: depth-limited search over candidate actions.
 - `SimulationAction`: typed simulation action model.
-- `SimulationDecisionAdapter`: converts best simulation action into ordered executable steps and executes them.
+- `SimulationDecisionAdapter`: converts the best simulation action into ordered executable steps and executes them.
 - `SimulationActionPolicy`: dedicated policy for capture + generation + scoring + execution controls.
 
 ## Quick Start (Policy-Based)
@@ -348,12 +346,12 @@ This plugin now demonstrates:
 - configurable action families (movement/prayer/eat/gear/spell)
 - configurable NPC combat metadata mapping
 - configurable food healing mapping
-- configurable executable-step allow-list
+- configurable executable-step allowlist
 
 ## Performance Tips
 
 - Keep depth low (`1-3`) and node cap bounded.
-- Restrict snapshot radius to local encounter scope.
+- Restrict the snapshot radius to a local encounter scope.
 - Keep action provider sets focused to avoid action explosion.
 - Prefer adding multiple small scoring rules instead of one giant scorer.
 - Use allowed execution step filtering when testing risky policies.
