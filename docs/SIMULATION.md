@@ -67,8 +67,8 @@ Use `SimulationDecisionAdapter` to translate search result into real movement an
 ```java
 import com.kraken.api.simulation.*;
 
-// Injected singleton in your plugin/service:
-// @Inject private SimulationDecisionAdapter decisionAdapter;
+@Inject 
+private SimulationDecisionAdapter decisionAdapter;
 
 SimulationDecisionAdapter.ExecutableAction executable = decisionAdapter.adapt(
     result,
@@ -89,7 +89,8 @@ What the adapter does:
 
 ## RuneLite Plugin Example
 
-A full plugin using this simulation is included:
+A full plugin using this simulation is included in the test package of this repository
+in the following classes:
 
 - `com.kraken.api.simulation.plugin.SimulationPlugin`
 - `com.kraken.api.simulation.plugin.SimulationPluginConfig`
@@ -114,7 +115,7 @@ Plugin features:
 In this repository setup, you can launch RuneLite with the bundled plugin classes using the existing test harness (`ExamplePluginTest`) and then enable the plugin in RuneLite:
 
 1. Run the main test harness class that launches RuneLite (see `docs/TESTS.md`).
-2. In RuneLite plugin list, enable `Kraken Simulation Sandbox`.
+2. In RuneLite plugin list, enable `Simulation Sandbox`.
 3. Configure search depth/node cap and overlay options.
 4. Optionally enable `Auto Execute Best Action` once overlays/search output looks correct.
 
@@ -132,4 +133,5 @@ For consumption in your own plugin repo, include this API as a dependency and wi
 
 - [OSRS Colosseum LoS Simulator](https://los.colosim.com/)
 
-It is intentionally specialized; use `com.kraken.api.simulation` for generic content. 
+It is intentionally specialized and adapted to the Colosseum specifically but shows a general example of a simulation game loop running 
+outside the RuneLite plugin context; use `com.kraken.api.simulation` for more generic RuneLite specific context. 

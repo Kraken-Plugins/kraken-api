@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Singleton
 @PluginDescriptor(
-        name = "Kraken Simulation Sandbox",
+        name = "Simulation Sandbox",
         description = "Generic OSRS simulation plugin with decision-tree search overlays and execution adapter.",
         tags = {"kraken", "simulation", "overlay", "decision"}
 )
