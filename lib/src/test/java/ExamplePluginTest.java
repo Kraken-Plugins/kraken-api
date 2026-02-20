@@ -1,10 +1,11 @@
-import example.ExamplePlugin;
+import com.kraken.api.simulation.plugin.SimulationPlugin;
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 
 public class ExamplePluginTest {
     public static void main(String[] args) throws Exception {
-        ExternalPluginManager.loadBuiltin(ExamplePlugin.class);
+//        ExternalPluginManager.loadBuiltin(ExamplePlugin.class);
+        ExternalPluginManager.loadBuiltin(SimulationPlugin.class);
         RuneLite.main(args);
     }
 }

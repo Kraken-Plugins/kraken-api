@@ -4,6 +4,8 @@ package example;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import net.runelite.client.config.*;
 
+import java.awt.*;
+
 @ConfigGroup("testapi")
 public interface ExampleConfig extends Config {
     @ConfigItem(
@@ -377,7 +379,7 @@ public interface ExampleConfig extends Config {
     @ConfigSection(
             name = "Overlay Settings",
             description = "General overlay configuration for tests, debugging, and sim visualization",
-            position = 99
+            position = 90
     )
     String overlaySettings = "Overlay Settings";
 
@@ -548,5 +550,223 @@ public interface ExampleConfig extends Config {
     )
     default boolean showVisualizer() {
         return false;
+    }
+
+    // ==============================================
+    // ========== GENERAL OVERLAY SETTINGS ==========
+    // ==============================================
+    @ConfigSection(
+            name = "Line of Sight Settings",
+            description = "General configurations for NPC line of sight mechanics.",
+            position = 99
+    )
+    String los = "NPC LoS & Pathing";
+
+    @ConfigItem(
+            name = "Show NPC Line of Sight",
+            keyName = "showLos",
+            description = "Shows the line of sight for NPC's around the player",
+            position = 1,
+            section = los
+    )
+    default boolean showNpcLoS() {
+        return false;
+    }
+
+    @Range(min = 1, max = 25)
+    @ConfigItem(
+            name = "NPC LoS Scan Range",
+            keyName = "npcLoSScanRange",
+            description = "How far from the player to include NPCs for LoS rendering.",
+            position = 2,
+            section = los
+    )
+    default int npcLoSScanRange() {
+        return 15;
+    }
+
+    @Range(min = 1, max = 25)
+    @ConfigItem(
+            name = "NPC LoS Default Range",
+            keyName = "npcLoSDefaultRange",
+            description = "Fallback range used when a range can't be detected and no manual override exists.",
+            position = 3,
+            section = los
+    )
+    default int npcLoSDefaultRange() {
+        return 1;
+    }
+
+    @ConfigItem(
+            name = "Use Detected NPC Ranges",
+            keyName = "npcLoSUseDetectedRanges",
+            description = "Use composition-based detected NPC ranges when available.",
+            position = 4,
+            section = los
+    )
+    default boolean npcLoSUseDetectedRanges() {
+        return true;
+    }
+
+    @ConfigItem(
+            name = "Show LoS Range Editor",
+            keyName = "showNpcLoSRangeEditor",
+            description = "Shows a small table for manual per-NPC range overrides while LoS is enabled.",
+            position = 5,
+            section = los
+    )
+    default boolean showNpcLoSRangeEditor() {
+        return false;
+    }
+
+    @ConfigItem(
+            name = "Use Per-NPC LoS Colors",
+            keyName = "npcLoSUsePerNpcColors",
+            description = "Color each NPC's LoS tiles uniquely based on NPC id.",
+            position = 6,
+            section = los
+    )
+    default boolean npcLoSUsePerNpcColors() {
+        return true;
+    }
+
+    @Alpha
+    @ConfigItem(
+            name = "NPC LoS Base Color",
+            keyName = "npcLoSColor",
+            description = "Base LoS color used when per-NPC colors are disabled.",
+            position = 7,
+            section = los
+    )
+    default Color npcLoSColor() {
+        return new Color(0, 255, 255, 120);
+    }
+
+    @Range(min = 0, max = 255)
+    @ConfigItem(
+            name = "NPC LoS Fill Alpha",
+            keyName = "npcLoSFillAlpha",
+            description = "Tile fill alpha for NPC LoS overlays.",
+            position = 8,
+            section = los
+    )
+    default int npcLoSFillAlpha() {
+        return 40;
+    }
+
+    @Range(min = 0, max = 255)
+    @ConfigItem(
+            name = "NPC LoS Border Alpha",
+            keyName = "npcLoSBorderAlpha",
+            description = "Tile border alpha for NPC LoS overlays.",
+            position = 9,
+            section = los
+    )
+    default int npcLoSBorderAlpha() {
+        return 150;
+    }
+
+    @ConfigItem(
+            name = "Show NPC Pathing",
+            keyName = "showNpcPathing",
+            description = "Shows predicted NPC movement pathing towards the player.",
+            position = 10,
+            section = los
+    )
+    default boolean showNpcPathing() {
+        return false;
+    }
+
+    @Range(min = 1, max = 25)
+    @ConfigItem(
+            name = "NPC Path Scan Range",
+            keyName = "npcPathScanRange",
+            description = "How far from the player to include NPCs for path rendering.",
+            position = 11,
+            section = los
+    )
+    default int npcPathScanRange() {
+        return 15;
+    }
+
+    @ConfigItem(
+            name = "Stop Path On LoS",
+            keyName = "npcPathStopOnLos",
+            description = "Stops each rendered NPC path at the first tile where line of sight to the player is gained.",
+            position = 12,
+            section = los
+    )
+    default boolean npcPathStopOnLos() {
+        return true;
+    }
+
+//    Build an old school runescape simulation engine optimized for a decision tree search with the goal of having an actionable outcome in the game.
+//    The engine should be able to ingest a snapshot of the game, the players position, NPC's around the player, and simulate NPC movement, obstacle/collision detection
+//    and line of sight mechanics. You can use the ActorService for some of this functionality and reference the com.kraken.api.sim.colosim package for an example of how a simulation virtually
+//    moves NPCs, players, and re-calculates line of sight and pathing. Keep in mind the colosim is specific to the colosseum and the simulation I am asking you to build
+//    should be generic enough to be used in a variety of old school runescape content.
+//    Key requirements of the simulation are:
+//            - Must be able to ingest (copy) snapshot data from the game to build the simulation state.
+//            - The simulation snapshot data should directly come RuneLite and be compatible with RuneLite i.e. it should use RuneLite WorldPoints for coordinate systems, RuneLite local collision maps, etc... so that a decision made from the simulation can be directly translated back into the game to execute.
+//            - Must be able to be compatible with a decision tree search algorithm. You can implement a decision tree search as well if it helps build the simulation but this is not a strict requirement right now.
+//      - The simulation may be run hundreds or thousands of times in 1 game tick 0.6 seconds to find the best outcome in the game so it must be very fast and efficient to run
+//    Implement this old school runescape simulation system within a new package called com.kraken.api.simulation
+
+    @ConfigItem(
+            name = "Show Path Termination Tile",
+            keyName = "npcPathShowTerminationTile",
+            description = "Highlights the tile where the rendered path ends.",
+            position = 13,
+            section = los
+    )
+    default boolean npcPathShowTerminationTile() {
+        return true;
+    }
+
+    @ConfigItem(
+            name = "Use Per-NPC Path Colors",
+            keyName = "npcPathUsePerNpcColors",
+            description = "Color each NPC path uniquely based on NPC id.",
+            position = 14,
+            section = los
+    )
+    default boolean npcPathUsePerNpcColors() {
+        return true;
+    }
+
+    @Alpha
+    @ConfigItem(
+            name = "NPC Path Base Color",
+            keyName = "npcPathColor",
+            description = "Base path color used when per-NPC path colors are disabled.",
+            position = 15,
+            section = los
+    )
+    default Color npcPathColor() {
+        return new Color(255, 165, 0, 160);
+    }
+
+    @Range(min = 0, max = 255)
+    @ConfigItem(
+            name = "NPC Path Fill Alpha",
+            keyName = "npcPathFillAlpha",
+            description = "Tile fill alpha for NPC path overlays.",
+            position = 16,
+            section = los
+    )
+    default int npcPathFillAlpha() {
+        return 30;
+    }
+
+    @Range(min = 0, max = 255)
+    @ConfigItem(
+            name = "NPC Path Border Alpha",
+            keyName = "npcPathBorderAlpha",
+            description = "Tile border alpha for NPC path overlays.",
+            position = 17,
+            section = los
+    )
+    default int npcPathBorderAlpha() {
+        return 190;
     }
 }
