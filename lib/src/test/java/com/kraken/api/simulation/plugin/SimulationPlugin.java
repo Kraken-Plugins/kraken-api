@@ -4,10 +4,20 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.simulation.*;
+import com.kraken.api.service.magic.CastableSpell;
+import com.kraken.api.service.magic.spellbook.Standard;
+import com.kraken.api.simulation.DecisionTreeSearch;
+import com.kraken.api.simulation.NpcAttackStyle;
+import com.kraken.api.simulation.SimulationAction;
+import com.kraken.api.simulation.SimulationDecisionAdapter;
+import com.kraken.api.simulation.SimulationEngine;
+import com.kraken.api.simulation.SimulationSnapshot;
+import com.kraken.api.simulation.SimulationSnapshotService;
+import com.kraken.api.simulation.SimulationState;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
+import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
@@ -18,7 +28,17 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -86,6 +106,24 @@ public class SimulationPlugin extends Plugin {
     private int bestThreatCount;
 
     @Getter
+    private int rootAttackThreatCount;
+
+    @Getter
+    private int bestAttackThreatCount;
+
+    @Getter
+    private int rootUnprotectedThreatCount;
+
+    @Getter
+    private int bestUnprotectedThreatCount;
+
+    @Getter
+    private Prayer rootRecommendedPrayer;
+
+    @Getter
+    private Prayer bestRecommendedPrayer;
+
+    @Getter
     private String lastError;
 
     @Getter
@@ -147,7 +185,19 @@ public class SimulationPlugin extends Plugin {
 
     private void runSimulationTick() {
         int radius = Math.max(1, config.snapshotNpcRadius());
-        lastSnapshot = SimulationSnapshotService.capture(radius);
+
+        Map<Integer, SimulationSnapshotService.NpcMetadata> npcOverrides = parseNpcCombatOverrides(config.npcCombatOverrides());
+        Map<Integer, Integer> foodHealMapping = parseFoodHealOverrides(config.foodHealingOverrides());
+
+        SimulationSnapshotService.CaptureOptions captureOptions = new SimulationSnapshotService.CaptureOptions()
+                .withNpcRadius(radius)
+                .withFoodHealingByItemId(foodHealMapping);
+
+        if (!npcOverrides.isEmpty()) {
+            captureOptions = captureOptions.withNpcMetadataProvider((npc, composition) -> npcOverrides.get(npc.getId()));
+        }
+
+        lastSnapshot = SimulationSnapshotService.capture(captureOptions);
         rootState = lastSnapshot.createState();
 
         List<SimulationAction> candidates = generateCandidateActions(rootState);
@@ -168,18 +218,46 @@ public class SimulationPlugin extends Plugin {
         bestActionState = engine.simulateTickCopy(rootState, lastDecisionResult.getBestAction());
         rootThreatCount = engine.countNpcsWithLineOfSightToPlayer(rootState);
         bestThreatCount = engine.countNpcsWithLineOfSightToPlayer(bestActionState);
+        rootAttackThreatCount = engine.countNpcsAbleToAttackPlayer(rootState);
+        bestAttackThreatCount = engine.countNpcsAbleToAttackPlayer(bestActionState);
+        rootUnprotectedThreatCount = engine.countUnprotectedNpcThreats(rootState);
+        bestUnprotectedThreatCount = engine.countUnprotectedNpcThreats(bestActionState);
+        rootRecommendedPrayer = engine.recommendProtectionPrayer(rootState);
+        bestRecommendedPrayer = engine.recommendProtectionPrayer(bestActionState);
 
         updateNpcVisualizationCaches(rootState);
-        lastExecutableAction = decisionAdapter.adapt(
-                lastDecisionResult,
-                rootState,
-                config.executeNpcInteraction() ? config.interactionAction() : null,
-                config.interactionDistance()
+
+        String optionalNpcInteraction = config.executeNpcInteraction() ? config.interactionAction() : null;
+        SimulationDecisionAdapter.AdaptOptions adaptOptions = new SimulationDecisionAdapter.AdaptOptions(
+                optionalNpcInteraction,
+                config.interactionDistance(),
+                config.spellTargetDistance()
         );
+        lastExecutableAction = decisionAdapter.adapt(lastDecisionResult, rootState, adaptOptions);
 
         if (config.autoExecuteBestAction()) {
-            decisionAdapter.execute(lastExecutableAction);
+            decisionAdapter.execute(lastExecutableAction, buildExecutionAllowList());
         }
+    }
+
+    private Set<SimulationDecisionAdapter.ExecutableStepType> buildExecutionAllowList() {
+        EnumSet<SimulationDecisionAdapter.ExecutableStepType> allowed = EnumSet.of(SimulationDecisionAdapter.ExecutableStepType.MOVE);
+        if (config.executeNpcInteraction()) {
+            allowed.add(SimulationDecisionAdapter.ExecutableStepType.NPC_INTERACT);
+        }
+        if (config.executePrayerSwitches()) {
+            allowed.add(SimulationDecisionAdapter.ExecutableStepType.SWITCH_PRAYER);
+        }
+        if (config.executeGearSwaps()) {
+            allowed.add(SimulationDecisionAdapter.ExecutableStepType.EQUIP_ITEM);
+        }
+        if (config.executeInventoryActions()) {
+            allowed.add(SimulationDecisionAdapter.ExecutableStepType.INVENTORY_INTERACT);
+        }
+        if (config.executeSpells()) {
+            allowed.add(SimulationDecisionAdapter.ExecutableStepType.CAST_SPELL);
+        }
+        return allowed;
     }
 
     private List<SimulationAction> generateCandidateActions(SimulationState state) {
@@ -188,21 +266,132 @@ public class SimulationPlugin extends Plugin {
             all.addAll(RUN_ACTIONS);
         }
 
+        if (config.includePrayerActions()) {
+            Prayer recommended = engine.recommendProtectionPrayer(state);
+            if (recommended != null && recommended != state.getActiveProtectionPrayer()) {
+                all.add(SimulationAction.switchPrayer(recommended));
+            }
+        }
+
+        if (config.includeEatActions() && state.getPlayerHitpoints() <= Math.max(1, config.eatAtOrBelowHp())) {
+            SimulationAction eatAction = resolveEatAction(state);
+            if (eatAction != null) {
+                all.add(eatAction);
+            }
+        }
+
+        if (config.includeGearSwapActions()) {
+            int itemId = config.gearSwapItemId();
+            if (itemId >= 0 && state.hasInventoryItem(itemId) && !state.isItemEquipped(itemId)) {
+                all.add(SimulationAction.equipItem(itemId));
+            }
+        }
+
+        if (config.includeSpellActions()) {
+            SimulationAction spellAction = resolveSpellAction(state);
+            if (spellAction != null) {
+                all.add(spellAction);
+            }
+        }
+
         return all.stream()
                 .filter(action -> engine.canApplyPlayerAction(state, action))
                 .collect(Collectors.toList());
     }
 
+    private SimulationAction resolveEatAction(SimulationState state) {
+        if (state.getPlayerHitpoints() >= state.getPlayerMaxHitpoints()) {
+            return null;
+        }
+
+        int bestItemId = -1;
+        int bestHeal = 0;
+        for (Map.Entry<Integer, Integer> entry : state.getFoodHealingByItemId().entrySet()) {
+            int itemId = entry.getKey();
+            int heal = entry.getValue();
+            if (heal <= 0 || !state.hasInventoryItem(itemId)) {
+                continue;
+            }
+            if (heal > bestHeal) {
+                bestHeal = heal;
+                bestItemId = itemId;
+            }
+        }
+
+        if (bestItemId < 0) {
+            return null;
+        }
+        return SimulationAction.eat(bestItemId, bestHeal);
+    }
+
+    private SimulationAction resolveSpellAction(SimulationState state) {
+        CastableSpell spell = resolveConfiguredStandardSpell();
+        if (spell == null) {
+            return null;
+        }
+
+        int targetNpcIndex = nearestNpcIndexWithinDistance(state, Math.max(1, config.spellTargetDistance()));
+        if (targetNpcIndex >= 0) {
+            return SimulationAction.castSpellOnNpc(spell, targetNpcIndex);
+        }
+        return SimulationAction.castSpell(spell);
+    }
+
+    private CastableSpell resolveConfiguredStandardSpell() {
+        String configured = config.standardSpellName();
+        if (configured == null || configured.trim().isEmpty()) {
+            return null;
+        }
+
+        String normalized = configured.trim().toUpperCase(Locale.ROOT);
+        try {
+            return Standard.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private int nearestNpcIndexWithinDistance(SimulationState state, int maxDistance) {
+        int bestNpcIndex = -1;
+        int bestDistance = Integer.MAX_VALUE;
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (!state.isNpcActive(slot)) {
+                continue;
+            }
+            int dx = Math.abs(state.getNpcX(slot) - state.getPlayerX());
+            int dy = Math.abs(state.getNpcY(slot) - state.getPlayerY());
+            int distance = Math.max(dx, dy);
+            if (distance > maxDistance) {
+                continue;
+            }
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestNpcIndex = state.getNpcIndex(slot);
+            }
+        }
+        return bestNpcIndex;
+    }
+
     private double evaluateState(SimulationState state) {
         int losThreats = engine.countNpcsWithLineOfSightToPlayer(state);
+        int attackThreats = engine.countNpcsAbleToAttackPlayer(state);
+        int unprotectedThreats = engine.countUnprotectedNpcThreats(state);
         int nearestNpcDistance = nearestNpcChebyshevDistance(state);
 
         double score = 0.0;
-        score -= (losThreats * 30.0);
+        score -= (losThreats * 20.0);
+        score -= (attackThreats * 25.0);
+        score -= (unprotectedThreats * 40.0);
         score += Math.min(nearestNpcDistance, 12) * 2.0;
+        score += state.getPlayerHitpoints() * 1.1;
+
+        Prayer recommended = engine.recommendProtectionPrayer(state);
+        if (recommended != null && recommended == state.getActiveProtectionPrayer()) {
+            score += 24.0;
+        }
 
         if (engine.isPlayerTileSafe(state)) {
-            score += 40.0;
+            score += 25.0;
         }
 
         return score;
@@ -284,8 +473,84 @@ public class SimulationPlugin extends Plugin {
         lastSearchMicros = 0L;
         rootThreatCount = 0;
         bestThreatCount = 0;
+        rootAttackThreatCount = 0;
+        bestAttackThreatCount = 0;
+        rootUnprotectedThreatCount = 0;
+        bestUnprotectedThreatCount = 0;
+        rootRecommendedPrayer = null;
+        bestRecommendedPrayer = null;
         lastError = null;
         npcPredictedPaths.clear();
         npcLineOfSightTiles.clear();
+    }
+
+    private Map<Integer, SimulationSnapshotService.NpcMetadata> parseNpcCombatOverrides(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Integer, SimulationSnapshotService.NpcMetadata> parsed = new HashMap<>();
+        String[] entries = raw.split("[,;]");
+        for (String entry : entries) {
+            String token = entry.trim();
+            if (token.isEmpty()) {
+                continue;
+            }
+
+            String[] idSplit = token.split("=");
+            if (idSplit.length != 2) {
+                continue;
+            }
+
+            try {
+                int npcId = Integer.parseInt(idSplit[0].trim());
+                String[] values = idSplit[1].trim().split(":");
+                if (values.length < 4) {
+                    continue;
+                }
+
+                NpcAttackStyle style = NpcAttackStyle.valueOf(values[0].trim().toUpperCase(Locale.ROOT));
+                int range = Integer.parseInt(values[1].trim());
+                int speed = Integer.parseInt(values[2].trim());
+                int maxHit = Integer.parseInt(values[3].trim());
+                boolean stopWhenLos = range > 1;
+
+                parsed.put(npcId, new SimulationSnapshotService.NpcMetadata(range, speed, style, maxHit, true, stopWhenLos));
+            } catch (Exception ignored) {
+                // Keep parsing other entries.
+            }
+        }
+        return parsed;
+    }
+
+    private Map<Integer, Integer> parseFoodHealOverrides(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Integer, Integer> parsed = new HashMap<>();
+        String[] entries = raw.split("[,;]");
+        for (String entry : entries) {
+            String token = entry.trim();
+            if (token.isEmpty()) {
+                continue;
+            }
+
+            String[] kv = token.split("=");
+            if (kv.length != 2) {
+                continue;
+            }
+
+            try {
+                int itemId = Integer.parseInt(kv[0].trim());
+                int heal = Integer.parseInt(kv[1].trim());
+                if (itemId >= 0 && heal > 0) {
+                    parsed.put(itemId, heal);
+                }
+            } catch (NumberFormatException ignored) {
+                // Keep parsing other entries.
+            }
+        }
+        return parsed;
     }
 }

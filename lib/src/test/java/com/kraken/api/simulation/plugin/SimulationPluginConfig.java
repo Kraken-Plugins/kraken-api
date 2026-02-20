@@ -71,6 +71,132 @@ public interface SimulationPluginConfig extends Config {
     }
 
     @ConfigSection(
+            name = "Combat Simulation",
+            description = "NPC combat metadata and player consumable simulation mappings.",
+            position = 15
+    )
+    String combatSection = "combatSection";
+
+    @ConfigItem(
+            keyName = "npcCombatOverrides",
+            name = "NPC Combat Overrides",
+            description = "CSV: npcId=STYLE:range:speed:maxHit (example: 415=MELEE:1:4:30,3129=MAGIC:10:4:20).",
+            section = combatSection,
+            position = 16
+    )
+    default String npcCombatOverrides() {
+        return "";
+    }
+
+    @ConfigItem(
+            keyName = "foodHealingOverrides",
+            name = "Food Heal Overrides",
+            description = "CSV: itemId=heal (example: 385=20,3144=18).",
+            section = combatSection,
+            position = 17
+    )
+    default String foodHealingOverrides() {
+        return "";
+    }
+
+    @ConfigSection(
+            name = "Action Candidates",
+            description = "Which non-movement action types should be generated in the decision tree.",
+            position = 18
+    )
+    String candidateSection = "candidateSection";
+
+    @ConfigItem(
+            keyName = "includePrayerActions",
+            name = "Include Prayer Actions",
+            description = "Generate switch-prayer actions based on simulated NPC threats.",
+            section = candidateSection,
+            position = 19
+    )
+    default boolean includePrayerActions() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "includeEatActions",
+            name = "Include Eat Actions",
+            description = "Generate eat/drink inventory actions when HP is low.",
+            section = candidateSection,
+            position = 20
+    )
+    default boolean includeEatActions() {
+        return true;
+    }
+
+    @Range(min = 1, max = 99)
+    @ConfigItem(
+            keyName = "eatAtOrBelowHp",
+            name = "Eat At Or Below HP",
+            description = "Generate eat actions when simulated HP is at or below this threshold.",
+            section = candidateSection,
+            position = 21
+    )
+    default int eatAtOrBelowHp() {
+        return 45;
+    }
+
+    @ConfigItem(
+            keyName = "includeGearSwapActions",
+            name = "Include Gear Swap Actions",
+            description = "Generate equip-item actions for configured gear item id.",
+            section = candidateSection,
+            position = 22
+    )
+    default boolean includeGearSwapActions() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "gearSwapItemId",
+            name = "Gear Swap Item ID",
+            description = "Inventory item id used when generating equip actions.",
+            section = candidateSection,
+            position = 23
+    )
+    default int gearSwapItemId() {
+        return -1;
+    }
+
+    @ConfigItem(
+            keyName = "includeSpellActions",
+            name = "Include Spell Actions",
+            description = "Generate cast-spell actions for configured standard spell name.",
+            section = candidateSection,
+            position = 24
+    )
+    default boolean includeSpellActions() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "standardSpellName",
+            name = "Standard Spell Name",
+            description = "Name of Standard spell enum (example: WIND_STRIKE, FIRE_BLAST).",
+            section = candidateSection,
+            position = 25
+    )
+    default String standardSpellName() {
+        return "WIND_STRIKE";
+    }
+
+    @Range(min = 1, max = 15)
+    @ConfigItem(
+            keyName = "spellTargetDistance",
+            name = "Spell Target Distance",
+            description = "Max distance for selecting spell target NPC.",
+            section = candidateSection,
+            position = 26
+    )
+    default int spellTargetDistance() {
+        return 10;
+    }
+
+    @ConfigSection(
             name = "Execution",
             description = "Apply search result to the live game.",
             position = 20
@@ -120,6 +246,50 @@ public interface SimulationPluginConfig extends Config {
     )
     default int interactionDistance() {
         return 1;
+    }
+
+    @ConfigItem(
+            keyName = "executePrayerSwitches",
+            name = "Execute Prayer Switches",
+            description = "Allow adapter to execute prayer switching steps.",
+            section = executionSection,
+            position = 25
+    )
+    default boolean executePrayerSwitches() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "executeGearSwaps",
+            name = "Execute Gear Swaps",
+            description = "Allow adapter to execute equipment swap steps.",
+            section = executionSection,
+            position = 26
+    )
+    default boolean executeGearSwaps() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "executeInventoryActions",
+            name = "Execute Inventory Actions",
+            description = "Allow adapter to execute inventory interact/eat steps.",
+            section = executionSection,
+            position = 27
+    )
+    default boolean executeInventoryActions() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "executeSpells",
+            name = "Execute Spell Actions",
+            description = "Allow adapter to execute cast-spell steps.",
+            section = executionSection,
+            position = 28
+    )
+    default boolean executeSpells() {
+        return true;
     }
 
     @ConfigSection(

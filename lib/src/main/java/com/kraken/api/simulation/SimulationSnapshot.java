@@ -23,6 +23,8 @@ public final class SimulationSnapshot {
     @Getter
     private final WorldPoint playerWorldPoint;
     @Getter
+    private final SimulationPlayerSnapshot player;
+    @Getter
     private final List<SimulationNpcSnapshot> npcs;
 
     /**
@@ -45,6 +47,40 @@ public final class SimulationSnapshot {
             @NonNull WorldPoint playerWorldPoint,
             List<SimulationNpcSnapshot> npcs
     ) {
+        this(
+                gameTick,
+                plane,
+                baseX,
+                baseY,
+                collisionFlags,
+                playerWorldPoint,
+                null,
+                npcs
+        );
+    }
+
+    /**
+     * Creates an immutable snapshot used to seed one or more simulation states.
+     *
+     * @param gameTick RuneLite client tick at capture time.
+     * @param plane active scene plane.
+     * @param baseX world-view base x.
+     * @param baseY world-view base y.
+     * @param collisionFlags copied scene collision flags indexed by [sceneX][sceneY].
+     * @param playerWorldPoint local player world position at capture time.
+     * @param player captured player combat/action metadata.
+     * @param npcs captured NPC snapshots.
+     */
+    public SimulationSnapshot(
+            int gameTick,
+            int plane,
+            int baseX,
+            int baseY,
+            int[][] collisionFlags,
+            @NonNull WorldPoint playerWorldPoint,
+            SimulationPlayerSnapshot player,
+            List<SimulationNpcSnapshot> npcs
+    ) {
         if (collisionFlags == null || collisionFlags.length == 0 || collisionFlags[0] == null || collisionFlags[0].length == 0) {
             throw new IllegalArgumentException("collisionFlags must be non-empty");
         }
@@ -62,6 +98,7 @@ public final class SimulationSnapshot {
         this.baseY = baseY;
         this.collisionFlags = deepCopy(collisionFlags);
         this.playerWorldPoint = playerWorldPoint;
+        this.player = player == null ? SimulationPlayerSnapshot.empty() : player;
         this.npcs = npcs == null
                 ? Collections.emptyList()
                 : List.copyOf(npcs);

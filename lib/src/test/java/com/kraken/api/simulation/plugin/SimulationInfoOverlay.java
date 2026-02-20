@@ -3,12 +3,14 @@ package com.kraken.api.simulation.plugin;
 import com.google.inject.Inject;
 import com.kraken.api.simulation.SimulationDecisionAdapter;
 import com.kraken.api.simulation.SimulationSnapshot;
+import net.runelite.api.Prayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 
 import java.awt.*;
+import java.util.stream.Collectors;
 
 public class SimulationInfoOverlay extends OverlayPanel {
     private final SimulationPlugin plugin;
@@ -93,6 +95,21 @@ public class SimulationInfoOverlay extends OverlayPanel {
                     .right(plugin.getRootThreatCount() + "->" + plugin.getBestThreatCount())
                     .rightColor(plugin.getBestThreatCount() <= plugin.getRootThreatCount() ? Color.GREEN : Color.ORANGE)
                     .build());
+            panelComponent.getChildren().add(LineComponent.builder()
+                    .left("Attack Threats")
+                    .right(plugin.getRootAttackThreatCount() + "->" + plugin.getBestAttackThreatCount())
+                    .rightColor(plugin.getBestAttackThreatCount() <= plugin.getRootAttackThreatCount() ? Color.GREEN : Color.ORANGE)
+                    .build());
+            panelComponent.getChildren().add(LineComponent.builder()
+                    .left("Unprotected")
+                    .right(plugin.getRootUnprotectedThreatCount() + "->" + plugin.getBestUnprotectedThreatCount())
+                    .rightColor(plugin.getBestUnprotectedThreatCount() <= plugin.getRootUnprotectedThreatCount() ? Color.GREEN : Color.ORANGE)
+                    .build());
+            panelComponent.getChildren().add(LineComponent.builder()
+                    .left("Prayer (root->best)")
+                    .right(formatPrayer(plugin.getRootRecommendedPrayer()) + "->" + formatPrayer(plugin.getBestRecommendedPrayer()))
+                    .rightColor(Color.WHITE)
+                    .build());
         }
 
         SimulationDecisionAdapter.ExecutableAction executableAction = plugin.getLastExecutableAction();
@@ -109,8 +126,24 @@ public class SimulationInfoOverlay extends OverlayPanel {
                             : "None")
                     .rightColor(Color.CYAN)
                     .build());
+            panelComponent.getChildren().add(LineComponent.builder()
+                    .left("Action Type")
+                    .right(String.valueOf(executableAction.getSimulationAction().getType()))
+                    .rightColor(Color.CYAN)
+                    .build());
+            panelComponent.getChildren().add(LineComponent.builder()
+                    .left("Steps")
+                    .right(executableAction.getSteps().stream()
+                            .map(step -> step.getType().name())
+                            .collect(Collectors.joining(",")))
+                    .rightColor(Color.CYAN)
+                    .build());
         }
 
         return super.render(graphics);
+    }
+
+    private String formatPrayer(Prayer prayer) {
+        return prayer == null ? "None" : prayer.name();
     }
 }

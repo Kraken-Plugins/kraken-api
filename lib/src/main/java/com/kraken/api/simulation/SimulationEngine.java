@@ -1,6 +1,7 @@
 package com.kraken.api.simulation;
 
 import net.runelite.api.CollisionDataFlag;
+import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.ArrayList;
@@ -49,8 +50,11 @@ public final class SimulationEngine {
             throw new IllegalArgumentException("state cannot be null");
         }
 
-        applyPlayerAction(state, playerAction == null ? SimulationAction.WAIT : playerAction);
+        SimulationAction action = playerAction == null ? SimulationAction.WAIT : playerAction;
+        applyPlayerAction(state, action);
         moveNpcs(state);
+        resolveNpcAttacks(state);
+        state.setLastAppliedAction(action);
         state.incrementTick();
         return state;
     }
@@ -87,17 +91,36 @@ public final class SimulationEngine {
             return false;
         }
 
-        int x = state.getPlayerX();
-        int y = state.getPlayerY();
-        int steps = action.isRun() ? 2 : 1;
-        for (int i = 0; i < steps; i++) {
-            if (!canEntityStep(state, x, y, 1, action.getDx(), action.getDy(), -1, true)) {
-                return false;
+        if (action.isMovement()) {
+            int x = state.getPlayerX();
+            int y = state.getPlayerY();
+            int steps = action.isRun() ? 2 : 1;
+            for (int i = 0; i < steps; i++) {
+                if (!canEntityStep(state, x, y, 1, action.getDx(), action.getDy(), -1, true)) {
+                    return false;
+                }
+                x += action.getDx();
+                y += action.getDy();
             }
-            x += action.getDx();
-            y += action.getDy();
+            return true;
         }
-        return true;
+
+        switch (action.getType()) {
+            case SWITCH_PRAYER:
+                return action.getPrayer() != null && action.getPrayer() != state.getActiveProtectionPrayer();
+            case EQUIP_ITEM:
+                return action.getItemId() != null
+                        && !state.isItemEquipped(action.getItemId())
+                        && state.hasInventoryItem(action.getItemId());
+            case INVENTORY_INTERACT:
+                return action.getItemId() != null && state.hasInventoryItem(action.getItemId());
+            case CAST_SPELL:
+                return action.getSpell() != null;
+            case CUSTOM:
+                return true;
+            default:
+                return false;
+        }
     }
 
     /**
@@ -140,6 +163,87 @@ public final class SimulationEngine {
             }
         }
         return count;
+    }
+
+    /**
+     * Counts active NPCs that can currently attack the simulated player.
+     *
+     * @param state simulation state.
+     * @return number of NPCs that can attack now based on range/LoS.
+     */
+    public int countNpcsAbleToAttackPlayer(SimulationState state) {
+        if (state == null) {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = 0; i < state.getNpcCount(); i++) {
+            if (state.isNpcActive(i) && canNpcAttackPlayerNow(state, i)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Counts active NPC threats that are currently unprotected by active overhead prayer.
+     *
+     * @param state simulation state.
+     * @return number of unprotected attack threats.
+     */
+    public int countUnprotectedNpcThreats(SimulationState state) {
+        if (state == null) {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = 0; i < state.getNpcCount(); i++) {
+            if (!state.isNpcActive(i) || !canNpcAttackPlayerNow(state, i)) {
+                continue;
+            }
+            if (!isNpcAttackProtected(state, i)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Returns the currently recommended overhead protection prayer based on nearest upcoming
+     * NPC attacks filtered by range/LoS and configured attack cooldown.
+     *
+     * @param state simulation state.
+     * @return recommended protection prayer, or {@code null} when no mappable threats are present.
+     */
+    public Prayer recommendProtectionPrayer(SimulationState state) {
+        if (state == null) {
+            return null;
+        }
+
+        int bestTicks = Integer.MAX_VALUE;
+        int bestMaxHit = Integer.MIN_VALUE;
+        Prayer recommended = null;
+
+        for (int i = 0; i < state.getNpcCount(); i++) {
+            if (!state.isNpcActive(i) || !canNpcAttackPlayerNow(state, i)) {
+                continue;
+            }
+
+            Prayer prayer = state.getNpcAttackStyle(i).toProtectionPrayer();
+            if (prayer == null) {
+                continue;
+            }
+
+            int ticks = state.getNpcAttackCooldown(i);
+            int maxHit = state.getNpcMaxHit(i);
+            if (ticks < bestTicks || (ticks == bestTicks && maxHit > bestMaxHit)) {
+                bestTicks = ticks;
+                bestMaxHit = maxHit;
+                recommended = prayer;
+            }
+        }
+
+        return recommended;
     }
 
     /**
@@ -286,6 +390,36 @@ public final class SimulationEngine {
     }
 
     private void applyPlayerAction(SimulationState state, SimulationAction action) {
+        if (action == null) {
+            return;
+        }
+
+        if (action.isMovement()) {
+            applyMovementAction(state, action);
+            return;
+        }
+
+        switch (action.getType()) {
+            case SWITCH_PRAYER:
+                state.setActiveProtectionPrayer(action.getPrayer());
+                break;
+            case EQUIP_ITEM:
+                if (action.getItemId() != null) {
+                    state.equipItemFromInventory(action.getItemId());
+                }
+                break;
+            case INVENTORY_INTERACT:
+                applyInventoryAction(state, action);
+                break;
+            case CAST_SPELL:
+            case CUSTOM:
+            default:
+                // No default state mutation required for generic/custom actions.
+                break;
+        }
+    }
+
+    private void applyMovementAction(SimulationState state, SimulationAction action) {
         int steps = action.isRun() ? 2 : 1;
         for (int i = 0; i < steps; i++) {
             int dx = action.getDx();
@@ -301,6 +435,38 @@ public final class SimulationEngine {
             }
 
             state.setPlayerPosition(currentX + dx, currentY + dy);
+        }
+    }
+
+    private void applyInventoryAction(SimulationState state, SimulationAction action) {
+        Integer itemId = action.getItemId();
+        if (itemId == null || !state.hasInventoryItem(itemId)) {
+            return;
+        }
+
+        if (action.isConsumeInventoryItem()) {
+            if (!state.consumeInventoryItem(itemId)) {
+                return;
+            }
+
+            int heal = action.getHealAmount();
+            if (heal <= 0) {
+                heal = state.getFoodHealAmount(itemId);
+            }
+            state.healPlayer(heal);
+            return;
+        }
+
+        String inventoryAction = action.getInventoryAction();
+        if (inventoryAction != null && isLikelyConsumableAction(inventoryAction)) {
+            state.consumeInventoryItem(itemId);
+            if ("eat".equalsIgnoreCase(inventoryAction) || "drink".equalsIgnoreCase(inventoryAction)) {
+                int heal = action.getHealAmount();
+                if (heal <= 0) {
+                    heal = state.getFoodHealAmount(itemId);
+                }
+                state.healPlayer(heal);
+            }
         }
     }
 
@@ -336,6 +502,57 @@ public final class SimulationEngine {
                 tryMoveNpc(state, i, 0, dy);
             }
         }
+    }
+
+    private void resolveNpcAttacks(SimulationState state) {
+        for (int npcSlot = 0; npcSlot < state.getNpcCount(); npcSlot++) {
+            if (!state.isNpcActive(npcSlot)) {
+                continue;
+            }
+
+            int cooldown = state.getNpcAttackCooldown(npcSlot);
+            if (cooldown > 0) {
+                state.setNpcAttackCooldown(npcSlot, cooldown - 1);
+                continue;
+            }
+
+            if (!canNpcAttackPlayerNow(state, npcSlot)) {
+                continue;
+            }
+
+            int damage = Math.max(0, state.getNpcMaxHit(npcSlot));
+            if (damage > 0 && !isNpcAttackProtected(state, npcSlot)) {
+                state.damagePlayer(damage);
+            }
+
+            int attackSpeed = Math.max(1, state.getNpcAttackSpeed(npcSlot));
+            state.setNpcAttackCooldown(npcSlot, attackSpeed - 1);
+        }
+    }
+
+    private boolean canNpcAttackPlayerNow(SimulationState state, int npcSlot) {
+        if (state == null || !state.isNpcActive(npcSlot)) {
+            return false;
+        }
+        return hasLineOfSight(
+                state,
+                state.getNpcX(npcSlot),
+                state.getNpcY(npcSlot),
+                state.getNpcSize(npcSlot),
+                state.getPlayerX(),
+                state.getPlayerY(),
+                Math.max(1, state.getNpcAttackRange(npcSlot)),
+                true
+        );
+    }
+
+    private boolean isNpcAttackProtected(SimulationState state, int npcSlot) {
+        Prayer activePrayer = state.getActiveProtectionPrayer();
+        if (activePrayer == null) {
+            return false;
+        }
+        Prayer neededPrayer = state.getNpcAttackStyle(npcSlot).toProtectionPrayer();
+        return neededPrayer != null && neededPrayer == activePrayer;
     }
 
     private boolean tryMoveNpc(SimulationState state, int npcSlot, int dx, int dy) {
@@ -600,6 +817,16 @@ public final class SimulationEngine {
         int dy = targetY - sourceY;
         return (dx < sourceSize && dx >= 0 && (dy == sourceSize || dy == -1))
                 || (dy < sourceSize && dy >= 0 && (dx == -1 || dx == sourceSize));
+    }
+
+    private boolean isLikelyConsumableAction(String action) {
+        if (action == null) {
+            return false;
+        }
+        String normalized = action.trim().toLowerCase();
+        return "eat".equals(normalized)
+                || "drink".equals(normalized)
+                || "consume".equals(normalized);
     }
 
     private boolean isBlockedTile(int flags) {
