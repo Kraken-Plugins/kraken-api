@@ -1,7 +1,9 @@
 package com.kraken.api.simulation;
 
+import com.kraken.api.service.map.WorldPointService;
 import lombok.Getter;
 import net.runelite.api.Prayer;
+import net.runelite.api.coords.WorldPoint;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import java.util.Set;
 public final class SimulationPlayerSnapshot {
     private static final int DEFAULT_MAX_HP = 99;
 
+    private final int packedWorldPoint;
     private final int hitpoints;
     private final int maxHitpoints;
     private final Prayer activeProtectionPrayer;
@@ -26,6 +29,7 @@ public final class SimulationPlayerSnapshot {
     /**
      * Creates immutable player combat/action metadata used by simulation actions.
      *
+     * @param worldPoint player world point at capture time.
      * @param hitpoints player hitpoints at capture time.
      * @param maxHitpoints player max hitpoints at capture time.
      * @param activeProtectionPrayer active overhead protection prayer at capture time.
@@ -34,6 +38,7 @@ public final class SimulationPlayerSnapshot {
      * @param foodHealingByItemId configured heal amount by food item id.
      */
     public SimulationPlayerSnapshot(
+            WorldPoint worldPoint,
             int hitpoints,
             int maxHitpoints,
             Prayer activeProtectionPrayer,
@@ -41,6 +46,9 @@ public final class SimulationPlayerSnapshot {
             Set<Integer> equippedItemIds,
             Map<Integer, Integer> foodHealingByItemId
     ) {
+        if (worldPoint == null) {
+            throw new IllegalArgumentException("worldPoint cannot be null");
+        }
         if (maxHitpoints <= 0) {
             throw new IllegalArgumentException("maxHitpoints must be > 0");
         }
@@ -48,6 +56,7 @@ public final class SimulationPlayerSnapshot {
             throw new IllegalArgumentException("hitpoints must be >= 0");
         }
 
+        this.packedWorldPoint = WorldPointService.pack(worldPoint);
         this.maxHitpoints = maxHitpoints;
         this.hitpoints = Math.min(hitpoints, maxHitpoints);
         this.activeProtectionPrayer = activeProtectionPrayer;
@@ -59,8 +68,9 @@ public final class SimulationPlayerSnapshot {
     /**
      * @return default player snapshot when no explicit metadata is provided.
      */
-    public static SimulationPlayerSnapshot empty() {
+    public static SimulationPlayerSnapshot empty(WorldPoint worldPoint) {
         return new SimulationPlayerSnapshot(
+                worldPoint,
                 DEFAULT_MAX_HP,
                 DEFAULT_MAX_HP,
                 null,
@@ -78,6 +88,13 @@ public final class SimulationPlayerSnapshot {
      */
     public int getFoodHealAmount(int itemId) {
         return foodHealingByItemId.getOrDefault(itemId, 0);
+    }
+
+    /**
+     * @return unpacked player world point.
+     */
+    public WorldPoint getWorldPoint() {
+        return WorldPointService.unpack(packedWorldPoint);
     }
 
     private static Map<Integer, Integer> immutablePositiveCountMap(Map<Integer, Integer> source) {

@@ -391,17 +391,19 @@ public final class SimulationDecisionAdapter {
         }
 
         if (action.isMovement()) {
-            if (engine.canApplyPlayerAction(rootState, action)) {
-                WorldPoint current = rootState.getPlayerWorldPoint();
-                WorldPoint candidate = action.destinationFrom(current);
-                if (!candidate.equals(current)) {
-                    steps.add(ExecutableStep.move(candidate));
-                }
+            if (!engine.canApplyPlayerAction(rootState, action)) {
+                return;
+            }
+            WorldPoint candidate = action.getMovementDestination();
+            if (candidate != null && !candidate.equals(rootState.getPlayerWorldPoint())) {
+                steps.add(ExecutableStep.move(candidate));
             }
             return;
         }
 
         switch (action.getType()) {
+            case WAIT:
+                break;
             case SWITCH_PRAYER:
                 if (action.getPrayer() != null) {
                     steps.add(ExecutableStep.switchPrayer(action.getPrayer()));
@@ -428,6 +430,11 @@ public final class SimulationDecisionAdapter {
                         }
                     }
                     steps.add(ExecutableStep.castSpell(action.getSpell(), targetNpcIndex));
+                }
+                break;
+            case NPC_INTERACT:
+                if (action.getTargetNpcIndex() != null && action.getNpcInteractionAction() != null) {
+                    steps.add(ExecutableStep.npcInteract(action.getTargetNpcIndex(), action.getNpcInteractionAction()));
                 }
                 break;
             case CUSTOM:

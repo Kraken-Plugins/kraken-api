@@ -5,10 +5,12 @@ import lombok.NonNull;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Immutable RuneLite-compatible snapshot used as the root input for fast simulations.
+ * Immutable snapshot used as the input payload for simulation.
  */
 public final class SimulationSnapshot {
     @Getter
@@ -21,22 +23,20 @@ public final class SimulationSnapshot {
     private final int baseY;
     private final int[][] collisionFlags;
     @Getter
-    private final WorldPoint playerWorldPoint;
-    @Getter
     private final SimulationPlayerSnapshot player;
     @Getter
     private final List<SimulationNpcSnapshot> npcs;
 
     /**
-     * Creates an immutable snapshot used to seed one or more simulation states.
+     * Creates a snapshot from collision, player, and npc input.
      *
-     * @param gameTick RuneLite client tick at capture time.
-     * @param plane active scene plane.
-     * @param baseX world-view base x.
-     * @param baseY world-view base y.
-     * @param collisionFlags copied scene collision flags indexed by [sceneX][sceneY].
-     * @param playerWorldPoint local player world position at capture time.
-     * @param npcs captured NPC snapshots.
+     * @param gameTick client game tick at capture.
+     * @param plane current plane.
+     * @param baseX world base x for the collision array.
+     * @param baseY world base y for the collision array.
+     * @param collisionFlags scene collision map indexed as [sceneX][sceneY].
+     * @param player player snapshot.
+     * @param npcs npc position snapshots.
      */
     public SimulationSnapshot(
             int gameTick,
@@ -44,41 +44,7 @@ public final class SimulationSnapshot {
             int baseX,
             int baseY,
             int[][] collisionFlags,
-            @NonNull WorldPoint playerWorldPoint,
-            List<SimulationNpcSnapshot> npcs
-    ) {
-        this(
-                gameTick,
-                plane,
-                baseX,
-                baseY,
-                collisionFlags,
-                playerWorldPoint,
-                null,
-                npcs
-        );
-    }
-
-    /**
-     * Creates an immutable snapshot used to seed one or more simulation states.
-     *
-     * @param gameTick RuneLite client tick at capture time.
-     * @param plane active scene plane.
-     * @param baseX world-view base x.
-     * @param baseY world-view base y.
-     * @param collisionFlags copied scene collision flags indexed by [sceneX][sceneY].
-     * @param playerWorldPoint local player world position at capture time.
-     * @param player captured player combat/action metadata.
-     * @param npcs captured NPC snapshots.
-     */
-    public SimulationSnapshot(
-            int gameTick,
-            int plane,
-            int baseX,
-            int baseY,
-            int[][] collisionFlags,
-            @NonNull WorldPoint playerWorldPoint,
-            SimulationPlayerSnapshot player,
+            @NonNull SimulationPlayerSnapshot player,
             List<SimulationNpcSnapshot> npcs
     ) {
         if (collisionFlags == null || collisionFlags.length == 0 || collisionFlags[0] == null || collisionFlags[0].length == 0) {
@@ -86,8 +52,8 @@ public final class SimulationSnapshot {
         }
 
         int expectedHeight = collisionFlags[0].length;
-        for (int[] collisionFlag : collisionFlags) {
-            if (collisionFlag == null || collisionFlag.length != expectedHeight) {
+        for (int[] row : collisionFlags) {
+            if (row == null || row.length != expectedHeight) {
                 throw new IllegalArgumentException("collisionFlags must be a rectangular matrix");
             }
         }
@@ -97,11 +63,13 @@ public final class SimulationSnapshot {
         this.baseX = baseX;
         this.baseY = baseY;
         this.collisionFlags = deepCopy(collisionFlags);
-        this.playerWorldPoint = playerWorldPoint;
-        this.player = player == null ? SimulationPlayerSnapshot.empty() : player;
+        this.player = player;
         this.npcs = npcs == null
                 ? Collections.emptyList()
-                : List.copyOf(npcs);
+                : npcs.stream()
+                .filter(npc -> npc != null)
+                .sorted(Comparator.comparingInt(SimulationNpcSnapshot::getIndex))
+                .collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -119,33 +87,33 @@ public final class SimulationSnapshot {
     }
 
     /**
-     * Checks whether the provided scene coordinates are inside the captured collision grid.
+     * Checks whether scene coordinates are in the captured collision area.
      *
      * @param sceneX scene x coordinate.
      * @param sceneY scene y coordinate.
-     * @return true when in bounds.
+     * @return true when the tile is in bounds.
      */
     public boolean isSceneInBounds(int sceneX, int sceneY) {
         return sceneX >= 0 && sceneY >= 0 && sceneX < getSceneWidth() && sceneY < getSceneHeight();
     }
 
     /**
-     * Checks whether a world tile is inside the captured scene bounds.
+     * Checks whether a world tile is in the captured collision area.
      *
      * @param worldX world x coordinate.
      * @param worldY world y coordinate.
-     * @return true when in bounds.
+     * @return true when the tile is in bounds.
      */
     public boolean isWorldInBounds(int worldX, int worldY) {
         return isSceneInBounds(worldX - baseX, worldY - baseY);
     }
 
     /**
-     * Reads a collision flag by scene coordinate.
+     * Reads collision flags by scene coordinate.
      *
      * @param sceneX scene x coordinate.
      * @param sceneY scene y coordinate.
-     * @return collision flags, or {@code 0} when out of bounds.
+     * @return collision flags, or 0 if out of bounds.
      */
     public int getCollisionFlagAtScene(int sceneX, int sceneY) {
         if (!isSceneInBounds(sceneX, sceneY)) {
@@ -155,30 +123,37 @@ public final class SimulationSnapshot {
     }
 
     /**
-     * Reads a collision flag by world coordinate.
+     * Reads collision flags by world coordinate.
      *
      * @param worldX world x coordinate.
      * @param worldY world y coordinate.
-     * @return collision flags, or {@code 0} when out of bounds.
+     * @return collision flags, or 0 if out of bounds.
      */
     public int getCollisionFlagAtWorld(int worldX, int worldY) {
         return getCollisionFlagAtScene(worldX - baseX, worldY - baseY);
     }
 
     /**
-     * @return deep copy of the captured collision flags.
+     * @return deep copy of the collision map.
      */
     public int[][] copyCollisionFlags() {
         return deepCopy(collisionFlags);
     }
 
     /**
-     * Creates a mutable simulation state initialized from this snapshot.
+     * @return player world point from this snapshot.
+     */
+    public WorldPoint getPlayerWorldPoint() {
+        return player.getWorldPoint();
+    }
+
+    /**
+     * Creates a mutable root state using default npc profiles.
      *
-     * @return simulation state rooted at this snapshot.
+     * @return root simulation state.
      */
     public SimulationState createState() {
-        return SimulationState.fromSnapshot(this);
+        return SimulationState.fromScenario(new SimulationScenario(this, Collections.emptyMap()));
     }
 
     int[][] collisionFlagsUnsafe() {

@@ -1,138 +1,368 @@
 package com.kraken.api.simulation;
 
+import com.kraken.api.service.map.WorldPointService;
 import net.runelite.api.CollisionDataFlag;
 import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Generic Old School RuneScape simulation engine designed for high-frequency decision search.
+ * Core simulation engine for snapshot-driven tree generation.
  */
 public final class SimulationEngine {
     private static final int BLOCKED_MOVEMENT_MASK = CollisionDataFlag.BLOCK_MOVEMENT_FULL | CollisionDataFlag.BLOCK_MOVEMENT_OBJECT;
 
     /**
-     * Creates a fresh mutable simulation state from an immutable snapshot.
-     *
-     * @param snapshot immutable simulation input.
-     * @return mutable state for stepping and branching.
+     * Provides extra actions while building a simulation tree.
      */
-    public SimulationState createState(SimulationSnapshot snapshot) {
-        return SimulationState.fromSnapshot(snapshot);
+    @FunctionalInterface
+    public interface ActionProvider {
+        /**
+         * @param state current state.
+         * @param depthRemaining depth remaining.
+         * @return additional actions, or null.
+         */
+        List<SimulationAction> provide(SimulationState state, int depthRemaining);
+    }
+
+    private static final class ExpansionCounter {
+        private int nodeCount;
+        private int maxDepthReached;
+    }
+
+    private static final class PathStep {
+        private final int x;
+        private final int y;
+        private final int distance;
+
+        private PathStep(int x, int y, int distance) {
+            this.x = x;
+            this.y = y;
+            this.distance = distance;
+        }
     }
 
     /**
-     * Copies the provided state and simulates a single tick on the copy.
-     * @param state The state to copy
-     * @param playerAction The player action to simulate
-     * @return SimulationState the copied simulation state
+     * Creates a root state.
+     *
+     * @param scenario simulation scenario.
+     * @return mutable state.
      */
-    public SimulationState simulateTickCopy(SimulationState state, SimulationAction playerAction) {
+    public SimulationState createState(SimulationScenario scenario) {
+        return SimulationState.fromScenario(scenario);
+    }
+
+    /**
+     * Creates a root state.
+     *
+     * @param snapshot snapshot input.
+     * @param npcProfilesById npc profile map.
+     * @return mutable state.
+     */
+    public SimulationState createState(SimulationSnapshot snapshot, Map<Integer, SimulationNpcProfile> npcProfilesById) {
+        return createState(new SimulationScenario(snapshot, npcProfilesById));
+    }
+
+    /**
+     * Simulates one tick on a copied state.
+     *
+     * @param state source state.
+     * @param action action to apply.
+     * @return copied state after one tick.
+     */
+    public SimulationState simulateTickCopy(SimulationState state, SimulationAction action) {
         if (state == null) {
             throw new IllegalArgumentException("state cannot be null");
         }
         SimulationState copy = state.copy();
-        simulateTick(copy, playerAction);
+        simulateTick(copy, action);
         return copy;
     }
 
     /**
-     * Simulates one game tick in-place: apply player action, then move NPCs.
-     * @param state The current state of the simulation
-     * @param playerAction The player action to simulate
-     * @return SimulationState the simulation state after the single tick
+     * Simulates one tick in place.
+     *
+     * @param state source state.
+     * @param action action to apply.
+     * @return same state instance.
      */
-    public SimulationState simulateTick(SimulationState state, SimulationAction playerAction) {
+    public SimulationState simulateTick(SimulationState state, SimulationAction action) {
         if (state == null) {
             throw new IllegalArgumentException("state cannot be null");
         }
 
-        SimulationAction action = playerAction == null ? SimulationAction.WAIT : playerAction;
-        applyPlayerAction(state, action);
+        SimulationAction resolved = action == null ? SimulationAction.WAIT : action;
+        applyPlayerAction(state, resolved);
+        advanceQueuedPlayerMovement(state);
         moveNpcs(state);
         resolveNpcAttacks(state);
-        state.setLastAppliedAction(action);
+        state.setLastAppliedAction(resolved);
         state.incrementTick();
         return state;
     }
 
     /**
-     * Simulates many ticks using an ordered action list. If actions run out, WAIT is used.
-     * @param state The current state of the simulation
-     * @param playerActions The list of player action to simulate
-     * @param ticks The number of ticks to simulate
-     * @return SimulationState the simulation state after the ticks have been simulated
+     * Generates an outcome tree using defaults.
+     *
+     * @param scenario scenario input.
+     * @return generated tree.
      */
-    public SimulationState simulateTicks(SimulationState state, List<SimulationAction> playerActions, int ticks) {
-        if (ticks <= 0) {
-            return state;
-        }
-
-        for (int i = 0; i < ticks; i++) {
-            SimulationAction action = (playerActions != null && i < playerActions.size())
-                    ? playerActions.get(i)
-                    : SimulationAction.WAIT;
-            simulateTick(state, action);
-        }
-        return state;
+    public SimulationTree generateOutcomeTree(SimulationScenario scenario) {
+        return generateOutcomeTree(scenario, SimulationTreeOptions.defaults(), null);
     }
 
     /**
-     * Returns true when a single player step/run action is currently legal.
-     * @param state The state of the simulation
-     * @param action The action to simulate
-     * @return Boolean  true when a single player step/run action is currently legal.
+     * Generates an outcome tree.
+     *
+     * @param scenario scenario input.
+     * @param options tree options.
+     * @param actionProvider optional action provider.
+     * @return generated tree.
+     */
+    public SimulationTree generateOutcomeTree(
+            SimulationScenario scenario,
+            SimulationTreeOptions options,
+            ActionProvider actionProvider
+    ) {
+        if (scenario == null) {
+            throw new IllegalArgumentException("scenario cannot be null");
+        }
+        SimulationTreeOptions safeOptions = options == null ? SimulationTreeOptions.defaults() : options;
+
+        SimulationState rootState = createState(scenario);
+        SimulationTreeNode rootNode = new SimulationTreeNode(0, 0, SimulationAction.WAIT, rootState, null);
+        ExpansionCounter counter = new ExpansionCounter();
+        counter.nodeCount = 1;
+        counter.maxDepthReached = 0;
+
+        expandTree(rootNode, safeOptions.getTicks(), safeOptions, actionProvider, counter);
+        return new SimulationTree(scenario, safeOptions, rootNode, counter.nodeCount, counter.maxDepthReached);
+    }
+
+    /**
+     * Generates legal candidate actions for a node.
+     *
+     * @param state state input.
+     * @param depthRemaining depth remaining.
+     * @param options tree options.
+     * @param actionProvider optional provider.
+     * @return legal action list.
+     */
+    public List<SimulationAction> generateCandidateActions(
+            SimulationState state,
+            int depthRemaining,
+            SimulationTreeOptions options,
+            ActionProvider actionProvider
+    ) {
+        if (state == null) {
+            return Collections.singletonList(SimulationAction.WAIT);
+        }
+
+        SimulationTreeOptions safeOptions = options == null ? SimulationTreeOptions.defaults() : options;
+        LinkedHashSet<SimulationAction> collected = new LinkedHashSet<>();
+        collected.addAll(generateMovementActions(state, depthRemaining, safeOptions));
+        collected.add(SimulationAction.WAIT);
+
+        if (actionProvider != null) {
+            List<SimulationAction> extra = actionProvider.provide(state, depthRemaining);
+            if (extra != null) {
+                for (SimulationAction action : extra) {
+                    if (action != null) {
+                        collected.add(action);
+                    }
+                }
+            }
+        }
+
+        List<SimulationAction> legal = new ArrayList<>();
+        for (SimulationAction action : collected) {
+            if (canApplyPlayerAction(state, action)) {
+                legal.add(action);
+            }
+            if (legal.size() >= safeOptions.getMaxActionsPerNode()) {
+                break;
+            }
+        }
+
+        if (legal.isEmpty()) {
+            return Collections.singletonList(SimulationAction.WAIT);
+        }
+        return legal;
+    }
+
+    /**
+     * Checks whether an action is currently legal.
+     *
+     * @param state state.
+     * @param action action.
+     * @return true when legal.
      */
     public boolean canApplyPlayerAction(SimulationState state, SimulationAction action) {
         if (state == null || action == null) {
             return false;
         }
 
-        if (action.isMovement()) {
-            int x = state.getPlayerX();
-            int y = state.getPlayerY();
-            int steps = action.isRun() ? 2 : 1;
-            for (int i = 0; i < steps; i++) {
-                if (!canEntityStep(state, x, y, 1, action.getDx(), action.getDy(), -1, true)) {
+        switch (action.getType()) {
+            case WAIT:
+                return true;
+            case MOVE:
+                if (action.getMovementDestination() == null) {
                     return false;
                 }
-                x += action.getDx();
-                y += action.getDy();
-            }
-            return true;
-        }
-
-        switch (action.getType()) {
+                int targetX = WorldPointService.getPackedX(action.getTargetPackedPoint());
+                int targetY = WorldPointService.getPackedY(action.getTargetPackedPoint());
+                if (!state.getSnapshot().isWorldInBounds(targetX, targetY)) {
+                    return false;
+                }
+                return canPlayerReach(
+                        state,
+                        state.getPlayerX(),
+                        state.getPlayerY(),
+                        targetX,
+                        targetY,
+                        resolvePlayerReachBudget(state, targetX, targetY)
+                );
             case SWITCH_PRAYER:
                 return action.getPrayer() != null && action.getPrayer() != state.getActiveProtectionPrayer();
             case EQUIP_ITEM:
                 return action.getItemId() != null
-                        && !state.isItemEquipped(action.getItemId())
-                        && state.hasInventoryItem(action.getItemId());
+                        && action.getItemId() >= 0
+                        && state.hasInventoryItem(action.getItemId())
+                        && !state.isItemEquipped(action.getItemId());
             case INVENTORY_INTERACT:
-                return action.getItemId() != null && state.hasInventoryItem(action.getItemId());
+                return action.getItemId() != null && action.getItemId() >= 0 && state.hasInventoryItem(action.getItemId());
+            case NPC_INTERACT:
+                return action.getTargetNpcIndex() != null
+                        && action.getTargetNpcIndex() >= 0
+                        && state.findNpcSlotByIndex(action.getTargetNpcIndex()) >= 0;
             case CAST_SPELL:
                 return action.getSpell() != null;
             case CUSTOM:
-                return true;
             default:
-                return false;
+                return true;
         }
     }
 
     /**
-     * Returns true when the given NPC currently has line of sight to the local simulated player.
-     * @param state The state of the simulation
-     * @param npcSlot The npc slot to check line of sight for
-     * @return Boolean, true when the given NPC currently has line of sight to the local simulated player.
+     * Counts active NPC line-of-sight threats.
+     *
+     * @param state state.
+     * @return count.
+     */
+    public int countNpcsWithLineOfSightToPlayer(SimulationState state) {
+        if (state == null) {
+            return 0;
+        }
+        int count = 0;
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (state.isNpcActive(slot) && hasNpcLineOfSightToPlayer(state, slot)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Counts active NPCs able to attack now.
+     *
+     * @param state state.
+     * @return count.
+     */
+    public int countNpcsAbleToAttackPlayer(SimulationState state) {
+        if (state == null) {
+            return 0;
+        }
+        int count = 0;
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (state.isNpcActive(slot) && canNpcAttackPlayerNow(state, slot)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Counts active threats not covered by active prayer.
+     *
+     * @param state state.
+     * @return count.
+     */
+    public int countUnprotectedNpcThreats(SimulationState state) {
+        if (state == null) {
+            return 0;
+        }
+        int count = 0;
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (!state.isNpcActive(slot) || !canNpcAttackPlayerNow(state, slot)) {
+                continue;
+            }
+            if (!isNpcAttackProtected(state, slot)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Returns the best overhead prayer based on soonest incoming hit.
+     *
+     * @param state state.
+     * @return prayer or null.
+     */
+    public Prayer recommendProtectionPrayer(SimulationState state) {
+        if (state == null) {
+            return null;
+        }
+        int bestTicks = Integer.MAX_VALUE;
+        int bestMaxHit = Integer.MIN_VALUE;
+        Prayer recommended = null;
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (!state.isNpcActive(slot) || !canNpcAttackPlayerNow(state, slot)) {
+                continue;
+            }
+            Prayer prayer = state.getNpcProfile(slot).getAttackStyle().toProtectionPrayer();
+            if (prayer == null) {
+                continue;
+            }
+            int cooldown = state.getNpcAttackCooldown(slot);
+            int maxHit = state.getNpcProfile(slot).getMaxHit();
+            if (cooldown < bestTicks || (cooldown == bestTicks && maxHit > bestMaxHit)) {
+                bestTicks = cooldown;
+                bestMaxHit = maxHit;
+                recommended = prayer;
+            }
+        }
+        return recommended;
+    }
+
+    /**
+     * @param state state.
+     * @return true when no npc currently has line of sight.
+     */
+    public boolean isPlayerTileSafe(SimulationState state) {
+        return countNpcsWithLineOfSightToPlayer(state) == 0;
+    }
+
+    /**
+     * Checks whether an npc has line of sight to the player.
+     *
+     * @param state state.
+     * @param npcSlot npc slot.
+     * @return true when line of sight exists.
      */
     public boolean hasNpcLineOfSightToPlayer(SimulationState state, int npcSlot) {
         if (state == null || !state.isNpcActive(npcSlot)) {
             return false;
         }
+        SimulationNpcProfile profile = state.getNpcProfile(npcSlot);
         return hasLineOfSight(
                 state,
                 state.getNpcX(npcSlot),
@@ -140,149 +370,47 @@ public final class SimulationEngine {
                 state.getNpcSize(npcSlot),
                 state.getPlayerX(),
                 state.getPlayerY(),
-                Math.max(1, state.getNpcAttackRange(npcSlot)),
+                Math.max(1, profile.getAttackRange()),
                 true
         );
     }
 
     /**
-     * Counts currently active NPCs that have line of sight to the player.
+     * Returns npc-visible tiles using configured range.
      *
-     * @param state simulation state.
-     * @return number of threatening NPCs with current LoS.
-     */
-    public int countNpcsWithLineOfSightToPlayer(SimulationState state) {
-        if (state == null) {
-            return 0;
-        }
-
-        int count = 0;
-        for (int i = 0; i < state.getNpcCount(); i++) {
-            if (state.isNpcActive(i) && hasNpcLineOfSightToPlayer(state, i)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    /**
-     * Counts active NPCs that can currently attack the simulated player.
-     *
-     * @param state simulation state.
-     * @return number of NPCs that can attack now based on range/LoS.
-     */
-    public int countNpcsAbleToAttackPlayer(SimulationState state) {
-        if (state == null) {
-            return 0;
-        }
-
-        int count = 0;
-        for (int i = 0; i < state.getNpcCount(); i++) {
-            if (state.isNpcActive(i) && canNpcAttackPlayerNow(state, i)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    /**
-     * Counts active NPC threats that are currently unprotected by active overhead prayer.
-     *
-     * @param state simulation state.
-     * @return number of unprotected attack threats.
-     */
-    public int countUnprotectedNpcThreats(SimulationState state) {
-        if (state == null) {
-            return 0;
-        }
-
-        int count = 0;
-        for (int i = 0; i < state.getNpcCount(); i++) {
-            if (!state.isNpcActive(i) || !canNpcAttackPlayerNow(state, i)) {
-                continue;
-            }
-            if (!isNpcAttackProtected(state, i)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    /**
-     * Returns the currently recommended overhead protection prayer based on nearest upcoming
-     * NPC attacks filtered by range/LoS and configured attack cooldown.
-     *
-     * @param state simulation state.
-     * @return recommended protection prayer, or {@code null} when no mappable threats are present.
-     */
-    public Prayer recommendProtectionPrayer(SimulationState state) {
-        if (state == null) {
-            return null;
-        }
-
-        int bestTicks = Integer.MAX_VALUE;
-        int bestMaxHit = Integer.MIN_VALUE;
-        Prayer recommended = null;
-
-        for (int i = 0; i < state.getNpcCount(); i++) {
-            if (!state.isNpcActive(i) || !canNpcAttackPlayerNow(state, i)) {
-                continue;
-            }
-
-            Prayer prayer = state.getNpcAttackStyle(i).toProtectionPrayer();
-            if (prayer == null) {
-                continue;
-            }
-
-            int ticks = state.getNpcAttackCooldown(i);
-            int maxHit = state.getNpcMaxHit(i);
-            if (ticks < bestTicks || (ticks == bestTicks && maxHit > bestMaxHit)) {
-                bestTicks = ticks;
-                bestMaxHit = maxHit;
-                recommended = prayer;
-            }
-        }
-
-        return recommended;
-    }
-
-    /**
-     * Returns the line-of-sight tile set for the specified NPC using its configured attack range.
-     * @param state The state of the simulation
-     * @param npcSlot The npc slot to check line of sight for
-     * @return List, the tiles that the NPC has line of sight to
+     * @param state state.
+     * @param npcSlot npc slot.
+     * @return tiles.
      */
     public List<WorldPoint> getNpcLineOfSightTiles(SimulationState state, int npcSlot) {
         if (state == null || !state.isNpcActive(npcSlot)) {
             return Collections.emptyList();
         }
-        return getNpcLineOfSightTiles(state, npcSlot, Math.max(1, state.getNpcAttackRange(npcSlot)));
+        return getNpcLineOfSightTiles(state, npcSlot, Math.max(1, state.getNpcProfile(npcSlot).getAttackRange()));
     }
 
     /**
-     * Returns the line-of-sight tile set for the specified NPC using an explicit range override.
-     * @param state The state of the simulation
-     * @param npcSlot The npc slot to check line of sight for
-     * @param range The range of the NPC (how far it can see)
-     * @return List The tiles that the NPC has line of sight to
+     * Returns npc-visible tiles using explicit range.
+     *
+     * @param state state.
+     * @param npcSlot npc slot.
+     * @param range range.
+     * @return tiles.
      */
     public List<WorldPoint> getNpcLineOfSightTiles(SimulationState state, int npcSlot, int range) {
         if (state == null || !state.isNpcActive(npcSlot) || range <= 0) {
             return Collections.emptyList();
         }
-
         int npcX = state.getNpcX(npcSlot);
         int npcY = state.getNpcY(npcSlot);
         int npcSize = state.getNpcSize(npcSlot);
         int npcRange = Math.max(1, range);
-
         SimulationSnapshot snapshot = state.getSnapshot();
-        List<WorldPoint> visibleTiles = new ArrayList<>();
+        List<WorldPoint> visible = new ArrayList<>();
         int minX = npcX - npcRange;
         int minY = npcY - npcRange;
         int maxX = npcX + npcSize - 1 + npcRange;
         int maxY = npcY + npcSize - 1 + npcRange;
-
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 if (!snapshot.isWorldInBounds(x, y)) {
@@ -292,32 +420,58 @@ public final class SimulationEngine {
                     continue;
                 }
                 if (hasLineOfSight(state, npcX, npcY, npcSize, x, y, npcRange, true)) {
-                    visibleTiles.add(new WorldPoint(x, y, snapshot.getPlane()));
+                    visible.add(new WorldPoint(x, y, snapshot.getPlane()));
                 }
             }
         }
-
-        return visibleTiles;
+        return visible;
     }
 
     /**
-     * @param state simulation state.
-     * @return true when no active NPC has current line of sight to the player.
-     */
-    public boolean isPlayerTileSafe(SimulationState state) {
-        return countNpcsWithLineOfSightToPlayer(state) == 0;
-    }
-
-    /**
-     * World-point overload for line-of-sight checks.
+     * Predicts npc pathing toward the player.
      *
-     * @param state simulation state.
-     * @param source source tile.
-     * @param sourceSize source footprint size.
-     * @param target target tile.
-     * @param range max allowed LoS range.
-     * @param sourceIsNpc true when source is an NPC footprint anchor.
-     * @return true when LoS exists under range/footprint constraints.
+     * @param state state.
+     * @param npcSlot npc slot.
+     * @param maxSteps max steps.
+     * @return path.
+     */
+    public List<WorldPoint> predictNpcGreedyPathToPlayer(SimulationState state, int npcSlot, int maxSteps) {
+        if (state == null || maxSteps <= 0 || !state.isNpcActive(npcSlot)) {
+            return Collections.emptyList();
+        }
+        List<WorldPoint> path = new ArrayList<>();
+        int curX = state.getNpcX(npcSlot);
+        int curY = state.getNpcY(npcSlot);
+        int size = state.getNpcSize(npcSlot);
+        SimulationNpcProfile profile = state.getNpcProfile(npcSlot);
+        int range = Math.max(1, profile.getAttackRange());
+        for (int step = 0; step < maxSteps; step++) {
+            if (hasLineOfSight(state, curX, curY, size, state.getPlayerX(), state.getPlayerY(), range, true)) {
+                break;
+            }
+            int[] next = profile.isIntelligentPathing()
+                    ? computeNpcBfsStep(state, npcSlot, curX, curY, profile, 18)
+                    : computeNpcGreedyStep(state, npcSlot, curX, curY);
+            if (next == null) {
+                break;
+            }
+            curX = next[0];
+            curY = next[1];
+            path.add(new WorldPoint(curX, curY, state.getSnapshot().getPlane()));
+        }
+        return path;
+    }
+
+    /**
+     * World point line-of-sight overload.
+     *
+     * @param state state.
+     * @param source source.
+     * @param sourceSize source size.
+     * @param target target.
+     * @param range range.
+     * @param sourceIsNpc true if source is npc footprint.
+     * @return true when line of sight exists.
      */
     public boolean hasLineOfSight(
             SimulationState state,
@@ -336,70 +490,132 @@ public final class SimulationEngine {
         return hasLineOfSight(state, source.getX(), source.getY(), sourceSize, target.getX(), target.getY(), range, sourceIsNpc);
     }
 
-    /**
-     * Predicts the NPC's greedy movement path toward the simulated player without mutating the state.
-     * @param state The current state of the simulation
-     * @param npcSlot The NPC to predict pathing for
-     * @param maxSteps The maximum number of pathing steps to predict
-     * @return List of points for the NPC's greedy path toward the simulated player
-     */
-    public List<WorldPoint> predictNpcGreedyPathToPlayer(SimulationState state, int npcSlot, int maxSteps) {
-        if (state == null || maxSteps <= 0 || !state.isNpcActive(npcSlot)) {
+    private void expandTree(
+            SimulationTreeNode node,
+            int depthRemaining,
+            SimulationTreeOptions options,
+            ActionProvider actionProvider,
+            ExpansionCounter counter
+    ) {
+        if (depthRemaining <= 0 || counter.nodeCount >= options.getMaxNodes()) {
+            return;
+        }
+        List<SimulationAction> actions = generateCandidateActions(node.getState(), depthRemaining, options, actionProvider);
+        for (SimulationAction action : actions) {
+            if (counter.nodeCount >= options.getMaxNodes()) {
+                break;
+            }
+            SimulationState childState = simulateTickCopy(node.getState(), action);
+            SimulationTreeNode child = new SimulationTreeNode(counter.nodeCount, node.getDepth() + 1, action, childState, node);
+            counter.nodeCount++;
+            counter.maxDepthReached = Math.max(counter.maxDepthReached, child.getDepth());
+            node.addChild(child);
+            expandTree(child, depthRemaining - 1, options, actionProvider, counter);
+        }
+    }
+
+    private List<SimulationAction> generateMovementActions(SimulationState state, int depthRemaining, SimulationTreeOptions options) {
+        if (!options.isIncludeWalkActions() && !options.isIncludeRunActions()) {
             return Collections.emptyList();
         }
 
-        List<WorldPoint> path = new ArrayList<>();
-        int curX = state.getNpcX(npcSlot);
-        int curY = state.getNpcY(npcSlot);
-        int size = state.getNpcSize(npcSlot);
-        int range = Math.max(1, state.getNpcAttackRange(npcSlot));
-
-        for (int step = 0; step < maxSteps; step++) {
-            if (state.isNpcStopWhenLineOfSight(npcSlot)
-                    && hasLineOfSight(state, curX, curY, size, state.getPlayerX(), state.getPlayerY(), range, true)) {
-                break;
-            }
-
-            int dx = Integer.signum(state.getPlayerX() - curX);
-            int dy = Integer.signum(state.getPlayerY() - curY);
-            if (dx == 0 && dy == 0) {
-                break;
-            }
-
-            int nextDx;
-            int nextDy;
-            if (canEntityStep(state, curX, curY, size, dx, dy, npcSlot, false)) {
-                nextDx = dx;
-                nextDy = dy;
-            } else if (dx != 0 && canEntityStep(state, curX, curY, size, dx, 0, npcSlot, false)) {
-                nextDx = dx;
-                nextDy = 0;
-            } else if (dy != 0 && canEntityStep(state, curX, curY, size, 0, dy, npcSlot, false)) {
-                nextDx = 0;
-                nextDy = dy;
-            } else {
-                break;
-            }
-
-            curX += nextDx;
-            curY += nextDy;
-            path.add(new WorldPoint(curX, curY, state.getSnapshot().getPlane()));
+        int maxSteps;
+        int radiusLimit;
+        if (options.getMovementMode() == SimulationMovementMode.REACHABLE) {
+            int stride = options.isIncludeRunActions() ? 2 : 1;
+            maxSteps = Math.max(1, depthRemaining) * stride;
+            radiusLimit = Integer.MAX_VALUE;
+        } else {
+            maxSteps = Math.max(1, options.getMovementRadius() * 2);
+            radiusLimit = options.getMovementRadius();
         }
 
-        return path;
+        List<Integer> packedTargets = collectReachablePlayerTargets(
+                state,
+                state.getPlayerX(),
+                state.getPlayerY(),
+                maxSteps,
+                radiusLimit,
+                options.getMaxMovementTargets()
+        );
+
+        List<SimulationAction> movementActions = new ArrayList<>();
+        for (int packed : packedTargets) {
+            if (options.isIncludeWalkActions()) {
+                movementActions.add(SimulationAction.moveToPacked(packed, false));
+            }
+            if (options.isIncludeRunActions()) {
+                movementActions.add(SimulationAction.moveToPacked(packed, true));
+            }
+        }
+        return movementActions;
+    }
+
+    private List<Integer> collectReachablePlayerTargets(
+            SimulationState state,
+            int originX,
+            int originY,
+            int maxSteps,
+            int radiusLimit,
+            int targetCap
+    ) {
+        if (maxSteps <= 0 || targetCap <= 0) {
+            return Collections.emptyList();
+        }
+        ArrayDeque<PathStep> queue = new ArrayDeque<>();
+        Set<Integer> visited = new LinkedHashSet<>();
+        List<Integer> results = new ArrayList<>();
+        int plane = state.getSnapshot().getPlane();
+        int originPacked = WorldPointService.pack(originX, originY, plane);
+        queue.add(new PathStep(originX, originY, 0));
+        visited.add(originPacked);
+
+        while (!queue.isEmpty() && results.size() < targetCap) {
+            PathStep current = queue.poll();
+            if (current.distance >= maxSteps) {
+                continue;
+            }
+            for (int[] direction : SimulationMath.DIRECTIONS_8) {
+                int nx = current.x + direction[0];
+                int ny = current.y + direction[1];
+                if (!state.getSnapshot().isWorldInBounds(nx, ny)) {
+                    continue;
+                }
+                if (radiusLimit != Integer.MAX_VALUE
+                        && SimulationMath.chebyshevDistance(originX, originY, nx, ny) > radiusLimit) {
+                    continue;
+                }
+                if (!canEntityStep(state, current.x, current.y, 1, direction[0], direction[1], -1, true)) {
+                    continue;
+                }
+                int packed = WorldPointService.pack(nx, ny, plane);
+                if (!visited.add(packed)) {
+                    continue;
+                }
+                queue.add(new PathStep(nx, ny, current.distance + 1));
+                if (packed != originPacked) {
+                    results.add(packed);
+                    if (results.size() >= targetCap) {
+                        break;
+                    }
+                }
+            }
+        }
+        return results;
     }
 
     private void applyPlayerAction(SimulationState state, SimulationAction action) {
         if (action == null) {
             return;
         }
-
-        if (action.isMovement()) {
-            applyMovementAction(state, action);
-            return;
-        }
-
         switch (action.getType()) {
+            case WAIT:
+                break;
+            case MOVE:
+                if (action.getMovementDestination() != null) {
+                    state.queueMovement(action.getTargetPackedPoint(), action.isRun());
+                }
+                break;
             case SWITCH_PRAYER:
                 state.setActiveProtectionPrayer(action.getPrayer());
                 break;
@@ -411,30 +627,11 @@ public final class SimulationEngine {
             case INVENTORY_INTERACT:
                 applyInventoryAction(state, action);
                 break;
+            case NPC_INTERACT:
             case CAST_SPELL:
             case CUSTOM:
             default:
-                // No default state mutation required for generic/custom actions.
                 break;
-        }
-    }
-
-    private void applyMovementAction(SimulationState state, SimulationAction action) {
-        int steps = action.isRun() ? 2 : 1;
-        for (int i = 0; i < steps; i++) {
-            int dx = action.getDx();
-            int dy = action.getDy();
-            if (dx == 0 && dy == 0) {
-                return;
-            }
-
-            int currentX = state.getPlayerX();
-            int currentY = state.getPlayerY();
-            if (!canEntityStep(state, currentX, currentY, 1, dx, dy, -1, true)) {
-                return;
-            }
-
-            state.setPlayerPosition(currentX + dx, currentY + dy);
         }
     }
 
@@ -448,7 +645,6 @@ public final class SimulationEngine {
             if (!state.consumeInventoryItem(itemId)) {
                 return;
             }
-
             int heal = action.getHealAmount();
             if (heal <= 0) {
                 heal = state.getFoodHealAmount(itemId);
@@ -470,63 +666,183 @@ public final class SimulationEngine {
         }
     }
 
-    private void moveNpcs(SimulationState state) {
-        for (int i = 0; i < state.getNpcCount(); i++) {
-            if (!state.isNpcActive(i)) {
-                continue;
-            }
+    private void advanceQueuedPlayerMovement(SimulationState state) {
+        if (!state.hasQueuedMovement()) {
+            return;
+        }
+        int targetPacked = state.getQueuedMoveTargetPackedPoint();
+        int targetX = WorldPointService.getPackedX(targetPacked);
+        int targetY = WorldPointService.getPackedY(targetPacked);
+        int playerX = state.getPlayerX();
+        int playerY = state.getPlayerY();
 
-            int x = state.getNpcX(i);
-            int y = state.getNpcY(i);
-            int size = state.getNpcSize(i);
-            int range = Math.max(1, state.getNpcAttackRange(i));
+        if (playerX == targetX && playerY == targetY) {
+            state.clearQueuedMovement();
+            return;
+        }
 
-            if (state.isNpcStopWhenLineOfSight(i)
-                    && hasLineOfSight(state, x, y, size, state.getPlayerX(), state.getPlayerY(), range, true)) {
-                continue;
-            }
+        List<Integer> path = findShortestPathForEntity(
+                state,
+                playerX,
+                playerY,
+                1,
+                targetX,
+                targetY,
+                -1,
+                true,
+                resolvePlayerReachBudget(state, targetX, targetY)
+        );
+        if (path.size() <= 1) {
+            state.clearQueuedMovement();
+            return;
+        }
 
-            int dx = Integer.signum(state.getPlayerX() - x);
-            int dy = Integer.signum(state.getPlayerY() - y);
-            if (dx == 0 && dy == 0) {
-                continue;
+        int maxStride = state.isQueuedMovementRun() ? 2 : 1;
+        int currentX = playerX;
+        int currentY = playerY;
+        int moved = 0;
+        for (int i = 1; i < path.size() && moved < maxStride; i++) {
+            int packed = path.get(i);
+            int nextX = WorldPointService.getPackedX(packed);
+            int nextY = WorldPointService.getPackedY(packed);
+            int dx = nextX - currentX;
+            int dy = nextY - currentY;
+            if (!canEntityStep(state, currentX, currentY, 1, dx, dy, -1, true)) {
+                break;
             }
-
-            if (tryMoveNpc(state, i, dx, dy)) {
-                continue;
-            }
-            if (dx != 0 && tryMoveNpc(state, i, dx, 0)) {
-                continue;
-            }
-            if (dy != 0) {
-                tryMoveNpc(state, i, 0, dy);
-            }
+            state.setPlayerPackedPoint(WorldPointService.pack(nextX, nextY, state.getSnapshot().getPlane()));
+            currentX = nextX;
+            currentY = nextY;
+            moved++;
+        }
+        if (state.getPlayerX() == targetX && state.getPlayerY() == targetY) {
+            state.clearQueuedMovement();
         }
     }
 
+    private void moveNpcs(SimulationState state) {
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (!state.isNpcActive(slot)) {
+                continue;
+            }
+            if (canNpcAttackPlayerNow(state, slot)) {
+                continue;
+            }
+
+            int npcX = state.getNpcX(slot);
+            int npcY = state.getNpcY(slot);
+            SimulationNpcProfile profile = state.getNpcProfile(slot);
+            int[] next = profile.isIntelligentPathing()
+                    ? computeNpcBfsStep(state, slot, npcX, npcY, profile, 24)
+                    : computeNpcGreedyStep(state, slot, npcX, npcY);
+            if (next == null) {
+                continue;
+            }
+            state.setNpcPackedPoint(slot, WorldPointService.pack(next[0], next[1], state.getSnapshot().getPlane()));
+        }
+    }
+
+    private int[] computeNpcGreedyStep(SimulationState state, int npcSlot, int npcX, int npcY) {
+        int dx = Integer.signum(state.getPlayerX() - npcX);
+        int dy = Integer.signum(state.getPlayerY() - npcY);
+        if (dx == 0 && dy == 0) {
+            return null;
+        }
+        int size = state.getNpcSize(npcSlot);
+        if (canEntityStep(state, npcX, npcY, size, dx, dy, npcSlot, false)) {
+            return new int[]{npcX + dx, npcY + dy};
+        }
+        if (dx != 0 && canEntityStep(state, npcX, npcY, size, dx, 0, npcSlot, false)) {
+            return new int[]{npcX + dx, npcY};
+        }
+        if (dy != 0 && canEntityStep(state, npcX, npcY, size, 0, dy, npcSlot, false)) {
+            return new int[]{npcX, npcY + dy};
+        }
+        return null;
+    }
+
+    private int[] computeNpcBfsStep(
+            SimulationState state,
+            int npcSlot,
+            int startX,
+            int startY,
+            SimulationNpcProfile profile,
+            int maxSearchSteps
+    ) {
+        int size = state.getNpcSize(npcSlot);
+        if (canNpcAttackPlayerFrom(state, startX, startY, size, profile)) {
+            return null;
+        }
+
+        int plane = state.getSnapshot().getPlane();
+        ArrayDeque<PathStep> queue = new ArrayDeque<>();
+        queue.add(new PathStep(startX, startY, 0));
+        Map<Integer, Integer> parent = new HashMap<>();
+        int startPacked = WorldPointService.pack(startX, startY, plane);
+        parent.put(startPacked, startPacked);
+        int foundPacked = -1;
+
+        while (!queue.isEmpty()) {
+            PathStep current = queue.poll();
+            if (current.distance >= maxSearchSteps) {
+                continue;
+            }
+            for (int[] direction : SimulationMath.DIRECTIONS_8) {
+                int nx = current.x + direction[0];
+                int ny = current.y + direction[1];
+                if (!state.getSnapshot().isWorldInBounds(nx, ny)) {
+                    continue;
+                }
+                if (!canEntityStep(state, current.x, current.y, size, direction[0], direction[1], npcSlot, false)) {
+                    continue;
+                }
+                int packed = WorldPointService.pack(nx, ny, plane);
+                if (parent.containsKey(packed)) {
+                    continue;
+                }
+                parent.put(packed, WorldPointService.pack(current.x, current.y, plane));
+                if (canNpcAttackPlayerFrom(state, nx, ny, size, profile)) {
+                    foundPacked = packed;
+                    break;
+                }
+                queue.add(new PathStep(nx, ny, current.distance + 1));
+            }
+            if (foundPacked >= 0) {
+                break;
+            }
+        }
+
+        if (foundPacked < 0) {
+            return computeNpcGreedyStep(state, npcSlot, startX, startY);
+        }
+
+        int cursor = foundPacked;
+        int parentPacked = parent.get(cursor);
+        while (parentPacked != startPacked && cursor != parentPacked) {
+            cursor = parentPacked;
+            parentPacked = parent.get(cursor);
+        }
+        return new int[]{WorldPointService.getPackedX(cursor), WorldPointService.getPackedY(cursor)};
+    }
+
     private void resolveNpcAttacks(SimulationState state) {
-        for (int npcSlot = 0; npcSlot < state.getNpcCount(); npcSlot++) {
-            if (!state.isNpcActive(npcSlot)) {
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (!state.isNpcActive(slot)) {
                 continue;
             }
-
-            int cooldown = state.getNpcAttackCooldown(npcSlot);
+            int cooldown = state.getNpcAttackCooldown(slot);
             if (cooldown > 0) {
-                state.setNpcAttackCooldown(npcSlot, cooldown - 1);
+                state.setNpcAttackCooldown(slot, cooldown - 1);
                 continue;
             }
-
-            if (!canNpcAttackPlayerNow(state, npcSlot)) {
+            if (!canNpcAttackPlayerNow(state, slot)) {
                 continue;
             }
-
-            int damage = Math.max(0, state.getNpcMaxHit(npcSlot));
-            if (damage > 0 && !isNpcAttackProtected(state, npcSlot)) {
+            int damage = Math.max(0, state.getNpcProfile(slot).getMaxHit());
+            if (damage > 0 && !isNpcAttackProtected(state, slot)) {
                 state.damagePlayer(damage);
             }
-
-            int attackSpeed = Math.max(1, state.getNpcAttackSpeed(npcSlot));
-            state.setNpcAttackCooldown(npcSlot, attackSpeed - 1);
+            state.setNpcAttackCooldown(slot, Math.max(1, state.getNpcProfile(slot).getAttackSpeed()) - 1);
         }
     }
 
@@ -534,14 +850,30 @@ public final class SimulationEngine {
         if (state == null || !state.isNpcActive(npcSlot)) {
             return false;
         }
-        return hasLineOfSight(
+        return canNpcAttackPlayerFrom(
                 state,
                 state.getNpcX(npcSlot),
                 state.getNpcY(npcSlot),
                 state.getNpcSize(npcSlot),
+                state.getNpcProfile(npcSlot)
+        );
+    }
+
+    private boolean canNpcAttackPlayerFrom(
+            SimulationState state,
+            int npcX,
+            int npcY,
+            int npcSize,
+            SimulationNpcProfile profile
+    ) {
+        return hasLineOfSight(
+                state,
+                npcX,
+                npcY,
+                npcSize,
                 state.getPlayerX(),
                 state.getPlayerY(),
-                Math.max(1, state.getNpcAttackRange(npcSlot)),
+                Math.max(1, profile.getAttackRange()),
                 true
         );
     }
@@ -551,21 +883,89 @@ public final class SimulationEngine {
         if (activePrayer == null) {
             return false;
         }
-        Prayer neededPrayer = state.getNpcAttackStyle(npcSlot).toProtectionPrayer();
+        Prayer neededPrayer = state.getNpcProfile(npcSlot).getAttackStyle().toProtectionPrayer();
         return neededPrayer != null && neededPrayer == activePrayer;
     }
 
-    private boolean tryMoveNpc(SimulationState state, int npcSlot, int dx, int dy) {
-        int x = state.getNpcX(npcSlot);
-        int y = state.getNpcY(npcSlot);
-        int size = state.getNpcSize(npcSlot);
+    private boolean canPlayerReach(SimulationState state, int startX, int startY, int targetX, int targetY, int maxSteps) {
+        List<Integer> path = findShortestPathForEntity(state, startX, startY, 1, targetX, targetY, -1, true, maxSteps);
+        return path.size() > 1 || (startX == targetX && startY == targetY);
+    }
 
-        if (!canEntityStep(state, x, y, size, dx, dy, npcSlot, false)) {
-            return false;
+    private List<Integer> findShortestPathForEntity(
+            SimulationState state,
+            int startX,
+            int startY,
+            int entitySize,
+            int targetX,
+            int targetY,
+            int movingNpcSlot,
+            boolean movingPlayer,
+            int maxSteps
+    ) {
+        if (startX == targetX && startY == targetY) {
+            return Collections.singletonList(WorldPointService.pack(startX, startY, state.getSnapshot().getPlane()));
         }
+        if (maxSteps <= 0) {
+            return Collections.emptyList();
+        }
+        int plane = state.getSnapshot().getPlane();
+        ArrayDeque<PathStep> queue = new ArrayDeque<>();
+        queue.add(new PathStep(startX, startY, 0));
+        Map<Integer, Integer> parent = new HashMap<>();
+        int startPacked = WorldPointService.pack(startX, startY, plane);
+        int targetPacked = WorldPointService.pack(targetX, targetY, plane);
+        parent.put(startPacked, startPacked);
 
-        state.setNpcPosition(npcSlot, x + dx, y + dy);
-        return true;
+        while (!queue.isEmpty()) {
+            PathStep current = queue.poll();
+            if (current.distance >= maxSteps) {
+                continue;
+            }
+            for (int[] direction : SimulationMath.DIRECTIONS_8) {
+                int nx = current.x + direction[0];
+                int ny = current.y + direction[1];
+                if (!state.getSnapshot().isWorldInBounds(nx, ny)) {
+                    continue;
+                }
+                if (!canEntityStep(state, current.x, current.y, entitySize, direction[0], direction[1], movingNpcSlot, movingPlayer)) {
+                    continue;
+                }
+                int packed = WorldPointService.pack(nx, ny, plane);
+                if (parent.containsKey(packed)) {
+                    continue;
+                }
+                parent.put(packed, WorldPointService.pack(current.x, current.y, plane));
+                if (packed == targetPacked) {
+                    return rebuildPath(parent, startPacked, targetPacked);
+                }
+                queue.add(new PathStep(nx, ny, current.distance + 1));
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    private List<Integer> rebuildPath(Map<Integer, Integer> parent, int startPacked, int targetPacked) {
+        ArrayList<Integer> reversed = new ArrayList<>();
+        int cursor = targetPacked;
+        while (true) {
+            reversed.add(cursor);
+            if (cursor == startPacked) {
+                break;
+            }
+            Integer next = parent.get(cursor);
+            if (next == null || next == cursor) {
+                break;
+            }
+            cursor = next;
+        }
+        Collections.reverse(reversed);
+        return reversed;
+    }
+
+    private int resolvePlayerReachBudget(SimulationState state, int targetX, int targetY) {
+        int distance = SimulationMath.chebyshevDistance(state.getPlayerX(), state.getPlayerY(), targetX, targetY);
+        return Math.max(4, distance + 24);
     }
 
     private boolean canEntityStep(
@@ -584,39 +984,32 @@ public final class SimulationEngine {
         if (!canTraverseCollision(state.getSnapshot(), currentX, currentY, entitySize, dx, dy)) {
             return false;
         }
-
         int nextX = currentX + dx;
         int nextY = currentY + dy;
 
         if (movingPlayer) {
-            for (int i = 0; i < state.getNpcCount(); i++) {
-                if (!state.isNpcActive(i) || !state.isNpcCollidable(i)) {
+            for (int slot = 0; slot < state.getNpcCount(); slot++) {
+                if (!state.isNpcActive(slot)) {
                     continue;
                 }
-                if (SimulationMath.overlaps(nextX, nextY, 1, state.getNpcX(i), state.getNpcY(i), state.getNpcSize(i))) {
+                if (SimulationMath.overlaps(nextX, nextY, 1, state.getNpcX(slot), state.getNpcY(slot), state.getNpcSize(slot))) {
                     return false;
                 }
             }
             return true;
         }
 
-        if (movingNpcSlot < 0 || !state.isNpcCollidable(movingNpcSlot)) {
-            return true;
-        }
-
         if (SimulationMath.overlaps(nextX, nextY, entitySize, state.getPlayerX(), state.getPlayerY(), 1)) {
             return false;
         }
-
-        for (int i = 0; i < state.getNpcCount(); i++) {
-            if (i == movingNpcSlot || !state.isNpcActive(i) || !state.isNpcCollidable(i)) {
+        for (int slot = 0; slot < state.getNpcCount(); slot++) {
+            if (slot == movingNpcSlot || !state.isNpcActive(slot)) {
                 continue;
             }
-            if (SimulationMath.overlaps(nextX, nextY, entitySize, state.getNpcX(i), state.getNpcY(i), state.getNpcSize(i))) {
+            if (SimulationMath.overlaps(nextX, nextY, entitySize, state.getNpcX(slot), state.getNpcY(slot), state.getNpcSize(slot))) {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -640,16 +1033,13 @@ public final class SimulationEngine {
         if (!isInScene(flags, sceneX, sceneY)) {
             return false;
         }
-
         int targetX = sceneX + dx;
         int targetY = sceneY + dy;
         if (!isInScene(flags, targetX, targetY)) {
             return false;
         }
-
         int sourceFlags = flags[sceneX][sceneY];
         int targetFlags = flags[targetX][targetY];
-
         if (isBlockedTile(targetFlags)) {
             return false;
         }
@@ -677,31 +1067,30 @@ public final class SimulationEngine {
             return false;
         }
 
-        if (dx > 0 && dy > 0) { // NE
+        if (dx > 0 && dy > 0) {
             return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) == 0
                     && (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) == 0
                     && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) == 0
                     && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) == 0;
         }
-        if (dx < 0 && dy > 0) { // NW
+        if (dx < 0 && dy > 0) {
             return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) == 0
                     && (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) == 0
                     && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) == 0
                     && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) == 0;
         }
-        if (dx > 0 && dy < 0) { // SE
+        if (dx > 0 && dy < 0) {
             return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) == 0
                     && (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) == 0
                     && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) == 0
                     && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) == 0;
         }
-        if (dx < 0 && dy < 0) { // SW
+        if (dx < 0 && dy < 0) {
             return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) == 0
                     && (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) == 0
                     && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) == 0
                     && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) == 0;
         }
-
         return false;
     }
 
@@ -718,11 +1107,9 @@ public final class SimulationEngine {
         if (sourceSize <= 0 || range <= 0) {
             return false;
         }
-
         if (SimulationMath.overlaps(sourceX, sourceY, sourceSize, targetX, targetY, 1)) {
             return false;
         }
-
         if (range == 1) {
             return isMeleeReachable(sourceX, sourceY, sourceSize, targetX, targetY);
         }
@@ -748,11 +1135,9 @@ public final class SimulationEngine {
         int targetSceneX = targetX - snapshot.getBaseX();
         int targetSceneY = targetY - snapshot.getBaseY();
         int[][] flags = snapshot.collisionFlagsUnsafe();
-
         if (!isInScene(flags, sourceSceneX, sourceSceneY) || !isInScene(flags, targetSceneX, targetSceneY)) {
             return false;
         }
-
         if (sourceSceneX == targetSceneX && sourceSceneY == targetSceneY) {
             return true;
         }
@@ -771,7 +1156,6 @@ public final class SimulationEngine {
                 yBig--;
             }
             int xDirection = dx < 0 ? -1 : 1;
-
             while (x != targetSceneX) {
                 x += xDirection;
                 int y = yBig >>> 16;
@@ -795,7 +1179,6 @@ public final class SimulationEngine {
             xBig--;
         }
         int yDirection = dy < 0 ? -1 : 1;
-
         while (y != targetSceneY) {
             y += yDirection;
             int x = xBig >>> 16;
@@ -808,7 +1191,6 @@ public final class SimulationEngine {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -824,9 +1206,7 @@ public final class SimulationEngine {
             return false;
         }
         String normalized = action.trim().toLowerCase();
-        return "eat".equals(normalized)
-                || "drink".equals(normalized)
-                || "consume".equals(normalized);
+        return "eat".equals(normalized) || "drink".equals(normalized) || "consume".equals(normalized);
     }
 
     private boolean isBlockedTile(int flags) {
@@ -834,9 +1214,6 @@ public final class SimulationEngine {
     }
 
     private boolean isInScene(int[][] flags, int sceneX, int sceneY) {
-        return sceneX >= 0
-                && sceneY >= 0
-                && sceneX < flags.length
-                && sceneY < flags[sceneX].length;
+        return sceneX >= 0 && sceneY >= 0 && sceneX < flags.length && sceneY < flags[sceneX].length;
     }
 }

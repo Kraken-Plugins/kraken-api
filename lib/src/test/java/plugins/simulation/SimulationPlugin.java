@@ -9,12 +9,16 @@ import com.kraken.api.service.magic.spellbook.Standard;
 import com.kraken.api.simulation.DecisionTreeSearch;
 import com.kraken.api.simulation.NpcAttackStyle;
 import com.kraken.api.simulation.SimulationAction;
-import com.kraken.api.simulation.SimulationActionPolicy;
 import com.kraken.api.simulation.SimulationDecisionAdapter;
 import com.kraken.api.simulation.SimulationEngine;
+import com.kraken.api.simulation.SimulationMovementMode;
+import com.kraken.api.simulation.SimulationNpcProfile;
+import com.kraken.api.simulation.SimulationScenario;
 import com.kraken.api.simulation.SimulationSnapshot;
 import com.kraken.api.simulation.SimulationSnapshotService;
 import com.kraken.api.simulation.SimulationState;
+import com.kraken.api.simulation.SimulationTree;
+import com.kraken.api.simulation.SimulationTreeOptions;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
@@ -30,37 +34,23 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 @PluginDescriptor(
         name = "Simulation Sandbox",
-        description = "Generic OSRS simulation plugin with decision-tree search overlays and execution adapter.",
-        tags = {"kraken", "simulation", "overlay", "decision"}
+        description = "Snapshot-driven simulation tree search for action planning.",
+        tags = {"kraken", "simulation", "decision", "tree"}
 )
 public class SimulationPlugin extends Plugin {
-    private static final List<SimulationAction> RUN_ACTIONS = Collections.unmodifiableList(Arrays.asList(
-            SimulationAction.run(0, 1),
-            SimulationAction.run(0, -1),
-            SimulationAction.run(1, 0),
-            SimulationAction.run(-1, 0),
-            SimulationAction.run(1, 1),
-            SimulationAction.run(-1, 1),
-            SimulationAction.run(1, -1),
-            SimulationAction.run(-1, -1)
-    ));
-
     @Inject
     private OverlayManager overlayManager;
 
@@ -96,9 +86,6 @@ public class SimulationPlugin extends Plugin {
 
     @Getter
     private SimulationDecisionAdapter.ExecutableAction lastExecutableAction;
-
-    @Getter
-    private SimulationActionPolicy lastPolicy;
 
     @Getter
     private long lastSearchMicros;
@@ -165,8 +152,7 @@ public class SimulationPlugin extends Plugin {
 
     @Subscribe
     private void onGameStateChanged(GameStateChanged event) {
-        GameState state = event.getGameState();
-        if (state != GameState.LOGGED_IN) {
+        if (event.getGameState() != GameState.LOGGED_IN) {
             clearTransientState();
         }
     }
@@ -188,20 +174,27 @@ public class SimulationPlugin extends Plugin {
     }
 
     private void runSimulationTick() {
-        SimulationActionPolicy policy = buildPolicy();
-        lastPolicy = policy;
-
-        lastSnapshot = SimulationSnapshotService.capture(policy.getCaptureOptions());
-        rootState = lastSnapshot.createState();
-
-        DecisionTreeSearch search = new DecisionTreeSearch(engine, Math.max(64, config.maxSearchNodes()));
-        long startedNanos = System.nanoTime();
-        lastDecisionResult = search.search(
-                rootState,
-                Math.max(1, config.searchDepth()),
-                policy.toActionGenerator(engine),
-                policy.toStateEvaluator(engine)
+        Map<Integer, Integer> foodHealMapping = parseFoodHealOverrides(config.foodHealingOverrides());
+        lastSnapshot = SimulationSnapshotService.capture(
+                new SimulationSnapshotService.CaptureOptions()
+                        .withNpcRadius(Math.max(1, config.snapshotNpcRadius()))
+                        .withFoodHealingByItemId(foodHealMapping)
         );
+
+        Map<Integer, SimulationNpcProfile> npcProfiles = parseNpcProfiles(config.npcCombatOverrides());
+        SimulationScenario scenario = new SimulationScenario(lastSnapshot, npcProfiles);
+        rootState = engine.createState(scenario);
+
+        SimulationTreeOptions treeOptions = buildTreeOptions();
+        DecisionTreeSearch search = new DecisionTreeSearch();
+
+        long startedNanos = System.nanoTime();
+        SimulationTree tree = engine.generateOutcomeTree(
+                scenario,
+                treeOptions,
+                (state, depthRemaining) -> generateExtraActions(state)
+        );
+        lastDecisionResult = search.search(tree, node -> evaluateState(node.getState()));
         lastSearchMicros = (System.nanoTime() - startedNanos) / 1000L;
 
         bestActionState = engine.simulateTickCopy(rootState, lastDecisionResult.getBestAction());
@@ -216,39 +209,35 @@ public class SimulationPlugin extends Plugin {
 
         updateNpcVisualizationCaches(rootState);
 
-        lastExecutableAction = decisionAdapter.adapt(lastDecisionResult, rootState, policy.getAdaptOptions());
+        SimulationDecisionAdapter.AdaptOptions adaptOptions = new SimulationDecisionAdapter.AdaptOptions(
+                config.executeNpcInteraction() ? config.interactionAction() : null,
+                Math.max(1, config.interactionDistance()),
+                Math.max(1, config.spellTargetDistance())
+        );
+        lastExecutableAction = decisionAdapter.adapt(lastDecisionResult, rootState, adaptOptions);
 
         if (config.autoExecuteBestAction()) {
-            decisionAdapter.execute(lastExecutableAction, policy.getAllowedExecutionSteps());
+            decisionAdapter.execute(lastExecutableAction, buildExecutionAllowList());
         }
     }
 
-    private SimulationActionPolicy buildPolicy() {
-        int radius = Math.max(1, config.snapshotNpcRadius());
-        Map<Integer, SimulationSnapshotService.NpcMetadata> npcOverrides = parseNpcCombatOverrides(config.npcCombatOverrides());
-        Map<Integer, Integer> foodHealMapping = parseFoodHealOverrides(config.foodHealingOverrides());
-
-        SimulationSnapshotService.CaptureOptions captureOptions = new SimulationSnapshotService.CaptureOptions()
-                .withNpcRadius(radius)
-                .withFoodHealingByItemId(foodHealMapping);
-        if (!npcOverrides.isEmpty()) {
-            captureOptions = captureOptions.withNpcMetadataProvider((npc, composition) -> npcOverrides.get(npc.getId()));
+    private SimulationTreeOptions buildTreeOptions() {
+        SimulationMovementMode movementMode = parseMovementMode(config.movementMode());
+        boolean includeWalk = config.includeWalkActions();
+        boolean includeRun = config.includeRunActions();
+        if (!includeWalk && !includeRun) {
+            includeWalk = true;
         }
-
-        String optionalNpcInteraction = config.executeNpcInteraction() ? config.interactionAction() : null;
-        SimulationDecisionAdapter.AdaptOptions adaptOptions = new SimulationDecisionAdapter.AdaptOptions(
-                optionalNpcInteraction,
-                config.interactionDistance(),
-                config.spellTargetDistance()
-        );
-
-        return SimulationActionPolicy.builder()
-                .captureOptions(captureOptions)
-                .adaptOptions(adaptOptions)
-                .allowedExecutionSteps(buildExecutionAllowList())
-                .addActionProvider(ctx -> generateCandidateActions(ctx.getState()))
-                .addScoringRule(ctx -> evaluateState(ctx.getState()))
-                .build();
+        return SimulationTreeOptions.defaults()
+                .withTicks(Math.max(1, config.searchDepth()))
+                .withMovementMode(movementMode)
+                .withMovementRadius(Math.max(1, config.movementRadius()))
+                .withMovementTypes(includeWalk, includeRun)
+                .withMaxNodes(Math.max(256, config.maxSearchNodes()))
+                .withActionCaps(
+                        Math.max(1, config.maxActionsPerNode()),
+                        Math.max(1, config.maxMovementTargets())
+                );
     }
 
     private Set<SimulationDecisionAdapter.ExecutableStepType> buildExecutionAllowList() {
@@ -271,43 +260,38 @@ public class SimulationPlugin extends Plugin {
         return allowed;
     }
 
-    private List<SimulationAction> generateCandidateActions(SimulationState state) {
-        LinkedHashSet<SimulationAction> all = new LinkedHashSet<>(SimulationAction.standardWalkActions());
-        if (config.includeRunActions()) {
-            all.addAll(RUN_ACTIONS);
-        }
+    private List<SimulationAction> generateExtraActions(SimulationState state) {
+        List<SimulationAction> actions = new ArrayList<>();
 
         if (config.includePrayerActions()) {
             Prayer recommended = engine.recommendProtectionPrayer(state);
             if (recommended != null && recommended != state.getActiveProtectionPrayer()) {
-                all.add(SimulationAction.switchPrayer(recommended));
+                actions.add(SimulationAction.switchPrayer(recommended));
             }
         }
 
         if (config.includeEatActions() && state.getPlayerHitpoints() <= Math.max(1, config.eatAtOrBelowHp())) {
             SimulationAction eatAction = resolveEatAction(state);
             if (eatAction != null) {
-                all.add(eatAction);
+                actions.add(eatAction);
             }
         }
 
         if (config.includeGearSwapActions()) {
             int itemId = config.gearSwapItemId();
             if (itemId >= 0 && state.hasInventoryItem(itemId) && !state.isItemEquipped(itemId)) {
-                all.add(SimulationAction.equipItem(itemId));
+                actions.add(SimulationAction.equipItem(itemId));
             }
         }
 
         if (config.includeSpellActions()) {
             SimulationAction spellAction = resolveSpellAction(state);
             if (spellAction != null) {
-                all.add(spellAction);
+                actions.add(spellAction);
             }
         }
 
-        return all.stream()
-                .filter(action -> engine.canApplyPlayerAction(state, action))
-                .collect(Collectors.toList());
+        return actions;
     }
 
     private SimulationAction resolveEatAction(SimulationState state) {
@@ -390,21 +374,19 @@ public class SimulationPlugin extends Plugin {
         int nearestNpcDistance = nearestNpcChebyshevDistance(state);
 
         double score = 0.0;
-        score -= (losThreats * 20.0);
-        score -= (attackThreats * 25.0);
+        score -= (losThreats * 18.0);
+        score -= (attackThreats * 24.0);
         score -= (unprotectedThreats * 40.0);
-        score += Math.min(nearestNpcDistance, 12) * 2.0;
+        score += Math.min(nearestNpcDistance, 15) * 2.0;
         score += state.getPlayerHitpoints() * 1.1;
 
         Prayer recommended = engine.recommendProtectionPrayer(state);
         if (recommended != null && recommended == state.getActiveProtectionPrayer()) {
-            score += 24.0;
+            score += 22.0;
         }
-
         if (engine.isPlayerTileSafe(state)) {
-            score += 25.0;
+            score += 20.0;
         }
-
         return score;
     }
 
@@ -418,7 +400,7 @@ public class SimulationPlugin extends Plugin {
             int dy = Math.abs(state.getNpcY(slot) - state.getPlayerY());
             min = Math.min(min, Math.max(dx, dy));
         }
-        return min == Integer.MAX_VALUE ? 12 : min;
+        return min == Integer.MAX_VALUE ? 20 : min;
     }
 
     private void updateNpcVisualizationCaches(SimulationState state) {
@@ -455,7 +437,7 @@ public class SimulationPlugin extends Plugin {
                 npcPredictedPaths.put(npcIndex, engine.predictNpcGreedyPathToPlayer(state, slot, maxPathLength));
             }
             if (config.showNpcLosTiles()) {
-                int range = Math.min(Math.max(1, state.getNpcAttackRange(slot)), losRangeCap);
+                int range = Math.min(Math.max(1, state.getNpcProfile(slot).getAttackRange()), losRangeCap);
                 npcLineOfSightTiles.put(npcIndex, engine.getNpcLineOfSightTiles(state, slot, range));
             }
         }
@@ -481,7 +463,6 @@ public class SimulationPlugin extends Plugin {
         bestActionState = null;
         lastDecisionResult = null;
         lastExecutableAction = null;
-        lastPolicy = null;
         lastSearchMicros = 0L;
         rootThreatCount = 0;
         bestThreatCount = 0;
@@ -496,19 +477,18 @@ public class SimulationPlugin extends Plugin {
         npcLineOfSightTiles.clear();
     }
 
-    private Map<Integer, SimulationSnapshotService.NpcMetadata> parseNpcCombatOverrides(String raw) {
+    private Map<Integer, SimulationNpcProfile> parseNpcProfiles(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
             return Collections.emptyMap();
         }
 
-        Map<Integer, SimulationSnapshotService.NpcMetadata> parsed = new HashMap<>();
+        Map<Integer, SimulationNpcProfile> parsed = new HashMap<>();
         String[] entries = raw.split("[,;]");
         for (String entry : entries) {
             String token = entry.trim();
             if (token.isEmpty()) {
                 continue;
             }
-
             String[] idSplit = token.split("=");
             if (idSplit.length != 2) {
                 continue;
@@ -525,9 +505,12 @@ public class SimulationPlugin extends Plugin {
                 int range = Integer.parseInt(values[1].trim());
                 int speed = Integer.parseInt(values[2].trim());
                 int maxHit = Integer.parseInt(values[3].trim());
-                boolean stopWhenLos = range > 1;
+                boolean intelligent = values.length >= 5 && parseBooleanInt(values[4].trim());
 
-                parsed.put(npcId, new SimulationSnapshotService.NpcMetadata(range, speed, style, maxHit, true, stopWhenLos));
+                parsed.put(
+                        npcId,
+                        new SimulationNpcProfile(range, style, speed, maxHit, intelligent)
+                );
             } catch (Exception ignored) {
                 // Keep parsing other entries.
             }
@@ -564,5 +547,26 @@ public class SimulationPlugin extends Plugin {
             }
         }
         return parsed;
+    }
+
+    private SimulationMovementMode parseMovementMode(String raw) {
+        if (raw == null) {
+            return SimulationMovementMode.RADIUS;
+        }
+        String normalized = raw.trim().toUpperCase(Locale.ROOT);
+        if ("REACHABLE".equals(normalized)) {
+            return SimulationMovementMode.REACHABLE;
+        }
+        return SimulationMovementMode.RADIUS;
+    }
+
+    private boolean parseBooleanInt(String raw) {
+        if ("1".equals(raw)) {
+            return true;
+        }
+        if ("0".equals(raw)) {
+            return false;
+        }
+        return Boolean.parseBoolean(raw);
     }
 }

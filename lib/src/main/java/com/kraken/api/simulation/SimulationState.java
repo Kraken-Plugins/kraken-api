@@ -1,5 +1,6 @@
 package com.kraken.api.simulation;
 
+import com.kraken.api.service.map.WorldPointService;
 import lombok.Getter;
 import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
@@ -12,9 +13,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Mutable simulation state optimized for rapid cloning and stepping.
+ * Mutable branchable state used while expanding the simulation tree.
  */
 public final class SimulationState {
+    @Getter
+    private final SimulationScenario scenario;
     @Getter
     private final SimulationSnapshot snapshot;
     @Getter
@@ -23,20 +26,17 @@ public final class SimulationState {
     private final int[] npcIndices;
     private final int[] npcIds;
     private final int[] npcSizes;
-    private final int[] npcAttackRanges;
-    private final int[] npcAttackSpeeds;
+    private final SimulationNpcProfile[] npcProfiles;
+
+    private final int[] npcPackedPoints;
     private final int[] npcAttackCooldowns;
-    private final int[] npcMaxHits;
-    private final NpcAttackStyle[] npcAttackStyles;
-    private final boolean[] npcCollidable;
-    private final boolean[] npcStopWhenLineOfSight;
+    private final boolean[] npcActive;
 
     @Getter
     private int tick;
-    @Getter
-    private int playerX;
-    @Getter
-    private int playerY;
+    private int playerPackedPoint;
+    private int queuedMoveTargetPackedPoint;
+    private boolean queuedMoveRun;
     @Getter
     private int playerHitpoints;
     @Getter
@@ -50,30 +50,21 @@ public final class SimulationState {
     private final Set<Integer> equippedItemIds;
     private final Map<Integer, Integer> foodHealingByItemId;
 
-    private final int[] npcX;
-    private final int[] npcY;
-    private final boolean[] npcActive;
-
-    static SimulationState fromSnapshot(SimulationSnapshot snapshot) {
-        if (snapshot == null) {
-            throw new IllegalArgumentException("snapshot cannot be null");
+    static SimulationState fromScenario(SimulationScenario scenario) {
+        if (scenario == null) {
+            throw new IllegalArgumentException("scenario cannot be null");
         }
 
+        SimulationSnapshot snapshot = scenario.getSnapshot();
         List<SimulationNpcSnapshot> npcs = snapshot.getNpcs();
         int count = npcs.size();
 
         int[] npcIndices = new int[count];
         int[] npcIds = new int[count];
         int[] npcSizes = new int[count];
-        int[] npcAttackRanges = new int[count];
-        int[] npcAttackSpeeds = new int[count];
+        SimulationNpcProfile[] npcProfiles = new SimulationNpcProfile[count];
+        int[] npcPackedPoints = new int[count];
         int[] npcAttackCooldowns = new int[count];
-        int[] npcMaxHits = new int[count];
-        NpcAttackStyle[] npcAttackStyles = new NpcAttackStyle[count];
-        boolean[] npcCollidable = new boolean[count];
-        boolean[] npcStopWhenLos = new boolean[count];
-        int[] npcX = new int[count];
-        int[] npcY = new int[count];
         boolean[] npcActive = new boolean[count];
 
         for (int i = 0; i < count; i++) {
@@ -81,160 +72,173 @@ public final class SimulationState {
             npcIndices[i] = npc.getIndex();
             npcIds[i] = npc.getId();
             npcSizes[i] = npc.getSize();
-            npcAttackRanges[i] = npc.getAttackRange();
-            npcAttackSpeeds[i] = npc.getAttackSpeed();
+            npcProfiles[i] = scenario.resolveNpcProfile(npc.getId());
+            npcPackedPoints[i] = npc.getPackedWorldPoint();
             npcAttackCooldowns[i] = 0;
-            npcAttackStyles[i] = npc.getAttackStyle();
-            npcMaxHits[i] = npc.getMaxHit();
-            npcCollidable[i] = npc.isCollidable();
-            npcStopWhenLos[i] = npc.isStopWhenPlayerInLineOfSight();
-            npcX[i] = npc.getWorldPoint().getX();
-            npcY[i] = npc.getWorldPoint().getY();
             npcActive[i] = true;
         }
 
-        SimulationPlayerSnapshot playerSnapshot = snapshot.getPlayer();
+        SimulationPlayerSnapshot player = snapshot.getPlayer();
 
         return new SimulationState(
+                scenario,
                 snapshot,
-                snapshot.getGameTick(),
-                snapshot.getPlayerWorldPoint().getX(),
-                snapshot.getPlayerWorldPoint().getY(),
-                playerSnapshot.getHitpoints(),
-                playerSnapshot.getMaxHitpoints(),
-                playerSnapshot.getActiveProtectionPrayer(),
                 count,
                 npcIndices,
                 npcIds,
                 npcSizes,
-                npcAttackRanges,
-                npcAttackSpeeds,
+                npcProfiles,
+                npcPackedPoints,
                 npcAttackCooldowns,
-                npcMaxHits,
-                npcAttackStyles,
-                npcCollidable,
-                npcStopWhenLos,
-                toMutableMap(playerSnapshot.getInventoryItemQuantities()),
-                toMutableSet(playerSnapshot.getEquippedItemIds()),
-                toMutableMap(playerSnapshot.getFoodHealingByItemId()),
-                npcX,
-                npcY,
                 npcActive,
-                null
+                snapshot.getGameTick(),
+                player.getPackedWorldPoint(),
+                -1,
+                false,
+                player.getHitpoints(),
+                Math.max(1, player.getMaxHitpoints()),
+                player.getActiveProtectionPrayer(),
+                null,
+                toMutableMap(player.getInventoryItemQuantities()),
+                toMutableSet(player.getEquippedItemIds()),
+                toMutableMap(player.getFoodHealingByItemId())
         );
     }
 
     private SimulationState(
+            SimulationScenario scenario,
             SimulationSnapshot snapshot,
-            int tick,
-            int playerX,
-            int playerY,
-            int playerHitpoints,
-            int playerMaxHitpoints,
-            Prayer activeProtectionPrayer,
             int npcCount,
             int[] npcIndices,
             int[] npcIds,
             int[] npcSizes,
-            int[] npcAttackRanges,
-            int[] npcAttackSpeeds,
+            SimulationNpcProfile[] npcProfiles,
+            int[] npcPackedPoints,
             int[] npcAttackCooldowns,
-            int[] npcMaxHits,
-            NpcAttackStyle[] npcAttackStyles,
-            boolean[] npcCollidable,
-            boolean[] npcStopWhenLineOfSight,
+            boolean[] npcActive,
+            int tick,
+            int playerPackedPoint,
+            int queuedMoveTargetPackedPoint,
+            boolean queuedMoveRun,
+            int playerHitpoints,
+            int playerMaxHitpoints,
+            Prayer activeProtectionPrayer,
+            SimulationAction lastAppliedAction,
             Map<Integer, Integer> inventoryItemCounts,
             Set<Integer> equippedItemIds,
-            Map<Integer, Integer> foodHealingByItemId,
-            int[] npcX,
-            int[] npcY,
-            boolean[] npcActive,
-            SimulationAction lastAppliedAction
+            Map<Integer, Integer> foodHealingByItemId
     ) {
+        this.scenario = scenario;
         this.snapshot = snapshot;
-        this.tick = tick;
-        this.playerX = playerX;
-        this.playerY = playerY;
-        this.playerMaxHitpoints = Math.max(1, playerMaxHitpoints);
-        this.playerHitpoints = Math.max(0, Math.min(playerHitpoints, this.playerMaxHitpoints));
-        this.activeProtectionPrayer = activeProtectionPrayer;
         this.npcCount = npcCount;
         this.npcIndices = npcIndices;
         this.npcIds = npcIds;
         this.npcSizes = npcSizes;
-        this.npcAttackRanges = npcAttackRanges;
-        this.npcAttackSpeeds = npcAttackSpeeds;
+        this.npcProfiles = npcProfiles;
+        this.npcPackedPoints = npcPackedPoints;
         this.npcAttackCooldowns = npcAttackCooldowns;
-        this.npcMaxHits = npcMaxHits;
-        this.npcAttackStyles = npcAttackStyles;
-        this.npcCollidable = npcCollidable;
-        this.npcStopWhenLineOfSight = npcStopWhenLineOfSight;
+        this.npcActive = npcActive;
+        this.tick = tick;
+        this.playerPackedPoint = playerPackedPoint;
+        this.queuedMoveTargetPackedPoint = queuedMoveTargetPackedPoint;
+        this.queuedMoveRun = queuedMoveRun;
+        this.playerMaxHitpoints = Math.max(1, playerMaxHitpoints);
+        this.playerHitpoints = Math.max(0, Math.min(playerHitpoints, this.playerMaxHitpoints));
+        this.activeProtectionPrayer = activeProtectionPrayer;
+        this.lastAppliedAction = lastAppliedAction;
         this.inventoryItemCounts = inventoryItemCounts;
         this.equippedItemIds = equippedItemIds;
         this.foodHealingByItemId = foodHealingByItemId;
-        this.npcX = npcX;
-        this.npcY = npcY;
-        this.npcActive = npcActive;
-        this.lastAppliedAction = lastAppliedAction;
     }
 
     /**
-     * Creates a branch-safe copy of this state.
+     * Creates a branch-safe copy.
      *
-     * <p>Static snapshot metadata is shared; mutable entity arrays are copied.</p>
-     *
-     * @return deep-enough copy for decision-tree expansion.
+     * @return copied state.
      */
     public SimulationState copy() {
         return new SimulationState(
+                scenario,
                 snapshot,
-                tick,
-                playerX,
-                playerY,
-                playerHitpoints,
-                playerMaxHitpoints,
-                activeProtectionPrayer,
                 npcCount,
                 npcIndices,
                 npcIds,
                 npcSizes,
-                npcAttackRanges,
-                npcAttackSpeeds,
+                npcProfiles,
+                npcPackedPoints.clone(),
                 npcAttackCooldowns.clone(),
-                npcMaxHits,
-                npcAttackStyles,
-                npcCollidable,
-                npcStopWhenLineOfSight,
+                npcActive.clone(),
+                tick,
+                playerPackedPoint,
+                queuedMoveTargetPackedPoint,
+                queuedMoveRun,
+                playerHitpoints,
+                playerMaxHitpoints,
+                activeProtectionPrayer,
+                lastAppliedAction,
                 new HashMap<>(inventoryItemCounts),
                 new HashSet<>(equippedItemIds),
-                new HashMap<>(foodHealingByItemId),
-                npcX.clone(),
-                npcY.clone(),
-                npcActive.clone(),
-                lastAppliedAction
+                new HashMap<>(foodHealingByItemId)
         );
     }
 
     /**
-     * Internal tick increment used by {@link SimulationEngine}.
-     */
-    void incrementTick() {
-        tick++;
-    }
-
-    /**
-     * @return player world position.
+     * @return player world point.
      */
     public WorldPoint getPlayerWorldPoint() {
-        return new WorldPoint(playerX, playerY, snapshot.getPlane());
+        return WorldPointService.unpack(playerPackedPoint);
     }
 
     /**
-     * Internal player position mutator used during simulation stepping.
+     * @return packed player world point.
      */
-    void setPlayerPosition(int worldX, int worldY) {
-        playerX = worldX;
-        playerY = worldY;
+    public int getPlayerPackedPoint() {
+        return playerPackedPoint;
+    }
+
+    /**
+     * @return player world x.
+     */
+    public int getPlayerX() {
+        return WorldPointService.getPackedX(playerPackedPoint);
+    }
+
+    /**
+     * @return player world y.
+     */
+    public int getPlayerY() {
+        return WorldPointService.getPackedY(playerPackedPoint);
+    }
+
+    /**
+     * @return true when a movement destination is queued.
+     */
+    public boolean hasQueuedMovement() {
+        return queuedMoveTargetPackedPoint >= 0;
+    }
+
+    /**
+     * @return queued movement destination, or null when none.
+     */
+    public WorldPoint getQueuedMovementDestination() {
+        if (queuedMoveTargetPackedPoint < 0) {
+            return null;
+        }
+        return WorldPointService.unpack(queuedMoveTargetPackedPoint);
+    }
+
+    /**
+     * @return true when queued movement is simulated as run speed.
+     */
+    public boolean isQueuedMovementRun() {
+        return queuedMoveRun;
+    }
+
+    /**
+     * @param prayer overhead prayer.
+     */
+    public void setActiveProtectionPrayer(Prayer prayer) {
+        this.activeProtectionPrayer = prayer;
     }
 
     /**
@@ -250,7 +254,7 @@ public final class SimulationState {
     }
 
     /**
-     * Heals player hitpoints by an amount, capped by max hitpoints.
+     * Heals player hitpoints.
      *
      * @param amount heal amount.
      */
@@ -262,28 +266,8 @@ public final class SimulationState {
     }
 
     /**
-     * Sets active overhead protection prayer for this state.
-     *
-     * @param prayer overhead prayer.
-     */
-    public void setActiveProtectionPrayer(Prayer prayer) {
-        this.activeProtectionPrayer = prayer;
-    }
-
-    /**
-     * Sets the most recent action applied to this state.
-     *
-     * @param action last action.
-     */
-    void setLastAppliedAction(SimulationAction action) {
-        this.lastAppliedAction = action;
-    }
-
-    /**
-     * Returns captured NPC index for a simulation slot.
-     *
-     * @param npcSlot internal slot index.
-     * @return RuneLite NPC index.
+     * @param npcSlot internal npc slot.
+     * @return RuneLite npc index.
      */
     public int getNpcIndex(int npcSlot) {
         assertNpcSlot(npcSlot);
@@ -291,8 +275,8 @@ public final class SimulationState {
     }
 
     /**
-     * @param npcSlot internal slot index.
-     * @return RuneLite NPC id.
+     * @param npcSlot internal npc slot.
+     * @return RuneLite npc id.
      */
     public int getNpcId(int npcSlot) {
         assertNpcSlot(npcSlot);
@@ -300,8 +284,8 @@ public final class SimulationState {
     }
 
     /**
-     * @param npcSlot internal slot index.
-     * @return NPC tile footprint size.
+     * @param npcSlot internal npc slot.
+     * @return npc size.
      */
     public int getNpcSize(int npcSlot) {
         assertNpcSlot(npcSlot);
@@ -309,82 +293,17 @@ public final class SimulationState {
     }
 
     /**
-     * @param npcSlot internal slot index.
-     * @return NPC attack/LoS range used by simulation.
+     * @param npcSlot internal npc slot.
+     * @return npc profile resolved from scenario mapping.
      */
-    public int getNpcAttackRange(int npcSlot) {
+    public SimulationNpcProfile getNpcProfile(int npcSlot) {
         assertNpcSlot(npcSlot);
-        return npcAttackRanges[npcSlot];
+        return npcProfiles[npcSlot];
     }
 
     /**
-     * @param npcSlot internal slot index.
-     * @return NPC attack style.
-     */
-    public NpcAttackStyle getNpcAttackStyle(int npcSlot) {
-        assertNpcSlot(npcSlot);
-        return npcAttackStyles[npcSlot];
-    }
-
-    /**
-     * @param npcSlot internal slot index.
-     * @return NPC attack speed in ticks.
-     */
-    public int getNpcAttackSpeed(int npcSlot) {
-        assertNpcSlot(npcSlot);
-        return npcAttackSpeeds[npcSlot];
-    }
-
-    /**
-     * @param npcSlot internal slot index.
-     * @return ticks until this npc can attack.
-     */
-    public int getNpcAttackCooldown(int npcSlot) {
-        assertNpcSlot(npcSlot);
-        return npcAttackCooldowns[npcSlot];
-    }
-
-    /**
-     * Sets ticks until this NPC can attack again.
-     *
-     * @param npcSlot internal slot index.
-     * @param cooldown ticks remaining.
-     */
-    public void setNpcAttackCooldown(int npcSlot, int cooldown) {
-        assertNpcSlot(npcSlot);
-        npcAttackCooldowns[npcSlot] = Math.max(0, cooldown);
-    }
-
-    /**
-     * @param npcSlot internal slot index.
-     * @return NPC simulated max hit.
-     */
-    public int getNpcMaxHit(int npcSlot) {
-        assertNpcSlot(npcSlot);
-        return npcMaxHits[npcSlot];
-    }
-
-    /**
-     * @param npcSlot internal slot index.
-     * @return true when NPC overlap should block movement.
-     */
-    public boolean isNpcCollidable(int npcSlot) {
-        assertNpcSlot(npcSlot);
-        return npcCollidable[npcSlot];
-    }
-
-    /**
-     * @param npcSlot internal slot index.
-     * @return true when NPC movement should stop after gaining player LoS.
-     */
-    public boolean isNpcStopWhenLineOfSight(int npcSlot) {
-        assertNpcSlot(npcSlot);
-        return npcStopWhenLineOfSight[npcSlot];
-    }
-
-    /**
-     * @param npcSlot internal slot index.
-     * @return true when the NPC is active in this state.
+     * @param npcSlot internal npc slot.
+     * @return true when npc is active.
      */
     public boolean isNpcActive(int npcSlot) {
         assertNpcSlot(npcSlot);
@@ -392,10 +311,10 @@ public final class SimulationState {
     }
 
     /**
-     * Enables or disables an NPC slot.
+     * Sets npc active status.
      *
-     * @param npcSlot internal slot index.
-     * @param active active flag.
+     * @param npcSlot internal npc slot.
+     * @param active active state.
      */
     public void setNpcActive(int npcSlot, boolean active) {
         assertNpcSlot(npcSlot);
@@ -403,46 +322,66 @@ public final class SimulationState {
     }
 
     /**
-     * @param npcSlot internal slot index.
-     * @return NPC world x coordinate.
-     */
-    public int getNpcX(int npcSlot) {
-        assertNpcSlot(npcSlot);
-        return npcX[npcSlot];
-    }
-
-    /**
-     * @param npcSlot internal slot index.
-     * @return NPC world y coordinate.
-     */
-    public int getNpcY(int npcSlot) {
-        assertNpcSlot(npcSlot);
-        return npcY[npcSlot];
-    }
-
-    /**
-     * @param npcSlot internal slot index.
-     * @return NPC world point.
+     * @param npcSlot internal npc slot.
+     * @return npc world point.
      */
     public WorldPoint getNpcWorldPoint(int npcSlot) {
         assertNpcSlot(npcSlot);
-        return new WorldPoint(npcX[npcSlot], npcY[npcSlot], snapshot.getPlane());
+        return WorldPointService.unpack(npcPackedPoints[npcSlot]);
     }
 
     /**
-     * Internal NPC position mutator used during simulation stepping.
+     * @param npcSlot internal npc slot.
+     * @return npc world x.
      */
-    void setNpcPosition(int npcSlot, int worldX, int worldY) {
+    public int getNpcX(int npcSlot) {
         assertNpcSlot(npcSlot);
-        npcX[npcSlot] = worldX;
-        npcY[npcSlot] = worldY;
+        return WorldPointService.getPackedX(npcPackedPoints[npcSlot]);
     }
 
     /**
-     * Resolves an internal NPC slot by RuneLite NPC index.
+     * @param npcSlot internal npc slot.
+     * @return npc world y.
+     */
+    public int getNpcY(int npcSlot) {
+        assertNpcSlot(npcSlot);
+        return WorldPointService.getPackedY(npcPackedPoints[npcSlot]);
+    }
+
+    /**
+     * @param npcSlot internal npc slot.
+     * @return npc packed world point.
+     */
+    public int getNpcPackedPoint(int npcSlot) {
+        assertNpcSlot(npcSlot);
+        return npcPackedPoints[npcSlot];
+    }
+
+    /**
+     * @param npcSlot internal npc slot.
+     * @return npc attack cooldown in ticks.
+     */
+    public int getNpcAttackCooldown(int npcSlot) {
+        assertNpcSlot(npcSlot);
+        return npcAttackCooldowns[npcSlot];
+    }
+
+    /**
+     * Sets npc attack cooldown.
      *
-     * @param npcIndex RuneLite NPC index.
-     * @return internal slot index, or {@code -1} when not present.
+     * @param npcSlot internal npc slot.
+     * @param cooldown cooldown in ticks.
+     */
+    public void setNpcAttackCooldown(int npcSlot, int cooldown) {
+        assertNpcSlot(npcSlot);
+        npcAttackCooldowns[npcSlot] = Math.max(0, cooldown);
+    }
+
+    /**
+     * Finds a simulation npc slot from RuneLite npc index.
+     *
+     * @param npcIndex npc index.
+     * @return slot index, or -1 when not found.
      */
     public int findNpcSlotByIndex(int npcIndex) {
         for (int i = 0; i < npcCount; i++) {
@@ -454,21 +393,21 @@ public final class SimulationState {
     }
 
     /**
-     * @return immutable view of inventory item stacks by item id.
+     * @return immutable inventory counts by item id.
      */
     public Map<Integer, Integer> getInventoryItemCounts() {
         return Collections.unmodifiableMap(inventoryItemCounts);
     }
 
     /**
-     * @return immutable view of equipped item ids.
+     * @return immutable equipped item id set.
      */
     public Set<Integer> getEquippedItemIds() {
         return Collections.unmodifiableSet(equippedItemIds);
     }
 
     /**
-     * @return immutable view of configured food heal mapping by item id.
+     * @return immutable food healing map.
      */
     public Map<Integer, Integer> getFoodHealingByItemId() {
         return Collections.unmodifiableMap(foodHealingByItemId);
@@ -476,7 +415,7 @@ public final class SimulationState {
 
     /**
      * @param itemId item id.
-     * @return true when inventory has one or more of item id.
+     * @return true when inventory contains the item.
      */
     public boolean hasInventoryItem(int itemId) {
         return getInventoryItemCount(itemId) > 0;
@@ -484,17 +423,17 @@ public final class SimulationState {
 
     /**
      * @param itemId item id.
-     * @return inventory stack count for item id.
+     * @return inventory quantity.
      */
     public int getInventoryItemCount(int itemId) {
         return inventoryItemCounts.getOrDefault(itemId, 0);
     }
 
     /**
-     * Consumes one inventory item when present.
+     * Consumes one inventory item.
      *
      * @param itemId item id.
-     * @return true when one item was consumed.
+     * @return true when consumed.
      */
     public boolean consumeInventoryItem(int itemId) {
         int current = getInventoryItemCount(itemId);
@@ -510,7 +449,7 @@ public final class SimulationState {
     }
 
     /**
-     * Adds one item to inventory stacks.
+     * Adds an item to inventory counts.
      *
      * @param itemId item id.
      */
@@ -523,7 +462,7 @@ public final class SimulationState {
 
     /**
      * @param itemId item id.
-     * @return true when item is currently equipped.
+     * @return true when item is equipped.
      */
     public boolean isItemEquipped(int itemId) {
         return equippedItemIds.contains(itemId);
@@ -533,7 +472,7 @@ public final class SimulationState {
      * Equips an item from inventory.
      *
      * @param itemId item id.
-     * @return true when item transitioned from inventory to equipped.
+     * @return true when equipped.
      */
     public boolean equipItemFromInventory(int itemId) {
         if (!consumeInventoryItem(itemId)) {
@@ -544,13 +483,42 @@ public final class SimulationState {
     }
 
     /**
-     * Resolves configured heal amount for a food item id.
-     *
-     * @param itemId food item id.
-     * @return heal amount, or {@code 0}.
+     * @param itemId item id.
+     * @return configured heal amount, or 0.
      */
     public int getFoodHealAmount(int itemId) {
         return foodHealingByItemId.getOrDefault(itemId, 0);
+    }
+
+    void setPlayerPackedPoint(int playerPackedPoint) {
+        this.playerPackedPoint = playerPackedPoint;
+    }
+
+    void queueMovement(int targetPackedPoint, boolean run) {
+        this.queuedMoveTargetPackedPoint = targetPackedPoint;
+        this.queuedMoveRun = run;
+    }
+
+    int getQueuedMoveTargetPackedPoint() {
+        return queuedMoveTargetPackedPoint;
+    }
+
+    void clearQueuedMovement() {
+        this.queuedMoveTargetPackedPoint = -1;
+        this.queuedMoveRun = false;
+    }
+
+    void setNpcPackedPoint(int npcSlot, int npcPackedPoint) {
+        assertNpcSlot(npcSlot);
+        this.npcPackedPoints[npcSlot] = npcPackedPoint;
+    }
+
+    void incrementTick() {
+        tick++;
+    }
+
+    void setLastAppliedAction(SimulationAction action) {
+        this.lastAppliedAction = action;
     }
 
     private void assertNpcSlot(int npcSlot) {

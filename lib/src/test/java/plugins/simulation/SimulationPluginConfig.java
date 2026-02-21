@@ -1,15 +1,20 @@
 package plugins.simulation;
 
-import net.runelite.client.config.*;
+import net.runelite.client.config.Alpha;
+import net.runelite.client.config.Config;
+import net.runelite.client.config.ConfigGroup;
+import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.ConfigSection;
+import net.runelite.client.config.Range;
 
-import java.awt.*;
+import java.awt.Color;
 
 @ConfigGroup("krakenSimulation")
 public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "enabled",
             name = "Enable Simulation Plugin",
-            description = "Enable simulation snapshotting, search, and overlays.",
+            description = "Enable snapshot capture, tree generation, and decision search.",
             position = 0
     )
     default boolean enabled() {
@@ -18,7 +23,7 @@ public interface SimulationPluginConfig extends Config {
 
     @ConfigSection(
             name = "Search",
-            description = "Decision-tree search settings.",
+            description = "Simulation tree and movement expansion settings.",
             position = 10
     )
     String searchSection = "searchSection";
@@ -27,7 +32,7 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "snapshotNpcRadius",
             name = "Snapshot NPC Radius",
-            description = "Chebyshev radius from player used while capturing NPCs into simulation.",
+            description = "Chebyshev radius from player while capturing NPCs.",
             section = searchSection,
             position = 11
     )
@@ -35,54 +40,112 @@ public interface SimulationPluginConfig extends Config {
         return 24;
     }
 
-    @Range(min = 1, max = 5)
+    @Range(min = 1, max = 30)
     @ConfigItem(
             keyName = "searchDepth",
-            name = "Search Depth",
-            description = "Decision tree depth in ticks.",
+            name = "Simulation Ticks",
+            description = "How many ticks to simulate into the future.",
             section = searchSection,
             position = 12
     )
     default int searchDepth() {
-        return 2;
+        return 15;
     }
 
-    @Range(min = 64, max = 50000)
+    @Range(min = 256, max = 100000)
     @ConfigItem(
             keyName = "maxSearchNodes",
-            name = "Max Search Nodes",
-            description = "Hard cap on explored tree nodes per game tick.",
+            name = "Max Tree Nodes",
+            description = "Hard cap on generated tree nodes per game tick.",
             section = searchSection,
             position = 13
     )
     default int maxSearchNodes() {
-        return 4000;
+        return 20000;
+    }
+
+    @ConfigItem(
+            keyName = "movementMode",
+            name = "Movement Mode",
+            description = "RADIUS or REACHABLE destination expansion.",
+            section = searchSection,
+            position = 14
+    )
+    default String movementMode() {
+        return "RADIUS";
+    }
+
+    @Range(min = 1, max = 20)
+    @ConfigItem(
+            keyName = "movementRadius",
+            name = "Movement Radius",
+            description = "Destination radius for RADIUS movement mode.",
+            section = searchSection,
+            position = 15
+    )
+    default int movementRadius() {
+        return 6;
+    }
+
+    @ConfigItem(
+            keyName = "includeWalkActions",
+            name = "Include Walk Actions",
+            description = "Generate 1-step movement actions for reachable destinations.",
+            section = searchSection,
+            position = 16
+    )
+    default boolean includeWalkActions() {
+        return true;
     }
 
     @ConfigItem(
             keyName = "includeRunActions",
             name = "Include Run Actions",
-            description = "Include run-style candidate actions (2-tile movement) in search.",
+            description = "Generate 2-step movement actions for reachable destinations.",
             section = searchSection,
-            position = 14
+            position = 17
     )
     default boolean includeRunActions() {
-        return false;
+        return true;
+    }
+
+    @Range(min = 1, max = 400)
+    @ConfigItem(
+            keyName = "maxMovementTargets",
+            name = "Max Movement Targets",
+            description = "Maximum movement destinations generated per node before walk/run variants.",
+            section = searchSection,
+            position = 18
+    )
+    default int maxMovementTargets() {
+        return 80;
+    }
+
+    @Range(min = 1, max = 400)
+    @ConfigItem(
+            keyName = "maxActionsPerNode",
+            name = "Max Actions Per Node",
+            description = "Maximum actions kept per node after legality filtering.",
+            section = searchSection,
+            position = 19
+    )
+    default int maxActionsPerNode() {
+        return 120;
     }
 
     @ConfigSection(
             name = "Combat Simulation",
-            description = "NPC combat metadata and player consumable simulation mappings.",
-            position = 15
+            description = "NPC profile mapping and player consumable mapping.",
+            position = 20
     )
     String combatSection = "combatSection";
 
     @ConfigItem(
             keyName = "npcCombatOverrides",
-            name = "NPC Combat Overrides",
-            description = "CSV: npcId=STYLE:range:speed:maxHit (example: 415=MELEE:1:4:30,3129=MAGIC:10:4:20).",
+            name = "NPC Profiles",
+            description = "CSV: npcId=STYLE:range:speed:maxHit:intelligent(0/1). Example 415=MELEE:1:4:30:1",
             section = combatSection,
-            position = 16
+            position = 21
     )
     default String npcCombatOverrides() {
         return "";
@@ -90,10 +153,10 @@ public interface SimulationPluginConfig extends Config {
 
     @ConfigItem(
             keyName = "foodHealingOverrides",
-            name = "Food Heal Overrides",
+            name = "Food Heal Mapping",
             description = "CSV: itemId=heal (example: 385=20,3144=18).",
             section = combatSection,
-            position = 17
+            position = 22
     )
     default String foodHealingOverrides() {
         return "";
@@ -101,17 +164,17 @@ public interface SimulationPluginConfig extends Config {
 
     @ConfigSection(
             name = "Action Candidates",
-            description = "Which non-movement action types should be generated in the decision tree.",
-            position = 18
+            description = "Optional non-movement actions to add to the tree.",
+            position = 30
     )
     String candidateSection = "candidateSection";
 
     @ConfigItem(
             keyName = "includePrayerActions",
             name = "Include Prayer Actions",
-            description = "Generate switch-prayer actions based on simulated NPC threats.",
+            description = "Generate switch-prayer actions based on simulated threats.",
             section = candidateSection,
-            position = 19
+            position = 31
     )
     default boolean includePrayerActions() {
         return true;
@@ -120,9 +183,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "includeEatActions",
             name = "Include Eat Actions",
-            description = "Generate eat/drink inventory actions when HP is low.",
+            description = "Generate eat actions when HP is low and food is mapped.",
             section = candidateSection,
-            position = 20
+            position = 32
     )
     default boolean includeEatActions() {
         return true;
@@ -132,9 +195,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "eatAtOrBelowHp",
             name = "Eat At Or Below HP",
-            description = "Generate eat actions when simulated HP is at or below this threshold.",
+            description = "Generate eat actions when HP is <= this value.",
             section = candidateSection,
-            position = 21
+            position = 33
     )
     default int eatAtOrBelowHp() {
         return 45;
@@ -143,9 +206,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "includeGearSwapActions",
             name = "Include Gear Swap Actions",
-            description = "Generate equip-item actions for configured gear item id.",
+            description = "Generate equip-item actions for gearSwapItemId.",
             section = candidateSection,
-            position = 22
+            position = 34
     )
     default boolean includeGearSwapActions() {
         return false;
@@ -154,9 +217,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "gearSwapItemId",
             name = "Gear Swap Item ID",
-            description = "Inventory item id used when generating equip actions.",
+            description = "Inventory item id used for equip actions.",
             section = candidateSection,
-            position = 23
+            position = 35
     )
     default int gearSwapItemId() {
         return -1;
@@ -165,9 +228,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "includeSpellActions",
             name = "Include Spell Actions",
-            description = "Generate cast-spell actions for configured standard spell name.",
+            description = "Generate cast-spell actions for standardSpellName.",
             section = candidateSection,
-            position = 24
+            position = 36
     )
     default boolean includeSpellActions() {
         return false;
@@ -176,21 +239,21 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "standardSpellName",
             name = "Standard Spell Name",
-            description = "Name of Standard spell enum (example: WIND_STRIKE, FIRE_BLAST).",
+            description = "Name of Standard enum spell (example: WIND_STRIKE).",
             section = candidateSection,
-            position = 25
+            position = 37
     )
     default String standardSpellName() {
         return "WIND_STRIKE";
     }
 
-    @Range(min = 1, max = 15)
+    @Range(min = 1, max = 20)
     @ConfigItem(
             keyName = "spellTargetDistance",
             name = "Spell Target Distance",
-            description = "Max distance for selecting spell target NPC.",
+            description = "Max distance for selecting spell target.",
             section = candidateSection,
-            position = 26
+            position = 38
     )
     default int spellTargetDistance() {
         return 10;
@@ -198,17 +261,17 @@ public interface SimulationPluginConfig extends Config {
 
     @ConfigSection(
             name = "Execution",
-            description = "Apply search result to the live game.",
-            position = 20
+            description = "Apply best searched action to live game.",
+            position = 40
     )
     String executionSection = "executionSection";
 
     @ConfigItem(
             keyName = "autoExecuteBestAction",
             name = "Auto Execute Best Action",
-            description = "Automatically execute the adapted action each game tick.",
+            description = "Automatically execute adapted action each game tick.",
             section = executionSection,
-            position = 21
+            position = 41
     )
     default boolean autoExecuteBestAction() {
         return false;
@@ -217,9 +280,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "executeNpcInteraction",
             name = "Execute NPC Interaction",
-            description = "When enabled, include an NPC interaction target/action in adapted execution.",
+            description = "Allow NPC interaction steps during execution.",
             section = executionSection,
-            position = 22
+            position = 42
     )
     default boolean executeNpcInteraction() {
         return false;
@@ -228,21 +291,21 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "interactionAction",
             name = "Interaction Action",
-            description = "NPC menu action to execute from adapter (example: Attack, Talk-to).",
+            description = "NPC interaction action text (example: Attack).",
             section = executionSection,
-            position = 23
+            position = 43
     )
     default String interactionAction() {
         return "Attack";
     }
 
-    @Range(min = 1, max = 12)
+    @Range(min = 1, max = 20)
     @ConfigItem(
             keyName = "interactionDistance",
             name = "Interaction Distance",
-            description = "Max Chebyshev tile distance for choosing interaction NPC target.",
+            description = "Max distance for selecting optional interaction target.",
             section = executionSection,
-            position = 24
+            position = 44
     )
     default int interactionDistance() {
         return 1;
@@ -251,9 +314,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "executePrayerSwitches",
             name = "Execute Prayer Switches",
-            description = "Allow adapter to execute prayer switching steps.",
+            description = "Allow prayer switch steps.",
             section = executionSection,
-            position = 25
+            position = 45
     )
     default boolean executePrayerSwitches() {
         return true;
@@ -262,9 +325,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "executeGearSwaps",
             name = "Execute Gear Swaps",
-            description = "Allow adapter to execute equipment swap steps.",
+            description = "Allow equip-item steps.",
             section = executionSection,
-            position = 26
+            position = 46
     )
     default boolean executeGearSwaps() {
         return true;
@@ -273,9 +336,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "executeInventoryActions",
             name = "Execute Inventory Actions",
-            description = "Allow adapter to execute inventory interact/eat steps.",
+            description = "Allow inventory interaction steps.",
             section = executionSection,
-            position = 27
+            position = 47
     )
     default boolean executeInventoryActions() {
         return true;
@@ -284,9 +347,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "executeSpells",
             name = "Execute Spell Actions",
-            description = "Allow adapter to execute cast-spell steps.",
+            description = "Allow spell cast steps.",
             section = executionSection,
-            position = 28
+            position = 48
     )
     default boolean executeSpells() {
         return true;
@@ -295,16 +358,16 @@ public interface SimulationPluginConfig extends Config {
     @ConfigSection(
             name = "Overlay",
             description = "Visualization options for simulation state and decisions.",
-            position = 30
+            position = 50
     )
     String overlaySection = "overlaySection";
 
     @ConfigItem(
             keyName = "showSceneOverlay",
             name = "Show Scene Overlay",
-            description = "Show simulation visualizations in the 3D scene.",
+            description = "Show simulation visuals in the 3D scene.",
             section = overlaySection,
-            position = 31
+            position = 51
     )
     default boolean showSceneOverlay() {
         return true;
@@ -315,7 +378,7 @@ public interface SimulationPluginConfig extends Config {
             name = "Show Info Overlay",
             description = "Show simulation summary panel.",
             section = overlaySection,
-            position = 32
+            position = 52
     )
     default boolean showInfoOverlay() {
         return true;
@@ -324,9 +387,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "showBestMoveTile",
             name = "Show Best Move Tile",
-            description = "Highlight the best action's destination tile.",
+            description = "Highlight the best action destination.",
             section = overlaySection,
-            position = 33
+            position = 53
     )
     default boolean showBestMoveTile() {
         return true;
@@ -335,9 +398,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "showNpcPaths",
             name = "Show NPC Paths",
-            description = "Render predicted NPC greedy paths toward player.",
+            description = "Render predicted npc paths.",
             section = overlaySection,
-            position = 34
+            position = 54
     )
     default boolean showNpcPaths() {
         return true;
@@ -346,9 +409,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "showNpcLosTiles",
             name = "Show NPC LoS Tiles",
-            description = "Render line-of-sight tiles for visualized NPCs.",
+            description = "Render visible line-of-sight tiles for visualized npcs.",
             section = overlaySection,
-            position = 35
+            position = 55
     )
     default boolean showNpcLosTiles() {
         return false;
@@ -358,9 +421,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "maxVisualizedNpcs",
             name = "Max Visualized NPCs",
-            description = "Maximum NPCs to render each frame.",
+            description = "Maximum npc overlays rendered each frame.",
             section = overlaySection,
-            position = 36
+            position = 56
     )
     default int maxVisualizedNpcs() {
         return 8;
@@ -370,21 +433,21 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "maxNpcPathLength",
             name = "Max NPC Path Length",
-            description = "Max predicted steps rendered per NPC path.",
+            description = "Maximum predicted path tiles rendered per npc.",
             section = overlaySection,
-            position = 37
+            position = 57
     )
     default int maxNpcPathLength() {
-        return 10;
+        return 12;
     }
 
     @Range(min = 1, max = 30)
     @ConfigItem(
             keyName = "npcLosRangeCap",
             name = "NPC LoS Range Cap",
-            description = "Maximum LoS scan range when rendering NPC LoS tiles.",
+            description = "Maximum range used while rendering npc LoS tiles.",
             section = overlaySection,
-            position = 38
+            position = 58
     )
     default int npcLosRangeCap() {
         return 12;
@@ -393,9 +456,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "showNpcDebugLabels",
             name = "Show NPC Debug Labels",
-            description = "Show per-NPC labels for index/path length.",
+            description = "Render npc debug labels in scene.",
             section = overlaySection,
-            position = 39
+            position = 59
     )
     default boolean showNpcDebugLabels() {
         return false;
@@ -405,9 +468,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "bestMoveColor",
             name = "Best Move Color",
-            description = "Color for best move tile overlay.",
+            description = "Color for the best move tile overlay.",
             section = overlaySection,
-            position = 40
+            position = 60
     )
     default Color bestMoveColor() {
         return new Color(32, 220, 120, 180);
@@ -417,9 +480,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "npcPathColor",
             name = "NPC Path Base Color",
-            description = "Base color for NPC path overlays.",
+            description = "Base color for npc path overlays.",
             section = overlaySection,
-            position = 41
+            position = 61
     )
     default Color npcPathColor() {
         return new Color(255, 170, 30, 170);
@@ -429,9 +492,9 @@ public interface SimulationPluginConfig extends Config {
     @ConfigItem(
             keyName = "npcLosColor",
             name = "NPC LoS Base Color",
-            description = "Base color for NPC LoS overlays.",
+            description = "Base color for npc LoS overlays.",
             section = overlaySection,
-            position = 42
+            position = 62
     )
     default Color npcLosColor() {
         return new Color(40, 170, 255, 100);

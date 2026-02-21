@@ -9,12 +9,29 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class SimulationMath {
+    static final int[][] DIRECTIONS_8 = new int[][]{
+            {1, 0},
+            {-1, 0},
+            {0, 1},
+            {0, -1},
+            {1, 1},
+            {1, -1},
+            {-1, 1},
+            {-1, -1}
+    };
 
     /**
      * Clamps a value to an inclusive range.
      */
     static int clamp(int value, int minInclusive, int maxInclusive) {
         return Math.max(minInclusive, Math.min(maxInclusive, value));
+    }
+
+    /**
+     * @return Chebyshev distance between two tiles.
+     */
+    static int chebyshevDistance(int ax, int ay, int bx, int by) {
+        return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
     }
 
     /**

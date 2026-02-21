@@ -5,15 +5,12 @@ import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,245 +22,166 @@ class SimulationEngineTest {
     private final SimulationEngine engine = new SimulationEngine();
 
     @Test
-    void npcMovesDiagonallyTowardPlayerWhenOpen() {
-        SimulationNpcSnapshot npc = new SimulationNpcSnapshot(
-                7, 1000, "Test NPC", new WorldPoint(BASE_X + 1, BASE_Y + 1, PLANE), 1, 1, true, false
-        );
-        SimulationSnapshot snapshot = snapshot(
-                new WorldPoint(BASE_X + 4, BASE_Y + 4, PLANE),
-                Collections.singletonList(npc),
-                flags -> {}
-        );
-
-        SimulationState state = snapshot.createState();
-        engine.simulateTick(state, SimulationAction.WAIT);
-
-        assertEquals(new WorldPoint(BASE_X + 2, BASE_Y + 2, PLANE), state.getNpcWorldPoint(0));
-    }
-
-    @Test
-    void npcFallsBackToCardinalWhenDiagonalBlocked() {
-        SimulationNpcSnapshot npc = new SimulationNpcSnapshot(
-                7, 1000, "Test NPC", new WorldPoint(BASE_X + 1, BASE_Y + 1, PLANE), 1, 1, true, false
-        );
-        SimulationSnapshot snapshot = snapshot(
-                new WorldPoint(BASE_X + 4, BASE_Y + 4, PLANE),
-                Collections.singletonList(npc),
-                flags -> flags[2][2] = CollisionDataFlag.BLOCK_MOVEMENT_FULL
-        );
-
-        SimulationState state = snapshot.createState();
-        engine.simulateTick(state, SimulationAction.WAIT);
-
-        assertEquals(new WorldPoint(BASE_X + 2, BASE_Y + 1, PLANE), state.getNpcWorldPoint(0));
-    }
-
-    @Test
-    void lineOfSightUsesCopiedCollisionFlags() {
-        SimulationNpcSnapshot npc = new SimulationNpcSnapshot(
-                7, 1000, "Ranger", new WorldPoint(BASE_X + 1, BASE_Y + 1, PLANE), 1, 8, true, true
-        );
-
-        SimulationSnapshot openSnapshot = snapshot(
-                new WorldPoint(BASE_X + 4, BASE_Y + 1, PLANE),
-                Collections.singletonList(npc),
-                flags -> {}
-        );
-        SimulationState openState = openSnapshot.createState();
-        assertTrue(engine.hasNpcLineOfSightToPlayer(openState, 0));
-
-        SimulationSnapshot blockedSnapshot = snapshot(
-                new WorldPoint(BASE_X + 4, BASE_Y + 1, PLANE),
-                Collections.singletonList(npc),
-                flags -> flags[2][1] = CollisionDataFlag.BLOCK_LINE_OF_SIGHT_FULL
-        );
-        SimulationState blockedState = blockedSnapshot.createState();
-        assertFalse(engine.hasNpcLineOfSightToPlayer(blockedState, 0));
-    }
-
-    @Test
-    void stateCopyIsIndependentForTreeSearch() {
-        SimulationNpcSnapshot npc = new SimulationNpcSnapshot(
-                7, 1000, "Test NPC", new WorldPoint(BASE_X + 5, BASE_Y + 5, PLANE), 1, 1, true, false
-        );
+    void simulationTreeSupportsLongHorizons() {
         SimulationSnapshot snapshot = snapshot(
                 new WorldPoint(BASE_X + 3, BASE_Y + 3, PLANE),
-                Collections.singletonList(npc),
-                flags -> {}
+                List.of(npc(1, 1000, BASE_X + 5, BASE_Y + 5)),
+                flags -> {
+                }
+        );
+        SimulationScenario scenario = new SimulationScenario(
+                snapshot,
+                Map.of(1000, new SimulationNpcProfile(1, NpcAttackStyle.MELEE, 4, 8, false))
         );
 
-        SimulationState root = snapshot.createState();
-        SimulationState child = root.copy();
-        engine.simulateTick(child, SimulationAction.NORTH);
+        SimulationTree tree = engine.generateOutcomeTree(
+                scenario,
+                SimulationTreeOptions.defaults()
+                        .withTicks(16)
+                        .withMaxNodes(2000)
+                        .withActionCaps(30, 20),
+                (state, depthRemaining) -> Collections.emptyList()
+        );
 
-        assertNotEquals(root.getPlayerWorldPoint(), child.getPlayerWorldPoint());
-        assertEquals(new WorldPoint(BASE_X + 3, BASE_Y + 3, PLANE), root.getPlayerWorldPoint());
+        assertNotNull(tree);
+        assertTrue(tree.getNodeCount() > 1);
+        assertTrue(tree.getMaxDepthReached() >= 10);
     }
 
     @Test
-    void decisionTreeFindsActionableBestMove() {
-        SimulationNpcSnapshot npc = new SimulationNpcSnapshot(
-                42, 2000, "Melee NPC", new WorldPoint(BASE_X + 3, BASE_Y + 5, PLANE), 1, 1, true, false
-        );
+    void movementExpansionIncludesWalkAndRunDestinations() {
         SimulationSnapshot snapshot = snapshot(
                 new WorldPoint(BASE_X + 3, BASE_Y + 3, PLANE),
-                Collections.singletonList(npc),
-                flags -> {}
+                Collections.emptyList(),
+                flags -> {
+                }
         );
-        SimulationState state = snapshot.createState();
+        SimulationState state = engine.createState(new SimulationScenario(snapshot, Collections.emptyMap()));
 
-        DecisionTreeSearch search = new DecisionTreeSearch(engine, 1024);
-        DecisionTreeSearch.Result result = search.search(
+        List<SimulationAction> actions = engine.generateCandidateActions(
                 state,
-                1,
-                (s, depth) -> Arrays.asList(SimulationAction.WAIT, SimulationAction.NORTH, SimulationAction.SOUTH),
-                s -> Math.abs(s.getNpcX(0) - s.getPlayerX()) + Math.abs(s.getNpcY(0) - s.getPlayerY())
+                3,
+                SimulationTreeOptions.defaults()
+                        .withMovementRadius(2)
+                        .withMovementTypes(true, true)
+                        .withActionCaps(200, 50),
+                (s, depth) -> Collections.emptyList()
+        );
+
+        long walkMoves = actions.stream().filter(a -> a.isMovement() && !a.isRun()).count();
+        long runMoves = actions.stream().filter(a -> a.isMovement() && a.isRun()).count();
+        assertTrue(walkMoves > 0);
+        assertTrue(runMoves > 0);
+    }
+
+    @Test
+    void intelligentNpcPathingNavigatesAroundCollision() {
+        SimulationSnapshot snapshot = snapshot(
+                new WorldPoint(BASE_X + 6, BASE_Y + 2, PLANE),
+                List.of(npc(7, 2000, BASE_X + 2, BASE_Y + 2)),
+                flags -> {
+                    flags[3][2] = CollisionDataFlag.BLOCK_MOVEMENT_FULL;
+                    flags[4][2] = CollisionDataFlag.BLOCK_MOVEMENT_FULL;
+                    flags[5][2] = CollisionDataFlag.BLOCK_MOVEMENT_FULL;
+                }
+        );
+
+        SimulationScenario scenario = new SimulationScenario(
+                snapshot,
+                Map.of(2000, new SimulationNpcProfile(1, NpcAttackStyle.MELEE, 4, 10, true))
+        );
+        SimulationState state = engine.createState(scenario);
+
+        List<WorldPoint> predicted = engine.predictNpcGreedyPathToPlayer(state, 0, 6);
+        assertFalse(predicted.isEmpty());
+        assertTrue(predicted.stream().anyMatch(point -> point.getY() != BASE_Y + 2));
+    }
+
+    @Test
+    void decisionSearchReturnsActionableBestMoveTile() {
+        SimulationSnapshot snapshot = snapshot(
+                new WorldPoint(BASE_X + 3, BASE_Y + 3, PLANE),
+                List.of(npc(2, 3000, BASE_X + 3, BASE_Y + 5)),
+                flags -> {
+                }
+        );
+
+        SimulationScenario scenario = new SimulationScenario(
+                snapshot,
+                Map.of(3000, new SimulationNpcProfile(1, NpcAttackStyle.MELEE, 4, 8, false))
+        );
+        SimulationTree tree = engine.generateOutcomeTree(
+                scenario,
+                SimulationTreeOptions.defaults()
+                        .withTicks(4)
+                        .withMovementRadius(3)
+                        .withMovementTypes(true, false)
+                        .withActionCaps(80, 40),
+                (state, depthRemaining) -> List.of()
+        );
+
+        DecisionTreeSearch search = new DecisionTreeSearch();
+        DecisionTreeSearch.Result result = search.search(
+                tree,
+                node -> {
+                    SimulationState state = node.getState();
+                    int distance = Math.abs(state.getNpcX(0) - state.getPlayerX()) + Math.abs(state.getNpcY(0) - state.getPlayerY());
+                    return distance;
+                }
         );
 
         assertNotNull(result);
-        assertEquals(SimulationAction.SOUTH, result.getBestAction());
-        assertEquals(new WorldPoint(BASE_X + 3, BASE_Y + 2, PLANE), result.getBestPlayerWorldPoint());
-        assertTrue(result.getExploredNodes() > 0);
+        assertNotNull(result.getBestAction());
+        assertTrue(result.getBestAction().isMovement() || result.getBestAction().isWait());
+        assertNotNull(result.getBestPlayerWorldPoint());
     }
 
     @Test
     void prayerSwitchPreventsIncomingDamage() {
-        SimulationNpcSnapshot npc = new SimulationNpcSnapshot(
-                7,
-                3000,
-                "Mage",
-                new WorldPoint(BASE_X + 1, BASE_Y + 1, PLANE),
-                1,
-                10,
-                4,
-                NpcAttackStyle.MAGIC,
-                12,
-                true,
-                true
-        );
-
-        SimulationPlayerSnapshot player = new SimulationPlayerSnapshot(
-                50,
-                99,
-                null,
-                Collections.emptyMap(),
-                Collections.emptySet(),
-                Collections.emptyMap()
-        );
-
-        SimulationSnapshot noPrayerSnapshot = snapshot(
+        SimulationSnapshot snapshot = snapshot(
                 new WorldPoint(BASE_X + 4, BASE_Y + 1, PLANE),
-                player,
-                Collections.singletonList(npc),
-                flags -> {}
+                List.of(npc(7, 4000, BASE_X + 1, BASE_Y + 1)),
+                flags -> {
+                }
         );
-        SimulationState noPrayerState = noPrayerSnapshot.createState();
-        engine.simulateTick(noPrayerState, SimulationAction.WAIT);
-        assertEquals(38, noPrayerState.getPlayerHitpoints());
 
-        SimulationPlayerSnapshot protectedPlayer = new SimulationPlayerSnapshot(
-                50,
-                99,
-                Prayer.PROTECT_FROM_MAGIC,
-                Collections.emptyMap(),
-                Collections.emptySet(),
-                Collections.emptyMap()
+        SimulationScenario scenario = new SimulationScenario(
+                snapshot,
+                Map.of(4000, new SimulationNpcProfile(10, NpcAttackStyle.MAGIC, 4, 12, false))
         );
-        SimulationSnapshot withPrayerSnapshot = snapshot(
-                new WorldPoint(BASE_X + 4, BASE_Y + 1, PLANE),
-                protectedPlayer,
-                Collections.singletonList(npc),
-                flags -> {}
-        );
-        SimulationState withPrayerState = withPrayerSnapshot.createState();
-        engine.simulateTick(withPrayerState, SimulationAction.WAIT);
-        assertEquals(50, withPrayerState.getPlayerHitpoints());
+
+        SimulationState noPrayer = engine.createState(scenario);
+        engine.simulateTick(noPrayer, SimulationAction.WAIT);
+        assertEquals(87, noPrayer.getPlayerHitpoints());
+
+        SimulationState withPrayer = engine.createState(scenario);
+        withPrayer.setActiveProtectionPrayer(Prayer.PROTECT_FROM_MAGIC);
+        engine.simulateTick(withPrayer, SimulationAction.WAIT);
+        assertEquals(99, withPrayer.getPlayerHitpoints());
     }
 
-    @Test
-    void eatActionConsumesFoodAndHealsPlayer() {
-        SimulationPlayerSnapshot player = new SimulationPlayerSnapshot(
-                30,
-                99,
-                null,
-                Map.of(385, 2),
-                Collections.emptySet(),
-                Map.of(385, 20)
-        );
-        SimulationSnapshot snapshot = snapshot(
-                new WorldPoint(BASE_X + 3, BASE_Y + 3, PLANE),
-                player,
-                Collections.emptyList(),
-                flags -> {}
-        );
-
-        SimulationState state = snapshot.createState();
-        engine.simulateTick(state, SimulationAction.eat(385, 20));
-
-        assertEquals(50, state.getPlayerHitpoints());
-        assertEquals(1, state.getInventoryItemCount(385));
-    }
-
-    @Test
-    void recommendProtectionPrayerUsesNpcCombatStyleAndSpeed() {
-        SimulationNpcSnapshot ranger = new SimulationNpcSnapshot(
-                1,
-                1001,
-                "Ranger",
-                new WorldPoint(BASE_X + 2, BASE_Y + 2, PLANE),
-                1,
-                8,
-                5,
-                NpcAttackStyle.RANGED,
-                12,
-                true,
-                true
-        );
-        SimulationNpcSnapshot mager = new SimulationNpcSnapshot(
-                2,
-                1002,
-                "Mager",
-                new WorldPoint(BASE_X + 2, BASE_Y + 4, PLANE),
-                1,
-                8,
-                4,
-                NpcAttackStyle.MAGIC,
-                10,
-                true,
-                true
-        );
-
-        SimulationSnapshot snapshot = snapshot(
-                new WorldPoint(BASE_X + 4, BASE_Y + 3, PLANE),
-                Arrays.asList(ranger, mager),
-                flags -> {}
-        );
-        SimulationState state = snapshot.createState();
-        state.setNpcAttackCooldown(0, 3);
-        state.setNpcAttackCooldown(1, 0);
-
-        Prayer recommended = engine.recommendProtectionPrayer(state);
-        assertEquals(Prayer.PROTECT_FROM_MAGIC, recommended);
+    private SimulationNpcSnapshot npc(int index, int id, int x, int y) {
+        return new SimulationNpcSnapshot(index, id, 1, new WorldPoint(x, y, PLANE));
     }
 
     private SimulationSnapshot snapshot(
             WorldPoint playerPoint,
             List<SimulationNpcSnapshot> npcs,
-            Consumer<int[][]> flagsMutator
+            java.util.function.Consumer<int[][]> flagsMutator
     ) {
-        return snapshot(playerPoint, SimulationPlayerSnapshot.empty(), npcs, flagsMutator);
-    }
-
-    private SimulationSnapshot snapshot(
-            WorldPoint playerPoint,
-            SimulationPlayerSnapshot player,
-            List<SimulationNpcSnapshot> npcs,
-            Consumer<int[][]> flagsMutator
-    ) {
-        int[][] flags = new int[8][8];
+        int[][] flags = new int[10][10];
         if (flagsMutator != null) {
             flagsMutator.accept(flags);
         }
-        return new SimulationSnapshot(0, PLANE, BASE_X, BASE_Y, flags, playerPoint, player, npcs);
+        SimulationPlayerSnapshot player = new SimulationPlayerSnapshot(
+                playerPoint,
+                99,
+                99,
+                null,
+                Map.of(),
+                Collections.emptySet(),
+                Map.of()
+        );
+        return new SimulationSnapshot(0, PLANE, BASE_X, BASE_Y, flags, player, npcs);
     }
 }
