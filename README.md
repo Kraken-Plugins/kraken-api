@@ -97,17 +97,17 @@ public class ExamplePlugin extends Plugin {
 ```
 
 To use the API in an actual RuneLite plugin, you should check out the [Kraken Example Plugin](https://github.com/cbartram/kraken-example-plugin)
-which shows a best practice usage of the API within an actual plugin.
+which shows the best practice usage of the API within an actual plugin.
 To set up your development environment, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
 
-Once you have the example plugin cloned and setup within Intellij, you can run the main class in `src/test/java/ExamplePluginTest.java` to run RuneLite with
+Once you have the example plugin cloned and setup within Intellij, you can run the main class in `src/test/java/PluginRunnerTest.java plugins.api.ApiTestPlugin` to run RuneLite with
 the example plugin loaded in the plugin panel within RuneLite's sidebar. See [consuming the API](#consuming-the-api) section for more information on
 integrating the API into your plugins and build process.
 
 ![example-plugin](./images/example-plugin.png)
 
 > If you are just looking to use pre-existing plugins, you can skip this repository and head over to our website: [kraken-plugins.com](https://kraken-plugins.com). 
-> For more documentation on the API and Kraken plugins please see our [official documentation here](https://kraken-plugins.com/docs/).
+> For more documentation on the API and Kraken plugins, please see our [official documentation here](https://kraken-plugins.com/docs/).
 
 ### Prerequisites
 - [Java 11+](https://adoptium.net/) (JDK required)
@@ -213,11 +213,11 @@ dependencies {
 ```
 ## API Design & Methodology
 
-For more information around how the API is designed please see [API docs](docs/API.md)
+For more information around how the API is designed, please see [API docs](docs/API.md)
 
 ## Scripting
 
-For more information on writing scripts using the Kraken API 
+For more information on writing scripts using the Kraken API,  
 check out the detailed [scripting guide](docs/SCRIPTING.md).
 
 ## Mouse Movement
@@ -227,8 +227,26 @@ detailed [mouse movement guide](docs/MOUSE.md)
 
 ## Simulation
 
-For information on how to use Kraken's API to simulate game outcomes 
+For information on how to use Kraken's API to simulate game outcomes,  
 see the [simulation docs](docs/SIMULATION.md).
+
+To see an example plugin using the simulation API, you can run the main class in:
+
+```
+src/test/java/PluginRunnerTest.java plugins.simulation.SimulationPlugin
+```
+
+to load an example simulation plugin alongside RuneLite.
+
+![sim-example-image](images/sim.png)
+
+
+### Colosseum Simulator 
+
+There is a separate port of the [Coloseum Line of Sight Simulation](https://los.colosim.com/) to Java contained within the Kraken API for reference
+that can be run in its own GUI in the `com.kraken.api.simulation.colosim` package.
+
+![colosseum-sim](./images/colosim.png)
 
 ## Game Updates
 

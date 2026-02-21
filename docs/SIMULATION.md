@@ -11,6 +11,26 @@ Use `com.kraken.api.simulation` when you need to evaluate many candidate actions
 
 ## Generalized Simulation Overview
 
+The simulation classes work by taking a "snapshot" of the game which includes:
+
+- Local collision maps
+- NPC's positioning (with configurable range, attack style, and attack speed)
+- Player positioning
+- game client information (like current tick etc...)
+
+The simulation then runs a decision tree search over some configurable actions you potentially want to take like:
+- Movement
+- Attacking mobs
+- Switching prayers
+- Swapping gear
+- eating food
+- etc...
+
+Developers provide scoring for various decisions in the decision tree search, 
+and a valid in-game action is returned based on the scoring from the simulation for what to perform in-game.
+
+The following lists some information about some of the simulation features and classes:
+
 - NPC combat metadata in snapshots (style, range, speed, max-hit).
 - Simulated player state (HP, active overhead prayer, inventory/equipment snapshots).
 - Action types beyond movement:
@@ -331,23 +351,6 @@ SimulationDecisionAdapter.ExecutableAction executable = decisionAdapter.adapt(
 decisionAdapter.execute(executable, policy.getAllowedExecutionSteps());
 ```
 
-## Example Plugin in This Repo
-
-Updated sample plugin classes:
-
-- `lib/src/test/java/com/kraken/api/simulation/plugin/SimulationPlugin.java`
-- `lib/src/test/java/com/kraken/api/simulation/plugin/SimulationPluginConfig.java`
-- `lib/src/test/java/com/kraken/api/simulation/plugin/SimulationSceneOverlay.java`
-- `lib/src/test/java/com/kraken/api/simulation/plugin/SimulationInfoOverlay.java`
-
-This plugin now demonstrates:
-
-- policy-based simulation loop
-- configurable action families (movement/prayer/eat/gear/spell)
-- configurable NPC combat metadata mapping
-- configurable food healing mapping
-- configurable executable-step allowlist
-
 ## Performance Tips
 
 - Keep depth low (`1-3`) and node cap bounded.
@@ -356,7 +359,7 @@ This plugin now demonstrates:
 - Prefer adding multiple small scoring rules instead of one giant scorer.
 - Use allowed execution step filtering when testing risky policies.
 
-## ColoSim Note
+## Colosseum Simulator Note
 
 `com.kraken.api.simulation.colosim` remains a useful domain-specific reference for Colosseum behavior and timeline tooling.
 

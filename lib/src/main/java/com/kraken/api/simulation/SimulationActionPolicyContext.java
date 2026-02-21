@@ -1,6 +1,7 @@
 package com.kraken.api.simulation;
 
 import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * Context passed to action-policy providers and scoring rules.
@@ -18,13 +19,7 @@ public final class SimulationActionPolicyContext {
      * @param state simulation state for this policy callback.
      * @param depthRemaining remaining decision-tree depth.
      */
-    public SimulationActionPolicyContext(SimulationEngine engine, SimulationState state, int depthRemaining) {
-        if (engine == null) {
-            throw new IllegalArgumentException("engine cannot be null");
-        }
-        if (state == null) {
-            throw new IllegalArgumentException("state cannot be null");
-        }
+    public SimulationActionPolicyContext(@NonNull SimulationEngine engine, @NonNull SimulationState state, int depthRemaining) {
         this.engine = engine;
         this.state = state;
         this.depthRemaining = depthRemaining;
