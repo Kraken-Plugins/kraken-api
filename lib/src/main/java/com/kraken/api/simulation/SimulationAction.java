@@ -1,124 +1,236 @@
 package com.kraken.api.simulation;
 
+import com.kraken.api.service.map.WorldPointService;
+import com.kraken.api.service.magic.CastableSpell;
 import lombok.Getter;
+import lombok.NonNull;
+import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 /**
- * Player action used by the simulation tick.
+ * Action edge used while expanding and executing simulation trees.
  */
 @Getter
 public final class SimulationAction {
-    public static final SimulationAction WAIT = new SimulationAction(0, 0, false);
-    public static final SimulationAction NORTH = new SimulationAction(0, 1, false);
-    public static final SimulationAction SOUTH = new SimulationAction(0, -1, false);
-    public static final SimulationAction EAST = new SimulationAction(1, 0, false);
-    public static final SimulationAction WEST = new SimulationAction(-1, 0, false);
-    public static final SimulationAction NORTH_EAST = new SimulationAction(1, 1, false);
-    public static final SimulationAction NORTH_WEST = new SimulationAction(-1, 1, false);
-    public static final SimulationAction SOUTH_EAST = new SimulationAction(1, -1, false);
-    public static final SimulationAction SOUTH_WEST = new SimulationAction(-1, -1, false);
-
-    private static final List<SimulationAction> STANDARD_WALK_ACTIONS = Collections.unmodifiableList(Arrays.asList(
-            WAIT,
-            NORTH,
-            SOUTH,
-            EAST,
-            WEST,
-            NORTH_EAST,
-            NORTH_WEST,
-            SOUTH_EAST,
-            SOUTH_WEST
-    ));
-
-    private final int dx;
-    private final int dy;
-    private final boolean run;
-
-    private SimulationAction(int dx, int dy, boolean run) {
-        if (dx < -1 || dx > 1 || dy < -1 || dy > 1) {
-            throw new IllegalArgumentException("dx and dy must be in range [-1, 1]");
-        }
-        this.dx = dx;
-        this.dy = dy;
-        this.run = run;
-    }
-
     /**
-     * Creates (or reuses) a walk action with one-tile directional deltas.
-     *
-     * @param dx x step in range [-1, 1].
-     * @param dy y step in range [-1, 1].
-     * @return canonical walk action when available, otherwise a new custom walk action.
+     * Simulation action kind.
      */
-    public static SimulationAction move(int dx, int dy) {
-        if (dx == 0 && dy == 0) {
-            return WAIT;
-        }
-        if (dx == NORTH.dx && dy == NORTH.dy) {
-            return NORTH;
-        }
-        if (dx == SOUTH.dx && dy == SOUTH.dy) {
-            return SOUTH;
-        }
-        if (dx == EAST.dx && dy == EAST.dy) {
-            return EAST;
-        }
-        if (dx == WEST.dx && dy == WEST.dy) {
-            return WEST;
-        }
-        if (dx == NORTH_EAST.dx && dy == NORTH_EAST.dy) {
-            return NORTH_EAST;
-        }
-        if (dx == NORTH_WEST.dx && dy == NORTH_WEST.dy) {
-            return NORTH_WEST;
-        }
-        if (dx == SOUTH_EAST.dx && dy == SOUTH_EAST.dy) {
-            return SOUTH_EAST;
-        }
-        if (dx == SOUTH_WEST.dx && dy == SOUTH_WEST.dy) {
-            return SOUTH_WEST;
-        }
-        return new SimulationAction(dx, dy, false);
+    public enum Type {
+        WAIT,
+        MOVE,
+        SWITCH_PRAYER,
+        EQUIP_ITEM,
+        NPC_INTERACT,
+        CAST_SPELL,
+        CUSTOM
     }
 
     /**
-     * Creates a run action for a directional delta.
+     * Canonical wait action.
+     */
+    public static final SimulationAction WAIT = new SimulationAction(
+            Type.WAIT,
+            -1,
+            false,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null,
+            null,
+            null
+    );
+
+    private final Type type;
+    private final int targetPackedPoint;
+    private final boolean run;
+    private final Prayer prayer;
+    private final Integer itemId;
+    private final String inventoryAction;
+    private final boolean consumeInventoryItem;
+    private final CastableSpell spell;
+    private final Integer targetNpcIndex;
+    private final String npcInteractionAction;
+    private final String customActionId;
+
+    private SimulationAction(
+            @NonNull Type type,
+            int targetPackedPoint,
+            boolean run,
+            Prayer prayer,
+            Integer itemId,
+            String inventoryAction,
+            boolean consumeInventoryItem,
+            CastableSpell spell,
+            Integer targetNpcIndex,
+            String npcInteractionAction,
+            String customActionId
+    ) {
+        this.type = type;
+        this.targetPackedPoint = targetPackedPoint;
+        this.run = run;
+        this.prayer = prayer;
+        this.itemId = itemId;
+        this.inventoryAction = normalize(inventoryAction);
+        this.consumeInventoryItem = consumeInventoryItem;
+        this.spell = spell;
+        this.targetNpcIndex = targetNpcIndex;
+        this.npcInteractionAction = normalize(npcInteractionAction);
+        this.customActionId = normalize(customActionId);
+    }
+
+    /**
+     * Creates a move action to a destination tile.
      *
-     * @param dx x step in range [-1, 1].
-     * @param dy y step in range [-1, 1].
+     * @param destination destination world point.
+     * @return move action.
+     */
+    public static SimulationAction moveTo(WorldPoint destination) {
+        if (destination == null) {
+            throw new IllegalArgumentException("destination cannot be null");
+        }
+        return moveToPacked(WorldPointService.pack(destination), false);
+    }
+
+    /**
+     * Creates a run action to a destination tile.
+     *
+     * @param destination destination world point.
      * @return run action.
      */
-    public static SimulationAction run(int dx, int dy) {
-        if (dx == 0 && dy == 0) {
-            return WAIT;
+    public static SimulationAction runTo(WorldPoint destination) {
+        if (destination == null) {
+            throw new IllegalArgumentException("destination cannot be null");
         }
-        return new SimulationAction(dx, dy, true);
+        return moveToPacked(WorldPointService.pack(destination), true);
     }
 
     /**
-     * @return canonical walk-only action set including {@link #WAIT}.
-     */
-    public static List<SimulationAction> standardWalkActions() {
-        return STANDARD_WALK_ACTIONS;
-    }
-
-    /**
-     * Converts this directional action into a world-space destination from an origin.
+     * Creates a move action using a packed destination.
      *
-     * @param origin source world point.
-     * @return destination world point after applying one (walk) or two (run) steps.
+     * @param packedWorldPoint packed destination.
+     * @param run true for 2-step movement per tick.
+     * @return move action.
      */
-    public WorldPoint destinationFrom(WorldPoint origin) {
-        if (origin == null) {
-            throw new IllegalArgumentException("origin cannot be null");
+    public static SimulationAction moveToPacked(int packedWorldPoint, boolean run) {
+        return new SimulationAction(Type.MOVE, packedWorldPoint, run, null, null, null,  false, null, null, null, null);
+    }
+
+    /**
+     * Creates a prayer switch action.
+     *
+     * @param prayer overhead prayer to enable.
+     * @return prayer switch action.
+     */
+    public static SimulationAction switchPrayer(Prayer prayer) {
+        if (prayer == null) {
+            throw new IllegalArgumentException("prayer cannot be null");
         }
-        int steps = run ? 2 : 1;
-        return new WorldPoint(origin.getX() + (dx * steps), origin.getY() + (dy * steps), origin.getPlane());
+        return new SimulationAction(Type.SWITCH_PRAYER, -1, false, prayer, null, null,  false, null, null, null, null);
+    }
+
+    /**
+     * Creates an equip action.
+     *
+     * @param itemId inventory item id.
+     * @return equip action.
+     */
+    public static SimulationAction equipItem(int itemId) {
+        if (itemId < 0) {
+            throw new IllegalArgumentException("itemId must be >= 0");
+        }
+        return new SimulationAction(Type.EQUIP_ITEM, -1, false, null, itemId, null,  false, null, null, null, null);
+    }
+
+    /**
+     * Creates an npc interaction action.
+     *
+     * @param npcIndex target npc index.
+     * @param action interaction action text.
+     * @return npc interaction action.
+     */
+    public static SimulationAction interactNpc(int npcIndex, String action) {
+        if (npcIndex < 0) {
+            throw new IllegalArgumentException("npcIndex must be >= 0");
+        }
+        String normalizedAction = normalize(action);
+        if (normalizedAction == null) {
+            throw new IllegalArgumentException("action cannot be blank");
+        }
+        return new SimulationAction(Type.NPC_INTERACT, -1, false, null, null, null,  false, null, npcIndex, normalizedAction, null);
+    }
+
+    /**
+     * Creates an untargeted spell cast.
+     *
+     * @param spell spell.
+     * @return spell action.
+     */
+    public static SimulationAction castSpell(CastableSpell spell) {
+        if (spell == null) {
+            throw new IllegalArgumentException("spell cannot be null");
+        }
+        return new SimulationAction(Type.CAST_SPELL, -1, false, null, null, null,  false, spell, null, null, null);
+    }
+
+    /**
+     * Creates a targeted spell cast.
+     *
+     * @param spell spell.
+     * @param targetNpcIndex target npc index.
+     * @return spell action.
+     */
+    public static SimulationAction castSpellOnNpc(CastableSpell spell, int targetNpcIndex) {
+        if (spell == null) {
+            throw new IllegalArgumentException("spell cannot be null");
+        }
+        if (targetNpcIndex < 0) {
+            throw new IllegalArgumentException("targetNpcIndex must be >= 0");
+        }
+        return new SimulationAction(Type.CAST_SPELL, -1, false, null, null, null,  false, spell, targetNpcIndex, null, null);
+    }
+
+    /**
+     * Creates a custom action marker.
+     *
+     * @param customActionId custom action id.
+     * @return custom action.
+     */
+    public static SimulationAction custom(String customActionId) {
+        String normalized = normalize(customActionId);
+        if (normalized == null) {
+            throw new IllegalArgumentException("customActionId cannot be blank");
+        }
+        return new SimulationAction(Type.CUSTOM, -1, false, null, null, null,  false, null, null, null, normalized);
+    }
+
+    /**
+     * @return true when this action is movement.
+     */
+    public boolean isMovement() {
+        return type == Type.MOVE;
+    }
+
+    /**
+     * @return true when this action is wait.
+     */
+    public boolean isWait() {
+        return type == Type.WAIT;
+    }
+
+    /**
+     * Resolves movement destination.
+     *
+     * @return destination world point, or null for non-movement actions.
+     */
+    public WorldPoint getMovementDestination() {
+        if (!isMovement()) {
+            return null;
+        }
+        return WorldPointService.unpack(targetPackedPoint);
     }
 
     @Override
@@ -130,20 +242,61 @@ public final class SimulationAction {
             return false;
         }
         SimulationAction that = (SimulationAction) other;
-        return dx == that.dx && dy == that.dy && run == that.run;
+        return targetPackedPoint == that.targetPackedPoint
+                && run == that.run
+                && consumeInventoryItem == that.consumeInventoryItem
+                && type == that.type
+                && prayer == that.prayer
+                && Objects.equals(itemId, that.itemId)
+                && Objects.equals(inventoryAction, that.inventoryAction)
+                && Objects.equals(spell, that.spell)
+                && Objects.equals(targetNpcIndex, that.targetNpcIndex)
+                && Objects.equals(npcInteractionAction, that.npcInteractionAction)
+                && Objects.equals(customActionId, that.customActionId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dx, dy, run);
+        return Objects.hash(
+                type,
+                targetPackedPoint,
+                run,
+                prayer,
+                itemId,
+                inventoryAction,
+                consumeInventoryItem,
+                spell,
+                targetNpcIndex,
+                npcInteractionAction,
+                customActionId
+        );
     }
 
     @Override
     public String toString() {
-        return "SimulationAction{"
-                + "dx=" + dx
-                + ", dy=" + dy
-                + ", run=" + run
-                + '}';
+        switch (type) {
+            case WAIT:
+                return "SimulationAction{type=WAIT}";
+            case MOVE:
+                return "SimulationAction{type=MOVE,target=" + getMovementDestination() + ",run=" + run + "}";
+            case SWITCH_PRAYER:
+                return "SimulationAction{type=SWITCH_PRAYER,prayer=" + prayer + "}";
+            case EQUIP_ITEM:
+                return "SimulationAction{type=EQUIP_ITEM,itemId=" + itemId + "}";
+            case NPC_INTERACT:
+                return "SimulationAction{type=NPC_INTERACT,npcIndex=" + targetNpcIndex + ",action=" + npcInteractionAction + "}";
+            case CAST_SPELL:
+                return "SimulationAction{type=CAST_SPELL,spell=" + (spell == null ? null : spell.getName()) + ",targetNpcIndex=" + targetNpcIndex + "}";
+            default:
+                return "SimulationAction{type=CUSTOM,id=" + customActionId + "}";
+        }
+    }
+
+    private static String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

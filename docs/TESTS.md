@@ -4,7 +4,7 @@ This project is unique in that it functions exclusively within a RuneLite game c
 like JUnit don't provide as much value. Sure, you can test functionality within the API but does is **really** find NPC's within 10 tiles of your player? 
 The only way to know for sure is to run tests within the game client.
 
-You can run tests by running the main class in `ExamplePluginTest.java`. This will launch a new game client which loads a custom "Testing" plugin
+You can run tests by running the main class in `PluginRunnerTest.java`. This will launch a new game client which loads a custom "Testing" plugin
 called "API Tests" which you will see within RuneLite. Through this plugin you can run specific tests which cover various query and service related classes
 and dump output into the console and the overlay for PASS/FAIL.
 

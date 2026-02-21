@@ -1,137 +1,229 @@
 # Simulation Engine
 
-The API provides two simulation areas:
+The refactored simulation API is centered around four objects:
 
-- `com.kraken.api.sim` and `com.kraken.api.sim.colosim`: existing simulation/visualizer tooling, including Colosseum-specific examples.
-- `com.kraken.api.simulation`: generic, RuneLite-compatible simulation for decision-tree search and in-game action execution.
+1. `SimulationSnapshot`: immutable player/NPC positions + collision map.
+2. `SimulationScenario`: snapshot + `npcId -> SimulationNpcProfile` mapping.
+3. `SimulationTreeOptions`: depth, movement expansion mode, and node/action limits.
+4. `SimulationEngine`: tree generation and tick simulation.
 
-This is intended for plugins that need to evaluate many candidate actions per game tick (0.6s) and choose an actionable outcome.
+Search is done with `DecisionTreeSearch` over the generated `SimulationTree`.
 
-![sim-example-image](../images/sim.png)
+## Why This Design
 
-## Generic Simulation Package
+- Snapshot input is compact and immutable.
+- NPC behavior is explicit and controlled by a single mapping type (`SimulationNpcProfile`).
+- Movement expansion supports both:
+  - every reachable tile in radius (`RADIUS`)
+  - every reachable tile for the remaining horizon (`REACHABLE`)
+- World points are packed into ints in state/snapshot internals for fast copies.
+- You can search deep trees (15+ ticks) with hard caps (`maxNodes`, `maxActionsPerNode`).
 
-The generic simulation package is `com.kraken.api.simulation`.
+## Core Types
 
-Core classes:
+- `SimulationSnapshotService`: capture snapshot from live client.
+- `SimulationSnapshot`: collision map + player snapshot + NPC snapshots.
+- `SimulationNpcProfile`: NPC attack range/style/speed/max-hit/intelligent-pathing.
+- `SimulationScenario`: snapshot + profile map.
+- `SimulationTreeOptions`: tree depth and expansion controls.
+- `SimulationEngine`: tick simulation and tree generation.
+- `SimulationTree`: generated tree of outcomes.
+- `DecisionTreeSearch`: finds the best root action from a tree.
+- `SimulationDecisionAdapter`: converts best action into executable API steps.
 
-- `SimulationSnapshotService`: captures immutable snapshots directly from live RuneLite state.
-- `SimulationSnapshot`: immutable snapshot model (RuneLite `WorldPoint`, local collision flags, base coords, plane, NPCs).
-- `SimulationState`: mutable state optimized for fast copying/branching (`copy()`).
-- `SimulationEngine`: simulates ticks, movement, collision, and line-of-sight.
-- `DecisionTreeSearch`: depth-limited tree search over candidate player actions.
-- `SimulationDecisionAdapter`: converts tree-search result into executable movement + interaction actions.
-
-### RuneLite Compatibility
-
-Snapshot and simulation data stay in RuneLite-compatible coordinate space:
-
-- Uses `WorldPoint` for entities/decisions.
-- Uses copied RuneLite local collision flags (`CollisionData` flags).
-- Uses `baseX/baseY/plane` from the active `WorldView`.
-
-This allows direct translation from simulated decisions back to in-game packets/interactions.
-
-## Quick Start (Programmatic)
+## Snapshot + NPC Mapping
 
 ```java
-import com.kraken.api.simulation.*;
+SimulationSnapshot snapshot = SimulationSnapshotService.capture(
+    new SimulationSnapshotService.CaptureOptions()
+        .withNpcRadius(24)
+        .withFoodHealingByItemId(Map.of(
+            385, 20,   // shark
+            3144, 18   // karambwan
+        ))
+);
 
-// 1) Capture snapshot from live game state
-SimulationSnapshot snapshot = SimulationSnapshotService.capture(24); // NPC radius
+Map<Integer, SimulationNpcProfile> npcProfiles = Map.of(
+    415,  new SimulationNpcProfile(1,  NpcAttackStyle.MELEE,  4, 30, true),
+    3129, new SimulationNpcProfile(10, NpcAttackStyle.MAGIC,  4, 20, true),
+    3130, new SimulationNpcProfile(10, NpcAttackStyle.RANGED, 4, 22, true)
+);
 
-// 2) Create mutable state + engine
+SimulationScenario scenario = new SimulationScenario(snapshot, npcProfiles);
+```
+
+`SimulationNpcProfile` fields are exactly the per-NPC mapping contract:
+
+- `attackRange`
+- `attackStyle` (`MELEE`, `RANGED`, `MAGIC`, `UNKNOWN`)
+- `attackSpeed`
+- `maxHit`
+- `intelligentPathing`
+
+`intelligentPathing = true` means the NPC uses collision-aware pathing and will route around obstacles.
+
+## Build A Tree
+
+```java
 SimulationEngine engine = new SimulationEngine();
-SimulationState root = snapshot.createState();
 
-// 3) Run decision search
-DecisionTreeSearch search = new DecisionTreeSearch(engine, 4000); // max nodes
+SimulationTreeOptions options = SimulationTreeOptions.defaults()
+    .withTicks(18)                 // 15+ tick planning
+    .withMovementMode(SimulationMovementMode.RADIUS)
+    .withMovementRadius(7)
+    .withMovementTypes(true, true) // walk + run
+    .withMaxNodes(20000)
+    .withActionCaps(120, 80);      // maxActionsPerNode, maxMovementTargets
+
+SimulationTree tree = engine.generateOutcomeTree(
+    scenario,
+    options,
+    (state, depthRemaining) -> List.of(
+        SimulationAction.switchPrayer(engine.recommendProtectionPrayer(state)),
+        SimulationAction.eat(385, state.getFoodHealAmount(385))
+    )
+);
+```
+
+## Search The Tree
+
+```java
+DecisionTreeSearch search = new DecisionTreeSearch();
+
 DecisionTreeSearch.Result result = search.search(
-    root,
-    2, // depth
-    (state, depthRemaining) -> SimulationAction.standardWalkActions(),
-    state -> {
-        int threats = engine.countNpcsWithLineOfSightToPlayer(state);
+    tree,
+    node -> {
+        SimulationState state = node.getState();
+        int los = engine.countNpcsWithLineOfSightToPlayer(state);
+        int attacks = engine.countNpcsAbleToAttackPlayer(state);
+        int unprotected = engine.countUnprotectedNpcThreats(state);
+        return (state.getPlayerHitpoints() * 1.1)
+            - (los * 18.0)
+            - (attacks * 24.0)
+            - (unprotected * 40.0);
+    }
+);
+```
+
+`result.getBestAction()` is directly actionable and can be:
+
+- `MOVE` to a specific tile (including far tiles)
+- prayer switch
+- inventory click/eat
+- gear equip
+- spell cast
+- npc interaction
+
+## Execute The Best Action
+
+```java
+SimulationDecisionAdapter.ExecutableAction executable = decisionAdapter.adapt(
+    result,
+    rootState,
+    new SimulationDecisionAdapter.AdaptOptions("Attack", 1, 10)
+);
+
+decisionAdapter.execute(
+    executable,
+    Set.of(
+        SimulationDecisionAdapter.ExecutableStepType.MOVE,
+        SimulationDecisionAdapter.ExecutableStepType.SWITCH_PRAYER,
+        SimulationDecisionAdapter.ExecutableStepType.INVENTORY_INTERACT
+    )
+);
+```
+
+## Example: Movement-Only Escape
+
+```java
+SimulationTreeOptions options = SimulationTreeOptions.defaults()
+    .withTicks(16)
+    .withMovementMode(SimulationMovementMode.REACHABLE)
+    .withMovementTypes(true, true)
+    .withMaxNodes(15000)
+    .withActionCaps(60, 120);
+
+SimulationTree tree = engine.generateOutcomeTree(scenario, options, (s, d) -> List.of());
+DecisionTreeSearch.Result result = search.search(
+    tree,
+    node -> {
+        SimulationState s = node.getState();
+        int threats = engine.countNpcsAbleToAttackPlayer(s);
         return -threats * 25.0;
     }
 );
-
-// 4) Optionally inspect resulting state
-SimulationState bestAfterOneTick = engine.simulateTickCopy(root, result.getBestAction());
 ```
 
-## Action Adapter (Simulation -> Executable Game Action)
-
-Use `SimulationDecisionAdapter` to translate search result into real movement and optional NPC interaction.
+## Example: Prayer + Eat + Spell Hybrid
 
 ```java
-import com.kraken.api.simulation.*;
-
-@Inject 
-private SimulationDecisionAdapter decisionAdapter;
-
-SimulationDecisionAdapter.ExecutableAction executable = decisionAdapter.adapt(
-    result,
-    root,
-    "Attack", // null to disable interactions
-    1         // interaction distance
+SimulationTree tree = engine.generateOutcomeTree(
+    scenario,
+    options,
+    (state, depthRemaining) -> {
+        List<SimulationAction> actions = new ArrayList<>();
+        Prayer recommended = engine.recommendProtectionPrayer(state);
+        if (recommended != null && recommended != state.getActiveProtectionPrayer()) {
+            actions.add(SimulationAction.switchPrayer(recommended));
+        }
+        if (state.getPlayerHitpoints() <= 45 && state.hasInventoryItem(385)) {
+            actions.add(SimulationAction.eat(385, state.getFoodHealAmount(385)));
+        }
+        actions.add(SimulationAction.castSpell(Standard.WIND_STRIKE));
+        return actions;
+    }
 );
-
-// Execute movement + optional interaction on client thread
-decisionAdapter.execute(executable);
 ```
 
-What the adapter does:
+## Example: Manual Snapshot Input (Without Live Capture)
 
-- Converts chosen `SimulationAction` into destination `WorldPoint` movement.
-- Optionally selects an NPC target by simulated proximity.
-- Executes via `MovementService` and NPC interaction APIs.
+```java
+int[][] collision = new int[10][10];
+WorldPoint playerPoint = new WorldPoint(3203, 3203, 0);
 
-## RuneLite Plugin Example
+SimulationPlayerSnapshot player = new SimulationPlayerSnapshot(
+    playerPoint,
+    99,
+    99,
+    null,
+    Map.of(385, 2),
+    Set.of(),
+    Map.of(385, 20)
+);
 
-A full plugin using this simulation is included in the test package of this repository
-in the following classes:
+SimulationSnapshot snapshot = new SimulationSnapshot(
+    0,
+    0,
+    3200,
+    3200,
+    collision,
+    player,
+    List.of(
+        new SimulationNpcSnapshot(1, 415, 1, new WorldPoint(3205, 3205, 0))
+    )
+);
 
-- `com.kraken.api.simulation.plugin.SimulationPlugin`
-- `com.kraken.api.simulation.plugin.SimulationPluginConfig`
-- `com.kraken.api.simulation.plugin.SimulationSceneOverlay`
-- `com.kraken.api.simulation.plugin.SimulationInfoOverlay`
+SimulationScenario scenario = new SimulationScenario(
+    snapshot,
+    Map.of(415, new SimulationNpcProfile(1, NpcAttackStyle.MELEE, 4, 20, true))
+);
+```
 
-Plugin features:
+## Performance Guidance
 
-- Captures a fresh simulation snapshot each game tick.
-- Runs decision-tree search and computes best action.
-- Visualizes best tile, predicted NPC paths, and optional NPC LoS tiles.
-- Optional automatic execution of adapted movement/interaction action.
+- Keep `maxNodes` bounded.
+- Keep `maxActionsPerNode` and `maxMovementTargets` realistic.
+- Use `RADIUS` for tighter local fights.
+- Use `REACHABLE` when planning long repositioning routes.
+- Prefer cheap scoring functions because they run for many nodes.
 
-### Plugin Config Highlights
+## Plugin Reference
 
-- Search: snapshot radius, depth, max nodes, include run actions.
-- Execution: auto-execute best action, interaction action text, interaction distance.
-- Overlay: scene/info overlays, best move tile, path/LoS visualization options.
+See `lib/src/test/java/plugins/simulation/SimulationPlugin.java` for a complete tick loop:
 
-## Running the Plugin
-
-In this repository setup, you can launch RuneLite with the bundled plugin classes using the existing test harness (`ExamplePluginTest`) and then enable the plugin in RuneLite:
-
-1. Run the main test harness class that launches RuneLite (see `docs/TESTS.md`).
-2. In RuneLite plugin list, enable `Simulation Sandbox`.
-3. Configure search depth/node cap and overlay options.
-4. Optionally enable `Auto Execute Best Action` once overlays/search output looks correct.
-
-For consumption in your own plugin repo, include this API as a dependency and wire the same simulation classes in your plugin loop.
-
-## Performance Notes
-
-- Keep search depth and node cap bounded (`depth 1-3`, moderate `maxNodes`) for stable per-tick runtime.
-- Restrict snapshot NPC radius and overlay NPC counts.
-- Prefer immutable snapshot + mutable state copies (already provided) for branch expansion.
-
-## ColoSim
-
-`com.kraken.api.sim.colosim` is a Java port of the Colosseum LoS simulator and remains useful as a domain-specific reference:
-
-- [OSRS Colosseum LoS Simulator](https://los.colosim.com/)
-
-It is intentionally specialized and adapted to the Colosseum specifically but shows a general example of a simulation game loop running 
-outside the RuneLite plugin context; use `com.kraken.api.simulation` for more generic RuneLite specific context. 
+- capture snapshot
+- build NPC profile mapping
+- generate tree
+- search best action
+- adapt to executable steps
+- optionally execute
