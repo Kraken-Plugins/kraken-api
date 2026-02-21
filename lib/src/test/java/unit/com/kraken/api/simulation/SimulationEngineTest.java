@@ -1,5 +1,10 @@
-package com.kraken.api.simulation;
+package unit.com.kraken.api.simulation;
 
+import com.kraken.api.simulation.*;
+import com.kraken.api.simulation.snapshot.SimulationNpcSnapshot;
+import com.kraken.api.simulation.snapshot.SimulationPlayerSnapshot;
+import com.kraken.api.simulation.snapshot.SimulationSnapshot;
+import com.kraken.api.simulation.tree.DecisionTreeSearch;
 import com.kraken.api.simulation.tree.SimulationTree;
 import com.kraken.api.simulation.tree.SimulationTreeOptions;
 import net.runelite.api.CollisionDataFlag;
@@ -11,10 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class SimulationEngineTest {
     private static final int BASE_X = 3200;

@@ -1,4 +1,4 @@
-package com.kraken.api.simulation;
+package com.kraken.api.simulation.snapshot;
 
 import com.kraken.api.Context;
 import lombok.AccessLevel;

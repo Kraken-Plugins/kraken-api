@@ -1,5 +1,6 @@
 package com.kraken.api.simulation;
 
+import com.kraken.api.simulation.snapshot.SimulationSnapshot;
 import lombok.Getter;
 import lombok.NonNull;
 

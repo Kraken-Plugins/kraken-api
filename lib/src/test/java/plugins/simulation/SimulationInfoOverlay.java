@@ -2,7 +2,7 @@ package plugins.simulation;
 
 import com.google.inject.Inject;
 import com.kraken.api.simulation.SimulationDecisionAdapter;
-import com.kraken.api.simulation.SimulationSnapshot;
+import com.kraken.api.simulation.snapshot.SimulationSnapshot;
 import net.runelite.api.Prayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;

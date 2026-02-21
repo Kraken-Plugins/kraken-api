@@ -1,5 +1,7 @@
-package com.kraken.api.simulation;
+package com.kraken.api.simulation.snapshot;
 
+import com.kraken.api.simulation.SimulationScenario;
+import com.kraken.api.simulation.SimulationState;
 import lombok.Getter;
 import lombok.NonNull;
 import net.runelite.api.coords.WorldPoint;
@@ -156,7 +158,7 @@ public final class SimulationSnapshot {
         return SimulationState.fromScenario(new SimulationScenario(this, Collections.emptyMap()));
     }
 
-    int[][] collisionFlagsUnsafe() {
+    public int[][] collisionFlagsUnsafe() {
         return collisionFlags;
     }
 

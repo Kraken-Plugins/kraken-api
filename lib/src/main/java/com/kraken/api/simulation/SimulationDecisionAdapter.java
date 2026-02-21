@@ -10,6 +10,7 @@ import com.kraken.api.service.magic.CastableSpell;
 import com.kraken.api.service.magic.MagicService;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.prayer.PrayerService;
+import com.kraken.api.simulation.tree.DecisionTreeSearch;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.runelite.api.Prayer;

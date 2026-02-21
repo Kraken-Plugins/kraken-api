@@ -1,6 +1,7 @@
 package com.kraken.api.simulation;
 
 import com.kraken.api.service.map.WorldPointService;
+import com.kraken.api.simulation.snapshot.SimulationSnapshot;
 import com.kraken.api.simulation.tree.SimulationTree;
 import com.kraken.api.simulation.tree.SimulationTreeNode;
 import com.kraken.api.simulation.tree.SimulationTreeOptions;
@@ -181,8 +182,7 @@ public final class SimulationEngine {
         }
 
         SimulationTreeOptions safeOptions = options == null ? SimulationTreeOptions.defaults() : options;
-        LinkedHashSet<SimulationAction> collected = new LinkedHashSet<>();
-        collected.addAll(generateMovementActions(state, depthRemaining, safeOptions));
+        LinkedHashSet<SimulationAction> collected = new LinkedHashSet<>(generateMovementActions(state, depthRemaining, safeOptions));
         collected.add(SimulationAction.WAIT);
 
         if (actionProvider != null) {
@@ -324,7 +324,7 @@ public final class SimulationEngine {
     }
 
     /**
-     * Returns the best overhead prayer based on soonest incoming hit.
+     * Returns the best overhead prayer based on the incoming hit.
      *
      * @param state state.
      * @return prayer or null.
@@ -1177,14 +1177,6 @@ public final class SimulationEngine {
         int dy = targetY - sourceY;
         return (dx < sourceSize && dx >= 0 && (dy == sourceSize || dy == -1))
                 || (dy < sourceSize && dy >= 0 && (dx == -1 || dx == sourceSize));
-    }
-
-    private boolean isLikelyConsumableAction(String action) {
-        if (action == null) {
-            return false;
-        }
-        String normalized = action.trim().toLowerCase();
-        return "eat".equals(normalized) || "drink".equals(normalized) || "consume".equals(normalized);
     }
 
     private boolean isBlockedTile(int flags) {

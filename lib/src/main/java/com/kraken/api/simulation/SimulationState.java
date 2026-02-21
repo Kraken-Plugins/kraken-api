@@ -1,6 +1,9 @@
 package com.kraken.api.simulation;
 
 import com.kraken.api.service.map.WorldPointService;
+import com.kraken.api.simulation.snapshot.SimulationNpcSnapshot;
+import com.kraken.api.simulation.snapshot.SimulationPlayerSnapshot;
+import com.kraken.api.simulation.snapshot.SimulationSnapshot;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Prayer;
@@ -55,7 +58,7 @@ public final class SimulationState {
     private final Map<Integer, Integer> inventoryItemCounts;
     private final Set<Integer> equippedItemIds;
 
-    static SimulationState fromScenario(SimulationScenario scenario) {
+    public static SimulationState fromScenario(SimulationScenario scenario) {
         if (scenario == null) {
             throw new IllegalArgumentException("scenario cannot be null");
         }

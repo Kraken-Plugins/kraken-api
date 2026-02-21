@@ -3,6 +3,7 @@ package com.kraken.api.simulation;
 import com.kraken.api.service.map.WorldPointService;
 import com.kraken.api.service.magic.CastableSpell;
 import lombok.Getter;
+import lombok.NonNull;
 import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
 
@@ -36,7 +37,6 @@ public final class SimulationAction {
             null,
             null,
             null,
-            0,
             false,
             null,
             null,
@@ -50,7 +50,6 @@ public final class SimulationAction {
     private final Prayer prayer;
     private final Integer itemId;
     private final String inventoryAction;
-    private final int healAmount;
     private final boolean consumeInventoryItem;
     private final CastableSpell spell;
     private final Integer targetNpcIndex;
@@ -58,32 +57,24 @@ public final class SimulationAction {
     private final String customActionId;
 
     private SimulationAction(
-            Type type,
+            @NonNull Type type,
             int targetPackedPoint,
             boolean run,
             Prayer prayer,
             Integer itemId,
             String inventoryAction,
-            int healAmount,
             boolean consumeInventoryItem,
             CastableSpell spell,
             Integer targetNpcIndex,
             String npcInteractionAction,
             String customActionId
     ) {
-        if (type == null) {
-            throw new IllegalArgumentException("type cannot be null");
-        }
-        if (healAmount < 0) {
-            throw new IllegalArgumentException("healAmount must be >= 0");
-        }
         this.type = type;
         this.targetPackedPoint = targetPackedPoint;
         this.run = run;
         this.prayer = prayer;
         this.itemId = itemId;
         this.inventoryAction = normalize(inventoryAction);
-        this.healAmount = healAmount;
         this.consumeInventoryItem = consumeInventoryItem;
         this.spell = spell;
         this.targetNpcIndex = targetNpcIndex;
@@ -125,7 +116,7 @@ public final class SimulationAction {
      * @return move action.
      */
     public static SimulationAction moveToPacked(int packedWorldPoint, boolean run) {
-        return new SimulationAction(Type.MOVE, packedWorldPoint, run, null, null, null, 0, false, null, null, null, null);
+        return new SimulationAction(Type.MOVE, packedWorldPoint, run, null, null, null,  false, null, null, null, null);
     }
 
     /**
@@ -138,7 +129,7 @@ public final class SimulationAction {
         if (prayer == null) {
             throw new IllegalArgumentException("prayer cannot be null");
         }
-        return new SimulationAction(Type.SWITCH_PRAYER, -1, false, prayer, null, null, 0, false, null, null, null, null);
+        return new SimulationAction(Type.SWITCH_PRAYER, -1, false, prayer, null, null,  false, null, null, null, null);
     }
 
     /**
@@ -151,7 +142,7 @@ public final class SimulationAction {
         if (itemId < 0) {
             throw new IllegalArgumentException("itemId must be >= 0");
         }
-        return new SimulationAction(Type.EQUIP_ITEM, -1, false, null, itemId, null, 0, false, null, null, null, null);
+        return new SimulationAction(Type.EQUIP_ITEM, -1, false, null, itemId, null,  false, null, null, null, null);
     }
 
     /**
@@ -169,7 +160,7 @@ public final class SimulationAction {
         if (normalizedAction == null) {
             throw new IllegalArgumentException("action cannot be blank");
         }
-        return new SimulationAction(Type.NPC_INTERACT, -1, false, null, null, null, 0, false, null, npcIndex, normalizedAction, null);
+        return new SimulationAction(Type.NPC_INTERACT, -1, false, null, null, null,  false, null, npcIndex, normalizedAction, null);
     }
 
     /**
@@ -182,7 +173,7 @@ public final class SimulationAction {
         if (spell == null) {
             throw new IllegalArgumentException("spell cannot be null");
         }
-        return new SimulationAction(Type.CAST_SPELL, -1, false, null, null, null, 0, false, spell, null, null, null);
+        return new SimulationAction(Type.CAST_SPELL, -1, false, null, null, null,  false, spell, null, null, null);
     }
 
     /**
@@ -199,7 +190,7 @@ public final class SimulationAction {
         if (targetNpcIndex < 0) {
             throw new IllegalArgumentException("targetNpcIndex must be >= 0");
         }
-        return new SimulationAction(Type.CAST_SPELL, -1, false, null, null, null, 0, false, spell, targetNpcIndex, null, null);
+        return new SimulationAction(Type.CAST_SPELL, -1, false, null, null, null,  false, spell, targetNpcIndex, null, null);
     }
 
     /**
@@ -213,7 +204,7 @@ public final class SimulationAction {
         if (normalized == null) {
             throw new IllegalArgumentException("customActionId cannot be blank");
         }
-        return new SimulationAction(Type.CUSTOM, -1, false, null, null, null, 0, false, null, null, null, normalized);
+        return new SimulationAction(Type.CUSTOM, -1, false, null, null, null,  false, null, null, null, normalized);
     }
 
     /**
@@ -253,7 +244,6 @@ public final class SimulationAction {
         SimulationAction that = (SimulationAction) other;
         return targetPackedPoint == that.targetPackedPoint
                 && run == that.run
-                && healAmount == that.healAmount
                 && consumeInventoryItem == that.consumeInventoryItem
                 && type == that.type
                 && prayer == that.prayer
@@ -274,7 +264,6 @@ public final class SimulationAction {
                 prayer,
                 itemId,
                 inventoryAction,
-                healAmount,
                 consumeInventoryItem,
                 spell,
                 targetNpcIndex,
