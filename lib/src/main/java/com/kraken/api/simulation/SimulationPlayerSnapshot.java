@@ -24,7 +24,6 @@ public final class SimulationPlayerSnapshot {
     private final Prayer activeProtectionPrayer;
     private final Map<Integer, Integer> inventoryItemQuantities;
     private final Set<Integer> equippedItemIds;
-    private final Map<Integer, Integer> foodHealingByItemId;
 
     /**
      * Creates immutable player combat/action metadata used by simulation actions.
@@ -35,7 +34,6 @@ public final class SimulationPlayerSnapshot {
      * @param activeProtectionPrayer active overhead protection prayer at capture time.
      * @param inventoryItemQuantities stack size by item id for inventory items.
      * @param equippedItemIds equipped item ids.
-     * @param foodHealingByItemId configured heal amount by food item id.
      */
     public SimulationPlayerSnapshot(
             WorldPoint worldPoint,
@@ -43,8 +41,7 @@ public final class SimulationPlayerSnapshot {
             int maxHitpoints,
             Prayer activeProtectionPrayer,
             Map<Integer, Integer> inventoryItemQuantities,
-            Set<Integer> equippedItemIds,
-            Map<Integer, Integer> foodHealingByItemId
+            Set<Integer> equippedItemIds
     ) {
         if (worldPoint == null) {
             throw new IllegalArgumentException("worldPoint cannot be null");
@@ -62,7 +59,6 @@ public final class SimulationPlayerSnapshot {
         this.activeProtectionPrayer = activeProtectionPrayer;
         this.inventoryItemQuantities = immutablePositiveCountMap(inventoryItemQuantities);
         this.equippedItemIds = immutablePositiveIdSet(equippedItemIds);
-        this.foodHealingByItemId = immutablePositiveCountMap(foodHealingByItemId);
     }
 
     /**
@@ -75,19 +71,8 @@ public final class SimulationPlayerSnapshot {
                 DEFAULT_MAX_HP,
                 null,
                 Collections.emptyMap(),
-                Collections.emptySet(),
-                Collections.emptyMap()
+                Collections.emptySet()
         );
-    }
-
-    /**
-     * Resolves configured food healing for a specific item id.
-     *
-     * @param itemId item id.
-     * @return heal amount, or {@code 0} when not configured.
-     */
-    public int getFoodHealAmount(int itemId) {
-        return foodHealingByItemId.getOrDefault(itemId, 0);
     }
 
     /**

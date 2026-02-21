@@ -40,24 +40,22 @@ public final class SimulationSnapshotService {
     @Getter
     public static final class CaptureOptions {
         private final int npcRadius;
-        private final Map<Integer, Integer> foodHealingByItemId;
 
         /**
-         * Creates options.
+         * Creates options for how the game state is captured from the Cliwnr.
          *
          * @param npcRadius npc inclusion radius, or <=0 for all loaded same-plane npcs.
          * @param foodHealingByItemId optional item->heal mapping copied into player snapshot.
          */
-        public CaptureOptions(int npcRadius, Map<Integer, Integer> foodHealingByItemId) {
+        public CaptureOptions(int npcRadius) {
             this.npcRadius = npcRadius;
-            this.foodHealingByItemId = sanitizePositiveCountMap(foodHealingByItemId);
         }
 
         /**
          * Creates default options.
          */
         public CaptureOptions() {
-            this(DEFAULT_NPC_RADIUS, Map.of());
+            this(DEFAULT_NPC_RADIUS);
         }
 
         /**
@@ -65,15 +63,7 @@ public final class SimulationSnapshotService {
          * @return copied options.
          */
         public CaptureOptions withNpcRadius(int npcRadius) {
-            return new CaptureOptions(npcRadius, foodHealingByItemId);
-        }
-
-        /**
-         * @param foodHealingByItemId item->heal map.
-         * @return copied options.
-         */
-        public CaptureOptions withFoodHealingByItemId(Map<Integer, Integer> foodHealingByItemId) {
-            return new CaptureOptions(npcRadius, foodHealingByItemId);
+            return new CaptureOptions(npcRadius);
         }
     }
 
@@ -93,7 +83,7 @@ public final class SimulationSnapshotService {
      * @return immutable snapshot.
      */
     public static SimulationSnapshot capture(int npcRadius) {
-        return capture(new CaptureOptions(npcRadius, Map.of()));
+        return capture(new CaptureOptions(npcRadius));
     }
 
     /**
@@ -109,7 +99,7 @@ public final class SimulationSnapshotService {
     }
 
     static SimulationSnapshot captureOnClientThread(Client client, int npcRadius) {
-        return captureOnClientThread(client, new CaptureOptions(npcRadius, Map.of()));
+        return captureOnClientThread(client, new CaptureOptions(npcRadius));
     }
 
     static SimulationSnapshot captureOnClientThread(Client client, CaptureOptions options) {
@@ -211,8 +201,7 @@ public final class SimulationSnapshotService {
                 maxHp,
                 activePrayer,
                 inventoryItemQuantities,
-                equippedItemIds,
-                options.getFoodHealingByItemId()
+                equippedItemIds
         );
     }
 

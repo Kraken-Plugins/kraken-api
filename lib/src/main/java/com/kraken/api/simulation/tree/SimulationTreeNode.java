@@ -1,5 +1,8 @@
-package com.kraken.api.simulation;
+package com.kraken.api.simulation.tree;
 
+import com.kraken.api.simulation.SimulationAction;
+import com.kraken.api.simulation.SimulationState;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -10,28 +13,15 @@ import java.util.List;
  * Node in a simulated outcome tree.
  */
 @Getter
+@AllArgsConstructor
 public final class SimulationTreeNode {
     private final int id;
     private final int depth;
     private final SimulationAction actionFromParent;
     private final SimulationState state;
     private final SimulationTreeNode parent;
-    private final List<SimulationTreeNode> children;
+    private final List<SimulationTreeNode> children = new ArrayList<>();
 
-    SimulationTreeNode(
-            int id,
-            int depth,
-            SimulationAction actionFromParent,
-            SimulationState state,
-            SimulationTreeNode parent
-    ) {
-        this.id = id;
-        this.depth = depth;
-        this.actionFromParent = actionFromParent;
-        this.state = state;
-        this.parent = parent;
-        this.children = new ArrayList<>();
-    }
 
     /**
      * @return true when this node has no children.
@@ -47,7 +37,11 @@ public final class SimulationTreeNode {
         return Collections.unmodifiableList(children);
     }
 
-    void addChild(SimulationTreeNode child) {
+    /**
+     * Adds a child node to the current tree node.
+     * @param child child node.
+     */
+    public void addChild(SimulationTreeNode child) {
         if (child != null) {
             children.add(child);
         }

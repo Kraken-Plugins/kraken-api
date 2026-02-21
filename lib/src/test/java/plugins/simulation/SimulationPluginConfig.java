@@ -87,40 +87,6 @@ public interface SimulationPluginConfig extends Config {
         return 6;
     }
 
-    @ConfigItem(
-            keyName = "includeWalkActions",
-            name = "Include Walk Actions",
-            description = "Generate 1-step movement actions for reachable destinations.",
-            section = searchSection,
-            position = 16
-    )
-    default boolean includeWalkActions() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "includeRunActions",
-            name = "Include Run Actions",
-            description = "Generate 2-step movement actions for reachable destinations.",
-            section = searchSection,
-            position = 17
-    )
-    default boolean includeRunActions() {
-        return true;
-    }
-
-    @Range(min = 1, max = 400)
-    @ConfigItem(
-            keyName = "maxMovementTargets",
-            name = "Max Movement Targets",
-            description = "Maximum movement destinations generated per node before walk/run variants.",
-            section = searchSection,
-            position = 18
-    )
-    default int maxMovementTargets() {
-        return 80;
-    }
-
     @Range(min = 1, max = 400)
     @ConfigItem(
             keyName = "maxActionsPerNode",
@@ -151,17 +117,6 @@ public interface SimulationPluginConfig extends Config {
         return "";
     }
 
-    @ConfigItem(
-            keyName = "foodHealingOverrides",
-            name = "Food Heal Mapping",
-            description = "CSV: itemId=heal (example: 385=20,3144=18).",
-            section = combatSection,
-            position = 22
-    )
-    default String foodHealingOverrides() {
-        return "";
-    }
-
     @ConfigSection(
             name = "Action Candidates",
             description = "Optional non-movement actions to add to the tree.",
@@ -178,29 +133,6 @@ public interface SimulationPluginConfig extends Config {
     )
     default boolean includePrayerActions() {
         return true;
-    }
-
-    @ConfigItem(
-            keyName = "includeEatActions",
-            name = "Include Eat Actions",
-            description = "Generate eat actions when HP is low and food is mapped.",
-            section = candidateSection,
-            position = 32
-    )
-    default boolean includeEatActions() {
-        return true;
-    }
-
-    @Range(min = 1, max = 99)
-    @ConfigItem(
-            keyName = "eatAtOrBelowHp",
-            name = "Eat At Or Below HP",
-            description = "Generate eat actions when HP is <= this value.",
-            section = candidateSection,
-            position = 33
-    )
-    default int eatAtOrBelowHp() {
-        return 45;
     }
 
     @ConfigItem(

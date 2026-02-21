@@ -2,6 +2,7 @@ package com.kraken.api.simulation;
 
 import com.kraken.api.service.map.WorldPointService;
 import lombok.Getter;
+import lombok.Setter;
 import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
 
@@ -37,18 +38,22 @@ public final class SimulationState {
     private int playerPackedPoint;
     private int queuedMoveTargetPackedPoint;
     private boolean queuedMoveRun;
+
     @Getter
     private int playerHitpoints;
+
     @Getter
     private int playerMaxHitpoints;
+
+    @Setter
     @Getter
     private Prayer activeProtectionPrayer;
+
     @Getter
     private SimulationAction lastAppliedAction;
 
     private final Map<Integer, Integer> inventoryItemCounts;
     private final Set<Integer> equippedItemIds;
-    private final Map<Integer, Integer> foodHealingByItemId;
 
     static SimulationState fromScenario(SimulationScenario scenario) {
         if (scenario == null) {
@@ -100,8 +105,7 @@ public final class SimulationState {
                 player.getActiveProtectionPrayer(),
                 null,
                 toMutableMap(player.getInventoryItemQuantities()),
-                toMutableSet(player.getEquippedItemIds()),
-                toMutableMap(player.getFoodHealingByItemId())
+                toMutableSet(player.getEquippedItemIds())
         );
     }
 
@@ -125,8 +129,7 @@ public final class SimulationState {
             Prayer activeProtectionPrayer,
             SimulationAction lastAppliedAction,
             Map<Integer, Integer> inventoryItemCounts,
-            Set<Integer> equippedItemIds,
-            Map<Integer, Integer> foodHealingByItemId
+            Set<Integer> equippedItemIds
     ) {
         this.scenario = scenario;
         this.snapshot = snapshot;
@@ -148,7 +151,6 @@ public final class SimulationState {
         this.lastAppliedAction = lastAppliedAction;
         this.inventoryItemCounts = inventoryItemCounts;
         this.equippedItemIds = equippedItemIds;
-        this.foodHealingByItemId = foodHealingByItemId;
     }
 
     /**
@@ -177,8 +179,7 @@ public final class SimulationState {
                 activeProtectionPrayer,
                 lastAppliedAction,
                 new HashMap<>(inventoryItemCounts),
-                new HashSet<>(equippedItemIds),
-                new HashMap<>(foodHealingByItemId)
+                new HashSet<>(equippedItemIds)
         );
     }
 
@@ -187,13 +188,6 @@ public final class SimulationState {
      */
     public WorldPoint getPlayerWorldPoint() {
         return WorldPointService.unpack(playerPackedPoint);
-    }
-
-    /**
-     * @return packed player world point.
-     */
-    public int getPlayerPackedPoint() {
-        return playerPackedPoint;
     }
 
     /**
@@ -232,13 +226,6 @@ public final class SimulationState {
      */
     public boolean isQueuedMovementRun() {
         return queuedMoveRun;
-    }
-
-    /**
-     * @param prayer overhead prayer.
-     */
-    public void setActiveProtectionPrayer(Prayer prayer) {
-        this.activeProtectionPrayer = prayer;
     }
 
     /**
@@ -407,13 +394,6 @@ public final class SimulationState {
     }
 
     /**
-     * @return immutable food healing map.
-     */
-    public Map<Integer, Integer> getFoodHealingByItemId() {
-        return Collections.unmodifiableMap(foodHealingByItemId);
-    }
-
-    /**
      * @param itemId item id.
      * @return true when inventory contains the item.
      */
@@ -480,14 +460,6 @@ public final class SimulationState {
         }
         equippedItemIds.add(itemId);
         return true;
-    }
-
-    /**
-     * @param itemId item id.
-     * @return configured heal amount, or 0.
-     */
-    public int getFoodHealAmount(int itemId) {
-        return foodHealingByItemId.getOrDefault(itemId, 0);
     }
 
     void setPlayerPackedPoint(int playerPackedPoint) {

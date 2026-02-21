@@ -1,5 +1,7 @@
 package com.kraken.api.simulation;
 
+import com.kraken.api.simulation.tree.SimulationTree;
+import com.kraken.api.simulation.tree.SimulationTreeOptions;
 import net.runelite.api.CollisionDataFlag;
 import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
@@ -39,7 +41,8 @@ class SimulationEngineTest {
                 SimulationTreeOptions.defaults()
                         .withTicks(16)
                         .withMaxNodes(2000)
-                        .withActionCaps(30, 20),
+                        .withMaxActionsPerNode(30)
+                        .withMaxNodes(20),
                 (state, depthRemaining) -> Collections.emptyList()
         );
 
@@ -63,8 +66,9 @@ class SimulationEngineTest {
                 3,
                 SimulationTreeOptions.defaults()
                         .withMovementRadius(2)
-                        .withMovementTypes(true, true)
-                        .withActionCaps(200, 50),
+                        .withMovementMode(SimulationMovementMode.RADIUS)
+                        .withMaxActionsPerNode(30)
+                        .withMaxNodes(20),
                 (s, depth) -> Collections.emptyList()
         );
 
@@ -115,8 +119,9 @@ class SimulationEngineTest {
                 SimulationTreeOptions.defaults()
                         .withTicks(4)
                         .withMovementRadius(3)
-                        .withMovementTypes(true, false)
-                        .withActionCaps(80, 40),
+                        .withMovementMode(SimulationMovementMode.RADIUS)
+                        .withMaxActionsPerNode(30)
+                        .withMaxNodes(20),
                 (state, depthRemaining) -> List.of()
         );
 
@@ -179,8 +184,7 @@ class SimulationEngineTest {
                 99,
                 null,
                 Map.of(),
-                Collections.emptySet(),
-                Map.of()
+                Collections.emptySet()
         );
         return new SimulationSnapshot(0, PLANE, BASE_X, BASE_Y, flags, player, npcs);
     }

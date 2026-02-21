@@ -1,5 +1,7 @@
 package com.kraken.api.simulation;
 
+import com.kraken.api.simulation.tree.SimulationTree;
+import com.kraken.api.simulation.tree.SimulationTreeNode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;

@@ -414,12 +414,6 @@ public final class SimulationDecisionAdapter {
                     steps.add(ExecutableStep.equipItem(action.getItemId()));
                 }
                 break;
-            case INVENTORY_INTERACT:
-                if (action.getItemId() != null) {
-                    String inventoryAction = action.getInventoryAction() == null ? "Use" : action.getInventoryAction();
-                    steps.add(ExecutableStep.inventoryInteract(action.getItemId(), inventoryAction));
-                }
-                break;
             case CAST_SPELL:
                 if (action.getSpell() != null) {
                     Integer targetNpcIndex = action.getTargetNpcIndex();

@@ -17,8 +17,8 @@ import com.kraken.api.simulation.SimulationScenario;
 import com.kraken.api.simulation.SimulationSnapshot;
 import com.kraken.api.simulation.SimulationSnapshotService;
 import com.kraken.api.simulation.SimulationState;
-import com.kraken.api.simulation.SimulationTree;
-import com.kraken.api.simulation.SimulationTreeOptions;
+import com.kraken.api.simulation.tree.SimulationTree;
+import com.kraken.api.simulation.tree.SimulationTreeOptions;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
@@ -174,11 +174,9 @@ public class SimulationPlugin extends Plugin {
     }
 
     private void runSimulationTick() {
-        Map<Integer, Integer> foodHealMapping = parseFoodHealOverrides(config.foodHealingOverrides());
         lastSnapshot = SimulationSnapshotService.capture(
                 new SimulationSnapshotService.CaptureOptions()
                         .withNpcRadius(Math.max(1, config.snapshotNpcRadius()))
-                        .withFoodHealingByItemId(foodHealMapping)
         );
 
         Map<Integer, SimulationNpcProfile> npcProfiles = parseNpcProfiles(config.npcCombatOverrides());
@@ -223,21 +221,13 @@ public class SimulationPlugin extends Plugin {
 
     private SimulationTreeOptions buildTreeOptions() {
         SimulationMovementMode movementMode = parseMovementMode(config.movementMode());
-        boolean includeWalk = config.includeWalkActions();
-        boolean includeRun = config.includeRunActions();
-        if (!includeWalk && !includeRun) {
-            includeWalk = true;
-        }
         return SimulationTreeOptions.defaults()
                 .withTicks(Math.max(1, config.searchDepth()))
                 .withMovementMode(movementMode)
                 .withMovementRadius(Math.max(1, config.movementRadius()))
-                .withMovementTypes(includeWalk, includeRun)
+                .withMovementMode(SimulationMovementMode.RADIUS)
                 .withMaxNodes(Math.max(256, config.maxSearchNodes()))
-                .withActionCaps(
-                        Math.max(1, config.maxActionsPerNode()),
-                        Math.max(1, config.maxMovementTargets())
-                );
+                .withMaxActionsPerNode(config.maxActionsPerNode());
     }
 
     private Set<SimulationDecisionAdapter.ExecutableStepType> buildExecutionAllowList() {
@@ -270,13 +260,6 @@ public class SimulationPlugin extends Plugin {
             }
         }
 
-        if (config.includeEatActions() && state.getPlayerHitpoints() <= Math.max(1, config.eatAtOrBelowHp())) {
-            SimulationAction eatAction = resolveEatAction(state);
-            if (eatAction != null) {
-                actions.add(eatAction);
-            }
-        }
-
         if (config.includeGearSwapActions()) {
             int itemId = config.gearSwapItemId();
             if (itemId >= 0 && state.hasInventoryItem(itemId) && !state.isItemEquipped(itemId)) {
@@ -292,31 +275,6 @@ public class SimulationPlugin extends Plugin {
         }
 
         return actions;
-    }
-
-    private SimulationAction resolveEatAction(SimulationState state) {
-        if (state.getPlayerHitpoints() >= state.getPlayerMaxHitpoints()) {
-            return null;
-        }
-
-        int bestItemId = -1;
-        int bestHeal = 0;
-        for (Map.Entry<Integer, Integer> entry : state.getFoodHealingByItemId().entrySet()) {
-            int itemId = entry.getKey();
-            int heal = entry.getValue();
-            if (heal <= 0 || !state.hasInventoryItem(itemId)) {
-                continue;
-            }
-            if (heal > bestHeal) {
-                bestHeal = heal;
-                bestItemId = itemId;
-            }
-        }
-
-        if (bestItemId < 0) {
-            return null;
-        }
-        return SimulationAction.eat(bestItemId, bestHeal);
     }
 
     private SimulationAction resolveSpellAction(SimulationState state) {

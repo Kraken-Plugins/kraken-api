@@ -21,7 +21,6 @@ public final class SimulationAction {
         MOVE,
         SWITCH_PRAYER,
         EQUIP_ITEM,
-        INVENTORY_INTERACT,
         NPC_INTERACT,
         CAST_SPELL,
         CUSTOM
@@ -153,34 +152,6 @@ public final class SimulationAction {
             throw new IllegalArgumentException("itemId must be >= 0");
         }
         return new SimulationAction(Type.EQUIP_ITEM, -1, false, null, itemId, null, 0, false, null, null, null, null);
-    }
-
-    /**
-     * Creates a generic inventory action.
-     *
-     * @param itemId item id.
-     * @param action inventory action text.
-     * @return inventory action.
-     */
-    public static SimulationAction inventoryInteract(int itemId, String action) {
-        if (itemId < 0) {
-            throw new IllegalArgumentException("itemId must be >= 0");
-        }
-        return new SimulationAction(Type.INVENTORY_INTERACT, -1, false, null, itemId, action, 0, false, null, null, null, null);
-    }
-
-    /**
-     * Creates an eat action.
-     *
-     * @param itemId item id.
-     * @param healAmount heal amount.
-     * @return eat action.
-     */
-    public static SimulationAction eat(int itemId, int healAmount) {
-        if (itemId < 0) {
-            throw new IllegalArgumentException("itemId must be >= 0");
-        }
-        return new SimulationAction(Type.INVENTORY_INTERACT, -1, false, null, itemId, "Eat", healAmount, true, null, null, null, null);
     }
 
     /**
@@ -323,8 +294,6 @@ public final class SimulationAction {
                 return "SimulationAction{type=SWITCH_PRAYER,prayer=" + prayer + "}";
             case EQUIP_ITEM:
                 return "SimulationAction{type=EQUIP_ITEM,itemId=" + itemId + "}";
-            case INVENTORY_INTERACT:
-                return "SimulationAction{type=INVENTORY_INTERACT,itemId=" + itemId + ",action=" + inventoryAction + "}";
             case NPC_INTERACT:
                 return "SimulationAction{type=NPC_INTERACT,npcIndex=" + targetNpcIndex + ",action=" + npcInteractionAction + "}";
             case CAST_SPELL:

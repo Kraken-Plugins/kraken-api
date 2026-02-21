@@ -1,6 +1,10 @@
 package com.kraken.api.simulation;
 
 import com.kraken.api.service.map.WorldPointService;
+import com.kraken.api.simulation.tree.SimulationTree;
+import com.kraken.api.simulation.tree.SimulationTreeNode;
+import com.kraken.api.simulation.tree.SimulationTreeOptions;
+import com.kraken.api.util.MathUtils;
 import net.runelite.api.CollisionDataFlag;
 import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
@@ -19,6 +23,16 @@ import java.util.Set;
  */
 public final class SimulationEngine {
     private static final int BLOCKED_MOVEMENT_MASK = CollisionDataFlag.BLOCK_MOVEMENT_FULL | CollisionDataFlag.BLOCK_MOVEMENT_OBJECT;
+    private static final int[][] DIRECTIONS_8 = new int[][]{
+            {1, 0},
+            {-1, 0},
+            {0, 1},
+            {0, -1},
+            {1, 1},
+            {1, -1},
+            {-1, 1},
+            {-1, -1}
+    };
 
     /**
      * Provides extra actions while building a simulation tree.
@@ -237,8 +251,6 @@ public final class SimulationEngine {
                         && action.getItemId() >= 0
                         && state.hasInventoryItem(action.getItemId())
                         && !state.isItemEquipped(action.getItemId());
-            case INVENTORY_INTERACT:
-                return action.getItemId() != null && action.getItemId() >= 0 && state.hasInventoryItem(action.getItemId());
             case NPC_INTERACT:
                 return action.getTargetNpcIndex() != null
                         && action.getTargetNpcIndex() >= 0
@@ -416,7 +428,7 @@ public final class SimulationEngine {
                 if (!snapshot.isWorldInBounds(x, y)) {
                     continue;
                 }
-                if (SimulationMath.overlaps(npcX, npcY, npcSize, x, y, 1)) {
+                if (MathUtils.overlaps(npcX, npcY, npcSize, x, y, 1)) {
                     continue;
                 }
                 if (hasLineOfSight(state, npcX, npcY, npcSize, x, y, npcRange, true)) {
@@ -575,14 +587,14 @@ public final class SimulationEngine {
             if (current.distance >= maxSteps) {
                 continue;
             }
-            for (int[] direction : SimulationMath.DIRECTIONS_8) {
+            for (int[] direction :  DIRECTIONS_8) {
                 int nx = current.x + direction[0];
                 int ny = current.y + direction[1];
                 if (!state.getSnapshot().isWorldInBounds(nx, ny)) {
                     continue;
                 }
                 if (radiusLimit != Integer.MAX_VALUE
-                        && SimulationMath.chebyshevDistance(originX, originY, nx, ny) > radiusLimit) {
+                        &&  MathUtils.chebyshevDistance(originX, originY, nx, ny) > radiusLimit) {
                     continue;
                 }
                 if (!canEntityStep(state, current.x, current.y, 1, direction[0], direction[1], -1, true)) {
@@ -624,45 +636,11 @@ public final class SimulationEngine {
                     state.equipItemFromInventory(action.getItemId());
                 }
                 break;
-            case INVENTORY_INTERACT:
-                applyInventoryAction(state, action);
-                break;
             case NPC_INTERACT:
             case CAST_SPELL:
             case CUSTOM:
             default:
                 break;
-        }
-    }
-
-    private void applyInventoryAction(SimulationState state, SimulationAction action) {
-        Integer itemId = action.getItemId();
-        if (itemId == null || !state.hasInventoryItem(itemId)) {
-            return;
-        }
-
-        if (action.isConsumeInventoryItem()) {
-            if (!state.consumeInventoryItem(itemId)) {
-                return;
-            }
-            int heal = action.getHealAmount();
-            if (heal <= 0) {
-                heal = state.getFoodHealAmount(itemId);
-            }
-            state.healPlayer(heal);
-            return;
-        }
-
-        String inventoryAction = action.getInventoryAction();
-        if (inventoryAction != null && isLikelyConsumableAction(inventoryAction)) {
-            state.consumeInventoryItem(itemId);
-            if ("eat".equalsIgnoreCase(inventoryAction) || "drink".equalsIgnoreCase(inventoryAction)) {
-                int heal = action.getHealAmount();
-                if (heal <= 0) {
-                    heal = state.getFoodHealAmount(itemId);
-                }
-                state.healPlayer(heal);
-            }
         }
     }
 
@@ -787,7 +765,7 @@ public final class SimulationEngine {
             if (current.distance >= maxSearchSteps) {
                 continue;
             }
-            for (int[] direction : SimulationMath.DIRECTIONS_8) {
+            for (int[] direction :  DIRECTIONS_8) {
                 int nx = current.x + direction[0];
                 int ny = current.y + direction[1];
                 if (!state.getSnapshot().isWorldInBounds(nx, ny)) {
@@ -922,7 +900,7 @@ public final class SimulationEngine {
             if (current.distance >= maxSteps) {
                 continue;
             }
-            for (int[] direction : SimulationMath.DIRECTIONS_8) {
+            for (int[] direction :  DIRECTIONS_8) {
                 int nx = current.x + direction[0];
                 int ny = current.y + direction[1];
                 if (!state.getSnapshot().isWorldInBounds(nx, ny)) {
@@ -964,7 +942,7 @@ public final class SimulationEngine {
     }
 
     private int resolvePlayerReachBudget(SimulationState state, int targetX, int targetY) {
-        int distance = SimulationMath.chebyshevDistance(state.getPlayerX(), state.getPlayerY(), targetX, targetY);
+        int distance =  MathUtils.chebyshevDistance(state.getPlayerX(), state.getPlayerY(), targetX, targetY);
         return Math.max(4, distance + 24);
     }
 
@@ -992,21 +970,21 @@ public final class SimulationEngine {
                 if (!state.isNpcActive(slot)) {
                     continue;
                 }
-                if (SimulationMath.overlaps(nextX, nextY, 1, state.getNpcX(slot), state.getNpcY(slot), state.getNpcSize(slot))) {
+                if ( MathUtils.overlaps(nextX, nextY, 1, state.getNpcX(slot), state.getNpcY(slot), state.getNpcSize(slot))) {
                     return false;
                 }
             }
             return true;
         }
 
-        if (SimulationMath.overlaps(nextX, nextY, entitySize, state.getPlayerX(), state.getPlayerY(), 1)) {
+        if ( MathUtils.overlaps(nextX, nextY, entitySize, state.getPlayerX(), state.getPlayerY(), 1)) {
             return false;
         }
         for (int slot = 0; slot < state.getNpcCount(); slot++) {
             if (slot == movingNpcSlot || !state.isNpcActive(slot)) {
                 continue;
             }
-            if (SimulationMath.overlaps(nextX, nextY, entitySize, state.getNpcX(slot), state.getNpcY(slot), state.getNpcSize(slot))) {
+            if ( MathUtils.overlaps(nextX, nextY, entitySize, state.getNpcX(slot), state.getNpcY(slot), state.getNpcSize(slot))) {
                 return false;
             }
         }
@@ -1107,7 +1085,7 @@ public final class SimulationEngine {
         if (sourceSize <= 0 || range <= 0) {
             return false;
         }
-        if (SimulationMath.overlaps(sourceX, sourceY, sourceSize, targetX, targetY, 1)) {
+        if ( MathUtils.overlaps(sourceX, sourceY, sourceSize, targetX, targetY, 1)) {
             return false;
         }
         if (range == 1) {
@@ -1117,8 +1095,8 @@ public final class SimulationEngine {
         int lineSourceX = sourceX;
         int lineSourceY = sourceY;
         if (sourceIsNpc && sourceSize > 1) {
-            lineSourceX = SimulationMath.clamp(targetX, sourceX, sourceX + sourceSize - 1);
-            lineSourceY = SimulationMath.clamp(targetY, sourceY, sourceY + sourceSize - 1);
+            lineSourceX =  MathUtils.clamp(targetX, sourceX, sourceX + sourceSize - 1);
+            lineSourceY =  MathUtils.clamp(targetY, sourceY, sourceY + sourceSize - 1);
         }
 
         int dx = targetX - lineSourceX;
