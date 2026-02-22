@@ -152,7 +152,7 @@ allprojects {
 
 
 dependencies {
-    compileOnly group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
+    compileOnly group: 'com.github.kraken', name:'kraken-api', version: krakenApiVersion
     // ... other dependencies
 }
 ```
