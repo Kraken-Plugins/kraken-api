@@ -140,7 +140,7 @@ plugins {
     id 'application'
 }
 
-// Replace with the package version of the API you need
+// Replace with the package version of the API you need or `latest.release` for the latest version.
 def krakenApiVersion = 'X.Y.Z'
 
 // Alternatively, you can use: `+` or `2.2.+` (for example) as the krakenApiVersion to float on the latest version within a safe boundary
