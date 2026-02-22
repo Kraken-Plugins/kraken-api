@@ -143,6 +143,9 @@ plugins {
 // Replace with the package version of the API you need
 def krakenApiVersion = 'X.Y.Z'
 
+// Alternatively, you can use: `+` or `2.2.+` (for example) as the krakenApiVersion to float on the latest version within a safe boundary
+// so you don't have to constantly bump the version when new API changes are released!
+
 allprojects {
     apply plugin: 'java'
     repositories {
@@ -186,6 +189,9 @@ plugins {
 
 // Replace with the package version of the API you need
 def krakenApiVersion = 'X.Y.Z'
+
+// Alternatively, you can use: `+` or `2.2.+` (for example) as the krakenApiVersion to float on the latest version within a safe boundary
+// so you don't have to constantly bump the version when new API changes are released!
 
 allprojects {
     apply plugin: 'java'
