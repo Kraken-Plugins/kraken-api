@@ -44,8 +44,7 @@ public final class SimulationSnapshotService {
         /**
          * Creates options for how the game state is captured from the Cliwnr.
          *
-         * @param npcRadius npc inclusion radius, or <=0 for all loaded same-plane npcs.
-         * @param foodHealingByItemId optional item->heal mapping copied into player snapshot.
+         * @param npcRadius npc inclusion radius, or {@literal <=0} for all loaded same-plane npcs.
          */
         public CaptureOptions(int npcRadius) {
             this.npcRadius = npcRadius;
