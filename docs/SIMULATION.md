@@ -37,10 +37,6 @@ Search is done with `DecisionTreeSearch` over the generated `SimulationTree`.
 SimulationSnapshot snapshot = SimulationSnapshotService.capture(
     new SimulationSnapshotService.CaptureOptions()
         .withNpcRadius(24)
-        .withFoodHealingByItemId(Map.of(
-            385, 20,   // shark
-            3144, 18   // karambwan
-        ))
 );
 
 Map<Integer, SimulationNpcProfile> npcProfiles = Map.of(
@@ -73,14 +69,14 @@ SimulationTreeOptions options = SimulationTreeOptions.defaults()
     .withMovementRadius(7)
     .withMovementTypes(true, true) // walk + run
     .withMaxNodes(20000)
-    .withActionCaps(120, 80);      // maxActionsPerNode, maxMovementTargets
+    .withMaxActionsPerNode(120)
+    .withMaxMovementTargets(80);
 
 SimulationTree tree = engine.generateOutcomeTree(
     scenario,
     options,
     (state, depthRemaining) -> List.of(
-        SimulationAction.switchPrayer(engine.recommendProtectionPrayer(state)),
-        SimulationAction.eat(385, state.getFoodHealAmount(385))
+        SimulationAction.switchPrayer(engine.recommendProtectionPrayer(state))
     )
 );
 ```
@@ -127,8 +123,7 @@ decisionAdapter.execute(
     executable,
     Set.of(
         SimulationDecisionAdapter.ExecutableStepType.MOVE,
-        SimulationDecisionAdapter.ExecutableStepType.SWITCH_PRAYER,
-        SimulationDecisionAdapter.ExecutableStepType.INVENTORY_INTERACT
+        SimulationDecisionAdapter.ExecutableStepType.SWITCH_PRAYER
     )
 );
 ```
@@ -139,9 +134,9 @@ decisionAdapter.execute(
 SimulationTreeOptions options = SimulationTreeOptions.defaults()
     .withTicks(16)
     .withMovementMode(SimulationMovementMode.REACHABLE)
-    .withMovementTypes(true, true)
     .withMaxNodes(15000)
-    .withActionCaps(60, 120);
+    .withMaxActionsPerNode(120)
+    .withMaxMovementTargets(80);
 
 SimulationTree tree = engine.generateOutcomeTree(scenario, options, (s, d) -> List.of());
 DecisionTreeSearch.Result result = search.search(

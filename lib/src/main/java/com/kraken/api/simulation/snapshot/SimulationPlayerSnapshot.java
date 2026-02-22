@@ -62,6 +62,8 @@ public final class SimulationPlayerSnapshot {
     }
 
     /**
+     * Creates an empty player snapshot with no inventory items or equipped item ids.
+     * @param worldPoint The world point of the player.
      * @return default player snapshot when no explicit metadata is provided.
      */
     public static SimulationPlayerSnapshot empty(WorldPoint worldPoint) {
