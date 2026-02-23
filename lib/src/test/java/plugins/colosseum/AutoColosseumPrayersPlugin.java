@@ -56,6 +56,9 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private static final int MANTICORE_MAGE_GRAPHIC = 2681;
     private static final int MANTICORE_RANGE_GRAPHIC = 2683;
     private static final int MANTICORE_MELEE_GRAPHIC = 2685;
+    private static final int MANTICORE_CHARGE_TICKS = 10;
+    private static final int MANTICORE_READY_DELAY_TICKS = 5;
+    private static final int MANTICORE_VOLLEY_SIZE = 3;
 
     private static final Map<Integer, Prayer> WAVE_PRE_PRAYER_MAP = Map.ofEntries(
             Map.entry(1, Prayer.PROTECT_FROM_MAGIC),
@@ -323,6 +326,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
         Map<Integer, NPC> colosseumNpcs = collectColosseumNpcs();
         updateTrackedStates(colosseumNpcs, localPlayer, currentTick);
+        resolveManticoreVolleyStarts(currentTick);
         rebuildPrayerQueue(colosseumNpcs, localPlayer, currentTick);
 
         Prayer prayerToActivate = choosePrayerForCurrentTick(currentTick);
@@ -371,16 +375,22 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     private void updateManticoreState(TrackedMobState state, NPC npc, boolean hasLineOfSight, int currentTick) {
-        ManticoreAttackStyle firstStyle = currentManticoreSpotAnimation(npc);
-        if (firstStyle != null && !state.isCharging()) {
-            state.setCharging(true);
-            state.setChargeStartTick(currentTick);
-            state.setFirstManticoreStyle(firstStyle);
+        ManticoreAttackStyle spottedStyle = currentManticoreSpotAnimation(npc);
+        if (spottedStyle != null && state.getFirstManticoreStyle() == null) {
+            state.setFirstManticoreStyle(spottedStyle);
+        }
+
+        int attackSpeed = Math.max(1, state.getMob().getAttackSpeed());
+
+        if (!state.isCharging() && !state.isSynced() && spottedStyle != null && hasLineOfSight) {
+            // Fallback when entering mid-wave: sync to the volley currently being cast.
+            state.setSynced(true);
+            state.setActiveVolleyTick(currentTick);
+            state.setNextVolleyTick(currentTick + attackSpeed);
+            state.setFirstVolleyTick(-1);
+            state.setFirstVolleyAuto(true);
             state.setChargeInterrupted(false);
-            state.setFirstVolleyTick(currentTick + Math.max(1, 10));
-            state.setFirstVolleyAuto(hasLineOfSight);
-            state.setSynced(false);
-            state.setNextVolleyTick(-1);
+            return;
         }
 
         if (!state.isCharging()) {
@@ -395,11 +405,68 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
+        if (state.isChargeInterrupted()) {
+            state.setCharging(false);
+            state.setSynced(false);
+            state.setFirstVolleyAuto(false);
+            state.setFirstVolleyTick(-1);
+            state.setActiveVolleyTick(-1);
+            state.setNextVolleyTick(-1);
+            return;
+        }
+
+        if (state.getFirstManticoreStyle() == null) {
+            return;
+        }
+
         state.setCharging(false);
         boolean autoFirstVolley = state.isFirstVolleyAuto() && !state.isChargeInterrupted();
         state.setFirstVolleyAuto(autoFirstVolley);
         state.setSynced(true);
-        state.setNextVolleyTick(state.getFirstVolleyTick() + Math.max(1, state.getMob().getAttackSpeed()));
+        state.setActiveVolleyTick(autoFirstVolley ? state.getFirstVolleyTick() : -1);
+        state.setNextVolleyTick(state.getFirstVolleyTick() + attackSpeed);
+    }
+
+    private void resolveManticoreVolleyStarts(int currentTick) {
+        List<TrackedMobState> readyManticores = new ArrayList<>();
+
+        for (TrackedMobState state : trackedMobStates.values()) {
+            if (!state.getMob().isManticore() || !state.isSynced() || state.isCharging()) {
+                continue;
+            }
+
+            int activeVolleyTick = state.getActiveVolleyTick();
+            if (activeVolleyTick >= 0 && currentTick > activeVolleyTick + MANTICORE_VOLLEY_SIZE - 1) {
+                state.setActiveVolleyTick(-1);
+            }
+
+            if (state.getActiveVolleyTick() >= 0) {
+                continue;
+            }
+
+            if (config.cancelQueuedOnLosBreak() && !state.isInLineOfSight()) {
+                continue;
+            }
+
+            if (state.getNextVolleyTick() >= 0 && state.getNextVolleyTick() <= currentTick) {
+                readyManticores.add(state);
+            }
+        }
+
+        if (readyManticores.isEmpty()) {
+            return;
+        }
+
+        readyManticores.sort(Comparator.comparingInt(TrackedMobState::getNpcIndex));
+
+        TrackedMobState attacker = readyManticores.get(0);
+        int attackSpeed = Math.max(1, attacker.getMob().getAttackSpeed());
+        attacker.setActiveVolleyTick(currentTick);
+        attacker.setNextVolleyTick(currentTick + attackSpeed);
+
+        for (int i = 1; i < readyManticores.size(); i++) {
+            readyManticores.get(i).setNextVolleyTick(currentTick + MANTICORE_READY_DELAY_TICKS);
+        }
     }
 
     private void rebuildPrayerQueue(Map<Integer, NPC> currentNpcs, Player localPlayer, int currentTick) {
@@ -474,8 +541,13 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        if (state.isFirstVolleyAuto() && state.getFirstVolleyTick() >= currentTick) {
+        if (state.isCharging() && state.isFirstVolleyAuto() && state.getFirstVolleyTick() >= currentTick) {
             queueManticoreVolley(state, sequence, state.getFirstVolleyTick(), lookahead, currentTick);
+        }
+
+        int activeVolleyTick = state.getActiveVolleyTick();
+        if (activeVolleyTick >= 0 && activeVolleyTick + MANTICORE_VOLLEY_SIZE - 1 >= currentTick) {
+            queueManticoreVolley(state, sequence, activeVolleyTick, lookahead, currentTick);
         }
 
         if (!state.isSynced() || state.getNextVolleyTick() < 0) {
@@ -484,7 +556,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
         int attackSpeed = Math.max(1, state.getMob().getAttackSpeed());
         int volleyTick = state.getNextVolleyTick();
-        while (volleyTick + sequence.size() - 1 < currentTick) {
+        while (volleyTick < currentTick) {
             volleyTick += attackSpeed;
         }
 
@@ -541,6 +613,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             if (predictedAttackTick < currentTick || predictedAttackTick > currentTick + lookahead) {
                 continue;
             }
+
+            // Manticore sees me on 905 ->
 
             prayerQueue.add(new PrayerQueueEntry(
                     predictedAttackTick,
@@ -638,18 +712,18 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     private Prayer choosePrayerForCurrentTick(int currentTick) {
-        Prayer currentTickPrayer = bestPrayerForTick(currentTick);
-        if (currentTickPrayer != null) {
-            return currentTickPrayer;
-        }
-
-        // Pre-switch one tick early so prayer is up before the next incoming hit.
+        // onGameTick runs after this tick's packets, so target the next server tick first.
         Prayer nextTickPrayer = bestPrayerForTick(currentTick + 1);
         if (nextTickPrayer != null) {
             return nextTickPrayer;
         }
 
-        if (prePrayPrayer != null && currentTick <= prePrayUntilTick) {
+        Prayer currentTickPrayer = bestPrayerForTick(currentTick);
+        if (currentTickPrayer != null) {
+            return currentTickPrayer;
+        }
+
+        if (prePrayPrayer != null && currentTick + 1 <= prePrayUntilTick) {
             return prePrayPrayer;
         }
 
@@ -708,18 +782,19 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     private boolean isSafeToOneTickFlick(int currentTick) {
-        if (prePrayPrayer != null && currentTick <= prePrayUntilTick) {
+        int nextTick = currentTick + 1;
+        if (prePrayPrayer != null && nextTick <= prePrayUntilTick) {
             return false;
         }
 
         Set<Integer> threateningNpcs = new HashSet<>();
 
         for (PrayerQueueEntry queueEntry : prayerQueue) {
-            if (queueEntry.isJaguarPriority() && queueEntry.getTick() <= currentTick + 1) {
+            if (queueEntry.isJaguarPriority() && queueEntry.getTick() == nextTick) {
                 return false;
             }
 
-            if (queueEntry.getTick() < currentTick || queueEntry.getTick() > currentTick + 1) {
+            if (queueEntry.getTick() != nextTick) {
                 continue;
             }
 
@@ -805,6 +880,16 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     private void onLineOfSightGained(TrackedMobState state, int currentTick) {
         if (state.getMob().isManticore()) {
+            if (state.isCharging() || state.isSynced()) {
+                return;
+            }
+
+            state.setCharging(true);
+            state.setChargeStartTick(currentTick);
+            state.setFirstVolleyTick(currentTick + MANTICORE_CHARGE_TICKS);
+            state.setFirstVolleyAuto(true);
+            state.setChargeInterrupted(false);
+            state.setActiveVolleyTick(-1);
             return;
         }
 
@@ -839,7 +924,11 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
         state.setFirstVolleyTick(-1);
         state.setFirstVolleyAuto(false);
+        state.setActiveVolleyTick(-1);
         state.setNextVolleyTick(-1);
+        state.setCharging(false);
+        state.setChargeStartTick(-1);
+        state.setChargeInterrupted(false);
     }
 
     private boolean stateHasFutureAttacks(TrackedMobState state, int currentTick) {
@@ -850,6 +939,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return state.getNextAttackTick() >= currentTick;
         }
         return (state.isFirstVolleyAuto() && state.getFirstVolleyTick() >= currentTick)
+                || (state.getActiveVolleyTick() >= 0
+                && state.getActiveVolleyTick() + MANTICORE_VOLLEY_SIZE - 1 >= currentTick)
                 || state.getNextVolleyTick() >= currentTick
                 || state.isCharging();
     }
