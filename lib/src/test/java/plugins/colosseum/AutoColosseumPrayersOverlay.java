@@ -50,6 +50,14 @@ public class AutoColosseumPrayersOverlay extends OverlayPanel {
                         .build()
         );
 
+        panelComponent.getChildren().add(
+                LineComponent.builder()
+                        .left("1T Flick")
+                        .right(plugin.isOneTickFlickEnabled() ? "ON" : "OFF")
+                        .rightColor(plugin.isOneTickFlickEnabled() ? Color.GREEN : Color.GRAY)
+                        .build()
+        );
+
         Prayer activeTarget = plugin.getActiveTargetPrayer();
         panelComponent.getChildren().add(
                 LineComponent.builder()

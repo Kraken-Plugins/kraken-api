@@ -11,12 +11,27 @@ import java.awt.event.KeyEvent;
 
 @ConfigGroup("autocoloprayers")
 public interface AutoColosseumPrayersConfig extends Config {
+
+    @ConfigItem(
+            keyName = "licenseKey",
+            name = "License Key",
+            description = "License key required to enable the plugin.",
+            position = -5,
+            secret = true
+    )
+    default String licenseKey() {
+        return "";
+    }
+
+    // ===========================
+    // Prayer Section
+    // ===========================
     @ConfigSection(
-            name = "General",
-            description = "Main automation and hotkey settings.",
+            name = "Prayer",
+            description = "Settings for praying in the Colosseum.",
             position = 0
     )
-    String generalSection = "generalSection";
+    String prayerSection = "prayerSection";
 
     /**
      * Enables or disables the full auto-prayer engine.
@@ -25,9 +40,9 @@ public interface AutoColosseumPrayersConfig extends Config {
      */
     @ConfigItem(
             keyName = "enabled",
-            name = "Enable Plugin",
-            description = "Enable automatic Colosseum protection prayers.",
-            section = generalSection,
+            name = "Enable Defensive Prayers",
+            description = "Enable automatic Colosseum defensive protection prayers.",
+            section = prayerSection,
             position = 1
     )
     default boolean enabled() {
@@ -43,7 +58,7 @@ public interface AutoColosseumPrayersConfig extends Config {
             keyName = "startEnabled",
             name = "Start Enabled",
             description = "Initial hotkey state when the plugin starts.",
-            section = generalSection,
+            section = prayerSection,
             position = 2
     )
     default boolean startEnabled() {
@@ -57,15 +72,50 @@ public interface AutoColosseumPrayersConfig extends Config {
      */
     @ConfigItem(
             keyName = "toggleHotkey",
-            name = "Toggle Hotkey",
+            name = "Toggle Auto Prayers Hotkey",
             description = "Press to toggle runtime auto-prayers.",
-            section = generalSection,
+            section = prayerSection,
             position = 3
     )
     default ModifierlessKeybind toggleHotkey() {
         return new ModifierlessKeybind(KeyEvent.VK_F6, 0);
     }
 
+    /**
+     * Hotkey used to toggle one-tick flick mode at runtime.
+     *
+     * @return Configured one-tick flick toggle keybind.
+     */
+    @ConfigItem(
+            keyName = "oneTickFlickHotkey",
+            name = "Toggle 1-Tick Flick Hotkey",
+            description = "Press to toggle one-tick flick mode on/off.",
+            section = prayerSection,
+            position = 4
+    )
+    default ModifierlessKeybind oneTickFlickHotkey() {
+        return new ModifierlessKeybind(KeyEvent.VK_F7, 0);
+    }
+
+    /**
+     * Enables wave start pre-prayer.
+     *
+     * @return {@code true} to allow generic wave pre-prayer.
+     */
+    @ConfigItem(
+            keyName = "enableWavePrePray",
+            name = "Enable Wave Pre-Pray",
+            description = "Use a generic protection prayer for early wave-start attacks.",
+            section = prayerSection,
+            position = 5
+    )
+    default boolean enableWavePrePray() {
+        return true;
+    }
+
+    // ===========================
+    // QUEUE Config
+    // ===========================
     @ConfigSection(
             name = "Queue Logic",
             description = "Attack queue prediction and cancellation behavior.",
@@ -138,62 +188,10 @@ public interface AutoColosseumPrayersConfig extends Config {
         return true;
     }
 
-    /**
-     * Enables one-tick overhead flicking for prayer conservation.
-     *
-     * @return {@code true} to enable one-tick flick behavior when safe.
-     */
-    @ConfigItem(
-            keyName = "enableOneTickFlick",
-            name = "Enable 1-Tick Flick",
-            description = "Turn overhead on when needed and off next tick when safe.",
-            section = queueSection,
-            position = 17
-    )
-    default boolean enableOneTickFlick() {
-        return false;
-    }
 
-    @ConfigSection(
-            name = "Wave Pre-Pray",
-            description = "Generic wave-start prayer to catch immediate spawn attacks.",
-            position = 20
-    )
-    String prePraySection = "prePraySection";
-
-    /**
-     * Enables wave start pre-prayer.
-     *
-     * @return {@code true} to allow generic wave pre-prayer.
-     */
-    @ConfigItem(
-            keyName = "enableWavePrePray",
-            name = "Enable Wave Pre-Pray",
-            description = "Use a generic protection prayer for early wave-start attacks.",
-            section = prePraySection,
-            position = 21
-    )
-    default boolean enableWavePrePray() {
-        return true;
-    }
-
-    /**
-     * Number of ticks to hold wave pre-prayer after a wave start is detected.
-     *
-     * @return Pre-prayer duration in ticks.
-     */
-    @Range(min = 1, max = 10)
-    @ConfigItem(
-            keyName = "prePrayDurationTicks",
-            name = "Pre-Pray Duration",
-            description = "How many ticks to hold the wave-start pre-prayer.",
-            section = prePraySection,
-            position = 22
-    )
-    default int prePrayDurationTicks() {
-        return 3;
-    }
-
+    // ===========================
+    // Overlays Section
+    // ===========================
     @ConfigSection(
             name = "Overlays",
             description = "Status and queue debugging overlays.",
@@ -201,6 +199,91 @@ public interface AutoColosseumPrayersConfig extends Config {
     )
     String overlaySection = "overlaySection";
 
+    /**
+     * Shows the status panel overlay.
+     *
+     * @return {@code true} to display status overlay.
+     */
+    @ConfigItem(
+            keyName = "showStatusOverlay",
+            name = "Show Status Overlay",
+            description = "Display plugin runtime state and next queued prayers.",
+            section = overlaySection,
+            position = 41
+    )
+    default boolean showStatusOverlay() {
+        return true;
+    }
+
+    /**
+     * Shows queue rows in the status overlay.
+     *
+     * @return {@code true} to include queue rows in the panel.
+     */
+    @ConfigItem(
+            keyName = "showQueueOverlay",
+            name = "Show Queue In Panel",
+            description = "Display queue rows in the status panel overlay.",
+            section = overlaySection,
+            position = 42
+    )
+    default boolean showQueueOverlay() {
+        return true;
+    }
+
+    /**
+     * Shows descending queue boxes on prayer widgets.
+     *
+     * @return {@code true} to render prayer-tab queue boxes.
+     */
+    @ConfigItem(
+            keyName = "showPrayerQueueOnPrayerTab",
+            name = "Show Prayer Tab Queue",
+            description = "Render descending queue boxes above protection prayers.",
+            section = overlaySection,
+            position = 43
+    )
+    default boolean showPrayerQueueOnPrayerTab() {
+        return true;
+    }
+
+    /**
+     * Maximum queue rows rendered in the panel.
+     *
+     * @return Max queue rows in status panel.
+     */
+    @Range(min = 1, max = 20)
+    @ConfigItem(
+            keyName = "queueOverlayLines",
+            name = "Panel Queue Rows",
+            description = "Maximum number of queued entries shown in the status panel.",
+            section = overlaySection,
+            position = 44
+    )
+    default int queueOverlayLines() {
+        return 8;
+    }
+
+    /**
+     * Maximum tick offset rendered on prayer widgets.
+     *
+     * @return Tick lookahead for prayer-tab queue boxes.
+     */
+    @Range(min = 1, max = 20)
+    @ConfigItem(
+            keyName = "prayerTabLookaheadTicks",
+            name = "Prayer Tab Lookahead",
+            description = "Max tick offset shown by descending prayer-tab queue boxes.",
+            section = overlaySection,
+            position = 45
+    )
+    default int prayerTabLookaheadTicks() {
+        return 8;
+    }
+
+    // =======================
+    // Debug Section
+    // =======================
     @ConfigSection(
             name = "Debug",
             description = "Debug controls for detailed state and NPC visualization.",
@@ -321,87 +404,4 @@ public interface AutoColosseumPrayersConfig extends Config {
     default boolean showNpcDebugLabels() {
         return false;
     }
-
-    /**
-     * Shows the status panel overlay.
-     *
-     * @return {@code true} to display status overlay.
-     */
-    @ConfigItem(
-            keyName = "showStatusOverlay",
-            name = "Show Status Overlay",
-            description = "Display plugin runtime state and next queued prayers.",
-            section = overlaySection,
-            position = 41
-    )
-    default boolean showStatusOverlay() {
-        return true;
-    }
-
-    /**
-     * Shows queue rows in the status overlay.
-     *
-     * @return {@code true} to include queue rows in the panel.
-     */
-    @ConfigItem(
-            keyName = "showQueueOverlay",
-            name = "Show Queue In Panel",
-            description = "Display queue rows in the status panel overlay.",
-            section = overlaySection,
-            position = 42
-    )
-    default boolean showQueueOverlay() {
-        return true;
-    }
-
-    /**
-     * Shows descending queue boxes on prayer widgets.
-     *
-     * @return {@code true} to render prayer-tab queue boxes.
-     */
-    @ConfigItem(
-            keyName = "showPrayerQueueOnPrayerTab",
-            name = "Show Prayer Tab Queue",
-            description = "Render descending queue boxes above protection prayers.",
-            section = overlaySection,
-            position = 43
-    )
-    default boolean showPrayerQueueOnPrayerTab() {
-        return true;
-    }
-
-    /**
-     * Maximum queue rows rendered in the panel.
-     *
-     * @return Max queue rows in status panel.
-     */
-    @Range(min = 1, max = 20)
-    @ConfigItem(
-            keyName = "queueOverlayLines",
-            name = "Panel Queue Rows",
-            description = "Maximum number of queued entries shown in the status panel.",
-            section = overlaySection,
-            position = 44
-    )
-    default int queueOverlayLines() {
-        return 8;
-    }
-
-    /**
-     * Maximum tick offset rendered on prayer widgets.
-     *
-     * @return Tick lookahead for prayer-tab queue boxes.
-     */
-    @Range(min = 1, max = 20)
-    @ConfigItem(
-            keyName = "prayerTabLookaheadTicks",
-            name = "Prayer Tab Lookahead",
-            description = "Max tick offset shown by descending prayer-tab queue boxes.",
-            section = overlaySection,
-            position = 45
-    )
-    default int prayerTabLookaheadTicks() {
-        return 8;
-    }
-
 }
