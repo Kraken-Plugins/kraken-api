@@ -139,23 +139,6 @@ public interface AutoColosseumPrayersConfig extends Config {
     }
 
     /**
-     * Number of ticks manticores spend charging before they start a volley.
-     *
-     * @return Manticore charge duration in ticks.
-     */
-    @Range(min = 1, max = 20)
-    @ConfigItem(
-            keyName = "manticoreChargeTicks",
-            name = "Manticore Charge Ticks",
-            description = "Ticks from charge start to first manticore volley.",
-            section = queueSection,
-            position = 15
-    )
-    default int manticoreChargeTicks() {
-        return 10;
-    }
-
-    /**
      * Gives jaguar melee attacks explicit priority when the pathing indicates an imminent hit.
      *
      * @return {@code true} to prioritize jaguar melee attack ticks.
@@ -214,14 +197,14 @@ public interface AutoColosseumPrayersConfig extends Config {
     @ConfigSection(
             name = "Overlays",
             description = "Status and queue debugging overlays.",
-            position = 40
+            position = 30
     )
     String overlaySection = "overlaySection";
 
     @ConfigSection(
             name = "Debug",
             description = "Debug controls for detailed state and NPC visualization.",
-            position = 30
+            position = 40
     )
     String debugSection = "debugSection";
 

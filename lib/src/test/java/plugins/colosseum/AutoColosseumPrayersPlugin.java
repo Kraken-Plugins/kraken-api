@@ -336,7 +336,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             state.setChargeStartTick(currentTick);
             state.setFirstManticoreStyle(firstStyle);
             state.setChargeInterrupted(false);
-            state.setFirstVolleyTick(currentTick + Math.max(1, config.manticoreChargeTicks()));
+            state.setFirstVolleyTick(currentTick + Math.max(1, 10));
             state.setFirstVolleyAuto(config.autoFirstManticoreVolley() && hasLineOfSight);
             state.setSynced(false);
             state.setNextVolleyTick(-1);
