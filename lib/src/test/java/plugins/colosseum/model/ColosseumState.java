@@ -27,6 +27,9 @@ public class ColosseumState {
     private final boolean waveStarted;
 
     @Getter
+    private final int waveStartTick;
+
+    @Getter
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     private final List<Modifier> modifiers;

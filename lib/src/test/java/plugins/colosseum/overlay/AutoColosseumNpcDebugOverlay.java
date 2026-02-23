@@ -1,4 +1,4 @@
-package plugins.colosseum;
+package plugins.colosseum.overlay;
 
 import com.google.inject.Inject;
 import com.kraken.api.service.actor.ActorService;
@@ -13,6 +13,9 @@ import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.OverlayUtil;
+import plugins.colosseum.AutoColosseumPrayersConfig;
+import plugins.colosseum.AutoColosseumPrayersPlugin;
+import plugins.colosseum.ColosseumStateTracker;
 import plugins.colosseum.model.spawns.Mob;
 
 import java.awt.BasicStroke;
@@ -26,17 +29,18 @@ import java.util.List;
 
 public class AutoColosseumNpcDebugOverlay extends Overlay {
     private final Client client;
-    private final AutoColosseumPrayersPlugin plugin;
+    private final ColosseumStateTracker tracker;
     private final AutoColosseumPrayersConfig config;
 
     @Inject
     public AutoColosseumNpcDebugOverlay(
             Client client,
             AutoColosseumPrayersPlugin plugin,
-            AutoColosseumPrayersConfig config
+            AutoColosseumPrayersConfig config,
+            ColosseumStateTracker tracker
     ) {
         this.client = client;
-        this.plugin = plugin;
+        this.tracker = tracker;
         this.config = config;
         setPosition(OverlayPosition.DYNAMIC);
         setLayer(OverlayLayer.ABOVE_SCENE);
@@ -113,7 +117,7 @@ public class AutoColosseumNpcDebugOverlay extends Overlay {
 
     private List<NPC> collectColosseumNpcs(WorldPoint playerLocation) {
         List<NPC> npcs = new ArrayList<>();
-        if (!plugin.isInColosseum()) {
+        if (!tracker.getCurrentState().isInColosseum()) {
             return npcs;
         }
 

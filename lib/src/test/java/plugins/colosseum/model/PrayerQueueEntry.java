@@ -1,4 +1,4 @@
-package plugins.colosseum;
+package plugins.colosseum.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

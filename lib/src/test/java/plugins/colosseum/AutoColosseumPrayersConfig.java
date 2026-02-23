@@ -123,22 +123,6 @@ public interface AutoColosseumPrayersConfig extends Config {
     }
 
     /**
-     * Enables automatic first manticore volley only when LOS remains unbroken while charging.
-     *
-     * @return {@code true} to auto-pray first manticore volley on clean charge.
-     */
-    @ConfigItem(
-            keyName = "autoFirstManticoreVolley",
-            name = "Auto First Manticore Volley",
-            description = "Auto-pray manticore first volley only when LOS remains unbroken while charging.",
-            section = queueSection,
-            position = 14
-    )
-    default boolean autoFirstManticoreVolley() {
-        return true;
-    }
-
-    /**
      * Gives jaguar melee attacks explicit priority when the pathing indicates an imminent hit.
      *
      * @return {@code true} to prioritize jaguar melee attack ticks.
@@ -168,23 +152,6 @@ public interface AutoColosseumPrayersConfig extends Config {
     )
     default boolean enableOneTickFlick() {
         return false;
-    }
-
-    /**
-     * Maximum number of threatening NPCs in the immediate 2-tick window allowed for one-tick flicking.
-     *
-     * @return Max threatening NPC count for safe one-tick flick mode.
-     */
-    @Range(min = 1, max = 3)
-    @ConfigItem(
-            keyName = "oneTickSafeNpcCount",
-            name = "1-Tick Safe NPC Count",
-            description = "Only one-tick flick when immediate threats are at or below this count.",
-            section = queueSection,
-            position = 18
-    )
-    default int oneTickSafeNpcCount() {
-        return 1;
     }
 
     @ConfigSection(

@@ -31,7 +31,7 @@ public class ColosseumStateTracker {
     private static final int SCRIPT_MODIFIER_SELECT_INIT = 4931;
     private static final int VARBIT_MODIFIER_SELECTED = 9788;
 
-    private static final ColosseumState DEFAULT_STATE = new ColosseumState(false, false, 1, false, Collections.emptyList());
+    private static final ColosseumState DEFAULT_STATE = new ColosseumState(false, false, 1, false, -1, Collections.emptyList());
 
     private final Client client;
     private final EventBus eventBus;
@@ -43,7 +43,7 @@ public class ColosseumStateTracker {
     private boolean waveStarted = false;
 
     @Getter
-    private int waveStartTick;
+    private int waveStartTick = -1;
 
     @Getter
     private final List<Modifier> modifierOptions = new ArrayList<>(3);
@@ -69,12 +69,13 @@ public class ColosseumStateTracker {
         if (!inColosseum) {
             waveNumber = 1;
             waveStarted = false;
+            waveStartTick = -1;
             modifierOptions.clear();
             modifiers.clear();
         }
 
         setState(
-                new ColosseumState(inLobby, inColosseum, waveNumber, waveStarted, Collections.unmodifiableList(modifiers)),
+                new ColosseumState(inLobby, inColosseum, waveNumber, waveStarted, waveStartTick, Collections.unmodifiableList(modifiers)),
                 false
         );
     }

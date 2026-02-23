@@ -1,14 +1,13 @@
-package plugins.colosseum;
+package plugins.colosseum.model;
 
-import lombok.Getter;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import plugins.colosseum.ManticoreAttackStyle;
 import plugins.colosseum.model.spawns.Mob;
 
-@Getter
-@Setter
+@Data
 @RequiredArgsConstructor
-class TrackedMobState {
+public class TrackedMobState {
     private final int npcIndex;
     private final Mob mob;
 

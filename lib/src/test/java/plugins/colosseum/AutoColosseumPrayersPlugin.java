@@ -6,6 +6,7 @@ import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.service.actor.ActorService;
 import com.kraken.api.service.prayer.PrayerService;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -27,7 +28,11 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.HotkeyListener;
 import plugins.colosseum.model.ColosseumState;
 import plugins.colosseum.model.ColosseumStateChanged;
+import plugins.colosseum.model.PrayerQueueEntry;
+import plugins.colosseum.model.TrackedMobState;
 import plugins.colosseum.model.spawns.Mob;
+import plugins.colosseum.overlay.AutoColosseumNpcDebugOverlay;
+import plugins.colosseum.overlay.AutoColosseumPrayerQueueOverlay;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -96,14 +101,25 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     @Inject
     private ColosseumStateTracker tracker;
 
+    @Getter
     private final Map<Integer, TrackedMobState> trackedMobStates = new HashMap<>();
+
+    @Getter
     private final List<PrayerQueueEntry> prayerQueue = new ArrayList<>();
 
-    private long lastTickTime;
-    private boolean runtimeEnabled;
-    private Prayer activeTargetPrayer;
-    private Prayer prePrayPrayer;
+    @Getter
+    private long lastTickTime = -1;
+
+    @Getter
     private int prePrayUntilTick = -1;
+
+    @Getter
+    private Prayer activeTargetPrayer;
+
+    @Getter
+    private Prayer prePrayPrayer;
+
+    private boolean runtimeEnabled;
     private int lastWaveNumberStarted = -1;
     private int lastWaveStartTick = -1;
     private Prayer lastAutoActivatedPrayer;
@@ -220,7 +236,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        int currentTick = currentTick();
+        int currentTick = client.getTickCount();
         NPC npc = (NPC) event.getActor();
         Mob mob = Mob.fromNpc(npc);
         if (mob == null || mob.isManticore()) {
@@ -263,7 +279,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     @Subscribe
     private void onGameTick(GameTick event) {
-        int currentTick = currentTick();
+        int currentTick = client.getTickCount();
         lastTickTime = System.currentTimeMillis();
 
         if (!ctx.isPacketsLoaded()) {
@@ -276,7 +292,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        if (!isInsideColosseum()) {
+        ColosseumState state = tracker.getCurrentState();
+        if (!state.isInColosseum()) {
             clearTrackingState();
             return;
         }
@@ -346,7 +363,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             state.setFirstManticoreStyle(firstStyle);
             state.setChargeInterrupted(false);
             state.setFirstVolleyTick(currentTick + Math.max(1, 10));
-            state.setFirstVolleyAuto(config.autoFirstManticoreVolley() && hasLineOfSight);
+            state.setFirstVolleyAuto(hasLineOfSight);
             state.setSynced(false);
             state.setNextVolleyTick(-1);
         }
@@ -620,7 +637,6 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return false;
         }
 
-        int maxThreatCount = Math.max(1, config.oneTickSafeNpcCount());
         Set<Integer> threateningNpcs = new HashSet<>();
 
         for (PrayerQueueEntry queueEntry : prayerQueue) {
@@ -633,7 +649,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             }
 
             threateningNpcs.add(queueEntry.getNpcIndex());
-            if (threateningNpcs.size() > maxThreatCount) {
+            if (threateningNpcs.size() > 1) {
                 return false;
             }
         }
@@ -682,13 +698,13 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        int startTick = Math.max(currentTick(), waveStartTick);
+        int startTick = Math.max(client.getTickCount(), waveStartTick);
         prePrayPrayer = prayer;
         prePrayUntilTick = startTick + Math.max(1, config.prePrayDurationTicks()) - 1;
     }
 
     private void maintainPrePrayState(int currentTick) {
-        if (!isInsideColosseum()) {
+        if (!tracker.getCurrentState().isInColosseum()) {
             clearPrePrayState();
             return;
         }
@@ -825,25 +841,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         log.info("Auto Colosseum Prayers runtime {}", runtimeEnabled ? "enabled" : "disabled");
     }
 
-    private boolean isInsideColosseum() {
-        ColosseumState state = tracker.getCurrentState();
-        return state.isInColosseum() && !state.isInLobby();
-    }
-
-    private int currentTick() {
-        return client.getTickCount();
-    }
-
     boolean isRuntimeEnabled() {
         return config.enabled() && runtimeEnabled;
-    }
-
-    Prayer getActiveTargetPrayer() {
-        return activeTargetPrayer;
-    }
-
-    Prayer getPrePrayPrayer() {
-        return prePrayPrayer;
     }
 
     Prayer getActiveProtectionPrayer() {
@@ -860,62 +859,10 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     int getRemainingPrePrayTicks() {
-        int currentTick = currentTick();
+        int currentTick = client.getTickCount();
         if (prePrayPrayer == null || prePrayUntilTick < currentTick) {
             return 0;
         }
         return prePrayUntilTick - currentTick + 1;
-    }
-
-    int getTickCounter() {
-        return currentTick();
-    }
-
-    int getCurrentTick() {
-        return currentTick();
-    }
-
-    long getLastTickTime() {
-        return lastTickTime;
-    }
-
-    List<PrayerQueueEntry> getPrayerQueueSnapshot() {
-        return new ArrayList<>(prayerQueue);
-    }
-
-    int getCurrentWaveNumber() {
-        return tracker.getCurrentState().getWaveNumber();
-    }
-
-    int getWaveStartTick() {
-        return tracker.getWaveStartTick();
-    }
-
-    boolean isWaveStarted() {
-        return tracker.getCurrentState().isWaveStarted();
-    }
-
-    boolean isInColosseum() {
-        return tracker.getCurrentState().isInColosseum();
-    }
-
-    boolean isInLobby() {
-        return tracker.getCurrentState().isInLobby();
-    }
-
-    int getTrackedMobCount() {
-        return trackedMobStates.size();
-    }
-
-    int getQueueSize() {
-        return prayerQueue.size();
-    }
-
-    int getPrePrayUntilTick() {
-        return prePrayUntilTick;
-    }
-
-    boolean isPacketsLoaded() {
-        return ctx.isPacketsLoaded();
     }
 }

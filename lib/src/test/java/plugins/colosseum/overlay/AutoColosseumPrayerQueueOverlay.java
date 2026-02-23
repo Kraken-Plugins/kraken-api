@@ -1,4 +1,4 @@
-package plugins.colosseum;
+package plugins.colosseum.overlay;
 
 import com.google.inject.Inject;
 import com.kraken.api.service.prayer.InteractablePrayer;
@@ -9,14 +9,12 @@ import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
+import plugins.colosseum.AutoColosseumPrayersConfig;
+import plugins.colosseum.AutoColosseumPrayersPlugin;
+import plugins.colosseum.model.PrayerQueueEntry;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.Shape;
-import java.awt.Stroke;
+import java.awt.*;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -50,12 +48,12 @@ public class AutoColosseumPrayerQueueOverlay extends Overlay {
             return null;
         }
 
-        List<PrayerQueueEntry> queueEntries = plugin.getPrayerQueueSnapshot();
+        List<PrayerQueueEntry> queueEntries = new ArrayList<>(plugin.getPrayerQueue());
         if (queueEntries.isEmpty()) {
             return null;
         }
 
-        int currentTick = plugin.getTickCounter();
+        int currentTick = client.getTickCount();
         int lookahead = Math.max(1, config.prayerTabLookaheadTicks());
         Set<String> rendered = new HashSet<>();
 
