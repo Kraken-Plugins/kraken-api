@@ -32,9 +32,11 @@ import plugins.colosseum.model.spawns.Mob;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Singleton
@@ -104,6 +106,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private int prePrayUntilTick = -1;
     private int lastWaveNumberStarted = -1;
     private int lastWaveStartTick = -1;
+    private Prayer lastAutoActivatedPrayer;
+    private int lastAutoActivatedTick = -1;
 
     private final HotkeyListener toggleHotkeyListener = new HotkeyListener(() -> config.toggleHotkey()) {
         @Override
@@ -186,6 +190,10 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     @Subscribe
     private void onGameStateChanged(GameStateChanged event) {
+        if (event.getGameState() == GameState.LOGGED_IN && !ctx.isPacketsLoaded()) {
+            ctx.initializePackets();
+        }
+
         if (event.getGameState() != GameState.LOGGED_IN) {
             clearTrackingState();
             lastTickTime = 0L;
@@ -258,6 +266,10 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         int currentTick = currentTick();
         lastTickTime = System.currentTimeMillis();
 
+        if (!ctx.isPacketsLoaded()) {
+            ctx.initializePackets();
+        }
+
         if (!isRuntimeEnabled()) {
             activeTargetPrayer = null;
             prayerQueue.clear();
@@ -282,10 +294,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         rebuildPrayerQueue(colosseumNpcs, localPlayer, currentTick);
 
         Prayer prayerToActivate = choosePrayerForCurrentTick(currentTick);
-        activeTargetPrayer = prayerToActivate;
-        if (prayerToActivate != null) {
-            prayerService.activatePrayer(prayerToActivate);
-        }
+        applyPrayerDecision(prayerToActivate, currentTick);
     }
 
     private void updateTrackedStates(Map<Integer, NPC> colosseumNpcs, Player localPlayer, int currentTick) {
@@ -537,11 +546,30 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     private Prayer choosePrayerForCurrentTick(int currentTick) {
+        Prayer currentTickPrayer = bestPrayerForTick(currentTick);
+        if (currentTickPrayer != null) {
+            return currentTickPrayer;
+        }
+
+        // Pre-switch one tick early so prayer is up before the next incoming hit.
+        Prayer nextTickPrayer = bestPrayerForTick(currentTick + 1);
+        if (nextTickPrayer != null) {
+            return nextTickPrayer;
+        }
+
+        if (prePrayPrayer != null && currentTick <= prePrayUntilTick) {
+            return prePrayPrayer;
+        }
+
+        return null;
+    }
+
+    private Prayer bestPrayerForTick(int tick) {
         Prayer selectedPrayer = null;
         int highestMaxHit = Integer.MIN_VALUE;
 
         for (PrayerQueueEntry queueEntry : prayerQueue) {
-            if (queueEntry.getTick() != currentTick) {
+            if (queueEntry.getTick() != tick) {
                 continue;
             }
 
@@ -555,15 +583,62 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             }
         }
 
-        if (selectedPrayer != null) {
-            return selectedPrayer;
+        return selectedPrayer;
+    }
+
+    private void applyPrayerDecision(Prayer prayerToActivate, int currentTick) {
+        activeTargetPrayer = prayerToActivate;
+
+        if (prayerToActivate != null) {
+            boolean toggled = prayerService.toggle(prayerToActivate, true);
+            if (toggled || client.isPrayerActive(prayerToActivate)) {
+                lastAutoActivatedPrayer = prayerToActivate;
+                lastAutoActivatedTick = currentTick;
+            }
+            return;
         }
 
+        if (!config.enableOneTickFlick()) {
+            return;
+        }
+
+        if (lastAutoActivatedPrayer == null || lastAutoActivatedTick != currentTick - 1) {
+            return;
+        }
+
+        if (!isSafeToOneTickFlick(currentTick)) {
+            return;
+        }
+
+        if (client.isPrayerActive(lastAutoActivatedPrayer)) {
+            prayerService.deactivatePrayer(lastAutoActivatedPrayer);
+        }
+    }
+
+    private boolean isSafeToOneTickFlick(int currentTick) {
         if (prePrayPrayer != null && currentTick <= prePrayUntilTick) {
-            return prePrayPrayer;
+            return false;
         }
 
-        return null;
+        int maxThreatCount = Math.max(1, config.oneTickSafeNpcCount());
+        Set<Integer> threateningNpcs = new HashSet<>();
+
+        for (PrayerQueueEntry queueEntry : prayerQueue) {
+            if (queueEntry.isJaguarPriority() && queueEntry.getTick() <= currentTick + 1) {
+                return false;
+            }
+
+            if (queueEntry.getTick() < currentTick || queueEntry.getTick() > currentTick + 1) {
+                continue;
+            }
+
+            threateningNpcs.add(queueEntry.getNpcIndex());
+            if (threateningNpcs.size() > maxThreatCount) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private Map<Integer, NPC> collectColosseumNpcs() {
@@ -731,6 +806,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         clearPrePrayState();
         lastWaveNumberStarted = -1;
         lastWaveStartTick = -1;
+        lastAutoActivatedPrayer = null;
+        lastAutoActivatedTick = -1;
     }
 
     private void clearPrePrayState() {
@@ -836,5 +913,9 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     int getPrePrayUntilTick() {
         return prePrayUntilTick;
+    }
+
+    boolean isPacketsLoaded() {
+        return ctx.isPacketsLoaded();
     }
 }

@@ -174,6 +174,14 @@ public class AutoColosseumPrayersOverlay extends OverlayPanel {
                             .rightColor(Color.WHITE)
                             .build()
             );
+
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Packets")
+                            .right(plugin.isPacketsLoaded() ? "Loaded" : "Not Loaded")
+                            .rightColor(plugin.isPacketsLoaded() ? Color.GREEN : Color.RED)
+                            .build()
+            );
         }
 
         return super.render(graphics);

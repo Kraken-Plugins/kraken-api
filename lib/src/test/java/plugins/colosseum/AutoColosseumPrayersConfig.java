@@ -154,6 +154,39 @@ public interface AutoColosseumPrayersConfig extends Config {
         return true;
     }
 
+    /**
+     * Enables one-tick overhead flicking for prayer conservation.
+     *
+     * @return {@code true} to enable one-tick flick behavior when safe.
+     */
+    @ConfigItem(
+            keyName = "enableOneTickFlick",
+            name = "Enable 1-Tick Flick",
+            description = "Turn overhead on when needed and off next tick when safe.",
+            section = queueSection,
+            position = 17
+    )
+    default boolean enableOneTickFlick() {
+        return false;
+    }
+
+    /**
+     * Maximum number of threatening NPCs in the immediate 2-tick window allowed for one-tick flicking.
+     *
+     * @return Max threatening NPC count for safe one-tick flick mode.
+     */
+    @Range(min = 1, max = 3)
+    @ConfigItem(
+            keyName = "oneTickSafeNpcCount",
+            name = "1-Tick Safe NPC Count",
+            description = "Only one-tick flick when immediate threats are at or below this count.",
+            section = queueSection,
+            position = 18
+    )
+    default int oneTickSafeNpcCount() {
+        return 1;
+    }
+
     @ConfigSection(
             name = "Wave Pre-Pray",
             description = "Generic wave-start prayer to catch immediate spawn attacks.",
