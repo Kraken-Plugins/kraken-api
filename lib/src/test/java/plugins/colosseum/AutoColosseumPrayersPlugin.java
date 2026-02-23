@@ -6,11 +6,17 @@ import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.service.actor.ActorService;
 import com.kraken.api.service.prayer.PrayerService;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.*;
+import net.runelite.api.Client;
+import net.runelite.api.GameState;
+import net.runelite.api.NPC;
+import net.runelite.api.Player;
+import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.*;
+import net.runelite.api.events.AnimationChanged;
+import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
+import net.runelite.api.events.NpcDespawned;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -19,10 +25,16 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.HotkeyListener;
+import plugins.colosseum.model.ColosseumState;
 import plugins.colosseum.model.ColosseumStateChanged;
 import plugins.colosseum.model.spawns.Mob;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Singleton
@@ -37,6 +49,20 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private static final int MANTICORE_MAGE_GRAPHIC = 2681;
     private static final int MANTICORE_RANGE_GRAPHIC = 2683;
     private static final int MANTICORE_MELEE_GRAPHIC = 2685;
+
+    private static final Map<Integer, Prayer> WAVE_PRE_PRAYER_MAP = Map.ofEntries(
+            Map.entry(1, Prayer.PROTECT_FROM_MAGIC),
+            Map.entry(2, Prayer.PROTECT_FROM_MISSILES),
+            Map.entry(3, Prayer.PROTECT_FROM_MISSILES),
+            Map.entry(4, Prayer.PROTECT_FROM_MAGIC),
+            Map.entry(5, Prayer.PROTECT_FROM_MISSILES),
+            Map.entry(6, Prayer.PROTECT_FROM_MISSILES),
+            Map.entry(7, Prayer.PROTECT_FROM_MAGIC),
+            Map.entry(8, Prayer.PROTECT_FROM_MAGIC),
+            Map.entry(9, Prayer.PROTECT_FROM_MISSILES),
+            Map.entry(10, Prayer.PROTECT_FROM_MISSILES),
+            Map.entry(11, Prayer.PROTECT_FROM_MAGIC)
+    );
 
     @Inject
     private Context ctx;
@@ -57,6 +83,9 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private AutoColosseumPrayerQueueOverlay prayerQueueOverlay;
 
     @Inject
+    private AutoColosseumNpcDebugOverlay npcDebugOverlay;
+
+    @Inject
     private KeyManager keyManager;
 
     @Inject
@@ -67,32 +96,14 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     private final Map<Integer, TrackedMobState> trackedMobStates = new HashMap<>();
     private final List<PrayerQueueEntry> prayerQueue = new ArrayList<>();
-    private static final Map<Integer, Prayer> preprayerMap = Map.ofEntries(
-            Map.entry(1, Prayer.PROTECT_FROM_MAGIC),
-            Map.entry(2, Prayer.PROTECT_FROM_MISSILES),
-            Map.entry(3, Prayer.PROTECT_FROM_MISSILES),
-            Map.entry(4, Prayer.PROTECT_FROM_MAGIC),
-            Map.entry(5, Prayer.PROTECT_FROM_MISSILES),
-            Map.entry(6, Prayer.PROTECT_FROM_MISSILES),
-            Map.entry(7, Prayer.PROTECT_FROM_MAGIC),
-            Map.entry(8, Prayer.PROTECT_FROM_MAGIC),
-            Map.entry(9, Prayer.PROTECT_FROM_MISSILES),
-            Map.entry(10, Prayer.PROTECT_FROM_MISSILES),
-            Map.entry(11, Prayer.PROTECT_FROM_MAGIC)
-    );
 
-    @Getter
-    private int tickCounter;
-
-    @Getter
     private long lastTickTime;
-
     private boolean runtimeEnabled;
     private Prayer activeTargetPrayer;
     private Prayer prePrayPrayer;
     private int prePrayUntilTick = -1;
-    private int previousTrackedCount;
-    private int lastDetectedWave = -1;
+    private int lastWaveNumberStarted = -1;
+    private int lastWaveStartTick = -1;
 
     private final HotkeyListener toggleHotkeyListener = new HotkeyListener(() -> config.toggleHotkey()) {
         @Override
@@ -107,7 +118,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     @Override
-    public void startUp() {
+    protected void startUp() {
         ctx.initializePackets();
         runtimeEnabled = config.startEnabled();
         keyManager.registerKeyListener(toggleHotkeyListener);
@@ -116,12 +127,12 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     @Override
-    public void shutDown() {
+    protected void shutDown() {
         keyManager.unregisterKeyListener(toggleHotkeyListener);
         overlayManager.remove(statusOverlay);
         overlayManager.remove(prayerQueueOverlay);
+        overlayManager.remove(npcDebugOverlay);
         clearTrackingState();
-        tickCounter = 0;
         lastTickTime = 0L;
     }
 
@@ -138,18 +149,45 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     @Subscribe
-    private void onColosseumStateChanged(ColosseumStateChanged e) {
-        if(e.getPreviousState().getWaveNumber() != e.getNewState().getWaveNumber()) {
-            log.info("Wave changed!");
-            // Should start pre-pray now
+    private void onColosseumStateChanged(ColosseumStateChanged event) {
+        if (!config.enableWavePrePray()) {
+            clearPrePrayState();
+            return;
         }
+
+        ColosseumState next = event.getNewState();
+        ColosseumState previous = event.getPreviousState();
+        if (!next.isInColosseum() || next.isInLobby()) {
+            clearPrePrayState();
+            return;
+        }
+
+        boolean waveJustStarted = next.isWaveStarted()
+                && (!previous.isWaveStarted() || next.getWaveNumber() != previous.getWaveNumber());
+
+        if (!waveJustStarted) {
+            return;
+        }
+
+        int waveNumber = next.getWaveNumber();
+        int waveStartTick = tracker.getWaveStartTick();
+        if (waveNumber <= 0 || waveStartTick <= 0) {
+            return;
+        }
+
+        if (waveNumber == lastWaveNumberStarted && waveStartTick == lastWaveStartTick) {
+            return;
+        }
+
+        lastWaveNumberStarted = waveNumber;
+        lastWaveStartTick = waveStartTick;
+        beginPrePray(waveNumber, waveStartTick);
     }
 
     @Subscribe
     private void onGameStateChanged(GameStateChanged event) {
         if (event.getGameState() != GameState.LOGGED_IN) {
             clearTrackingState();
-            tickCounter = 0;
             lastTickTime = 0L;
         }
     }
@@ -174,6 +212,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
+        int currentTick = currentTick();
         NPC npc = (NPC) event.getActor();
         Mob mob = Mob.fromNpc(npc);
         if (mob == null || mob.isManticore()) {
@@ -194,7 +233,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        if (state.getLastAttackAnimationTick() == tickCounter) {
+        if (state.getLastAttackAnimationTick() == currentTick) {
             return;
         }
 
@@ -210,18 +249,23 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         }
 
         state.setSynced(true);
-        state.setNextAttackTick(tickCounter + Math.max(1, mob.getAttackSpeed()));
-        state.setLastAttackAnimationTick(tickCounter);
+        state.setNextAttackTick(currentTick + Math.max(1, mob.getAttackSpeed()));
+        state.setLastAttackAnimationTick(currentTick);
     }
 
     @Subscribe
     private void onGameTick(GameTick event) {
-        tickCounter++;
+        int currentTick = currentTick();
         lastTickTime = System.currentTimeMillis();
 
         if (!isRuntimeEnabled()) {
             activeTargetPrayer = null;
             prayerQueue.clear();
+            return;
+        }
+
+        if (!isInsideColosseum()) {
+            clearTrackingState();
             return;
         }
 
@@ -231,19 +275,20 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        Map<Integer, NPC> colosseumNpcs = collectColosseumNpcs();
-        updateWavePrePray(colosseumNpcs);
-        updateTrackedStates(colosseumNpcs, localPlayer);
-        rebuildPrayerQueue(colosseumNpcs, localPlayer);
+        maintainPrePrayState(currentTick);
 
-        Prayer prayerToActivate = choosePrayerForCurrentTick();
+        Map<Integer, NPC> colosseumNpcs = collectColosseumNpcs();
+        updateTrackedStates(colosseumNpcs, localPlayer, currentTick);
+        rebuildPrayerQueue(colosseumNpcs, localPlayer, currentTick);
+
+        Prayer prayerToActivate = choosePrayerForCurrentTick(currentTick);
         activeTargetPrayer = prayerToActivate;
         if (prayerToActivate != null) {
             prayerService.activatePrayer(prayerToActivate);
         }
     }
 
-    private void updateTrackedStates(Map<Integer, NPC> colosseumNpcs, Player localPlayer) {
+    private void updateTrackedStates(Map<Integer, NPC> colosseumNpcs, Player localPlayer, int currentTick) {
         for (Map.Entry<Integer, NPC> entry : colosseumNpcs.entrySet()) {
             int npcIndex = entry.getKey();
             NPC npc = entry.getValue();
@@ -253,7 +298,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             }
 
             TrackedMobState state = trackedMobStates.computeIfAbsent(npcIndex, key -> new TrackedMobState(npcIndex, mob));
-            state.setLastSeenTick(tickCounter);
+            state.setLastSeenTick(currentTick);
             state.setPreviousLineOfSight(state.isInLineOfSight());
 
             boolean hasLineOfSight = hasLineOfSightToPlayer(npc, mob, localPlayer);
@@ -266,7 +311,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             }
 
             if (mob.isManticore()) {
-                updateManticoreState(state, npc, hasLineOfSight);
+                updateManticoreState(state, npc, hasLineOfSight, currentTick);
             }
         }
 
@@ -278,20 +323,20 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             }
 
             TrackedMobState state = entry.getValue();
-            if (config.removeQueuedOnNpcDeath() || !stateHasFutureAttacks(state)) {
+            if (config.removeQueuedOnNpcDeath() || !stateHasFutureAttacks(state, currentTick)) {
                 iterator.remove();
             }
         }
     }
 
-    private void updateManticoreState(TrackedMobState state, NPC npc, boolean hasLineOfSight) {
+    private void updateManticoreState(TrackedMobState state, NPC npc, boolean hasLineOfSight, int currentTick) {
         ManticoreAttackStyle firstStyle = currentManticoreSpotAnimation(npc);
         if (firstStyle != null && !state.isCharging()) {
             state.setCharging(true);
-            state.setChargeStartTick(tickCounter);
+            state.setChargeStartTick(currentTick);
             state.setFirstManticoreStyle(firstStyle);
             state.setChargeInterrupted(false);
-            state.setFirstVolleyTick(tickCounter + Math.max(1, config.manticoreChargeTicks()));
+            state.setFirstVolleyTick(currentTick + Math.max(1, config.manticoreChargeTicks()));
             state.setFirstVolleyAuto(config.autoFirstManticoreVolley() && hasLineOfSight);
             state.setSynced(false);
             state.setNextVolleyTick(-1);
@@ -305,7 +350,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             state.setChargeInterrupted(true);
         }
 
-        if (tickCounter < state.getFirstVolleyTick()) {
+        if (currentTick < state.getFirstVolleyTick()) {
             return;
         }
 
@@ -316,21 +361,21 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         state.setNextVolleyTick(state.getFirstVolleyTick() + Math.max(1, state.getMob().getAttackSpeed()));
     }
 
-    private void rebuildPrayerQueue(Map<Integer, NPC> currentNpcs, Player localPlayer) {
+    private void rebuildPrayerQueue(Map<Integer, NPC> currentNpcs, Player localPlayer, int currentTick) {
         prayerQueue.clear();
         int lookahead = Math.max(1, config.queueLookaheadTicks());
 
         for (TrackedMobState state : trackedMobStates.values()) {
             state.setLastQueuedTick(-1);
             if (state.getMob().isManticore()) {
-                addManticoreQueueEntries(state, lookahead);
+                addManticoreQueueEntries(state, lookahead, currentTick);
             } else {
-                addStandardQueueEntries(state, lookahead);
+                addStandardQueueEntries(state, lookahead, currentTick);
             }
         }
 
         if (config.prayJaguarOnPath()) {
-            addJaguarPriorityEntries(currentNpcs, localPlayer, lookahead);
+            addJaguarPriorityEntries(currentNpcs, localPlayer, lookahead, currentTick);
         }
 
         prayerQueue.sort(
@@ -340,7 +385,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         );
     }
 
-    private void addStandardQueueEntries(TrackedMobState state, int lookahead) {
+    private void addStandardQueueEntries(TrackedMobState state, int lookahead, int currentTick) {
         Mob mob = state.getMob();
         if (!state.isSynced() || mob.getPrayer() == null) {
             return;
@@ -356,12 +401,12 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        while (nextAttackTick < tickCounter) {
+        while (nextAttackTick < currentTick) {
             nextAttackTick += attackSpeed;
         }
 
         state.setNextAttackTick(nextAttackTick);
-        for (int queuedTick = nextAttackTick; queuedTick <= tickCounter + lookahead; queuedTick += attackSpeed) {
+        for (int queuedTick = nextAttackTick; queuedTick <= currentTick + lookahead; queuedTick += attackSpeed) {
             prayerQueue.add(new PrayerQueueEntry(
                     queuedTick,
                     state.getNpcIndex(),
@@ -374,7 +419,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         }
     }
 
-    private void addManticoreQueueEntries(TrackedMobState state, int lookahead) {
+    private void addManticoreQueueEntries(TrackedMobState state, int lookahead, int currentTick) {
         if (state.getFirstManticoreStyle() == null) {
             return;
         }
@@ -388,8 +433,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        if (state.isFirstVolleyAuto() && state.getFirstVolleyTick() >= tickCounter) {
-            queueManticoreVolley(state, sequence, state.getFirstVolleyTick(), lookahead);
+        if (state.isFirstVolleyAuto() && state.getFirstVolleyTick() >= currentTick) {
+            queueManticoreVolley(state, sequence, state.getFirstVolleyTick(), lookahead, currentTick);
         }
 
         if (!state.isSynced() || state.getNextVolleyTick() < 0) {
@@ -398,13 +443,13 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
         int attackSpeed = Math.max(1, state.getMob().getAttackSpeed());
         int volleyTick = state.getNextVolleyTick();
-        while (volleyTick + sequence.size() - 1 < tickCounter) {
+        while (volleyTick + sequence.size() - 1 < currentTick) {
             volleyTick += attackSpeed;
         }
 
         state.setNextVolleyTick(volleyTick);
-        for (int queuedTick = volleyTick; queuedTick <= tickCounter + lookahead; queuedTick += attackSpeed) {
-            queueManticoreVolley(state, sequence, queuedTick, lookahead);
+        for (int queuedTick = volleyTick; queuedTick <= currentTick + lookahead; queuedTick += attackSpeed) {
+            queueManticoreVolley(state, sequence, queuedTick, lookahead, currentTick);
         }
     }
 
@@ -412,12 +457,13 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             TrackedMobState state,
             List<ManticoreAttackStyle> sequence,
             int volleyStartTick,
-            int lookahead
+            int lookahead,
+            int currentTick
     ) {
         int furthest = -1;
         for (int styleTick = 0; styleTick < sequence.size(); styleTick++) {
             int queuedTick = volleyStartTick + styleTick;
-            if (queuedTick < tickCounter || queuedTick > tickCounter + lookahead) {
+            if (queuedTick < currentTick || queuedTick > currentTick + lookahead) {
                 continue;
             }
 
@@ -438,7 +484,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         }
     }
 
-    private void addJaguarPriorityEntries(Map<Integer, NPC> currentNpcs, Player localPlayer, int lookahead) {
+    private void addJaguarPriorityEntries(Map<Integer, NPC> currentNpcs, Player localPlayer, int lookahead, int currentTick) {
         for (NPC npc : currentNpcs.values()) {
             Mob mob = Mob.fromNpc(npc);
             if (mob == null || !mob.isJaguarWarrior()) {
@@ -450,8 +496,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
                 continue;
             }
 
-            int predictedAttackTick = predictJaguarAttackTick(npc, localPlayer, state);
-            if (predictedAttackTick < tickCounter || predictedAttackTick > tickCounter + lookahead) {
+            int predictedAttackTick = predictJaguarAttackTick(npc, localPlayer, state, currentTick);
+            if (predictedAttackTick < currentTick || predictedAttackTick > currentTick + lookahead) {
                 continue;
             }
 
@@ -467,11 +513,11 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         }
     }
 
-    private int predictJaguarAttackTick(NPC npc, Player localPlayer, TrackedMobState state) {
+    private int predictJaguarAttackTick(NPC npc, Player localPlayer, TrackedMobState state, int currentTick) {
         if (state.isSynced() && state.getNextAttackTick() >= 0) {
             int attackSpeed = Math.max(1, state.getMob().getAttackSpeed());
             int tick = state.getNextAttackTick();
-            while (tick < tickCounter) {
+            while (tick < currentTick) {
                 tick += attackSpeed;
             }
             return tick;
@@ -483,19 +529,19 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         }
 
         if (pathToPlayer.isEmpty()) {
-            return state.isInLineOfSight() ? tickCounter : -1;
+            return state.isInLineOfSight() ? currentTick : -1;
         }
 
         int stepsUntilAdjacent = Math.max(0, pathToPlayer.size() - 1);
-        return tickCounter + stepsUntilAdjacent + 1;
+        return currentTick + stepsUntilAdjacent + 1;
     }
 
-    private Prayer choosePrayerForCurrentTick() {
+    private Prayer choosePrayerForCurrentTick(int currentTick) {
         Prayer selectedPrayer = null;
         int highestMaxHit = Integer.MIN_VALUE;
 
         for (PrayerQueueEntry queueEntry : prayerQueue) {
-            if (queueEntry.getTick() != tickCounter) {
+            if (queueEntry.getTick() != currentTick) {
                 continue;
             }
 
@@ -513,7 +559,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return selectedPrayer;
         }
 
-        if (prePrayPrayer != null && tickCounter <= prePrayUntilTick) {
+        if (prePrayPrayer != null && currentTick <= prePrayUntilTick) {
             return prePrayPrayer;
         }
 
@@ -542,44 +588,39 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         return result;
     }
 
-    private void updateWavePrePray(Map<Integer, NPC> currentNpcs) {
-        if (!config.enableWavePrePray()) {
-            prePrayPrayer = null;
-            prePrayUntilTick = -1;
-            previousTrackedCount = currentNpcs.size();
+    private Prayer resolveWavePrePrayer(int wave) {
+        if (!WAVE_PRE_PRAYER_MAP.containsKey(wave)) {
+            log.debug("Unknown wave {} for pre-prayer", wave);
+            return null;
+        }
+
+        return WAVE_PRE_PRAYER_MAP.get(wave);
+    }
+
+    private void beginPrePray(int waveNumber, int waveStartTick) {
+        if (!isRuntimeEnabled()) {
             return;
         }
 
-        int wave = tracker.getCurrentState().getWaveNumber();
-        if (wave > 0 && wave != lastDetectedWave) {
-            lastDetectedWave = wave;
-            beginPrePray();
-        }
-
-        if (tickCounter > prePrayUntilTick) {
-            prePrayPrayer = null;
-        }
-
-        previousTrackedCount = currentNpcs.size();
-    }
-
-    private Prayer resolveWavePrePrayer(int wave) {
-        if(!preprayerMap.containsKey(wave)) {
-            log.error("Unknown wave {}, defaulting to mage pre-prayer", wave);
-            return Prayer.PROTECT_FROM_MAGIC;
-        }
-
-        return preprayerMap.get(wave);
-    }
-
-    private void beginPrePray() {
-        Prayer prayer = preprayerMap.get(tracker.getCurrentState().getWaveNumber());
+        Prayer prayer = resolveWavePrePrayer(waveNumber);
         if (prayer == null) {
             return;
         }
 
+        int startTick = Math.max(currentTick(), waveStartTick);
         prePrayPrayer = prayer;
-        prePrayUntilTick = tickCounter + Math.max(1, config.prePrayDurationTicks()) - 1;
+        prePrayUntilTick = startTick + Math.max(1, config.prePrayDurationTicks()) - 1;
+    }
+
+    private void maintainPrePrayState(int currentTick) {
+        if (!isInsideColosseum()) {
+            clearPrePrayState();
+            return;
+        }
+
+        if (prePrayPrayer != null && currentTick > prePrayUntilTick) {
+            clearPrePrayState();
+        }
     }
 
     private boolean hasLineOfSightToPlayer(NPC npc, Mob mob, Player player) {
@@ -635,15 +676,15 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         state.setNextVolleyTick(-1);
     }
 
-    private boolean stateHasFutureAttacks(TrackedMobState state) {
-        if (state.getLastQueuedTick() >= tickCounter) {
+    private boolean stateHasFutureAttacks(TrackedMobState state, int currentTick) {
+        if (state.getLastQueuedTick() >= currentTick) {
             return true;
         }
         if (!state.getMob().isManticore()) {
-            return state.getNextAttackTick() >= tickCounter;
+            return state.getNextAttackTick() >= currentTick;
         }
-        return (state.isFirstVolleyAuto() && state.getFirstVolleyTick() >= tickCounter)
-                || state.getNextVolleyTick() >= tickCounter
+        return (state.isFirstVolleyAuto() && state.getFirstVolleyTick() >= currentTick)
+                || state.getNextVolleyTick() >= currentTick
                 || state.isCharging();
     }
 
@@ -675,16 +716,26 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         } else {
             overlayManager.remove(prayerQueueOverlay);
         }
+
+        if (config.showNpcLineOfSightDebug() || config.showNpcPathingDebug()) {
+            overlayManager.add(npcDebugOverlay);
+        } else {
+            overlayManager.remove(npcDebugOverlay);
+        }
     }
 
     private void clearTrackingState() {
         trackedMobStates.clear();
         prayerQueue.clear();
         activeTargetPrayer = null;
+        clearPrePrayState();
+        lastWaveNumberStarted = -1;
+        lastWaveStartTick = -1;
+    }
+
+    private void clearPrePrayState() {
         prePrayPrayer = null;
         prePrayUntilTick = -1;
-        previousTrackedCount = 0;
-        lastDetectedWave = -1;
     }
 
     private void toggleRuntimeState() {
@@ -695,6 +746,15 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         runtimeEnabled = !runtimeEnabled;
         clearTrackingState();
         log.info("Auto Colosseum Prayers runtime {}", runtimeEnabled ? "enabled" : "disabled");
+    }
+
+    private boolean isInsideColosseum() {
+        ColosseumState state = tracker.getCurrentState();
+        return state.isInColosseum() && !state.isInLobby();
+    }
+
+    private int currentTick() {
+        return client.getTickCount();
     }
 
     boolean isRuntimeEnabled() {
@@ -723,13 +783,58 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     int getRemainingPrePrayTicks() {
-        if (prePrayPrayer == null || prePrayUntilTick < tickCounter) {
+        int currentTick = currentTick();
+        if (prePrayPrayer == null || prePrayUntilTick < currentTick) {
             return 0;
         }
-        return prePrayUntilTick - tickCounter + 1;
+        return prePrayUntilTick - currentTick + 1;
+    }
+
+    int getTickCounter() {
+        return currentTick();
+    }
+
+    int getCurrentTick() {
+        return currentTick();
+    }
+
+    long getLastTickTime() {
+        return lastTickTime;
     }
 
     List<PrayerQueueEntry> getPrayerQueueSnapshot() {
         return new ArrayList<>(prayerQueue);
+    }
+
+    int getCurrentWaveNumber() {
+        return tracker.getCurrentState().getWaveNumber();
+    }
+
+    int getWaveStartTick() {
+        return tracker.getWaveStartTick();
+    }
+
+    boolean isWaveStarted() {
+        return tracker.getCurrentState().isWaveStarted();
+    }
+
+    boolean isInColosseum() {
+        return tracker.getCurrentState().isInColosseum();
+    }
+
+    boolean isInLobby() {
+        return tracker.getCurrentState().isInLobby();
+    }
+
+    int getTrackedMobCount() {
+        return trackedMobStates.size();
+    }
+
+    int getQueueSize() {
+        return prayerQueue.size();
+    }
+
+    int getPrePrayUntilTick() {
+        return prePrayUntilTick;
     }
 }

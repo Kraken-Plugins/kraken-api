@@ -110,7 +110,83 @@ public class AutoColosseumPrayersOverlay extends OverlayPanel {
             }
         }
 
+        if (config.expandDebugOverlay()) {
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Area")
+                            .right(areaText())
+                            .rightColor(plugin.isInColosseum() ? Color.GREEN : Color.GRAY)
+                            .build()
+            );
+
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Wave")
+                            .right(String.valueOf(plugin.getCurrentWaveNumber()))
+                            .rightColor(Color.WHITE)
+                            .build()
+            );
+
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Wave Started")
+                            .right(plugin.isWaveStarted() ? "Yes" : "No")
+                            .rightColor(plugin.isWaveStarted() ? Color.GREEN : Color.GRAY)
+                            .build()
+            );
+
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Wave Start Tick")
+                            .right(String.valueOf(plugin.getWaveStartTick()))
+                            .rightColor(Color.WHITE)
+                            .build()
+            );
+
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Client Tick")
+                            .right(String.valueOf(plugin.getCurrentTick()))
+                            .rightColor(Color.WHITE)
+                            .build()
+            );
+
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Tracked NPCs")
+                            .right(String.valueOf(plugin.getTrackedMobCount()))
+                            .rightColor(Color.WHITE)
+                            .build()
+            );
+
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Queue Size")
+                            .right(String.valueOf(plugin.getQueueSize()))
+                            .rightColor(Color.WHITE)
+                            .build()
+            );
+
+            panelComponent.getChildren().add(
+                    LineComponent.builder()
+                            .left("Pre-Pray Until")
+                            .right(String.valueOf(plugin.getPrePrayUntilTick()))
+                            .rightColor(Color.WHITE)
+                            .build()
+            );
+        }
+
         return super.render(graphics);
+    }
+
+    private String areaText() {
+        if (plugin.isInLobby()) {
+            return "Lobby";
+        }
+        if (plugin.isInColosseum()) {
+            return "Arena";
+        }
+        return "Outside";
     }
 
     private String shortPrayerName(Prayer prayer) {

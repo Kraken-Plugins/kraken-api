@@ -214,9 +214,130 @@ public interface AutoColosseumPrayersConfig extends Config {
     @ConfigSection(
             name = "Overlays",
             description = "Status and queue debugging overlays.",
-            position = 30
+            position = 40
     )
     String overlaySection = "overlaySection";
+
+    @ConfigSection(
+            name = "Debug",
+            description = "Debug controls for detailed state and NPC visualization.",
+            position = 30
+    )
+    String debugSection = "debugSection";
+
+    /**
+     * Expands the status overlay with detailed Colosseum state diagnostics.
+     *
+     * @return {@code true} to add detailed debug rows to the status panel.
+     */
+    @ConfigItem(
+            keyName = "expandDebugOverlay",
+            name = "Expand Status Debug",
+            description = "Adds detailed wave/state/tick information to the status overlay.",
+            section = debugSection,
+            position = 31
+    )
+    default boolean expandDebugOverlay() {
+        return false;
+    }
+
+    /**
+     * Renders current line-of-sight tiles for tracked Colosseum NPCs.
+     *
+     * @return {@code true} to render NPC LoS debug tiles in scene.
+     */
+    @ConfigItem(
+            keyName = "showNpcLineOfSightDebug",
+            name = "Show NPC LoS Debug",
+            description = "Render line-of-sight tiles for Colosseum NPCs in scene.",
+            section = debugSection,
+            position = 32
+    )
+    default boolean showNpcLineOfSightDebug() {
+        return false;
+    }
+
+    /**
+     * Renders pathing predictions from NPCs toward the local player.
+     *
+     * @return {@code true} to render NPC pathing debug tiles in scene.
+     */
+    @ConfigItem(
+            keyName = "showNpcPathingDebug",
+            name = "Show NPC Path Debug",
+            description = "Render pathing predictions from Colosseum NPCs to the local player.",
+            section = debugSection,
+            position = 33
+    )
+    default boolean showNpcPathingDebug() {
+        return false;
+    }
+
+    /**
+     * Maximum number of NPCs visualized by scene debug overlays.
+     *
+     * @return Max debug-rendered NPC count.
+     */
+    @Range(min = 1, max = 20)
+    @ConfigItem(
+            keyName = "npcDebugMaxNpcs",
+            name = "NPC Debug Count",
+            description = "Maximum number of Colosseum NPCs shown by LoS/path debug overlays.",
+            section = debugSection,
+            position = 34
+    )
+    default int npcDebugMaxNpcs() {
+        return 8;
+    }
+
+    /**
+     * Maximum path length rendered for NPC path debug.
+     *
+     * @return Max path tiles rendered for each NPC.
+     */
+    @Range(min = 1, max = 40)
+    @ConfigItem(
+            keyName = "npcDebugPathLength",
+            name = "NPC Path Length",
+            description = "Maximum path length shown for each NPC in path debug mode.",
+            section = debugSection,
+            position = 35
+    )
+    default int npcDebugPathLength() {
+        return 12;
+    }
+
+    /**
+     * Uses line-of-sight termination when rendering NPC path debug.
+     *
+     * @return {@code true} to stop path debug at first LoS tile.
+     */
+    @ConfigItem(
+            keyName = "npcPathStopOnLosDebug",
+            name = "Path Stop On LoS",
+            description = "For path debug, stop rendering where NPC first gains line of sight.",
+            section = debugSection,
+            position = 36
+    )
+    default boolean npcPathStopOnLosDebug() {
+        return true;
+    }
+
+    /**
+     * Renders NPC label text with debug metadata.
+     *
+     * @return {@code true} to draw NPC debug labels.
+     */
+    @ConfigItem(
+            keyName = "showNpcDebugLabels",
+            name = "Show NPC Labels",
+            description = "Render labels with NPC debug metadata.",
+            section = debugSection,
+            position = 37
+    )
+    default boolean showNpcDebugLabels() {
+        return false;
+    }
 
     /**
      * Shows the status panel overlay.
@@ -228,7 +349,7 @@ public interface AutoColosseumPrayersConfig extends Config {
             name = "Show Status Overlay",
             description = "Display plugin runtime state and next queued prayers.",
             section = overlaySection,
-            position = 31
+            position = 41
     )
     default boolean showStatusOverlay() {
         return true;
@@ -244,7 +365,7 @@ public interface AutoColosseumPrayersConfig extends Config {
             name = "Show Queue In Panel",
             description = "Display queue rows in the status panel overlay.",
             section = overlaySection,
-            position = 32
+            position = 42
     )
     default boolean showQueueOverlay() {
         return true;
@@ -260,7 +381,7 @@ public interface AutoColosseumPrayersConfig extends Config {
             name = "Show Prayer Tab Queue",
             description = "Render descending queue boxes above protection prayers.",
             section = overlaySection,
-            position = 33
+            position = 43
     )
     default boolean showPrayerQueueOnPrayerTab() {
         return true;
@@ -277,7 +398,7 @@ public interface AutoColosseumPrayersConfig extends Config {
             name = "Panel Queue Rows",
             description = "Maximum number of queued entries shown in the status panel.",
             section = overlaySection,
-            position = 34
+            position = 44
     )
     default int queueOverlayLines() {
         return 8;
@@ -294,11 +415,10 @@ public interface AutoColosseumPrayersConfig extends Config {
             name = "Prayer Tab Lookahead",
             description = "Max tick offset shown by descending prayer-tab queue boxes.",
             section = overlaySection,
-            position = 35
+            position = 45
     )
     default int prayerTabLookaheadTicks() {
         return 8;
     }
 
 }
-
