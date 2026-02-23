@@ -13,11 +13,11 @@ import java.awt.Graphics2D;
 import java.util.List;
 
 public class AutoColosseumPrayersOverlay extends OverlayPanel {
-    private final AutoColosseumPrayers plugin;
+    private final AutoColosseumPrayersPlugin plugin;
     private final AutoColosseumPrayersConfig config;
 
     @Inject
-    public AutoColosseumPrayersOverlay(AutoColosseumPrayers plugin, AutoColosseumPrayersConfig config) {
+    public AutoColosseumPrayersOverlay(AutoColosseumPrayersPlugin plugin, AutoColosseumPrayersConfig config) {
         this.plugin = plugin;
         this.config = config;
         setPosition(OverlayPosition.TOP_RIGHT);

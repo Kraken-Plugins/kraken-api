@@ -14,6 +14,7 @@ import net.runelite.api.events.*;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import plugins.colosseum.model.ColosseumState;
+import plugins.colosseum.model.ColosseumStateChanged;
 import plugins.colosseum.model.Modifier;
 
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ public class ColosseumStateTracker {
     private static final ColosseumState DEFAULT_STATE = new ColosseumState(false, false, 1, false, Collections.emptyList());
 
     private final Client client;
+    private final EventBus eventBus;
 
     @Getter
     private ColosseumState currentState = DEFAULT_STATE;
@@ -52,7 +54,8 @@ public class ColosseumStateTracker {
     @Inject
     public ColosseumStateTracker(final Client client, final EventBus eventBus) {
         this.client = client;
-        eventBus.register(this);
+        this.eventBus = eventBus;
+        this.eventBus.register(this);
     }
 
     @Subscribe(priority = 5)
@@ -145,7 +148,9 @@ public class ColosseumStateTracker {
         }
 
         log.debug("Colosseum state change {} => {}", currentState, newValue);
+        ColosseumState previous = currentState;
         currentState = newValue;
+        eventBus.post(new ColosseumStateChanged(previous, currentState));
     }
 
     private void trackSelectedModifier() {

@@ -6,6 +6,7 @@ import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.service.actor.ActorService;
 import com.kraken.api.service.prayer.PrayerService;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
@@ -18,6 +19,7 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.HotkeyListener;
+import plugins.colosseum.model.ColosseumStateChanged;
 import plugins.colosseum.model.spawns.Mob;
 
 import java.util.*;
@@ -29,7 +31,7 @@ import java.util.*;
         description = "Automatically prays for you in the Colosseum.",
         tags = {"auto", "prayers", "colo", "colosseum"}
 )
-public class AutoColosseumPrayers extends Plugin {
+public class AutoColosseumPrayersPlugin extends Plugin {
     private static final String CONFIG_GROUP = "autocoloprayers";
 
     private static final int MANTICORE_MAGE_GRAPHIC = 2681;
@@ -79,8 +81,12 @@ public class AutoColosseumPrayers extends Plugin {
             Map.entry(11, Prayer.PROTECT_FROM_MAGIC)
     );
 
+    @Getter
     private int tickCounter;
+
+    @Getter
     private long lastTickTime;
+
     private boolean runtimeEnabled;
     private Prayer activeTargetPrayer;
     private Prayer prePrayPrayer;
@@ -128,6 +134,14 @@ public class AutoColosseumPrayers extends Plugin {
         syncOverlayState();
         if (!config.enabled()) {
             clearTrackingState();
+        }
+    }
+
+    @Subscribe
+    private void onColosseumStateChanged(ColosseumStateChanged e) {
+        if(e.getPreviousState().getWaveNumber() != e.getNewState().getWaveNumber()) {
+            log.info("Wave changed!");
+            // Should start pre-pray now
         }
     }
 
@@ -539,9 +553,7 @@ public class AutoColosseumPrayers extends Plugin {
         int wave = tracker.getCurrentState().getWaveNumber();
         if (wave > 0 && wave != lastDetectedWave) {
             lastDetectedWave = wave;
-            beginPrePray(resolveWavePrePrayer(wave));
-        } else if (wave <= 0 && previousTrackedCount == 0 && !currentNpcs.isEmpty()) {
-            beginPrePray(resolveWavePrePrayer(0));
+            beginPrePray();
         }
 
         if (tickCounter > prePrayUntilTick) {
@@ -560,7 +572,8 @@ public class AutoColosseumPrayers extends Plugin {
         return preprayerMap.get(wave);
     }
 
-    private void beginPrePray(Prayer prayer) {
+    private void beginPrePray() {
+        Prayer prayer = preprayerMap.get(tracker.getCurrentState().getWaveNumber());
         if (prayer == null) {
             return;
         }
@@ -714,14 +727,6 @@ public class AutoColosseumPrayers extends Plugin {
             return 0;
         }
         return prePrayUntilTick - tickCounter + 1;
-    }
-
-    int getCurrentTick() {
-        return tickCounter;
-    }
-
-    long getLastTickTime() {
-        return lastTickTime;
     }
 
     List<PrayerQueueEntry> getPrayerQueueSnapshot() {

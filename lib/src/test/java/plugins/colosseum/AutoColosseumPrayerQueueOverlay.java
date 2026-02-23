@@ -27,13 +27,13 @@ public class AutoColosseumPrayerQueueOverlay extends Overlay {
     private static final int TICK_PIXEL_SIZE = 16;
 
     private final Client client;
-    private final AutoColosseumPrayers plugin;
+    private final AutoColosseumPrayersPlugin plugin;
     private final AutoColosseumPrayersConfig config;
 
     @Inject
     public AutoColosseumPrayerQueueOverlay(
             Client client,
-            AutoColosseumPrayers plugin,
+            AutoColosseumPrayersPlugin plugin,
             AutoColosseumPrayersConfig config
     ) {
         this.client = client;
@@ -55,7 +55,7 @@ public class AutoColosseumPrayerQueueOverlay extends Overlay {
             return null;
         }
 
-        int currentTick = plugin.getCurrentTick();
+        int currentTick = plugin.getTickCounter();
         int lookahead = Math.max(1, config.prayerTabLookaheadTicks());
         Set<String> rendered = new HashSet<>();
 
