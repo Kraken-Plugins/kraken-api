@@ -4,11 +4,11 @@ This project is unique in that it functions exclusively within a RuneLite game c
 like JUnit don't provide as much value. Sure, you can test functionality within the API but does is **really** find NPC's within 10 tiles of your player? 
 The only way to know for sure is to run tests within the game client.
 
-You can run tests by running the main class in `PluginRunnerTest.java`. This will launch a new game client which loads a custom "Testing" plugin
-called "API Tests" which you will see within RuneLite. Through this plugin you can run specific tests which cover various query and service related classes
+You can run tests by running the main class in `PluginRunnerTest.java` with the following args: `plugins.api.ApiTestPlugin --developer-mode`. This will launch a new game client which loads a custom "Testing" plugin
+called "API Tests" which you will see within RuneLite. Through this plugin you can run specific tests which cover various query and service-related classes
 and dump output into the console and the overlay for PASS/FAIL.
 
-Most of the tests are fully self-sufficient, that is, they set themselves up with the necessary in game items before running the tests. However,
+Most of the tests are fully self-sufficient; that is, they set themselves up with the necessary in game items before running the tests. However,
 there are a few conditions listed below.
 
 ## General Requirements
@@ -16,7 +16,7 @@ there are a few conditions listed below.
 - **Location**: Most of the tests are designed to be run from **Varrock West Bank**.
 - **NPCs**: Nearby "Guard" NPCs must be present (Varrock West Bank has them).
 - **Players**: Some tests require other players to be nearby (e.g., `PlayerTest`).
-- **Bank**: The player must be near a bank booth (Varrock West Bank) and have either no PIN set or have pre-entered their bank pin.
+- **Bank**: The player must be near a bank booth (Varrock West Bank) and have either no PIN set or have pre-entered their bank pin unless otherwise specified in the test docs below.
 
 ## Inventory & Bank Requirements
 
@@ -33,9 +33,9 @@ The following items must be present in your **Bank**:
     - Raw Salmon (at least 2)
     - Raw Trout (at least 2)
 - **Runes**:
-    - Law runes
-    - Fire runes
-    - Air runes
+    - Law runes (at least 1)
+    - Fire runes (at least 4 but preferably more)
+    - Air runes (at least 3)
 
 ## Skill & Spellbook Requirements
 
@@ -88,3 +88,10 @@ The following items must be present in your **Bank**:
 
 ### `CameraServiceTest`
 - **Interaction**: Requires a target tile to be selected via the plugin overlay/interaction before the test proceeds.
+
+### `GrandExchangeServiceTest`
+- **Location**: Start at the grand exchange near the bankers and clerks. This does not require that the bank be open
+- **Bank**: Requires at least three fire runes. This will sell the fire runes at a loss and by fire runes for 15 gp each (to test instabuy).
+
+### `AreaServiceTest`
+- **Location**: Requires you to be in varrock east bank to see overlays of various areas.
