@@ -27,6 +27,8 @@ public class TrackedMobState {
     private boolean chargeInterrupted;
     private ManticoreAttackStyle firstManticoreStyle;
     private int lastManticoreSpotAnim = -1;
+    private boolean sawManticoreIdleInLineOfSight;
+    private boolean manticorePrayerResponsibility;
     private int activeVolleyTick = -1;
     private int nextVolleyTick = -1;
     private int lastQueuedTick = -1;

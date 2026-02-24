@@ -47,7 +47,6 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private static final int MANTICORE_RANGE_GRAPHIC = 2683;
     private static final int MANTICORE_MELEE_GRAPHIC = 2685;
     private static final int MANTICORE_SPOT_TO_HIT_TICKS = 5;
-    private static final int MANTICORE_CHARGE_TICKS = 10;
     private static final int MANTICORE_READY_DELAY_TICKS = 5;
     private static final int MANTICORE_VOLLEY_SIZE = 3;
 
@@ -262,7 +261,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        if (!hasLineOfSightToPlayer(npc, mob, localPlayer)) {
+        if (!hasLineOfSightToPlayer(npc, mob, localPlayer, collectColosseumNpcs())) {
             return;
         }
 
@@ -337,7 +336,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             state.setLastSeenTick(currentTick);
             state.setPreviousLineOfSight(state.isInLineOfSight());
 
-            boolean hasLineOfSight = hasLineOfSightToPlayer(npc, mob, localPlayer);
+            boolean hasLineOfSight = hasLineOfSightToPlayer(npc, mob, localPlayer, colosseumNpcs);
             state.setInLineOfSight(hasLineOfSight);
 
             if (hasLineOfSight && !state.isPreviousLineOfSight()) {
@@ -370,80 +369,63 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         int previousSpotAnim = state.getLastManticoreSpotAnim();
         state.setLastManticoreSpotAnim(currentSpotAnim);
 
-        ManticoreAttackStyle spottedStyle = manticoreStyleForSpotAnimation(currentSpotAnim);
-        if (spottedStyle != null && state.getFirstManticoreStyle() == null) {
-            state.setFirstManticoreStyle(spottedStyle);
-        }
-
-        boolean openingStyleTransitioned = previousSpotAnim == -1
-                && (currentSpotAnim == MANTICORE_MAGE_GRAPHIC || currentSpotAnim == MANTICORE_RANGE_GRAPHIC);
-        if (openingStyleTransitioned && spottedStyle != null) {
-            int firstAttackTick = currentTick + MANTICORE_SPOT_TO_HIT_TICKS;
-            state.setSynced(true);
-            state.setActiveVolleyTick(-1);
-            state.setNextVolleyTick(firstAttackTick);
-            state.setFirstManticoreStyle(spottedStyle);
-            state.setCharging(false);
-            state.setChargeStartTick(-1);
-            state.setFirstVolleyTick(-1);
-            state.setFirstVolleyAuto(false);
-            state.setChargeInterrupted(false);
-            return;
-        }
-
-        if (!state.isCharging()) {
-            return;
-        }
-
         if (!hasLineOfSight) {
-            state.setChargeInterrupted(true);
-        }
-
-        if (currentTick < state.getFirstVolleyTick()) {
+            state.setSawManticoreIdleInLineOfSight(false);
             return;
         }
 
-        if (state.isChargeInterrupted()) {
-            state.setCharging(false);
-            state.setSynced(false);
-            state.setFirstVolleyAuto(false);
-            state.setFirstVolleyTick(-1);
-            state.setActiveVolleyTick(-1);
-            state.setNextVolleyTick(-1);
+        if (currentSpotAnim == -1) {
+            state.setSawManticoreIdleInLineOfSight(true);
             return;
         }
 
-        if (state.getFirstManticoreStyle() == null) {
+        ManticoreAttackStyle spottedStyle = manticoreStyleForSpotAnimation(currentSpotAnim);
+        boolean openingStyleTransitioned = state.isSawManticoreIdleInLineOfSight()
+                && previousSpotAnim == -1
+                && (currentSpotAnim == MANTICORE_MAGE_GRAPHIC || currentSpotAnim == MANTICORE_RANGE_GRAPHIC);
+
+        if (!openingStyleTransitioned || spottedStyle == null) {
             return;
         }
 
-        int attackSpeed = Math.max(1, state.getMob().getAttackSpeed());
-        state.setCharging(false);
-        boolean autoFirstVolley = state.isFirstVolleyAuto() && !state.isChargeInterrupted();
-        state.setFirstVolleyAuto(autoFirstVolley);
+        int firstAttackTick = currentTick + MANTICORE_SPOT_TO_HIT_TICKS;
+        state.setManticorePrayerResponsibility(true);
         state.setSynced(true);
-        state.setActiveVolleyTick(autoFirstVolley ? state.getFirstVolleyTick() : -1);
-        state.setNextVolleyTick(state.getFirstVolleyTick() + attackSpeed);
+        state.setFirstManticoreStyle(spottedStyle);
+        state.setFirstVolleyAuto(true);
+        state.setFirstVolleyTick(firstAttackTick);
+        state.setActiveVolleyTick(-1);
+        state.setNextVolleyTick(firstAttackTick);
+        state.setCharging(false);
+        state.setChargeStartTick(-1);
+        state.setChargeInterrupted(false);
+        state.setSawManticoreIdleInLineOfSight(false);
     }
 
     private void resolveManticoreVolleyStarts(int currentTick) {
         List<TrackedMobState> readyManticores = new ArrayList<>();
 
         for (TrackedMobState state : trackedMobStates.values()) {
-            if (!state.getMob().isManticore() || !state.isSynced() || state.isCharging()) {
+            if (!state.getMob().isManticore()
+                    || !state.isManticorePrayerResponsibility()
+                    || !state.isSynced()
+                    || state.isCharging()) {
                 continue;
             }
 
             int activeVolleyTick = state.getActiveVolleyTick();
             if (activeVolleyTick >= 0 && currentTick > activeVolleyTick + MANTICORE_VOLLEY_SIZE - 1) {
                 state.setActiveVolleyTick(-1);
+                if (state.getFirstVolleyTick() >= 0 && currentTick > state.getFirstVolleyTick() + MANTICORE_VOLLEY_SIZE - 1) {
+                    state.setFirstVolleyTick(-1);
+                }
             }
 
             if (state.getActiveVolleyTick() >= 0) {
                 continue;
             }
 
-            if (config.cancelQueuedOnLosBreak() && !state.isInLineOfSight()) {
+            if (!state.isInLineOfSight()) {
                 continue;
             }
 
@@ -462,9 +444,17 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         int attackSpeed = Math.max(1, attacker.getMob().getAttackSpeed());
         attacker.setActiveVolleyTick(currentTick);
         attacker.setNextVolleyTick(currentTick + attackSpeed);
+        if (attacker.getFirstVolleyTick() >= 0 && currentTick >= attacker.getFirstVolleyTick()) {
+            attacker.setFirstVolleyTick(-1);
+        }
 
         for (int i = 1; i < readyManticores.size(); i++) {
-            readyManticores.get(i).setNextVolleyTick(currentTick + MANTICORE_READY_DELAY_TICKS);
+            TrackedMobState delayed = readyManticores.get(i);
+            int delayedTick = currentTick + MANTICORE_READY_DELAY_TICKS;
+            delayed.setNextVolleyTick(delayedTick);
+            if (delayed.getFirstVolleyTick() >= 0 && delayed.getFirstVolleyTick() >= currentTick) {
+                delayed.setFirstVolleyTick(delayedTick);
+            }
         }
     }
 
@@ -540,21 +530,17 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     private void addManticoreQueueEntries(TrackedMobState state, int lookahead, int currentTick) {
-        if (state.getFirstManticoreStyle() == null) {
+        if (!state.isManticorePrayerResponsibility() || state.getFirstManticoreStyle() == null) {
             return;
         }
 
-        if (config.cancelQueuedOnLosBreak() && !state.isInLineOfSight() && !state.isCharging()) {
+        if (!state.isInLineOfSight()) {
             return;
         }
 
         List<ManticoreAttackStyle> sequence = ManticoreAttackStyle.sequenceForFirst(state.getFirstManticoreStyle());
         if (sequence.isEmpty()) {
             return;
-        }
-
-        if (state.isCharging() && state.isFirstVolleyAuto() && state.getFirstVolleyTick() >= currentTick) {
-            queueManticoreVolley(state, sequence, state.getFirstVolleyTick(), lookahead, currentTick);
         }
 
         int activeVolleyTick = state.getActiveVolleyTick();
@@ -585,6 +571,10 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             int lookahead,
             int currentTick
     ) {
+        if (!state.isFirstVolleyAuto() && state.getFirstVolleyTick() == volleyStartTick) {
+            return;
+        }
+
         int furthest = -1;
         for (int styleTick = 0; styleTick < sequence.size(); styleTick++) {
             int queuedTick = volleyStartTick + styleTick;
@@ -647,7 +637,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             int currentTick,
             Map<Integer, NPC> currentNpcs
     ) {
-        boolean meleeReachableNow = hasLineOfSightToPlayer(npc, state.getMob(), localPlayer);
+        boolean meleeReachableNow = hasLineOfSightToPlayer(npc, state.getMob(), localPlayer, currentNpcs);
         if (state.isSynced() && state.getNextAttackTick() >= 0 && meleeReachableNow) {
             int attackSpeed = Math.max(1, state.getMob().getAttackSpeed());
             int tick = state.getNextAttackTick();
@@ -724,15 +714,10 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     private Prayer choosePrayerForCurrentTick(int currentTick) {
-        // onGameTick runs after this tick's packets, so target the next server tick first.
+        // onGameTick runs after this tick's packets, so only target the next server tick.
         Prayer nextTickPrayer = bestPrayerForTick(currentTick + 1);
         if (nextTickPrayer != null) {
             return nextTickPrayer;
-        }
-
-        Prayer currentTickPrayer = bestPrayerForTick(currentTick);
-        if (currentTickPrayer != null) {
-            return currentTickPrayer;
         }
 
         if (prePrayPrayer != null && prePrayPending) {
@@ -895,7 +880,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         }
     }
 
-    private boolean hasLineOfSightToPlayer(NPC npc, Mob mob, Player player) {
+    private boolean hasLineOfSightToPlayer(NPC npc, Mob mob, Player player, Map<Integer, NPC> currentNpcs) {
         if (npc == null || mob == null || player == null) {
             return false;
         }
@@ -906,27 +891,63 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         }
 
         List<WorldPoint> visibleTiles = ActorService.getLineOfSightTiles(npc, Math.max(1, mob.getAttackRange()));
-        return visibleTiles.contains(playerPoint);
+        if (!visibleTiles.contains(playerPoint)) {
+            return false;
+        }
+
+        return !isCornerTrappedByBlockingNpc(npc, player, currentNpcs);
+    }
+
+    private boolean isCornerTrappedByBlockingNpc(NPC npc, Player player, Map<Integer, NPC> currentNpcs) {
+        if (npc == null || player == null || currentNpcs == null || currentNpcs.isEmpty() || npcSize(npc) != 1) {
+            return false;
+        }
+
+        WorldPoint npcLocation = npc.getWorldLocation();
+        WorldPoint playerLocation = player.getWorldLocation();
+        if (npcLocation == null || playerLocation == null || npcLocation.getPlane() != playerLocation.getPlane()) {
+            return false;
+        }
+
+        int deltaX = playerLocation.getX() - npcLocation.getX();
+        int deltaY = playerLocation.getY() - npcLocation.getY();
+        if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) > 2) {
+            return false;
+        }
+
+        int dx = Integer.signum(deltaX);
+        int dy = Integer.signum(deltaY);
+        if (dx == 0 || dy == 0) {
+            return false;
+        }
+
+        WorldPoint diagonalStep = new WorldPoint(npcLocation.getX() + dx, npcLocation.getY() + dy, npcLocation.getPlane());
+        if (!isCollisionStepOpen(npc, diagonalStep) || !collidesWithBlockingNpc(npc, diagonalStep, currentNpcs)) {
+            return false;
+        }
+
+        WorldPoint horizontalStep = new WorldPoint(npcLocation.getX() + dx, npcLocation.getY(), npcLocation.getPlane());
+        WorldPoint verticalStep = new WorldPoint(npcLocation.getX(), npcLocation.getY() + dy, npcLocation.getPlane());
+
+        return !canTakeImmediateStep(npc, horizontalStep, playerLocation, currentNpcs)
+                && !canTakeImmediateStep(npc, verticalStep, playerLocation, currentNpcs);
+    }
+
+    private boolean canTakeImmediateStep(NPC npc, WorldPoint step, WorldPoint playerLocation, Map<Integer, NPC> currentNpcs) {
+        if (step == null || (playerLocation != null && playerLocation.equals(step))) {
+            return false;
+        }
+
+        return isCollisionStepOpen(npc, step) && !collidesWithBlockingNpc(npc, step, currentNpcs);
+    }
+
+    private boolean isCollisionStepOpen(NPC npc, WorldPoint step) {
+        List<WorldPoint> path = ActorService.getActorPath(npc, step);
+        return path != null && !path.isEmpty() && step.equals(path.get(0));
     }
 
     private void onLineOfSightGained(TrackedMobState state, int currentTick) {
         if (state.getMob().isManticore()) {
-            if (state.isCharging() || state.isSynced()) {
-                return;
-            }
-
-            // If this charge was interrupted, the manticore is already charged and can instant-attack on re-LoS.
-            // Wait for projectile/spot sync instead of incorrectly starting a fresh 10-tick charge.
-            if (state.isChargeInterrupted()) {
-                return;
-            }
-
-            state.setCharging(true);
-            state.setChargeStartTick(currentTick);
-            state.setFirstVolleyTick(currentTick + MANTICORE_CHARGE_TICKS);
-            state.setFirstVolleyAuto(true);
-            state.setChargeInterrupted(false);
-            state.setActiveVolleyTick(-1);
             return;
         }
 
@@ -937,13 +958,8 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     private void onLineOfSightLost(TrackedMobState state) {
-        if (state.getMob().isManticore() && state.isCharging()) {
-            state.setChargeInterrupted(true);
-            state.setFirstVolleyAuto(false);
-            return;
-        }
-
-        if (state.getMob().isManticore() && state.isChargeInterrupted()) {
+        if (state.getMob().isManticore()) {
+            clearQueuedPrediction(state);
             return;
         }
 
@@ -967,7 +983,10 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         state.setFirstVolleyAuto(false);
         state.setActiveVolleyTick(-1);
         state.setNextVolleyTick(-1);
+        state.setFirstManticoreStyle(null);
         state.setLastManticoreSpotAnim(-1);
+        state.setSawManticoreIdleInLineOfSight(false);
+        state.setManticorePrayerResponsibility(false);
         state.setCharging(false);
         state.setChargeStartTick(-1);
         state.setChargeInterrupted(false);
