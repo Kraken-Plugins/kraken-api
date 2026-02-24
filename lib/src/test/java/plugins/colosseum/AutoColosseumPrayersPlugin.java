@@ -8,11 +8,7 @@ import com.kraken.api.service.actor.ActorService;
 import com.kraken.api.service.prayer.PrayerService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.NPC;
-import net.runelite.api.Player;
-import net.runelite.api.Prayer;
+import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.GameStateChanged;
@@ -35,14 +31,7 @@ import plugins.colosseum.overlay.AutoColosseumNpcDebugOverlay;
 import plugins.colosseum.overlay.AutoColosseumPrayerQueueOverlay;
 import plugins.colosseum.overlay.AutoColosseumPrayersOverlay;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Singleton

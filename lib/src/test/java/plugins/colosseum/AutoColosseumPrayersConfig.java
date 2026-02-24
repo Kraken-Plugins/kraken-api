@@ -238,8 +238,8 @@ public interface AutoColosseumPrayersConfig extends Config {
      */
     @ConfigItem(
             keyName = "showPrayerQueueOnPrayerTab",
-            name = "Show Prayer Tab Queue",
-            description = "Render descending queue boxes above protection prayers.",
+            name = "Descending Boxes",
+            description = "Render descending prayer boxes above protection prayers.",
             section = overlaySection,
             position = 43
     )
