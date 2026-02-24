@@ -33,6 +33,7 @@ import plugins.colosseum.model.TrackedMobState;
 import plugins.colosseum.model.spawns.Mob;
 import plugins.colosseum.overlay.AutoColosseumNpcDebugOverlay;
 import plugins.colosseum.overlay.AutoColosseumPrayerQueueOverlay;
+import plugins.colosseum.overlay.AutoColosseumPrayersOverlay;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -125,7 +126,9 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     @Getter
     private boolean oneTickFlickEnabled;
 
+    @Getter
     private boolean runtimeEnabled;
+
     private int lastWaveNumberStarted = -1;
     private int lastWaveStartTick = -1;
     private Prayer lastAutoActivatedPrayer;
@@ -1005,30 +1008,5 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         runtimeEnabled = !runtimeEnabled;
         clearTrackingState();
         log.info("Auto Colosseum Prayers runtime {}", runtimeEnabled ? "enabled" : "disabled");
-    }
-
-    boolean isRuntimeEnabled() {
-        return config.enabled() && runtimeEnabled;
-    }
-
-    Prayer getActiveProtectionPrayer() {
-        if (client.isPrayerActive(Prayer.PROTECT_FROM_MELEE)) {
-            return Prayer.PROTECT_FROM_MELEE;
-        }
-        if (client.isPrayerActive(Prayer.PROTECT_FROM_MISSILES)) {
-            return Prayer.PROTECT_FROM_MISSILES;
-        }
-        if (client.isPrayerActive(Prayer.PROTECT_FROM_MAGIC)) {
-            return Prayer.PROTECT_FROM_MAGIC;
-        }
-        return null;
-    }
-
-    int getRemainingPrePrayTicks() {
-        int currentTick = client.getTickCount();
-        if (prePrayPrayer == null || prePrayUntilTick < currentTick) {
-            return 0;
-        }
-        return prePrayUntilTick - currentTick + 1;
     }
 }

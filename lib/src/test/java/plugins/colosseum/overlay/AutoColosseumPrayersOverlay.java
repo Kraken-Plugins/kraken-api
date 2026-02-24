@@ -1,4 +1,4 @@
-package plugins.colosseum;
+package plugins.colosseum.overlay;
 
 import com.google.inject.Inject;
 import net.runelite.api.Client;
@@ -7,6 +7,9 @@ import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
+import plugins.colosseum.AutoColosseumPrayersConfig;
+import plugins.colosseum.AutoColosseumPrayersPlugin;
+import plugins.colosseum.ColosseumStateTracker;
 import plugins.colosseum.model.PrayerQueueEntry;
 
 import java.awt.Color;
@@ -41,10 +44,10 @@ public class AutoColosseumPrayersOverlay extends OverlayPanel {
                         .build()
         );
 
-        boolean runtimeEnabled = plugin.isRuntimeEnabled();
+        boolean runtimeEnabled = config.enabled() && plugin.isRuntimeEnabled();
         panelComponent.getChildren().add(
                 LineComponent.builder()
-                        .left("State")
+                        .left("Prayers")
                         .right(runtimeEnabled ? "ON" : "OFF")
                         .rightColor(runtimeEnabled ? Color.GREEN : Color.RED)
                         .build()
@@ -52,41 +55,11 @@ public class AutoColosseumPrayersOverlay extends OverlayPanel {
 
         panelComponent.getChildren().add(
                 LineComponent.builder()
-                        .left("1T Flick")
+                        .left("One Tick")
                         .right(plugin.isOneTickFlickEnabled() ? "ON" : "OFF")
-                        .rightColor(plugin.isOneTickFlickEnabled() ? Color.GREEN : Color.GRAY)
+                        .rightColor(plugin.isOneTickFlickEnabled() ? Color.GREEN : Color.RED)
                         .build()
         );
-
-        Prayer activeTarget = plugin.getActiveTargetPrayer();
-        panelComponent.getChildren().add(
-                LineComponent.builder()
-                        .left("Target")
-                        .right(activeTarget == null ? "-" : shortPrayerName(activeTarget))
-                        .rightColor(activeTarget == null ? Color.GRAY : Color.WHITE)
-                        .build()
-        );
-
-        Prayer activeOverhead = plugin.getActiveProtectionPrayer();
-        panelComponent.getChildren().add(
-                LineComponent.builder()
-                        .left("Overhead")
-                        .right(activeOverhead == null ? "Off" : shortPrayerName(activeOverhead))
-                        .rightColor(activeOverhead == null ? Color.GRAY : Color.GREEN)
-                        .build()
-        );
-
-        Prayer prePray = plugin.getPrePrayPrayer();
-        int prePrayTicks = plugin.getRemainingPrePrayTicks();
-        if (prePray != null && prePrayTicks > 0) {
-            panelComponent.getChildren().add(
-                    LineComponent.builder()
-                            .left("Pre-Pray")
-                            .right(shortPrayerName(prePray) + " (+" + prePrayTicks + ")")
-                            .rightColor(new Color(255, 195, 0))
-                            .build()
-            );
-        }
 
         if (config.showQueueOverlay()) {
             List<PrayerQueueEntry> queueEntries = new ArrayList<>(plugin.getPrayerQueue());
@@ -178,14 +151,6 @@ public class AutoColosseumPrayersOverlay extends OverlayPanel {
                     LineComponent.builder()
                             .left("Queue Size")
                             .right(String.valueOf(plugin.getPrayerQueue().size()))
-                            .rightColor(Color.WHITE)
-                            .build()
-            );
-
-            panelComponent.getChildren().add(
-                    LineComponent.builder()
-                            .left("Pre-Pray Until")
-                            .right(String.valueOf(plugin.getPrePrayUntilTick()))
                             .rightColor(Color.WHITE)
                             .build()
             );
