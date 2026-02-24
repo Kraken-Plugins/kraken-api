@@ -46,6 +46,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private static final int MANTICORE_MAGE_GRAPHIC = 2681;
     private static final int MANTICORE_RANGE_GRAPHIC = 2683;
     private static final int MANTICORE_MELEE_GRAPHIC = 2685;
+    private static final int MANTICORE_SPOT_TO_HIT_TICKS = 5;
     private static final int MANTICORE_CHARGE_TICKS = 10;
     private static final int MANTICORE_READY_DELAY_TICKS = 5;
     private static final int MANTICORE_VOLLEY_SIZE = 3;
@@ -104,9 +105,6 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private long lastTickTime = -1;
 
     @Getter
-    private int prePrayUntilTick = -1;
-
-    @Getter
     private Prayer activeTargetPrayer;
 
     @Getter
@@ -122,6 +120,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private int lastWaveStartTick = -1;
     private Prayer lastAutoActivatedPrayer;
     private int lastAutoActivatedTick = -1;
+    private boolean prePrayPending;
 
 
     private final HotkeyListener toggleHotkeyListener = new HotkeyListener(() -> config.toggleHotkey()) {
@@ -211,7 +210,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
         lastWaveNumberStarted = waveNumber;
         lastWaveStartTick = waveStartTick;
-        beginPrePray(waveNumber, waveStartTick);
+        beginPrePray(waveNumber);
     }
 
     @Subscribe
@@ -314,7 +313,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        maintainPrePrayState(currentTick);
+        maintainPrePrayState();
 
         Map<Integer, NPC> colosseumNpcs = collectColosseumNpcs();
         updateTrackedStates(colosseumNpcs, localPlayer, currentTick);
@@ -367,20 +366,27 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     }
 
     private void updateManticoreState(TrackedMobState state, NPC npc, boolean hasLineOfSight, int currentTick) {
-        ManticoreAttackStyle spottedStyle = currentManticoreSpotAnimation(npc);
+        int currentSpotAnim = currentManticoreSpotAnimationId(npc);
+        int previousSpotAnim = state.getLastManticoreSpotAnim();
+        state.setLastManticoreSpotAnim(currentSpotAnim);
+
+        ManticoreAttackStyle spottedStyle = manticoreStyleForSpotAnimation(currentSpotAnim);
         if (spottedStyle != null && state.getFirstManticoreStyle() == null) {
             state.setFirstManticoreStyle(spottedStyle);
         }
 
-        int attackSpeed = Math.max(1, state.getMob().getAttackSpeed());
-
-        if (!state.isCharging() && !state.isSynced() && spottedStyle != null && hasLineOfSight) {
-            // Fallback when entering mid-wave: sync to the volley currently being cast.
+        boolean openingStyleTransitioned = previousSpotAnim == -1
+                && (currentSpotAnim == MANTICORE_MAGE_GRAPHIC || currentSpotAnim == MANTICORE_RANGE_GRAPHIC);
+        if (openingStyleTransitioned && spottedStyle != null) {
+            int firstAttackTick = currentTick + MANTICORE_SPOT_TO_HIT_TICKS;
             state.setSynced(true);
-            state.setActiveVolleyTick(currentTick);
-            state.setNextVolleyTick(currentTick + attackSpeed);
+            state.setActiveVolleyTick(-1);
+            state.setNextVolleyTick(firstAttackTick);
+            state.setFirstManticoreStyle(spottedStyle);
+            state.setCharging(false);
+            state.setChargeStartTick(-1);
             state.setFirstVolleyTick(-1);
-            state.setFirstVolleyAuto(true);
+            state.setFirstVolleyAuto(false);
             state.setChargeInterrupted(false);
             return;
         }
@@ -411,6 +417,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
+        int attackSpeed = Math.max(1, state.getMob().getAttackSpeed());
         state.setCharging(false);
         boolean autoFirstVolley = state.isFirstVolleyAuto() && !state.isChargeInterrupted();
         state.setFirstVolleyAuto(autoFirstVolley);
@@ -459,6 +466,19 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         for (int i = 1; i < readyManticores.size(); i++) {
             readyManticores.get(i).setNextVolleyTick(currentTick + MANTICORE_READY_DELAY_TICKS);
         }
+    }
+
+    private ManticoreAttackStyle manticoreStyleForSpotAnimation(int spotAnimId) {
+        if (spotAnimId == MANTICORE_MAGE_GRAPHIC) {
+            return ManticoreAttackStyle.MAGE;
+        }
+        if (spotAnimId == MANTICORE_RANGE_GRAPHIC) {
+            return ManticoreAttackStyle.RANGE;
+        }
+        if (spotAnimId == MANTICORE_MELEE_GRAPHIC) {
+            return ManticoreAttackStyle.MELEE;
+        }
+        return null;
     }
 
     private void rebuildPrayerQueue(Map<Integer, NPC> currentNpcs, Player localPlayer, int currentTick) {
@@ -715,7 +735,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return currentTickPrayer;
         }
 
-        if (prePrayPrayer != null && currentTick + 1 <= prePrayUntilTick) {
+        if (prePrayPrayer != null && prePrayPending) {
             return prePrayPrayer;
         }
 
@@ -748,10 +768,17 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         activeTargetPrayer = prayerToActivate;
 
         if (prayerToActivate != null) {
+            if (prePrayPrayer != null && prayerToActivate != prePrayPrayer) {
+                clearPrePrayState();
+            }
+
             boolean toggled = prayerService.toggle(prayerToActivate, true);
             if (toggled || client.isPrayerActive(prayerToActivate)) {
                 lastAutoActivatedPrayer = prayerToActivate;
                 lastAutoActivatedTick = currentTick;
+                if (prePrayPrayer != null && prayerToActivate == prePrayPrayer) {
+                    prePrayPending = false;
+                }
             }
             return;
         }
@@ -775,10 +802,6 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     private boolean isSafeToOneTickFlick(int currentTick) {
         int nextTick = currentTick + 1;
-        if (prePrayPrayer != null && nextTick <= prePrayUntilTick) {
-            return false;
-        }
-
         Set<Integer> threateningNpcs = new HashSet<>();
 
         for (PrayerQueueEntry queueEntry : prayerQueue) {
@@ -830,7 +853,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         return WAVE_PRE_PRAYER_MAP.get(wave);
     }
 
-    private void beginPrePray(int waveNumber, int waveStartTick) {
+    private void beginPrePray(int waveNumber) {
         if (!isRuntimeEnabled()) {
             return;
         }
@@ -840,19 +863,35 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        int startTick = Math.max(client.getTickCount(), waveStartTick);
         prePrayPrayer = prayer;
-        prePrayUntilTick = startTick + 2;
+        prePrayPending = true;
     }
 
-    private void maintainPrePrayState(int currentTick) {
+    private void maintainPrePrayState() {
         if (!tracker.getCurrentState().isInColosseum()) {
             clearPrePrayState();
             return;
         }
 
-        if (prePrayPrayer != null && currentTick > prePrayUntilTick) {
+        if (prePrayPrayer == null) {
+            return;
+        }
+
+        Prayer activeProtection = getActiveProtectionPrayer();
+        if (activeProtection == null) {
+            if (!prePrayPending) {
+                clearPrePrayState();
+            }
+            return;
+        }
+
+        if (activeProtection != prePrayPrayer) {
             clearPrePrayState();
+            return;
+        }
+
+        if (prePrayPending) {
+            prePrayPending = false;
         }
     }
 
@@ -873,6 +912,12 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private void onLineOfSightGained(TrackedMobState state, int currentTick) {
         if (state.getMob().isManticore()) {
             if (state.isCharging() || state.isSynced()) {
+                return;
+            }
+
+            // If this charge was interrupted, the manticore is already charged and can instant-attack on re-LoS.
+            // Wait for projectile/spot sync instead of incorrectly starting a fresh 10-tick charge.
+            if (state.isChargeInterrupted()) {
                 return;
             }
 
@@ -898,6 +943,10 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
+        if (state.getMob().isManticore() && state.isChargeInterrupted()) {
+            return;
+        }
+
         if (!config.cancelQueuedOnLosBreak()) {
             return;
         }
@@ -918,6 +967,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         state.setFirstVolleyAuto(false);
         state.setActiveVolleyTick(-1);
         state.setNextVolleyTick(-1);
+        state.setLastManticoreSpotAnim(-1);
         state.setCharging(false);
         state.setChargeStartTick(-1);
         state.setChargeInterrupted(false);
@@ -937,18 +987,31 @@ public class AutoColosseumPrayersPlugin extends Plugin {
                 || state.isCharging();
     }
 
-    private ManticoreAttackStyle currentManticoreSpotAnimation(NPC npc) {
+    private int currentManticoreSpotAnimationId(NPC npc) {
         if (npc == null) {
-            return null;
+            return -1;
         }
         if (npc.hasSpotAnim(MANTICORE_MAGE_GRAPHIC)) {
-            return ManticoreAttackStyle.MAGE;
+            return MANTICORE_MAGE_GRAPHIC;
         }
         if (npc.hasSpotAnim(MANTICORE_RANGE_GRAPHIC)) {
-            return ManticoreAttackStyle.RANGE;
+            return MANTICORE_RANGE_GRAPHIC;
         }
         if (npc.hasSpotAnim(MANTICORE_MELEE_GRAPHIC)) {
-            return ManticoreAttackStyle.MELEE;
+            return MANTICORE_MELEE_GRAPHIC;
+        }
+        return -1;
+    }
+
+    private Prayer getActiveProtectionPrayer() {
+        if (client.isPrayerActive(Prayer.PROTECT_FROM_MELEE)) {
+            return Prayer.PROTECT_FROM_MELEE;
+        }
+        if (client.isPrayerActive(Prayer.PROTECT_FROM_MISSILES)) {
+            return Prayer.PROTECT_FROM_MISSILES;
+        }
+        if (client.isPrayerActive(Prayer.PROTECT_FROM_MAGIC)) {
+            return Prayer.PROTECT_FROM_MAGIC;
         }
         return null;
     }
@@ -986,7 +1049,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     private void clearPrePrayState() {
         prePrayPrayer = null;
-        prePrayUntilTick = -1;
+        prePrayPending = false;
     }
 
     private void toggleRuntimeState() {
