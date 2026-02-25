@@ -53,7 +53,13 @@ public class MovementService {
     public void moveTo(WorldPoint point) {
         WorldPoint convertedPoint;
         if (ctx.getClient().getTopLevelWorldView().isInstance()) {
-            convertedPoint = WorldPoint.fromLocal(ctx.getClient(), tileService.fromWorldInstance(point));
+            LocalPoint lp = tileService.fromWorldInstance(point);
+            if(lp == null) {
+                log.error("Could not compute local instance point for world point {}", point);
+                return;
+            }
+
+            convertedPoint = WorldPoint.fromLocal(ctx.getClient(), lp);
         } else {
             convertedPoint = point;
         }
