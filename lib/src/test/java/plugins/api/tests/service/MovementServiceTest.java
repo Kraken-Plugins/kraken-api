@@ -53,6 +53,7 @@ public class MovementServiceTest extends BaseApiTest {
         // Loop while the test is running
         while (timeoutTicks < maxTicks) {
             WorldPoint playerLoc = client.getLocalPlayer().getWorldLocation();
+            log.info("Local play loc: {}", playerLoc);
 
             // Check distance to target
             // We use distanceTo (Chebyshev) to ensure we are exactly on the tile (distance 0)
