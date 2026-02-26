@@ -52,14 +52,31 @@ public class MovementService {
      */
     public void moveTo(WorldPoint point) {
         WorldPoint convertedPoint;
-        if (ctx.getClient().getTopLevelWorldView().isInstance()) {
-            LocalPoint lp = tileService.fromWorldInstance(point);
-            if(lp == null) {
-                log.error("Could not compute local instance point for world point {}", point);
-                return;
-            }
 
-            convertedPoint = WorldPoint.fromLocal(ctx.getClient(), lp);
+        if (ctx.getClient().getTopLevelWorldView().isInstance()) {
+
+            // Try conversion with tile service first
+            LocalPoint lp = tileService.fromWorldInstance(point);
+            if (lp == null) {
+                log.error("Could not compute local instance point for world point {}, using RuneLite conversion methods", point);
+
+                // If it fails use RuneLite to convert
+                LocalPoint local = LocalPoint.fromWorld(ctx.getClient().getTopLevelWorldView(), point);
+                if (local != null) {
+                    WorldPoint templatePoint = WorldPoint.fromLocalInstance(ctx.getClient(), local);
+                    if (templatePoint != null) {
+                        convertedPoint = templatePoint;
+                    } else {
+                        log.error("Failed to convert local instance point using RuneLite from point: {}", point);
+                        return;
+                    }
+                } else {
+                    log.error("Failed to convert world point using RuneLite from point: {}", point);
+                    return;
+                }
+            } else {
+                convertedPoint = WorldPoint.fromLocal(ctx.getClient(), lp);
+            }
         } else {
             convertedPoint = point;
         }
