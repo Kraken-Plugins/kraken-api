@@ -1,0 +1,20 @@
+//[lib](../../../index.md)/[com.kraken.api.query](../index.md)/[InteractionManager](index.md)
+
+# InteractionManager
+
+[Kraken API]\
+open class [InteractionManager](index.md)
+
+Manages interactions across various game entities like NPC's, Players, Widgets, GameObjects, TileObjects and more.
+
+## Constructors
+
+| | |
+|---|---|
+| [InteractionManager](-interaction-manager.md) | [Kraken API]<br>constructor() |
+
+## Functions
+
+| Name | Summary |
+|---|---|
+| [interact](interact.md) | [Kraken API]<br>open fun [interact](interact.md)(item: [GroundItem](../../com.kraken.api.query.groundobject/-ground-item/index.md))<br>Interacts with a ground item (`GroundItem`) using the specified action i.e.<br>[Kraken API]<br>open fun [interact](interact.md)(npc: NPC, action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html))<br>Interacts with an NPC using the specified action i.e.<br>[Kraken API]<br>open fun [interact](interact.md)(player: Player, action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html))<br>Interacts with a Player using the specified action i.e.<br>[Kraken API]<br>open fun [interact](interact.md)(object: TileObject, action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html))<br>Interacts with a GameObject (`TileObject`) using the specified action i.e.<br>[Kraken API]<br>open fun [interact](interact.md)(src: Widget, gameObject: GameObject)<br>Uses a source widget on a destination Game Object (i.e.<br>[Kraken API]<br>open fun [interact](interact.md)(src: Widget, npc: NPC)<br>Uses a source widget on a destination NPC (i.e.<br>[Kraken API]<br>open fun [interact](interact.md)(src: Widget, dest: Widget)<br>Uses a source widget on a destination widget (i.e.<br>[Kraken API]<br>open fun [interact](interact.md)(item: Widget, action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html))<br>Interacts with a widget using the specific action.<br>[Kraken API]<br>open fun [interact](interact.md)(item: [ContainerItem](../../com.kraken.api.query.container/-container-item/index.md), action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html))<br>Interacts with an item with the specified ID in an item container (inventory, inventory while banking, equipment, etc...) using the specified action.<br>[Kraken API]<br>open fun [interact](interact.md)(item: [ContainerItem](../../com.kraken.api.query.container/-container-item/index.md), actions: [Array](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-array/index.html)&lt;[String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)&gt;)<br>Interacts with an item with the specified ID in an item container (inventory, inventory while banking, equipment, etc...) using the first matching specified action.<br>[Kraken API]<br>open fun [interact](interact.md)(item: [BankItemWidget](../../com.kraken.api.query.container.bank/-bank-item-widget/index.md), action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html))<br>Interacts with a widget in the players bank using the specific action.<br>[Kraken API]<br>open fun [interact](interact.md)(item: Widget, menu: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html), action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html))<br>Interacts with a widget using the specific sub action.<br>[Kraken API]<br>open fun [interact](interact.md)(action: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), packedWidgetId: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), childId: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), itemId: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html))<br>Interacts with a widget using the specific action index |

@@ -1,0 +1,6 @@
+//[lib](../../../index.md)/[com.kraken.api.core.packet](../index.md)/[ObfuscatedNames](index.md)/[offsetMultiplier](offset-multiplier.md)
+
+# offsetMultiplier
+
+[Kraken API]\
+val [offsetMultiplier](offset-multiplier.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;-962389735&quot;
