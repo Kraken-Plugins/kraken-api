@@ -21,3 +21,18 @@ The source of truth for all API capabilities, classes, and method signatures is 
 as well as information about the API, its structure, mouse movements, how to write scripts, testing, and updating the client.
 
 When writing a plugin using the Kraken API, ALWAYS consult the Markdown files in `/docs` to ensure you are using up-to-date method signatures and event classes before generating code.
+
+### Key Documentation Files
+
+- **API.md**: Provides a high-level overview of the API design, including the Service and Query paradigms. It details the `AbstractQuery` and `AbstractEntity` base classes, which are fundamental to the query system.
+- **INTERACTION.md**: Explains the packet-based interaction system, including `PacketClient`, `PacketType`, and how to use entity-specific packet helpers (e.g., `NPCPackets`).
+- **MOUSE.md**: Covers mouse movement and interaction logic.
+- **SCRIPTING.md**: Guidelines and examples for writing scripts using the API.
+- **SIMULATION.md**: Details on simulation capabilities for advanced plugins (e.g., pathing, game ticks).
+- **TESTS.md**: Information on testing strategies and examples.
+- **UPDATING.md**: Instructions for updating the API and client.
+- **index.md**: The index file for a Markdown version of the Kraken Javadocs
+
+Refer to these files for specific implementation details and examples. The Kraken Javadocs covering specific API methods, parameters, returns, and class usage
+are generated in Markdown as well as in the `docs/lib` directory. Make sure you read the files in the `docs/lib` directory along with `docs/index.md` to have a complete
+understanding of the Kraken API.
