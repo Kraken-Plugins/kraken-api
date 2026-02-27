@@ -1,0 +1,23 @@
+# Kraken API
+
+> Kraken API Automation Library for Old School RuneScape
+
+This repository contains the Kraken API, built on top of the RuneLite client ecosystem. It provides automation, interaction, and context tools for OSRS plugin development.
+
+## Tech Stack & Ecosystem
+- **Language:** Java 11
+- **RuneLite Version:** latest.release
+- **Core Libraries:**
+    - Lombok (for boilerplate reduction)
+    - Google Guice (for dependency injection),
+    - SLF4J (for logging)
+    - GSON (json parsing).
+    - org.benf:cfr (decompiling methods in the RuneLite client on the fly)
+    - Bytebuddy (dynamic class modifications at runtime)
+
+## Documentation Directory
+
+The source of truth for all API capabilities, classes, and method signatures is located in the `/docs` directory. This directory contains the generated Markdown Javadocs
+as well as information about the API, its structure, mouse movements, how to write scripts, testing, and updating the client.
+
+When writing a plugin using the Kraken API, ALWAYS consult the Markdown files in `/docs` to ensure you are using up-to-date method signatures and event classes before generating code.

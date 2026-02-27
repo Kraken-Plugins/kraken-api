@@ -44,7 +44,7 @@ The query paradigm wraps familiar RuneLite API objects with an `Interactable` in
 only __find__ game entities but also __interact__ with them in a straightforward fashion.
 All interactions use network packets to communicate directly with the game servers.
 
-The API utilizes method chaining to filter for specific game entities loaded within the scene and exposes all methods on the underlying RuneLite
+The API uses method chaining to filter for specific game entities loaded within the scene and exposes all methods on the underlying RuneLite
 API objects using the `raw()` method on every wrapped game entity class.
 
 The entire query API is exposed through a single class called the game `Context`.
@@ -77,19 +77,62 @@ public class ExamplePlugin extends Plugin {
     }
 }
 ```
+### Query Thread Safety
 
-The entire query API is designed to be thread safe so any queries, filters, or interactions can be run on non-client threads.
-When callable methods need to execute on RuneLite's client thread they will be scheduled there, blocking until the method executes.
-This helps ensure your plugin code is fully thread safe, predictable, and easy to read.
+The entire query API is designed to be thread-safe, so any queries, filters, or interactions can be run on non-client threads.
+When callable methods need to execute on RuneLite's client thread, they will be scheduled there, blocking until the method executes.
+This helps ensure your plugin code is fully thread-safe, predictable, and easy to read.
 
-To see specific examples of various queries check out the [API tests](https://github.com/cbartram/kraken-api/tree/master/lib/src/test/java) which utilize a real RuneLite plugin to query and find
+To see specific examples of various queries, check out the [API tests](https://github.com/cbartram/kraken-api/tree/master/lib/src/test/java) which utilize a real RuneLite plugin to query and find
 various game entities around Varrock east bank.
 
-> :warning: When running on non-client threads the action must be scheduled on the client thread and is thus asynchronous in nature.
+> :warning: When running on non-client threads, the action must be scheduled on the client thread and is thus asynchronous in nature.
+
+### Query Abstractions
+
+The query system is built on two main abstractions: `AbstractQuery` and `AbstractEntity`.
+These base classes are extended by specific implementations in the `com.kraken.api.query` package, such as `NpcQuery` and `NpcEntity`, `PlayerQuery` and `PlayerEntity`, etc. This design allows for a consistent API across different types of game entities while enabling type-specific functionality.
+
+#### AbstractQuery
+
+`AbstractQuery` is the base class for all game client queries. It provides a fluent API for filtering and manipulating streams of game entities.
+
+Key methods include:
+
+- `filter(Predicate<T> predicate)`: Applies a custom filter to the stream.
+- `withName(String name)`: Filters entities by name (case-insensitive).
+- `withId(int id)`: Filters entities by ID.
+- `nameContains(String name)`: Filters entities whose name contains the specified substring.
+- `empty()`: Returns an empty stream.
+- `shuffle()`: Randomizes the order of elements in the stream.
+- `reverse()`: Reverses the order of elements in the stream.
+- `stream()`: Returns the raw stream of elements, allowing for manual filtering and matching.
+- `toRuneLite()`: Returns the underlying RuneLite entities wrapped by the API.
+- `count()`: Returns the number of objects in the stream.
+- `except(Predicate<T> predicate)`: Filters out elements that match the given predicate.
+- `random()`: Returns a random element from the filtered list.
+- `distinct(Function<T, Object> keyExtractor)`: Filters the stream to include only distinct elements based on a property.
+- `sorted(Comparator<T> comparator)`: Sorts the stream using a comparator.
+- `list()` / `result()`: Collects the stream into a list.
+- `map()`: Collects the stream into a map keyed by entity ID.
+- `first()`: Returns the first element in the stream, or null if empty.
+- `take(int n)`: Returns the first N elements from the stream.
+
+#### AbstractEntity
+
+`AbstractEntity` wraps a raw RuneLite API object (e.g., `NPC`, `TileObject`, `Widget`) and implements the `Interactable` interface. It provides a consistent way to interact with different types of game entities.
+
+Key methods include:
+
+- `raw()`: Returns the underlying RuneLite API object.
+- `isNull()`: Checks if the wrapped entity is null.
+- `interact(String action)`: Performs an interaction with the entity (e.g., "Attack", "Talk-to").
+- `getId()`: Returns the ID of the entity.
+- `getName()`: Returns the name of the entity.
 
 ## Structure
 
-The Kraken API exposes both high and low level functions for working with
+The Kraken API exposes both high and low-level functions for working with
 game objects, NPC's, movement, pathing, simulations, network packets, and more.
 The documentation below describes the most likely packages developers will use when writing scripts or plugins.
 
@@ -100,5 +143,5 @@ The documentation below describes the most likely packages developers will use w
 - `input` - Contains classes to help process and use input devices like mouses and keyboards.
 - `query` - Contains the query API classes for finding and interacting with dynamic game elements like: inventory, npcs, players, game objects, and more.
 - `overlay` - Contains simple and common overlays which can be directly used in RuneLite plugins e.g. Mouse position
-- `sim` - Includes classes for simulating game ticks, NPC pathing, movement, line of sight, and players. This is useful for advanced
+- `simulation` - Includes classes for simulating game ticks, NPC pathing, movement, line of sight, and players. This is useful for advanced
   plugins which evaluate hundreds of potential outcomes every game tick to determine the best "decision". e.g. Inferno and Colosseum plugins
