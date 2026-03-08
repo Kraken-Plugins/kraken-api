@@ -1,5 +1,27 @@
 $dokka.format:gfm-v1
 $dokka.linkExtension:md
+$dokka.location:com.kraken.api.core.interceptor////PointingToDeclaration/lib/com.kraken.api.core.interceptor/index.md
+$dokka.location:com.kraken.api.core.interceptor/InterceptorBuilder///PointingToDeclaration/lib/com.kraken.api.core.interceptor/-interceptor-builder/index.md
+$dokka.location:com.kraken.api.core.interceptor/InterceptorBuilder/InterceptorBuilder/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-interceptor-builder/-interceptor-builder.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor.MouseHookAdvice///PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-advice/index.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor.MouseHookAdvice/MouseHookAdvice/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-advice/-mouse-hook-advice.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor.MouseHookAdvice/onEnter/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-advice/on-enter.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor///PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/index.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/MouseHookInterceptor/#Client/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-interceptor.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/client/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/client.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/hooks/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/hooks.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/injectHook/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/inject-hook.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/injected/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-mouse-hook-interceptor/injected.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor.PacketHookAdvice///PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/-packet-hook-advice/index.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor.PacketHookAdvice/PacketHookAdvice/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/-packet-hook-advice/-packet-hook-advice.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor.PacketHookAdvice/onEnter/#java.lang.Object/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/-packet-hook-advice/on-enter.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor///PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/index.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor/PacketInterceptor/#Client/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/-packet-interceptor.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor/client/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/client.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor/eventBus/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/event-bus.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor/injectHook/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/inject-hook.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor/injected/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/injected.md
+$dokka.location:com.kraken.api.core.interceptor/PacketInterceptor/instance/#/PointingToDeclaration/lib/com.kraken.api.core.interceptor/-packet-interceptor/instance.md
 $dokka.location:com.kraken.api.core.mapping////PointingToDeclaration/lib/com.kraken.api.core.mapping/index.md
 $dokka.location:com.kraken.api.core.mapping/ClientDownloader///PointingToDeclaration/lib/com.kraken.api.core.mapping/-client-downloader/index.md
 $dokka.location:com.kraken.api.core.mapping/ClientDownloader/ClientDownloader/#/PointingToDeclaration/lib/com.kraken.api.core.mapping/-client-downloader/-client-downloader.md
@@ -521,16 +543,6 @@ $dokka.location:com.kraken.api.core.packet/PacketBufferReader/toHexString/#byte[
 $dokka.location:com.kraken.api.core.packet/PacketClient///PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-client/index.md
 $dokka.location:com.kraken.api.core.packet/PacketClient/PacketClient/#Client/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-client/-packet-client.md
 $dokka.location:com.kraken.api.core.packet/PacketClient/sendPacket/#com.kraken.api.core.packet.model.PacketDefinition#java.lang.Object.../PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-client/send-packet.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor.PacketHookAdvice///PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/-packet-hook-advice/index.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor.PacketHookAdvice/PacketHookAdvice/#/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/-packet-hook-advice/-packet-hook-advice.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor.PacketHookAdvice/onEnter/#java.lang.Object/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/-packet-hook-advice/on-enter.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor///PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/index.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor/PacketInterceptor/#Client/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/-packet-interceptor.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor/client/#/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/client.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor/eventBus/#/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/event-bus.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor/injectHook/#/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/inject-hook.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor/injected/#/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/injected.md
-$dokka.location:com.kraken.api.core.packet/PacketInterceptor/instance/#/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-interceptor/instance.md
 $dokka.location:com.kraken.api.core.packet/PacketMethodLocator///PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-method-locator/index.md
 $dokka.location:com.kraken.api.core.packet/PacketMethodLocator/PacketMethodLocator/#/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-method-locator/-packet-method-locator.md
 $dokka.location:com.kraken.api.core.packet/PacketMethodLocator/initialize/#Client/PointingToDeclaration/lib/com.kraken.api.core.packet/-packet-method-locator/initialize.md
@@ -1646,6 +1658,16 @@ $dokka.location:com.kraken.api.service.movement/VariableStrideConfig/VariableStr
 $dokka.location:com.kraken.api.service.movement/VariableStrideConfig/computeStride/#/PointingToDeclaration/lib/com.kraken.api.service.movement/-variable-stride-config/compute-stride.md
 $dokka.location:com.kraken.api.service.movement/VariableStrideConfig/withTileDeviation/#/PointingToDeclaration/lib/com.kraken.api.service.movement/-variable-stride-config/with-tile-deviation.md
 $dokka.location:com.kraken.api.service.pathfinding////PointingToDeclaration/lib/com.kraken.api.service.pathfinding/index.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder///PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/index.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/GlobalPathfinder/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/-global-pathfinder.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/findPath/#WorldPoint#WorldPoint#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/find-path.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/findPath/#WorldPoint#WorldPoint/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/find-path.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/findPathWithBackoff/#WorldPoint#WorldPoint#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/find-path-with-backoff.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/findSparsePath/#WorldPoint#WorldPoint/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/find-sparse-path.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/isBlocked/#WorldPoint/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/is-blocked.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/load/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/load.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/load/#java.lang.String/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/load.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinder/toSparsePath/#java.util.List<WorldPoint>/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-global-pathfinder/to-sparse-path.md
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder///PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-local-pathfinder/index.md
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder/LocalPathfinder/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-local-pathfinder/-local-pathfinder.md
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder/findApproximatePath/#WorldPoint#WorldArea/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-local-pathfinder/find-approximate-path.md
@@ -1662,6 +1684,68 @@ $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder/randomizeSpar
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder/reachableTiles/#WorldPoint/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-local-pathfinder/reachable-tiles.md
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder/renderMinimapPath/#java.util.List<WorldPoint>#java.awt.Graphics2D#java.awt.Color/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-local-pathfinder/render-minimap-path.md
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder/renderPath/#java.util.List<WorldPoint>#java.awt.Graphics2D#java.awt.Color/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-local-pathfinder/render-path.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Cardinality///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-cardinality/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Compaction_count_value///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-compaction_count_value/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Length///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-length/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Level2_area_length///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-level2_area_length/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Level2_areas///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-level2_areas/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Level3_block_length///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-level3_block_length/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Level3_blocks///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-level3_blocks/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Set_array_length///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-set_array_length/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Set_array_max_length///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-set_array_max_length/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Size///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-size/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics.Total_words///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/-total_words/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics///PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics/valueOf/#java.lang.String/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/value-of.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet.Statistics/values/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-statistics/values.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet///PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/index.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/SparseBitSet/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-sparse-bit-set.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/SparseBitSet/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/-sparse-bit-set.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/and/#com.kraken.api.service.pathfinding.SparseBitSet#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/and.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/and/#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/and.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/and/#int#boolean/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/and.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/and/#int#int#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/and.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/andNot/#com.kraken.api.service.pathfinding.SparseBitSet#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/and-not.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/andNot/#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/and-not.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/andNot/#int#boolean/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/and-not.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/andNot/#int#int#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/and-not.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/cardinality/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/cardinality.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/clear/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/clear.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/clear/#int#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/clear.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/clear/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/clear.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/clone/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/clone.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/equals/#java.lang.Object/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/equals.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/flip/#int#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/flip.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/flip/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/flip.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/get/#int#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/get.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/get/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/get.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/hashCode/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/hash-code.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/intersects/#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/intersects.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/intersects/#int#int#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/intersects.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/isEmpty/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/is-empty.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/length/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/length.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/nextClearBit/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/next-clear-bit.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/nextSetBit/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/next-set-bit.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/or/#com.kraken.api.service.pathfinding.SparseBitSet#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/or.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/or/#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/or.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/or/#int#boolean/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/or.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/or/#int#int#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/or.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/previousClearBit/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/previous-clear-bit.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/previousSetBit/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/previous-set-bit.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/set/#int#boolean/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/set.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/set/#int#int#boolean/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/set.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/set/#int#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/set.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/set/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/set.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/size/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/size.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/statistics/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/statistics.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/statistics/#java.lang.String[]/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/statistics.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/toString/#/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/to-string.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/toStringCompaction/#boolean/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/to-string-compaction.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/toStringCompaction/#int/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/to-string-compaction.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/xor/#com.kraken.api.service.pathfinding.SparseBitSet#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/xor.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/xor/#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/xor.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/xor/#int#boolean/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/xor.md
+$dokka.location:com.kraken.api.service.pathfinding/SparseBitSet/xor/#int#int#com.kraken.api.service.pathfinding.SparseBitSet/PointingToDeclaration/lib/com.kraken.api.service.pathfinding/-sparse-bit-set/xor.md
 $dokka.location:com.kraken.api.service.prayer////PointingToDeclaration/lib/com.kraken.api.service.prayer/index.md
 $dokka.location:com.kraken.api.service.prayer/InteractablePrayer.AUGURY///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.prayer/-interactable-prayer/-a-u-g-u-r-y/index.md
 $dokka.location:com.kraken.api.service.prayer/InteractablePrayer.BURST_STRENGTH///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}lib/com.kraken.api.service.prayer/-interactable-prayer/-b-u-r-s-t_-s-t-r-e-n-g-t-h/index.md
@@ -2392,7 +2476,7 @@ $dokka.location:com.kraken.api.util/StringUtils/stripColTags/#java.lang.String/P
 $dokka.location:com.kraken.api.util/StringUtils/stripColTags/#java.lang.String[]/PointingToDeclaration/lib/com.kraken.api.util/-string-utils/strip-col-tags.md
 $dokka.location:com.kraken.api////PointingToDeclaration/lib/com.kraken.api/index.md
 $dokka.location:com.kraken.api/Context///PointingToDeclaration/lib/com.kraken.api/-context/index.md
-$dokka.location:com.kraken.api/Context/Context/#Client#ClientThread#com.kraken.api.input.mouse.VirtualMouse#EventBus#Injector#com.kraken.api.query.InteractionManager#com.kraken.api.service.tile.TileService#ItemManager#com.kraken.api.service.bank.BankService/PointingToDeclaration/lib/com.kraken.api/-context/-context.md
+$dokka.location:com.kraken.api/Context/Context/#Client#ClientThread#com.kraken.api.input.mouse.VirtualMouse#EventBus#Injector#com.kraken.api.query.InteractionManager#com.kraken.api.service.tile.TileService#ItemManager#com.kraken.api.service.bank.BankService#com.kraken.api.core.interceptor.PacketInterceptor#com.kraken.api.core.interceptor.MouseHookInterceptor/PointingToDeclaration/lib/com.kraken.api/-context/-context.md
 $dokka.location:com.kraken.api/Context/bank/#/PointingToDeclaration/lib/com.kraken.api/-context/bank.md
 $dokka.location:com.kraken.api/Context/bankInventory/#/PointingToDeclaration/lib/com.kraken.api/-context/bank-inventory.md
 $dokka.location:com.kraken.api/Context/equipment/#/PointingToDeclaration/lib/com.kraken.api/-context/equipment.md
@@ -2403,6 +2487,8 @@ $dokka.location:com.kraken.api/Context/getVarbitValue/#int/PointingToDeclaration
 $dokka.location:com.kraken.api/Context/getVarpValue/#int/PointingToDeclaration/lib/com.kraken.api/-context/get-varp-value.md
 $dokka.location:com.kraken.api/Context/getWidget/#int/PointingToDeclaration/lib/com.kraken.api/-context/get-widget.md
 $dokka.location:com.kraken.api/Context/groundItems/#/PointingToDeclaration/lib/com.kraken.api/-context/ground-items.md
+$dokka.location:com.kraken.api/Context/initializeInterceptors/#/PointingToDeclaration/lib/com.kraken.api/-context/initialize-interceptors.md
+$dokka.location:com.kraken.api/Context/initializeInterceptors/#com.kraken.api.core.interceptor.InterceptorBuilder/PointingToDeclaration/lib/com.kraken.api/-context/initialize-interceptors.md
 $dokka.location:com.kraken.api/Context/initializePackets/#/PointingToDeclaration/lib/com.kraken.api/-context/initialize-packets.md
 $dokka.location:com.kraken.api/Context/inventory/#/PointingToDeclaration/lib/com.kraken.api/-context/inventory.md
 $dokka.location:com.kraken.api/Context/npcs/#/PointingToDeclaration/lib/com.kraken.api/-context/npcs.md
@@ -2414,6 +2500,7 @@ $dokka.location:com.kraken.api/Context/widgets/#/PointingToDeclaration/lib/com.
 $dokka.location:com.kraken.api/Context/worlds/#/PointingToDeclaration/lib/com.kraken.api/-context/worlds.md
 com.kraken.api
 com.kraken.api.core
+com.kraken.api.core.interceptor
 com.kraken.api.core.mapping
 com.kraken.api.core.packet
 com.kraken.api.core.packet.entity
