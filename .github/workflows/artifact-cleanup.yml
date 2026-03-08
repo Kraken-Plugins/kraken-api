@@ -1,6 +1,11 @@
 name: Artifact Cleanup
 
 on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
   schedule:
     - cron: '0 4 * * *'
 
