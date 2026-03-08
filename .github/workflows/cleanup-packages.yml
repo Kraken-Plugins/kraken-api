@@ -9,9 +9,15 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
+
   remove-old-packages:
     runs-on: ubuntu-latest
+    environment: Prod
     timeout-minutes: 10
 
     permissions:
