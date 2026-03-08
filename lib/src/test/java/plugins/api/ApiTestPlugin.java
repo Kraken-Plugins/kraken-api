@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.core.interceptor.InterceptorBuilder;
 import com.kraken.api.core.script.breakhandler.BreakConditions;
 import com.kraken.api.core.script.breakhandler.BreakManager;
 import com.kraken.api.core.script.breakhandler.BreakProfile;
@@ -12,11 +13,6 @@ import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.service.map.WorldMapService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.ui.login.LoginService;
-import plugins.api.overlay.InfoPanelOverlay;
-import plugins.api.overlay.SceneOverlay;
-import plugins.api.tests.input.MouseTest;
-import plugins.api.tests.query.*;
-import plugins.api.tests.service.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
@@ -35,6 +31,11 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.JagexColors;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
+import plugins.api.overlay.InfoPanelOverlay;
+import plugins.api.overlay.SceneOverlay;
+import plugins.api.tests.input.MouseTest;
+import plugins.api.tests.query.*;
+import plugins.api.tests.service.*;
 
 import java.util.*;
 import java.util.function.BooleanSupplier;
@@ -70,7 +71,6 @@ public class ApiTestPlugin extends Plugin {
 
     @Inject
     private TestResultManager testResultManager;
-
 
     @Inject
     private Client client;
@@ -244,6 +244,13 @@ public class ApiTestPlugin extends Plugin {
     @Override
     protected void startUp() {
         context.initializePackets();
+        context.initializeInterceptors(
+                InterceptorBuilder.builder()
+                        .withPacketInterceptor(false)
+                        .withMouseHookInterceptor(true)
+                        .build()
+        );
+
         exampleScript.start();
 
         overlayManager.add(overlay);

@@ -81,6 +81,8 @@ client revision (when methods and classes are re-obfuscated). To update these ho
 | `legacyType`              | jxLegacyValueClassName  |
 | `MouseHandler_idleCycles` | idleCyclesClassName     |
 | `MouseHandler_idleCycles` | idleCyclesFieldName     |
+| `mouseHookLoader`         | mouseHookClassName      |
+| `mouseHookLoader`         | mouseHookFieldName      |
 
 #### Login Index Garbage Value
 

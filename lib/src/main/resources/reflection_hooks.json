@@ -13,5 +13,7 @@
     "jxJagexValueFieldName": "ax",
     "jxJagexValueClassName": "xi",
     "jxLegacyValueFieldName": "ac",
-    "jxLegacyValueClassName": "xi"
+    "jxLegacyValueClassName": "xi",
+    "mouseHookClassName": "client",
+    "mouseHookMethodName": "rb"
 }

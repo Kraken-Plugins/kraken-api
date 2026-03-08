@@ -44,7 +44,11 @@ public class HookRegistryDeserializer implements JsonDeserializer<HookRegistry> 
 
     private MouseHooks parseMouseHooks(JsonObject root) {
         return new MouseHooks(
-                new FieldHook(getStr(root, "idleCyclesFieldName"), getStr(root, "idleCyclesClassName"))
+                new MethodHook(
+                        getStr(root, "mouseHookMethodName"),
+                        getStr(root, "mouseHookClassName"),
+                        null
+                )
         );
     }
 
