@@ -10,44 +10,32 @@ on:
     - cron: '0 2 * * *'
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 jobs:
-
   remove-old-packages:
     runs-on: ubuntu-latest
     environment: Prod
     timeout-minutes: 10
 
-    permissions:
-      actions: write
-
     steps:
-      - name: Delete old GitHub Package versions (kraken-api)
+      - name: Delete old versions (com.github.cbartram.kraken-api)
         uses: actions/delete-package-versions@v5
         with:
-          package-name: kraken-api
+          package-name: com.github.cbartram.kraken-api
           package-type: maven
           min-versions-to-keep: 5
           delete-only-untagged-versions: false
+          token: ${{ secrets.CLEANUP_PAT }}
         continue-on-error: true
 
-      - name: Delete old GitHub Package versions (com.github.cbartram.kraken-api)
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: com.github.kraken.kraken-api
-          package-type: maven
-          min-versions-to-keep: 5
-          delete-only-untagged-versions: false
-        continue-on-error: true
-
-      - name: Delete old GitHub Package versions (com.github.kraken.kraken-api)
+      - name: Delete old versions (com.github.kraken.kraken-api)
         uses: actions/delete-package-versions@v5
         with:
           package-name: com.github.kraken.kraken-api
           package-type: maven
           min-versions-to-keep: 5
           delete-only-untagged-versions: false
+          token: ${{ secrets.CLEANUP_PAT }}
         continue-on-error: true
-

@@ -91,7 +91,16 @@ jobs:
       - name: Delete old GitHub Package versions
         uses: actions/delete-package-versions@v5
         with:
-          package-name: kraken-api
+          package-name: com.github.cbartram.kraken-api
+          package-type: maven
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: false
+        continue-on-error: true
+
+      - name: Delete old GitHub Package versions (kraken)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: com.github.kraken.kraken-api
           package-type: maven
           min-versions-to-keep: 5
           delete-only-untagged-versions: false
