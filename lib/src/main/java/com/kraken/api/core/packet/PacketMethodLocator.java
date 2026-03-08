@@ -46,7 +46,7 @@ public class PacketMethodLocator {
 
     /**
      * Initializes the packet method locator. This is the main entry point.
-     * It will attempt to load from cache, or perform a full client analysis
+     * It will attempt to load from the cached JSON file {runelite version}-{client revision}.json or perform a full client analysis
      * if no valid cache is found.
      *
      * @param client The RuneLite Client instance.
@@ -65,12 +65,6 @@ public class PacketMethodLocator {
         if (client.getRevision() != REQUIRED_CLIENT_REV) {
             log.warn("PacketMethodLocator was built for client revision {}, but is running on {}.", REQUIRED_CLIENT_REV, client.getRevision());
             log.warn("This may cause instability or failure. Proceed with caution.");
-        }
-
-        try {
-            RuneLite.getInjector().getInstance(PacketInterceptor.class).injectHook();
-        } catch (Exception e) {
-            log.error("Failed to inject hooks. Subscriptions to onPacketSent within the EventBus will fail: ", e);
         }
 
         try {

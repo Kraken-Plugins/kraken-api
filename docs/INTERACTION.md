@@ -3,6 +3,53 @@
 The Kraken API interacts with the RuneLite game client purely through network packets. Network packets allow your client
 to communicate with Jagex's servers to process, validate, and persist what you are doing in the game.
 
+Packets must be instantiated once within the client before they can be used. Instantiate packets by calling:
+
+```java
+@Inject
+private Context ctx;
+
+@Override
+public void startUp() {
+  ctx.initializePackets();
+}
+```
+
+## Interceptor Pattern
+
+Before diving into the packet system, it's important to understand the interceptor pattern and how it mutates the game client at runtime.
+The interceptor pattern is a design pattern that allows you to intercept and modify the behavior of a method call. There are several interceptors
+defined in the `com.kraken.api.core.interceptor` package. These interceptors are used to modify the behavior of the game client at runtime and include
+functionality like:
+
+- Hooking into when a packet is sent to the server exposing a RuneLite event for `@Subscribe`'ing to outgoing packets
+- Patching methods which load mouse hook detection tools (e.g. capturing when remote inputs from Parsec, TeamViewer, etc... are used to make clicks instead of your computer)
+- Other interceptors, which may be added in the future
+
+The Kraken API stands on a premise to **not** modify the game client to run correctly, so calling out these modifications is important so that users are aware and understand
+what is happening to enable certain API functionality.
+
+The API gives you the option on which interceptors you would like to load for your plugins. For example,
+
+```java
+@Inject
+private Context ctx;
+
+@Override
+public void startUp() {
+    // Load only the mouse hook DLL patch not packet interception.
+    context.initializeInterceptors(
+            InterceptorBuilder.builder()
+                    .withPacketInterceptor(false)
+                    .withMouseHookInterceptor(true)
+                    .build()
+    );
+}
+```
+
+When `.initializeInterceptors()` is called the interceptors will run patching the runtime classes defined in the `reflection_hooks.json` file, mutating the game client
+to enable the functionality you have requested.
+
 ## Packet System Overview
 
 The packet system is designed to bypass the need for simulating mouse clicks and keyboard presses, offering a more direct and reliable way to interact with the game. It consists of several key components working together:
