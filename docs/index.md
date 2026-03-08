@@ -8,6 +8,7 @@
 |---|
 | [com.kraken.api](lib/com.kraken.api/index.md) |
 | [com.kraken.api.core](lib/com.kraken.api.core/index.md) |
+| [com.kraken.api.core.interceptor](lib/com.kraken.api.core.interceptor/index.md) |
 | [com.kraken.api.core.mapping](lib/com.kraken.api.core.mapping/index.md) |
 | [com.kraken.api.core.packet](lib/com.kraken.api.core.packet/index.md) |
 | [com.kraken.api.core.packet.entity](lib/com.kraken.api.core.packet.entity/index.md) |

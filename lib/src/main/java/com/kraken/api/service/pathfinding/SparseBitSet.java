@@ -1736,7 +1736,7 @@ public class SparseBitSet implements Cloneable, Serializable
      *              operation
      * @param       op the AbstractStrategy class defining the operation to be
      *              executed
-     * @exception   IndexOutOfBoundsException
+     * @exception   IndexOutOfBoundsException Index out of bounds
      * @since       1.6
      * @see         AbstractStrategy
      */
@@ -2291,7 +2291,7 @@ public class SparseBitSet implements Cloneable, Serializable
          *
          * @param       b the "other" set, for whatever checking is needed.
          * @since       1.6
-         * @return      true -> if the cache should be set to zero
+         * @return      true {@literal ->} if the cache should be set to zero
          */
         protected abstract boolean start(SparseBitSet b);
 
@@ -2374,10 +2374,9 @@ public class SparseBitSet implements Cloneable, Serializable
      *  the remainder of the <i>a</i> set is accomplished by selecting both
      *  <i>F_OP_X_EQ_F</i> and <i>X_OP_F_EQ_F</i>.
      *
-     *  <pre>
      *  and| 0 1
      *    0| 0 0
-     *    1| 0 1 <pre>
+     *    1| 0 1
      */
     protected static class AndStrategy extends AbstractStrategy
     {
@@ -2430,10 +2429,9 @@ public class SparseBitSet implements Cloneable, Serializable
      *  the remainder of the <i>a</i> set is accomplished by selecting both
      *  <i>F_OP_X_EQ_F</i> and <i>X_OP_F_EQ_F</i>.
      *
-     *  <pre>
      * andNot| 0 1
      *      0| 0 0
-     *      1| 1 0 <pre>
+     *      1| 1 0
      */
     protected static class AndNotStrategy extends AbstractStrategy
     {
@@ -2475,10 +2473,9 @@ public class SparseBitSet implements Cloneable, Serializable
     /**
      *  Clear clears bits in the <i>a</i> set.
      *
-     * <pre>
      * clear| 0 1
      *     0| 0 0
-     *     1| 0 0 <pre>
+     *     1| 0 0
      */
     protected static class ClearStrategy extends AbstractStrategy
     {
@@ -2518,10 +2515,9 @@ public class SparseBitSet implements Cloneable, Serializable
     /**
      *  Copies the needed parts of the <i>b</i> set to the <i>a</i> set.
      *
-     * <pre>
      * get| 0 1
      *   0| 0 1
-     *   1| 0 1 <pre>
+     *   1| 0 1
      */
     protected static class CopyStrategy extends AbstractStrategy
     {
@@ -2564,10 +2560,9 @@ public class SparseBitSet implements Cloneable, Serializable
      *  may have all zero level 3 blocks replaced by null references (and
      *  similarly at level 2).
      *
-     * <pre>
      * equals| 0 1
      *      0| 0 -
-     *      1| - - <pre>
+     *      1| - -
      */
     protected static class EqualsStrategy extends AbstractStrategy
     {
@@ -2621,10 +2616,9 @@ public class SparseBitSet implements Cloneable, Serializable
     /**
      *  Flip inverts the bits of the <i>a</i> set within the given range.
      *
-     * <pre>
      * flip| 0 1
      *    0| 1 1
-     *    1| 0 0 <pre>
+     *    1| 0 0
      */
     protected static class FlipStrategy extends AbstractStrategy
     {
@@ -2669,10 +2663,9 @@ public class SparseBitSet implements Cloneable, Serializable
      *  (which is why X_OP_F_EQ_F is not selected, since this would cause
      *  parts of the <i>a</i> set to be zero-ed out).
      *
-     * <pre>
      * intersect| 0 1
      *         0| 0 0
-     *         1| 1 1 <pre>
+     *         1| 1 1
      */
     protected static class IntersectsStrategy extends AbstractStrategy
     {
@@ -2733,10 +2726,9 @@ public class SparseBitSet implements Cloneable, Serializable
      *  If level1 of the <i>a</i> set is longer than level1 of the bit set
      *  <i>b</i>, then the unmatched entries of the <i>a</i> set (beyond
      *  the actual length of <i>b</i>) corresponding to these remain unchanged. *
-     *  <pre>
      *   or| 0 1
      *    0| 0 1
-     *    1| 1 1 <pre>
+     *    1| 1 1
      */
     protected static class OrStrategy extends AbstractStrategy
     {
@@ -2779,11 +2771,9 @@ public class SparseBitSet implements Cloneable, Serializable
      *  Set creates entries everywhere within the range. Hence no empty level2
      *  areas or level3 blocks are ignored, and no empty (all zero) blocks are
      *  returned.
-     *
-     *  <pre>
      * set| 0 1
      *   0| 1 1
-     *   1| 1 1 <pre>
+     *   1| 1 1
      */
     protected static class SetStrategy extends AbstractStrategy
     {
@@ -2823,11 +2813,9 @@ public class SparseBitSet implements Cloneable, Serializable
     /**
      *  Update the seven statistics that are computed for each set. These are
      *  updated by calling <i>statisticsUpdate</i>, which uses this strategy.
-     *
-     *  <pre>
      *  update| 0 1
      *       0| 0 0
-     *       1| 1 1 <pre>
+     *       1| 1 1
      *
      * @see SparseBitSet#statisticsUpdate()
      */
@@ -2991,11 +2979,9 @@ public class SparseBitSet implements Cloneable, Serializable
     //-----------------------------------------------------------------------------
     /**
      *  The XOR of level3 blocks is computed.
-     *
-     * <pre>
      * xor| 0 1
      *   0| 0 1
-     *   1| 1 0 <pre>
+     *   1| 1 0
      */
     protected static class XorStrategy extends AbstractStrategy
     {
