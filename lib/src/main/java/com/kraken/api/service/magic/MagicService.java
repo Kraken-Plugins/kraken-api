@@ -85,8 +85,13 @@ public class MagicService {
             return false;
         }
 
+        if(!spell.isCastable()) {
+            log.warn("Cannot cast spell {}. Check required runes (CS2 script returning un-castable).", spell.getName());
+            return false;
+        }
+
         if (!hasRequiredRunes(spell)) {
-            log.warn("Cannot cast spell {}. Missing required runes: {}", spell.getName(), spell.getRuneRequirement());
+            log.warn("Cannot cast spell {}. Missing required runes: {}, have runes: {}", spell.getName(), spell.getRuneRequirement(), getRunes());
             return false;
         }
 
@@ -234,6 +239,29 @@ public class MagicService {
     }
 
     /**
+     * Returns the number and type of runes the player has in their inventory and rune pouch combined. This
+     * @return Mapping of {@link Rune} objects to the quantity available.
+     */
+    public Map<Rune, Integer> getRunes() {
+        Map<Rune, Integer> runes = RunePouch.getBaseRunePouchContents();
+        for(ContainerItem item : ctx.inventory().toRuneLite().collect(Collectors.toList())) {
+            Rune rune = Rune.byItemId(item.getId());
+            if(rune != null) {
+                // If the rune is a combo rune add all base runes to the combined runes because it functions as any of the base runes.
+                if(rune.isComboRune()) {
+                    for(Rune baseRune : rune.getBaseRunes()) {
+                        runes.merge(baseRune, item.getQuantity(), Integer::sum);
+                    }
+                }
+
+                runes.merge(rune, item.getQuantity(), Integer::sum);
+            }
+        }
+
+        return runes;
+    }
+
+    /**
      * Checks if the player has the required runes to cast a given spell.
      * <p>
      * This method verifies the rune requirements for the provided spell by considering:
@@ -250,21 +278,7 @@ public class MagicService {
      * @return {@code true} if the player has the necessary runes and the spell is castable; {@code false} otherwise.
      */
     public boolean hasRequiredRunes(CastableSpell spell) {
-        Map<Rune, Integer> runes = RunePouch.getBaseRunePouchContents();
-
-        for(ContainerItem item : ctx.inventory().toRuneLite().collect(Collectors.toList())) {
-            Rune rune = Rune.byItemId(item.getId());
-            if(rune != null) {
-                // If the rune is a combo rune add all base runes to the combined runes because it functions as any of the base runes.
-                if(rune.isComboRune()) {
-                    for(Rune baseRune : rune.getBaseRunes()) {
-                        runes.merge(baseRune, item.getQuantity(), Integer::sum);
-                    }
-                }
-
-                runes.merge(rune, item.getQuantity(), Integer::sum);
-            }
-        }
+        Map<Rune, Integer> runes = getRunes();
 
         // Check if we have enough of each required rune
         for(Map.Entry<Rune, Integer> entry : spell.getRuneRequirement().entrySet()) {
