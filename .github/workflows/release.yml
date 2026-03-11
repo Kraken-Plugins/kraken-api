@@ -88,10 +88,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Delete old GitHub Package versions
+      - name: Cleanup Old Package Versions
         uses: actions/delete-package-versions@v5
         with:
-          package-name: com.github.cbartram.kraken-api
+          package-name: com.github.kraken.kraken-api
           package-type: maven
           min-versions-to-keep: 5
           delete-only-untagged-versions: false
