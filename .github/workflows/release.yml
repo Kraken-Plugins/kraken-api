@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 jobs:
-  build-release:
+  release:
     environment: Prod
     runs-on: ubuntu-latest
 
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for tag operations
+          fetch-depth: 0
 
       - name: Set up JDK 11
         uses: actions/setup-java@v4
@@ -30,26 +30,18 @@ jobs:
 
       - name: Calculate version
         run: |
-          # Read base version from file
           BASE_VERSION=$(cat version.txt | tr -d '[:space:]')
-          
-          # Extract major.minor from base version (e.g., "1.1" from "1.1.0")
           MAJOR_MINOR=$(echo $BASE_VERSION | cut -d. -f1,2)
-          
-          # test build 1.1.1
-          
-          # Check if base version tag already exists
+
           if git rev-parse "refs/tags/${BASE_VERSION}" >/dev/null 2>&1; then
-            # Base version exists, find the highest patch number
             LAST_TAG=$(git tag -l "${MAJOR_MINOR}.*" --sort=-version:refname | head -n 1)
             LAST_PATCH=$(echo $LAST_TAG | awk -F. '{print $NF}')
             PATCH=$((LAST_PATCH + 1))
             VERSION="${MAJOR_MINOR}.${PATCH}"
           else
-            # Base version doesn't exist yet, use it as-is
             VERSION="${BASE_VERSION}"
           fi
-          
+
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Calculated version: $VERSION"
 
@@ -80,13 +72,6 @@ jobs:
           echo "COMMITS<<EOF" >> $GITHUB_ENV
           echo "$COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
-      - name: Publish to GitHub Packages
-        run: |
-          echo "Publishing version $VERSION to GitHub Packages"
-          ./gradlew publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cleanup Old Package Versions
         uses: actions/delete-package-versions@v5
@@ -119,7 +104,7 @@ jobs:
 
       - name: Configure MinIO client
         run: |
-          mc alias set s3 ${{secrets.MINIO_URL}} ${{ secrets.MINIO_ACCESS_KEY }} ${{ secrets.MINIO_SECRET_KEY }}
+          mc alias set s3 ${{ secrets.MINIO_URL }} ${{ secrets.MINIO_ACCESS_KEY }} ${{ secrets.MINIO_SECRET_KEY }}
 
       - name: Upload JAR to MinIO
         run: |
@@ -131,3 +116,10 @@ jobs:
         run: |
           echo "Uploading reflection_hooks.json to MinIO..."
           mc cp lib/src/main/resources/reflection_hooks.json s3/kraken-bootstrap-static/reflection_hooks.json
+
+      - name: Publish to GitHub Packages
+        run: |
+          echo "Publishing version $VERSION to GitHub Packages"
+          ./gradlew publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

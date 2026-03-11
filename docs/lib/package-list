@@ -1622,6 +1622,7 @@ $dokka.location:com.kraken.api.service.magic/MagicService/cast/#com.kraken.api.s
 $dokka.location:com.kraken.api.service.magic/MagicService/castOn/#com.kraken.api.service.magic.CastableSpell#GameObject/PointingToDeclaration/lib/com.kraken.api.service.magic/-magic-service/cast-on.md
 $dokka.location:com.kraken.api.service.magic/MagicService/castOn/#com.kraken.api.service.magic.CastableSpell#NPC/PointingToDeclaration/lib/com.kraken.api.service.magic/-magic-service/cast-on.md
 $dokka.location:com.kraken.api.service.magic/MagicService/castOn/#com.kraken.api.service.magic.CastableSpell#Widget/PointingToDeclaration/lib/com.kraken.api.service.magic/-magic-service/cast-on.md
+$dokka.location:com.kraken.api.service.magic/MagicService/getRunes/#/PointingToDeclaration/lib/com.kraken.api.service.magic/-magic-service/get-runes.md
 $dokka.location:com.kraken.api.service.magic/MagicService/hasRequiredRunes/#com.kraken.api.service.magic.CastableSpell/PointingToDeclaration/lib/com.kraken.api.service.magic/-magic-service/has-required-runes.md
 $dokka.location:com.kraken.api.service.map////PointingToDeclaration/lib/com.kraken.api.service.map/index.md
 $dokka.location:com.kraken.api.service.map/WorldMapService///PointingToDeclaration/lib/com.kraken.api.service.map/-world-map-service/index.md

@@ -30,7 +30,7 @@ public enum RunePouch {
     private final int itemId;
 
     @Getter
-    private final boolean has4Slots;
+    private final boolean hasFourSlots;
 
     private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
     private static final ItemManager itemManager = RuneLite.getInjector().getInstance(ItemManager.class);
@@ -47,7 +47,7 @@ public enum RunePouch {
 
     RunePouch(int itemId) {
         this.itemId = itemId;
-        this.has4Slots = false;
+        this.hasFourSlots = false;
     }
 
     /**
