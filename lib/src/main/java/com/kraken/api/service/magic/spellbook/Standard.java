@@ -19,106 +19,114 @@ public enum Standard implements CastableSpell {
             0,
             Map.of()
     ),
+
+    MINIGAME_TELEPORT(
+            0,
+            InterfaceID.MagicSpellbook.TELEPORT_MINIGAME_STANDARD,
+            1,
+            Map.of()
+    ),
+
     VARROCK_TELEPORT(
             25,
             InterfaceID.MagicSpellbook.VARROCK_TELEPORT,
-            15,
+            16,
             Map.of(Rune.AIR, 3, Rune.FIRE, 1, Rune.LAW, 1)
     ),
     GRAND_EXCHANGE_TELEPORT(
             25,
             InterfaceID.MagicSpellbook.VARROCK_TELEPORT,
-            15,
+            16,
             Map.of(Rune.AIR, 3, Rune.FIRE, 1, Rune.LAW, 1)
     ),
     LUMBRIDGE_TELEPORT(
             31,
             InterfaceID.MagicSpellbook.LUMBRIDGE_TELEPORT,
-            17,
+            18,
             Map.of(Rune.AIR, 3, Rune.EARTH, 1, Rune.LAW, 1)
     ),
     FALADOR_TELEPORT(
             37,
             InterfaceID.MagicSpellbook.FALADOR_TELEPORT,
-            20,
+            21,
             Map.of(Rune.AIR, 3, Rune.WATER, 1, Rune.LAW, 1)
     ),
     TELEPORT_TO_HOUSE(
             40,
             InterfaceID.MagicSpellbook.TELEPORT_HOME_STANDARD,
-            48,
+            49,
             Map.of(Rune.AIR, 1, Rune.EARTH, 1, Rune.LAW, 1)
     ),
     CAMELOT_TELEPORT(
             45,
             InterfaceID.MagicSpellbook.CAMELOT_TELEPORT,
-            25,
+            26,
             Map.of(Rune.AIR, 5, Rune.LAW, 1)
     ),
     SEERS_TELEPORT(
             45,
             InterfaceID.MagicSpellbook.CAMELOT_TELEPORT,
-            25,
+            26,
             Map.of(Rune.AIR, 5, Rune.LAW, 1)
     ),
     ARDOUGNE_TELEPORT(
             51,
             InterfaceID.MagicSpellbook.ARDOUGNE_TELEPORT,
-            30,
+            31,
             Map.of(Rune.WATER, 2, Rune.LAW, 2)
     ),
     WATCHTOWER_TELEPORT(
             58,
             InterfaceID.MagicSpellbook.WATCHTOWER_TELEPORT,
-            34,
+            35,
             Map.of(Rune.EARTH, 2, Rune.LAW, 2)
     ),
     YANILLE_TELEPORT(
             58,
             InterfaceID.MagicSpellbook.WATCHTOWER_TELEPORT,
-            34,
+            35,
             Map.of(Rune.EARTH, 2, Rune.LAW, 2)
     ),
     TROLLHEIM_TELEPORT(
             61,
             InterfaceID.MagicSpellbook.TROLLHEIM_TELEPORT,
-            41,
+            42,
             Map.of(Rune.FIRE, 2, Rune.LAW, 2)
     ),
     TELEPORT_TO_APE_ATOLL(
             64,
             InterfaceID.MagicSpellbook.APE_TELEPORT,
-            44,
+            45,
             Map.of(Rune.FIRE, 2, Rune.WATER, 2, Rune.LAW, 2)
     ),
     TELEPORT_TO_KOUREND(
             69,
             InterfaceID.MagicSpellbook.KOUREND_TELEPORT,
-            49,
+            50,
             Map.of(Rune.FIRE, 5, Rune.WATER, 4, Rune.SOUL, 2, Rune.LAW, 2)
     ),
     TELEOTHER_LUMBRIDGE(
             74,
             InterfaceID.MagicSpellbook.TELEOTHER_LUMBRIDGE,
-            52,
+            53,
             Map.of(Rune.EARTH, 1, Rune.LAW, 1, Rune.SOUL, 1)
     ),
     TELEOTHER_FALADOR(
             82,
             InterfaceID.MagicSpellbook.TELEOTHER_FALADOR,
-            58,
+            59,
             Map.of(Rune.WATER, 1, Rune.LAW, 1, Rune.SOUL, 1)
     ),
     TELEPORT_TO_BOUNTY_TARGET(
             85,
             InterfaceID.MagicSpellbook.BOUNTY_TARGET,
-            61,
+            62,
             Map.of(Rune.CHAOS, 1, Rune.DEATH, 1, Rune.LAW, 1)
     ),
     TELEOTHER_CAMELOT(
             90,
             InterfaceID.MagicSpellbook.TELEOTHER_CAMELOT,
-            62,
+            63,
             Map.of(Rune.LAW, 1, Rune.SOUL, 2)
     ),
 
@@ -126,25 +134,25 @@ public enum Standard implements CastableSpell {
     WIND_STRIKE(
             1,
             InterfaceID.MagicSpellbook.WIND_STRIKE,
-            1,
+            2,
             Map.of(Rune.AIR, 1, Rune.MIND, 1)
     ),
     WATER_STRIKE(
             5,
             InterfaceID.MagicSpellbook.WATER_STRIKE,
-            4,
+            5,
             Map.of(Rune.AIR, 1, Rune.WATER, 1, Rune.MIND, 1)
     ),
     EARTH_STRIKE(
             9,
             InterfaceID.MagicSpellbook.EARTH_STRIKE,
-            6,
+            7,
             Map.of(Rune.AIR, 1, Rune.EARTH, 2, Rune.MIND, 1)
     ),
     FIRE_STRIKE(
             13,
             InterfaceID.MagicSpellbook.FIRE_STRIKE,
-            8,
+            9,
             Map.of(Rune.AIR, 2, Rune.FIRE, 3, Rune.MIND, 1)
     ),
 
@@ -152,25 +160,25 @@ public enum Standard implements CastableSpell {
     WIND_BOLT(
             17,
             InterfaceID.MagicSpellbook.WIND_BOLT,
-            10,
+            11,
             Map.of(Rune.AIR, 2, Rune.CHAOS, 1)
     ),
     WATER_BOLT(
             23,
             InterfaceID.MagicSpellbook.WATER_BOLT,
-            14,
+            15,
             Map.of(Rune.AIR, 2, Rune.WATER, 2, Rune.CHAOS, 1)
     ),
     EARTH_BOLT(
             29,
             InterfaceID.MagicSpellbook.EARTH_BOLT,
-            16,
+            17,
             Map.of(Rune.AIR, 2, Rune.EARTH, 3, Rune.CHAOS, 1)
     ),
     FIRE_BOLT(
             35,
             InterfaceID.MagicSpellbook.FIRE_BOLT,
-            19,
+            20,
             Map.of(Rune.AIR, 3, Rune.FIRE, 4, Rune.CHAOS, 1)
     ),
 
@@ -178,25 +186,25 @@ public enum Standard implements CastableSpell {
     WIND_BLAST(
             41,
             InterfaceID.MagicSpellbook.WIND_BLAST,
-            22,
+            23,
             Map.of(Rune.AIR, 3, Rune.DEATH, 1)
     ),
     WATER_BLAST(
             47,
             InterfaceID.MagicSpellbook.WATER_BLAST,
-            26,
+            27,
             Map.of(Rune.AIR, 3, Rune.WATER, 3, Rune.DEATH, 1)
     ),
     EARTH_BLAST(
             53,
             InterfaceID.MagicSpellbook.EARTH_BLAST,
-            31,
+            32,
             Map.of(Rune.AIR, 3, Rune.EARTH, 4, Rune.DEATH, 1)
     ),
     FIRE_BLAST(
             59,
             InterfaceID.MagicSpellbook.FIRE_BLAST,
-            35,
+            36,
             Map.of(Rune.AIR, 4, Rune.FIRE, 5, Rune.DEATH, 1)
     ),
 
@@ -204,25 +212,25 @@ public enum Standard implements CastableSpell {
     WIND_WAVE(
             62,
             InterfaceID.MagicSpellbook.WIND_WAVE,
-            42,
+            43,
             Map.of(Rune.AIR, 5, Rune.BLOOD, 1)
     ),
     WATER_WAVE(
             65,
             InterfaceID.MagicSpellbook.WATER_WAVE,
-            45,
+            46,
             Map.of(Rune.AIR, 5, Rune.WATER, 7, Rune.BLOOD, 1)
     ),
     EARTH_WAVE(
             70,
             InterfaceID.MagicSpellbook.EARTH_WAVE,
-            50,
+            51,
             Map.of(Rune.AIR, 5, Rune.EARTH, 7, Rune.BLOOD, 1)
     ),
     FIRE_WAVE(
             75,
             InterfaceID.MagicSpellbook.FIRE_WAVE,
-            53,
+            54,
             Map.of(Rune.AIR, 5, Rune.FIRE, 7, Rune.BLOOD, 1)
     ),
 
@@ -230,25 +238,25 @@ public enum Standard implements CastableSpell {
     WIND_SURGE(
             81,
             InterfaceID.MagicSpellbook.WIND_SURGE,
-            57,
+            58,
             Map.of(Rune.AIR, 7, Rune.WRATH, 1)
     ),
     WATER_SURGE(
             85,
             InterfaceID.MagicSpellbook.WATER_SURGE,
-            59,
+            60,
             Map.of(Rune.AIR, 7, Rune.WATER, 10, Rune.WRATH, 1)
     ),
     EARTH_SURGE(
             90,
             InterfaceID.MagicSpellbook.EARTH_SURGE,
-            63,
+            64,
             Map.of(Rune.AIR, 7, Rune.EARTH, 10, Rune.WRATH, 1)
     ),
     FIRE_SURGE(
             95,
             InterfaceID.MagicSpellbook.FIRE_SURGE,
-            64,
+            65,
             Map.of(Rune.AIR, 7, Rune.FIRE, 10, Rune.WRATH, 1)
     ),
 
@@ -256,19 +264,19 @@ public enum Standard implements CastableSpell {
     SARADOMIN_STRIKE(
             60,
             InterfaceID.MagicSpellbook.SARADOMIN_STRIKE,
-            38,
+            39,
             Map.of(Rune.AIR, 4, Rune.FIRE, 2, Rune.BLOOD, 2)
     ),
     CLAWS_OF_GUTHIX(
             60,
             InterfaceID.MagicSpellbook.CLAWS_OF_GUTHIX,
-            39,
+            40,
             Map.of(Rune.AIR, 4, Rune.FIRE, 1, Rune.BLOOD, 2)
     ),
     FLAMES_OF_ZAMORAK(
             60,
             InterfaceID.MagicSpellbook.FLAMES_OF_ZAMORAK,
-            40,
+            41,
             Map.of(Rune.AIR, 1, Rune.FIRE, 4, Rune.BLOOD, 2)
     ),
 
@@ -276,19 +284,19 @@ public enum Standard implements CastableSpell {
     CRUMBLE_UNDEAD(
             39,
             InterfaceID.MagicSpellbook.CRUMBLE_UNDEAD,
-            21,
+            22,
             Map.of(Rune.AIR, 2, Rune.EARTH, 2, Rune.CHAOS, 1)
     ),
     IBAN_BLAST(
             50,
             InterfaceID.MagicSpellbook.IBAN_BLAST,
-            27,
+            28,
             Map.of(Rune.FIRE, 5, Rune.DEATH, 1)
     ),
     MAGIC_DART(
             50,
             InterfaceID.MagicSpellbook.MAGIC_DART,
-            29,
+            30,
             Map.of(Rune.DEATH, 1, Rune.MIND, 4)
     ),
 
@@ -296,61 +304,61 @@ public enum Standard implements CastableSpell {
     CONFUSE(
             3,
             InterfaceID.MagicSpellbook.CONFUSE,
-            2,
+            3,
             Map.of(Rune.EARTH, 2, Rune.WATER, 3, Rune.BODY, 1)
     ),
     WEAKEN(
             11,
             InterfaceID.MagicSpellbook.WEAKEN,
-            7,
+            8,
             Map.of(Rune.EARTH, 2, Rune.WATER, 3, Rune.BODY, 1)
     ),
     CURSE(
             19,
             InterfaceID.MagicSpellbook.CURSE,
-            11,
+            12,
             Map.of(Rune.EARTH, 3, Rune.WATER, 2, Rune.BODY, 1)
     ),
     BIND(
             20,
             InterfaceID.MagicSpellbook.BIND,
-            12,
+            13,
             Map.of(Rune.EARTH, 3, Rune.WATER, 3, Rune.NATURE, 2)
     ),
     SNARE(
             50,
             InterfaceID.MagicSpellbook.SNARE,
-            28,
+            29,
             Map.of(Rune.EARTH, 4, Rune.WATER, 4, Rune.NATURE, 3)
     ),
     VULNERABILITY(
             66,
             InterfaceID.MagicSpellbook.VULNERABILITY,
-            47,
+            48,
             Map.of(Rune.EARTH, 5, Rune.WATER, 5, Rune.SOUL, 1)
     ),
     ENFEEBLE(
             73,
             InterfaceID.MagicSpellbook.ENFEEBLE,
-            51,
+            52,
             Map.of(Rune.EARTH, 8, Rune.WATER, 8, Rune.SOUL, 1)
     ),
     ENTANGLE(
             79,
             InterfaceID.MagicSpellbook.ENTANGLE,
-            54,
+            55,
             Map.of(Rune.EARTH, 5, Rune.WATER, 5, Rune.NATURE, 4)
     ),
     STUN(
             80,
             InterfaceID.MagicSpellbook.STUN,
-            55,
+            56,
             Map.of(Rune.EARTH, 12, Rune.WATER, 12, Rune.SOUL, 1)
     ),
     TELE_BLOCK(
             85,
             InterfaceID.MagicSpellbook.TELEPORT_BLOCK,
-            60,
+            61,
             Map.of(Rune.CHAOS, 1, Rune.DEATH, 1, Rune.LAW, 1)
     ),
 
@@ -358,37 +366,37 @@ public enum Standard implements CastableSpell {
     CHARGE(
             80,
             InterfaceID.MagicSpellbook.CHARGE,
-            56,
+            57,
             Map.of(Rune.AIR, 3, Rune.FIRE, 3, Rune.BLOOD, 3)
     ),
     BONES_TO_BANANAS(
             15,
             InterfaceID.MagicSpellbook.BONES_BANANAS,
-            9,
+            10,
             Map.of(Rune.EARTH, 2, Rune.WATER, 2, Rune.NATURE, 1)
     ),
     LOW_LEVEL_ALCHEMY(
             21,
             InterfaceID.MagicSpellbook.LOW_ALCHEMY,
-            13,
+            14,
             Map.of(Rune.FIRE, 3, Rune.NATURE, 1)
     ),
     SUPERHEAT_ITEM(
             43,
             InterfaceID.MagicSpellbook.SUPERHEAT,
-            24,
+            25,
             Map.of(Rune.FIRE, 4, Rune.NATURE, 1)
     ),
     HIGH_LEVEL_ALCHEMY(
             55,
             InterfaceID.MagicSpellbook.HIGH_ALCHEMY,
-            32,
+            33,
             Map.of(Rune.FIRE, 5, Rune.NATURE, 1)
     ),
     BONES_TO_PEACHES(
             60,
             InterfaceID.MagicSpellbook.BONES_PEACHES,
-            37,
+            38,
             Map.of(Rune.EARTH, 2, Rune.WATER, 4, Rune.NATURE, 2)
     ),
 
@@ -396,73 +404,73 @@ public enum Standard implements CastableSpell {
     LVL_1_ENCHANT(
             7,
             InterfaceID.MagicSpellbook.ENCHANT_1,
-            5,
+            6,
             Map.of(Rune.WATER, 1, Rune.COSMIC, 1)
     ),
     LVL_2_ENCHANT(
             27,
             InterfaceID.MagicSpellbook.ENCHANT_2,
-            5,
+            6,
             Map.of(Rune.AIR, 3, Rune.COSMIC, 1)
     ),
     LVL_3_ENCHANT(
             49,
             InterfaceID.MagicSpellbook.ENCHANT_3,
-            5,
+            6,
             Map.of(Rune.FIRE, 5, Rune.COSMIC, 1)
     ),
     CHARGE_WATER_ORB(
             56,
             InterfaceID.MagicSpellbook.CHARGE_WATER_ORB,
-            33,
+            34,
             Map.of(Rune.WATER, 30, Rune.COSMIC, 3)
     ),
     LVL_4_ENCHANT(
             57,
             InterfaceID.MagicSpellbook.ENCHANT_4,
-            5,
+            6,
             Map.of(Rune.EARTH, 10, Rune.COSMIC, 1)
     ),
     CHARGE_EARTH_ORB(
             60,
             InterfaceID.MagicSpellbook.CHARGE_EARTH_ORB,
-            36,
+            37,
             Map.of(Rune.EARTH, 30, Rune.COSMIC, 3)
     ),
     CHARGE_FIRE_ORB(
             63,
             InterfaceID.MagicSpellbook.CHARGE_FIRE_ORB,
-            43,
+            44,
             Map.of(Rune.FIRE, 30, Rune.COSMIC, 3)
     ),
     CHARGE_AIR_ORB(
             66,
             InterfaceID.MagicSpellbook.CHARGE_AIR_ORB,
-            46,
+            47,
             Map.of(Rune.AIR, 30, Rune.COSMIC, 3)
     ),
     LVL_5_ENCHANT(
             68,
             InterfaceID.MagicSpellbook.ENCHANT_5,
-            5,
+            6,
             Map.of(Rune.EARTH, 15, Rune.WATER, 15, Rune.COSMIC, 1)
     ),
     LVL_6_ENCHANT(
             87,
             InterfaceID.MagicSpellbook.ENCHANT_6,
-            5,
+            6,
             Map.of(Rune.EARTH, 20, Rune.FIRE, 20, Rune.COSMIC, 1)
     ),
     LVL_7_ENCHANT(
             93,
             InterfaceID.MagicSpellbook.ENCHANT_7,
-            5,
+            6,
             Map.of(Rune.BLOOD, 20, Rune.SOUL, 20, Rune.COSMIC, 1)
     ),
     TELEKINETIC_GRAB(
             31,
             InterfaceID.MagicSpellbook.TELEGRAB,
-            18,
+            19,
             Map.of(Rune.AIR, 1, Rune.LAW, 1)
     );
 
