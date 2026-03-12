@@ -177,5 +177,5 @@ publishing {
     }
 }
 
-build.dependsOn dokkaGfm, shadowJar
 compileJava.dependsOn buildShortestPath
+build.dependsOn dokkaGfm, shadowJar
