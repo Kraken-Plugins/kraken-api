@@ -79,7 +79,7 @@ shadowJar {
     archiveClassifier = 'all'
 
     // Merge shortest-path jar contents directly since it's a file dep, not a module
-    from(zipTree(shortestPathJar.get()))
+    from { zipTree(shortestPathJar.get()) }
 
     dependencies {
         exclude(dependency('net.runelite:client:.*'))
