@@ -13,7 +13,6 @@ def runeLiteVersion = '1.12.20' // latest.release
 version = projectVersion
 project.version = projectVersion
 
-
 repositories {
     mavenCentral()
     maven {
@@ -23,31 +22,58 @@ repositories {
     mavenLocal()
 }
 
+task buildShortestPath(type: Exec) {
+    workingDir 'shortest-path'
+    def gradlew = System.getProperty('os.name').toLowerCase().contains('windows')
+            ? 'gradlew.bat' : './gradlew'
+    commandLine gradlew, 'jar', '--no-daemon'
+
+    inputs.dir('shortest-path/src')
+    outputs.dir('shortest-path/build/libs')
+}
+
+def shortestPathJar = provider {
+    fileTree('shortest-path/build/libs').matching {
+        include 'shortest-path-*.jar'
+        exclude '**/*-sources.jar', '**/*-javadoc.jar'
+    }.singleFile
+}
+
 dependencies {
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.18.1'
-    implementation("it.unimi.dsi:fastutil:8.5.18")
-    implementation group: 'com.google.inject', name: 'guice', version: '4.2.2'
-    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Dependencies included within RuneLite's bootstrap at runtime
+    compileOnly("org.slf4j:slf4j-api:1.7.25")
+    compileOnly("org.slf4j:slf4j-simple:1.7.25")
+    compileOnly("com.google.code.gson:gson:2.8.5")
+    compileOnly("com.google.guava:guava:31.1-jre")
+    compileOnly("com.google.inject:guice:4.2.2")
+    compileOnly("net.runelite:client:${runeLiteVersion}")
+
+    // Dependencies included at runtime by Kraken client bootstrap
     implementation("org.benf:cfr:0.152")
-    implementation("com.google.guava:guava:31.1-jre")
-    implementation("org.slf4j:slf4j-api:1.7.25")
-    implementation("org.slf4j:slf4j-simple:1.7.25")
     implementation("net.bytebuddy:byte-buddy:1.18.4")
     implementation("net.bytebuddy:byte-buddy-agent:1.18.4")
+
+    // Git submodule
+    implementation files(shortestPathJar) {
+        builtBy buildShortestPath
+    }
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-    implementation group: 'net.runelite', name:'client', version: runeLiteVersion
     testImplementation 'junit:junit:4.12'
     testCompileOnly 'org.projectlombok:lombok:1.18.30'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
-    testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
-    testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
+    testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
+    testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
     testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.0'
 }
+
+compileJava.dependsOn buildShortestPath
+build.dependsOn dokkaGfm
 
 test {
     useJUnitPlatform()
@@ -76,7 +102,7 @@ jar {
 }
 
 dokkaGfm {
-    outputDirectory.set(file("../docs"))
+    outputDirectory.set(file("docs"))
 
     dokkaSourceSets {
         main {
@@ -89,7 +115,6 @@ dokkaGfm {
         }
     }
 }
-
 
 publishing {
     publications {
@@ -139,5 +164,3 @@ publishing {
         }
     }
 }
-
-build.dependsOn dokkaGfm

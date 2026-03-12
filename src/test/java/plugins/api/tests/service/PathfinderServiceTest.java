@@ -3,7 +3,6 @@ package plugins.api.tests.service;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
@@ -26,9 +25,6 @@ public class PathfinderServiceTest extends BaseApiTest {
     private LocalPathfinder pathfinder;
 
     @Inject
-    private GlobalPathfinder globalPathfinder;
-
-    @Inject
     private ApiTestPlugin plugin;
 
     @Override
@@ -36,11 +32,6 @@ public class PathfinderServiceTest extends BaseApiTest {
         WorldPoint playerLocation = ctx.players().local().raw().getWorldLocation();
         if (playerLocation == null) {
             log.error("Unable to run global pathfinding test: local player world location is unavailable.");
-            return false;
-        }
-
-        if (!globalPathfinder.isMapLoaded()) {
-            log.error("Unable to run global pathfinding test: global collision map failed to load.");
             return false;
         }
 
@@ -60,34 +51,19 @@ public class PathfinderServiceTest extends BaseApiTest {
 
         log.info("Using player location: {}", playerLocation);
         WorldPoint normalizedTarget = new WorldPoint(preferredTarget.getX(), preferredTarget.getY(), playerLocation.getPlane());
-        List<WorldPoint> denseGlobalPath = globalPathfinder.findPathWithBackoff(playerLocation, normalizedTarget, 96);
+        List<WorldPoint> denseGlobalPath = pathfinder.findPathWithBackoff(playerLocation, normalizedTarget);
         if (denseGlobalPath.isEmpty()) {
             log.info("No dense global path found.");
             WorldPoint localFallbackTarget = new WorldPoint(playerLocation.getX() + 100, playerLocation.getY() - 100, playerLocation.getPlane());
-            denseGlobalPath = globalPathfinder.findPathWithBackoff(playerLocation, localFallbackTarget, 32);
+            denseGlobalPath = pathfinder.findPathWithBackoff(playerLocation, localFallbackTarget);
         }
 
         if (!assertTrue(!denseGlobalPath.isEmpty(), "Global path should be discovered from current player location to the selected destination.")) {
             return false;
         }
 
-        List<WorldPoint> sparseGlobalPath = globalPathfinder.toSparsePath(denseGlobalPath);
-        if (!assertTrue(!sparseGlobalPath.isEmpty(), "Sparse global path should contain at least one waypoint.")) {
-            return false;
-        }
-
-        plugin.getCurrentPath().clear();
-        plugin.getCurrentPath().addAll(sparseGlobalPath);
-
-        WorldPoint localValidationTarget = sparseGlobalPath.get(Math.min(1, sparseGlobalPath.size() - 1));
-        List<WorldPoint> localValidationPath = pathfinder.findPathWithBackoff(playerLocation, localValidationTarget);
-        if (!assertTrue(localValidationPath != null && !localValidationPath.isEmpty(), "Local pathfinder should validate the first segment of the global route.")) {
-            return false;
-        }
-
         SleepService.sleep(RandomService.between(5000, 7000));
         plugin.getCurrentPath().clear();
-
         return true;
     }
 

@@ -101,7 +101,7 @@ which shows the best practice usage of the API within an actual plugin.
 To set up your development environment, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
 
 Once you have the example plugin cloned and setup within Intellij, you can run the main class in `src/test/java/PluginRunnerTest.java plugins.api.ApiTestPlugin` to run RuneLite with
-the example plugin loaded in the plugin panel within RuneLite's sidebar. See [consuming the API](#consuming-the-api) section for more information on
+the example plugin loaded in the plugin panel within RuneLite's sidebar. See a recommended [Gradle example](#gradle-example-recommended) for more information on
 integrating the API into your plugins and build process.
 
 ![example-plugin](./images/example-plugin.png)
@@ -217,6 +217,7 @@ dependencies {
     // ... other dependencies
 }
 ```
+
 ## API Design & Methodology
 
 For more information around how the API is designed, please see [API docs](docs/API.md)
@@ -263,6 +264,9 @@ Please see the game updates and [how to update the API guide](docs/UPDATING.md) 
 Please see the [testing guide](docs/TESTS.md) for more information on running tests.
 
 ## Development Workflow
+
+Clone this repository with: `git clone --recurse-submodules https://github.com/Kraken-Plugins/kraken-api.git` to ensure
+that all submodules (shortest-path plugin) are cloned as well.
 
 1. Create a new branch from `master`
 2. Implement or update your plugin/feature for the API
