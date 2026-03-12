@@ -3,4 +3,3 @@ plugins {
 }
 
 rootProject.name = 'kraken-api'
-include('lib')

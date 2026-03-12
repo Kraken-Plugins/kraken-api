@@ -1,0 +1,181 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'org.jetbrains.dokka' version '1.9.20'
+}
+
+// Project version is set via the VERSION environment
+// variable in the Github Actions workflow and should not be changed here.
+def projectVersion = System.getenv("VERSION") ?: '1.0.0'
+def runeLiteVersion = '1.12.20' // latest.release
+
+version = projectVersion
+project.version = projectVersion
+
+repositories {
+    mavenCentral()
+    maven {
+        url = 'https://repo.runelite.net'
+    }
+    maven { url 'https://jitpack.io' }
+    mavenLocal()
+}
+
+task buildShortestPath(type: Exec) {
+    workingDir 'shortest-path'
+    def gradlew = System.getProperty('os.name').toLowerCase().contains('windows')
+            ? 'gradlew.bat' : './gradlew'
+    commandLine gradlew, 'jar', '--no-daemon'
+    inputs.dir('shortest-path/src')
+    outputs.dir('shortest-path/build/libs')
+}
+
+dependencies {
+
+    // Dependencies included within RuneLite's bootstrap at runtime
+    compileOnly("org.slf4j:slf4j-api:1.7.25")
+    compileOnly("org.slf4j:slf4j-simple:1.7.25")
+    compileOnly("com.google.code.gson:gson:2.8.5")
+    compileOnly("com.google.guava:guava:31.1-jre")
+    compileOnly("com.google.inject:guice:4.2.2")
+    compileOnly("net.runelite:client:${runeLiteVersion}")
+
+    // Dependencies included at runtime by Kraken client bootstrap net.bytebuddy.* dependencies
+    // are excluded from the fat jar to reduce the file size.
+    implementation("org.benf:cfr:0.152") // 2.0 mb
+    implementation("net.bytebuddy:byte-buddy:1.18.4") // 9.4 mb
+    implementation("net.bytebuddy:byte-buddy-agent:1.18.4") // 0.2 mb
+
+    // Git submodule
+    implementation files('shortest-path/build/libs') { builtBy buildShortestPath }
+
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    testImplementation 'junit:junit:4.12'
+    testCompileOnly 'org.projectlombok:lombok:1.18.30'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
+    testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
+    testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.0'
+}
+
+shadowJar {
+    archiveBaseName = 'kraken-api'
+    archiveVersion = projectVersion
+    archiveClassifier = 'all'
+
+    // Merge shortest-path jar contents directly since it's a file dep, not a module
+    dependsOn buildShortestPath  // explicit ordering on shadowJar itself
+
+    from {
+        fileTree('shortest-path/build/libs')
+                .matching {
+                    include 'shortest-path-*.jar'
+                    exclude '**/*-sources.jar', '**/*-javadoc.jar'
+                }
+                .files
+                .collect { zipTree(it) }  // collect avoids singleFile blowing up
+    }
+
+    dependencies {
+        exclude(dependency('net.runelite:client:.*'))
+        exclude(dependency("net.bytebuddy:byte-buddy:.*"))
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+sourceSets {
+    test {
+        java {
+            srcDirs = ['src/test/java', 'tests/sim']
+        }
+    }
+}
+
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+jar {
+    archiveBaseName = 'kraken-api'
+    archiveVersion = projectVersion
+}
+
+dokkaGfm {
+    outputDirectory.set(file("docs"))
+
+    dokkaSourceSets {
+        main {
+            sourceRoots.from(file("src/main/java"))
+            displayName.set("Kraken API")
+            externalDocumentationLink {
+                url.set(new URL("https://docs.oracle.com/en/java/javase/11/docs/api/"))
+                packageListUrl.set(new URL("https://docs.oracle.com/en/java/javase/11/docs/api/element-list"))
+            }
+        }
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            project.shadow.component(it)
+            groupId = 'com.github.kraken'
+            artifactId = 'kraken-api'
+            version = project.version
+
+            pom {
+                name = 'Kraken API'
+                description = 'Kraken API Automation Library for Old School RuneScape'
+                url = 'https://github.com/Kraken-Plugins/kraken-api'
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'cbartram'
+                        name = 'RuneWraith'
+                        email = 'runewraith.business@gmail.com'
+                    }
+                }
+
+                scm {
+                    connection = 'scm:git:git://github.com/Kraken-Plugins/kraken-api.git'
+                    developerConnection = 'scm:git:ssh://github.com/Kraken-Plugins/kraken-api.git'
+                    url = 'https://github.com/Kraken-Plugins/kraken-api'
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/Kraken-Plugins/kraken-api")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
+compileJava.dependsOn buildShortestPath
+build.dependsOn dokkaGfm, shadowJar

@@ -101,7 +101,7 @@ which shows the best practice usage of the API within an actual plugin.
 To set up your development environment, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
 
 Once you have the example plugin cloned and setup within Intellij, you can run the main class in `src/test/java/PluginRunnerTest.java plugins.api.ApiTestPlugin` to run RuneLite with
-the example plugin loaded in the plugin panel within RuneLite's sidebar. See [consuming the API](#consuming-the-api) section for more information on
+the example plugin loaded in the plugin panel within RuneLite's sidebar. See a recommended [Gradle example](#gradle-example-recommended) for more information on
 integrating the API into your plugins and build process.
 
 ![example-plugin](./images/example-plugin.png)
@@ -120,47 +120,26 @@ integrating the API into your plugins and build process.
 You can build the project with Gradle:
 
 ```bash
-./gradlew clean build
+./gradlew clean build shadowJar
 ```
 
 The output API `.jar` will be located in:
 
-```
-./lib/build/libs/kraken-api-<version>.jar
-```
-
-## Gradle Example (Simple)
-
-Although we recommend using the [Github packages approach](#gradle-example-recommended) to access the API since it is more reliable, [Jitpack](https://jitpack.io/) can get you set up with
-the Kraken API without a personal access token.
-
-```groovy
-plugins {
-    id 'java'
-    id 'application'
-}
-
-// Replace with the package version of the API you need or `latest.release` for the latest version.
-def krakenApiVersion = 'X.Y.Z'
-
-// Alternatively, you can use: `+` or `2.2.+` (for example) as the krakenApiVersion to float on the latest version within a safe boundary
-// so you don't have to constantly bump the version when new API changes are released!
-
-allprojects {
-    apply plugin: 'java'
-    repositories {
-        maven { url 'https://jitpack.io' }
-    }
-}
-
-
-dependencies {
-    compileOnly group: 'com.github.kraken', name:'kraken-api', version: krakenApiVersion
-    // ... other dependencies
-}
+```shell
+build/libs/kraken-api-1.0.0.jar
 ```
 
-## Gradle Example (Recommended)
+This will also build a fat jar that includes additional dependencies such as `org.benf.cfr` and the Byte Buddy Agent located in:
+
+```shell
+build/libs/kraken-api-1.0.0-all.jar
+```
+
+> :warning: Note: The fat jar does NOT include the `net.bytebuddy.byte-buddy` dependency as it doubles the size of the output jar 
+> and space is limited on GitHub packages. Your plugin side-loading process MUST provide the bytebuddy dependency at runtime for
+> functionality in the `com.kraken.api.core.interceptor` package to work. i.e. Patching the Mouse Hook DLL & Packet interception logic
+
+## Gradle Example
 
 To use the API jar file in your plugin project you will need to either:
 - `export GITHUB_ACTOR=<YOUR_GITHUB_USERNAME>; export GITHUB_TOKEN=<GITHUB_PAT`
@@ -217,6 +196,11 @@ dependencies {
     // ... other dependencies
 }
 ```
+
+> :warning: Note: The fat jar does NOT include the `net.bytebuddy.byte-buddy` dependency as it doubles the size of the output jar
+> and space is limited on GitHub packages. Your plugin side-loading process MUST provide the bytebuddy dependency at runtime for
+> functionality in the `com.kraken.api.core.interceptor` package to work. i.e. Patching the Mouse Hook DLL & Packet interception logic
+
 ## API Design & Methodology
 
 For more information around how the API is designed, please see [API docs](docs/API.md)
@@ -264,10 +248,13 @@ Please see the [testing guide](docs/TESTS.md) for more information on running te
 
 ## Development Workflow
 
+Clone this repository with: `git clone --recurse-submodules https://github.com/Kraken-Plugins/kraken-api.git` to ensure
+that all submodules (shortest-path plugin) are cloned as well.
+
 1. Create a new branch from `master`
 2. Implement or update your plugin/feature for the API
 3. Add tests for new functionality
-4. Run `./gradlew build` to verify that the API builds and tests pass
+4. Run `./gradlew clean build shadowJar` to verify that the API builds and tests pass
 5. Commit your changes with a clear message `git commit -m "feat(api): Add feature X to Kraken API"`
 6. Open a Pull Request
 

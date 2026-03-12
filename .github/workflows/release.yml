@@ -18,9 +18,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Set up JDK 11
         uses: actions/setup-java@v4
@@ -58,7 +59,7 @@ jobs:
         run: |
           echo "Building project with version $VERSION"
           chmod +x ./gradlew
-          ./gradlew clean build
+          ./gradlew clean build shadowJar
 
       - name: Collect commit messages since last tag
         id: changelog
@@ -108,14 +109,19 @@ jobs:
 
       - name: Upload JAR to MinIO
         run: |
-          JAR_FILE=$(find lib/build/libs -name "kraken-api-*.jar" | head -n 1)
-          echo "Uploading $JAR_FILE to MinIO..."
-          mc cp "$JAR_FILE" s3/kraken-bootstrap-static/api/kraken-api-${VERSION}.jar
+          PLAIN_JAR=$(find build/libs -name "kraken-api-${VERSION}.jar" ! -name "*-all.jar")
+          FAT_JAR=$(find build/libs -name "kraken-api-${VERSION}-all.jar")
+
+          echo "Uploading plain jar: $PLAIN_JAR"
+          mc cp "$PLAIN_JAR" s3/kraken-bootstrap-static/api/kraken-api-${VERSION}.jar
+
+          echo "Uploading fat jar: $FAT_JAR"
+          mc cp "$FAT_JAR" s3/kraken-bootstrap-static/api/kraken-api-${VERSION}-all.jar
 
       - name: Upload reflection hooks to MinIO
         run: |
           echo "Uploading reflection_hooks.json to MinIO..."
-          mc cp lib/src/main/resources/reflection_hooks.json s3/kraken-bootstrap-static/reflection_hooks.json
+          mc cp src/main/resources/reflection_hooks.json s3/kraken-bootstrap-static/reflection_hooks.json
 
       - name: Publish to GitHub Packages
         run: |
