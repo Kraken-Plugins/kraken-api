@@ -49,10 +49,11 @@ dependencies {
     compileOnly("com.google.inject:guice:4.2.2")
     compileOnly("net.runelite:client:${runeLiteVersion}")
 
-    // Dependencies included at runtime by Kraken client bootstrap
-    implementation("org.benf:cfr:0.152")
-    implementation("net.bytebuddy:byte-buddy:1.18.4")
-    implementation("net.bytebuddy:byte-buddy-agent:1.18.4")
+    // Dependencies included at runtime by Kraken client bootstrap net.bytebuddy.* dependencies
+    // are excluded from the fat jar to reduce the file size.
+    implementation("org.benf:cfr:0.152") // 2.0 mb
+    implementation("net.bytebuddy:byte-buddy:1.18.7") // 9.4 mb
+    implementation("net.bytebuddy:byte-buddy-agent:1.18.7") // 0.2 mb
 
     // Git submodule
     implementation files(shortestPathJar) {
@@ -72,8 +73,19 @@ dependencies {
     testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.0'
 }
 
-compileJava.dependsOn buildShortestPath
-build.dependsOn dokkaGfm
+shadowJar {
+    archiveBaseName = 'kraken-api'
+    archiveVersion = projectVersion
+    archiveClassifier = 'all'
+
+    // Merge shortest-path jar contents directly since it's a file dep, not a module
+    from(zipTree(shortestPathJar.get()))
+
+    dependencies {
+        exclude(dependency('net.runelite:client:.*'))
+        exclude(dependency("net.bytebuddy:byte-buddy:.*"))
+    }
+}
 
 test {
     useJUnitPlatform()
@@ -119,7 +131,7 @@ dokkaGfm {
 publishing {
     publications {
         maven(MavenPublication) {
-            from components.java
+            project.shadow.component(it)
             groupId = 'com.github.kraken'
             artifactId = 'kraken-api'
             version = project.version
@@ -164,3 +176,6 @@ publishing {
         }
     }
 }
+
+build.dependsOn dokkaGfm, shadowJar
+compileJava.dependsOn buildShortestPath
