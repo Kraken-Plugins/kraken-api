@@ -27,16 +27,8 @@ task buildShortestPath(type: Exec) {
     def gradlew = System.getProperty('os.name').toLowerCase().contains('windows')
             ? 'gradlew.bat' : './gradlew'
     commandLine gradlew, 'jar', '--no-daemon'
-
     inputs.dir('shortest-path/src')
     outputs.dir('shortest-path/build/libs')
-}
-
-def shortestPathJar = provider {
-    fileTree('shortest-path/build/libs').matching {
-        include 'shortest-path-*.jar'
-        exclude '**/*-sources.jar', '**/*-javadoc.jar'
-    }.singleFile
 }
 
 dependencies {
@@ -52,13 +44,11 @@ dependencies {
     // Dependencies included at runtime by Kraken client bootstrap net.bytebuddy.* dependencies
     // are excluded from the fat jar to reduce the file size.
     implementation("org.benf:cfr:0.152") // 2.0 mb
-    implementation("net.bytebuddy:byte-buddy:1.18.7") // 9.4 mb
-    implementation("net.bytebuddy:byte-buddy-agent:1.18.7") // 0.2 mb
+    implementation("net.bytebuddy:byte-buddy:1.18.4") // 9.4 mb
+    implementation("net.bytebuddy:byte-buddy-agent:1.18.4") // 0.2 mb
 
     // Git submodule
-    implementation files(shortestPathJar) {
-        builtBy buildShortestPath
-    }
+    implementation files('shortest-path/build/libs') { builtBy buildShortestPath }
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
@@ -79,7 +69,17 @@ shadowJar {
     archiveClassifier = 'all'
 
     // Merge shortest-path jar contents directly since it's a file dep, not a module
-    from { zipTree(shortestPathJar.get()) }
+    dependsOn buildShortestPath  // explicit ordering on shadowJar itself
+
+    from {
+        fileTree('shortest-path/build/libs')
+                .matching {
+                    include 'shortest-path-*.jar'
+                    exclude '**/*-sources.jar', '**/*-javadoc.jar'
+                }
+                .files
+                .collect { zipTree(it) }  // collect avoids singleFile blowing up
+    }
 
     dependencies {
         exclude(dependency('net.runelite:client:.*'))
