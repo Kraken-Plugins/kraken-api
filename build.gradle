@@ -69,7 +69,7 @@ shadowJar {
     archiveClassifier = 'all'
 
     // Merge shortest-path jar contents directly since it's a file dep, not a module
-    dependsOn buildShortestPath  // explicit ordering on shadowJar itself
+    dependsOn buildShortestPath
 
     from {
         fileTree('shortest-path/build/libs')
@@ -78,7 +78,7 @@ shadowJar {
                     exclude '**/*-sources.jar', '**/*-javadoc.jar'
                 }
                 .files
-                .collect { zipTree(it) }  // collect avoids singleFile blowing up
+                .collect { zipTree(it) }
     }
 
     dependencies {
