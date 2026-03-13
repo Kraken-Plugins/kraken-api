@@ -2,7 +2,7 @@
 <br />
 <div align="center">
   <a href="https://kraken-plugins.com">
-    <img src="lib/src/main/resources/kraken.png" alt="Logo" width="128" height="128">
+    <img src="src/main/resources/kraken.png" alt="Logo" width="128" height="128">
   </a>
 
 <h3 align="center">Kraken API</h3>
@@ -96,9 +96,9 @@ public class ExamplePlugin extends Plugin {
 }
 ```
 
-To use the API in an actual RuneLite plugin, you should check out the [Kraken Example Plugin](https://github.com/cbartram/kraken-example-plugin)
+To use the API in an actual RuneLite plugin, you should check out the [Kraken Example Plugins](https://github.com/cbartram/kraken-example-plugin)
 which shows the best practice usage of the API within an actual plugin.
-To set up your development environment, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
+To set up your development environment for running plugins, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
 
 Once you have the example plugin cloned and setup within Intellij, you can run the main class in `src/test/java/PluginRunnerTest.java plugins.api.ApiTestPlugin` to run RuneLite with
 the example plugin loaded in the plugin panel within RuneLite's sidebar. See a recommended [Gradle example](#gradle-example-recommended) for more information on
