@@ -56,26 +56,31 @@ public interface ApiTestConfig extends Config {
     )
     String pathfinding = "pathfinding";
 
+    /**
+     * Defines the pathfinder test target in world coordinates.
+     *
+     * @return Target coordinates in the format x,y,z. Leave blank to use a selected tile.
+     */
     @ConfigItem(
-            name = "Start Pathfinding",
-            keyName = "startPathfinding",
-            description = "Starts the movement traversal to the specified waypoint",
-            position = -1,
+            name = "Pathfinder Test Target",
+            keyName = "pathfinderTestTarget",
+            description = "Target coordinates for the pathfinder service test in the format: x,y,z.",
+            position = 2,
             section = pathfinding
     )
-    default boolean startPathfinding() {
-        return false;
+    default String pathfinderTestTarget() {
+        return "";
     }
 
     @ConfigItem(
-            name = "Pathfinding Location",
-            keyName = "pathfindingLocation",
-            description = "The location in the format: x,y,z for the waypoint to traverse to.",
-            position = 0,
-            section = pathfinding
+            keyName = "enablePathfinder",
+            name = "Start Pathfinder Tests",
+            description = "Enable pathfinder service tests",
+            section = pathfinding,
+            position = 3
     )
-    default String waypointLocation() {
-        return "0,0,0";
+    default boolean enablePathfinder() {
+        return true;
     }
 
     // =========== Tests Section ================
@@ -248,17 +253,6 @@ public interface ApiTestConfig extends Config {
             position = 4
     )
     default boolean enableCameraTests() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enablePathfinder",
-            name = "Start Pathfinder Tests",
-            description = "Enable pathfinder service tests",
-            section = serviceTests,
-            position = 5
-    )
-    default boolean enablePathfinder() {
         return true;
     }
 

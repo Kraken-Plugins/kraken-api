@@ -48,7 +48,6 @@ dependencies {
     implementation("net.bytebuddy:byte-buddy-agent:1.18.4") // 0.2 mb
 
     // Git submodule
-//    implementation files('shortest-path/build/libs') { builtBy buildShortestPath }
     implementation 'shortestpath:shortest-path:1.0.0'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
