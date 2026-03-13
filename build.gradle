@@ -48,7 +48,8 @@ dependencies {
     implementation("net.bytebuddy:byte-buddy-agent:1.18.4") // 0.2 mb
 
     // Git submodule
-    implementation files('shortest-path/build/libs') { builtBy buildShortestPath }
+//    implementation files('shortest-path/build/libs') { builtBy buildShortestPath }
+    implementation 'shortestpath:shortest-path:1.0.0'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
@@ -69,7 +70,7 @@ shadowJar {
     archiveClassifier = 'all'
 
     // Merge shortest-path jar contents directly since it's a file dep, not a module
-    dependsOn buildShortestPath  // explicit ordering on shadowJar itself
+    dependsOn buildShortestPath
 
     from {
         fileTree('shortest-path/build/libs')
@@ -78,7 +79,7 @@ shadowJar {
                     exclude '**/*-sources.jar', '**/*-javadoc.jar'
                 }
                 .files
-                .collect { zipTree(it) }  // collect avoids singleFile blowing up
+                .collect { zipTree(it) }
     }
 
     dependencies {
