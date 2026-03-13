@@ -22,7 +22,8 @@ repositories {
     mavenLocal()
 }
 
-task buildShortestPath(type: Exec) {
+tasks.register('buildShortestPath', Exec) {
+    group = 'build'
     workingDir 'shortest-path'
     def gradlew = System.getProperty('os.name').toLowerCase().contains('windows')
             ? 'gradlew.bat' : './gradlew'
@@ -30,6 +31,16 @@ task buildShortestPath(type: Exec) {
     inputs.dir('shortest-path/src')
     outputs.dir('shortest-path/build/libs')
 }
+
+tasks.register('runelite', JavaExec) {
+    group = 'application'
+    description = 'Runs the API Test with assertions enabled'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass.set('PluginRunnerTest')
+    jvmArgs '-ea'
+    args '--developer-mode plugins.api.ApiTestPlugin'
+}
+
 
 dependencies {
 
