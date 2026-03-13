@@ -72,6 +72,7 @@ public class SceneOverlay extends Overlay {
         if(config.renderCurrentPath()) {
             pathfinder.renderPath(path, graphics, Color.GREEN);
             pathfinder.renderPath(plugin.getScriptPath(), graphics, new Color(8, 166, 236));
+            pathfinder.renderPath(plugin.getPathfinderTestPath(), graphics, new Color(255, 215, 0));
             pathfinder.renderMinimapPath(path, graphics, Color.CYAN);
             if(plugin.getTargetArea() != null) {
                 renderArea(plugin.getTargetArea(), graphics);

@@ -22,7 +22,8 @@ repositories {
     mavenLocal()
 }
 
-task buildShortestPath(type: Exec) {
+tasks.register('buildShortestPath', Exec) {
+    group = 'build'
     workingDir 'shortest-path'
     def gradlew = System.getProperty('os.name').toLowerCase().contains('windows')
             ? 'gradlew.bat' : './gradlew'
@@ -30,6 +31,16 @@ task buildShortestPath(type: Exec) {
     inputs.dir('shortest-path/src')
     outputs.dir('shortest-path/build/libs')
 }
+
+tasks.register('runelite', JavaExec) {
+    group = 'application'
+    description = 'Runs the API Test with assertions enabled'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass.set('PluginRunnerTest')
+    jvmArgs '-ea'
+    args '--developer-mode plugins.api.ApiTestPlugin'
+}
+
 
 dependencies {
 
@@ -48,7 +59,6 @@ dependencies {
     implementation("net.bytebuddy:byte-buddy-agent:1.18.4") // 0.2 mb
 
     // Git submodule
-//    implementation files('shortest-path/build/libs') { builtBy buildShortestPath }
     implementation 'shortestpath:shortest-path:1.0.0'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'

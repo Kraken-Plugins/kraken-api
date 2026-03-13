@@ -112,6 +112,9 @@ public class ApiTestPlugin extends Plugin {
     private final List<WorldPoint> scriptPath = new ArrayList<>(); // The path used by the script
 
     @Getter
+    private final List<WorldPoint> pathfinderTestPath = new ArrayList<>();
+
+    @Getter
     private WorldArea targetArea;
 
     private WorldPoint trueTile;
@@ -124,7 +127,7 @@ public class ApiTestPlugin extends Plugin {
             InventoryTest inventoryQueryTest, BankInventoryTest bankInventoryQueryTest, GameObjectTest gameObjectQueryTest,
             NpcTest npcQueryTest, GroundObjectTest groundObjectQueryTest, PlayerTest playerQueryTest,
             WidgetTest widgetQueryTest, SpellServiceTest spellServiceTest, MovementServiceTest movementServiceTest,
-            CameraServiceTest cameraServiceTest, PathfinderServiceTest pathfinderServiceTest, WorldQueryTest worldQueryTest,
+            CameraServiceTest cameraServiceTest, PathfinderServiceTest pathfinderServiceTest, PathfinderServiceTest pathfinderTest, WorldQueryTest worldQueryTest,
             TaskChainTest taskChainTest, MouseTest mouseTest, DialogueServiceTest dialogueServiceTest, ProcessingServiceTest processingServiceTest,
             AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest
     ) {
@@ -178,24 +181,6 @@ public class ApiTestPlugin extends Plugin {
         }
 
         String key = event.getKey();
-
-        if (key.equals("startPathfinding") && config.startPathfinding()) {
-            String waypointLocation = config.waypointLocation();
-            String[] coords = waypointLocation.split(",");
-            if (coords.length == 3) {
-                try {
-                    int x = Integer.parseInt(coords[0]);
-                    int y = Integer.parseInt(coords[1]);
-                    int z = Integer.parseInt(coords[2]);
-                    log.info("Setting target point: ({}, {}, {})", x, y, z);
-                    this.targetTile = new WorldPoint(x, y, z);
-                } catch (NumberFormatException e) {
-                    log.error("Invalid waypoint location format", e);
-                }
-            } else {
-                log.error("Invalid waypoint location format");
-            }
-        }
 
         if(key.equals("login") && config.login()) {
             log.info("Logging into the client...");
