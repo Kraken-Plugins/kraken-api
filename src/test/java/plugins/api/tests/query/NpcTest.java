@@ -1,9 +1,9 @@
 package plugins.api.tests.query;
 
 import com.kraken.api.Context;
-import plugins.api.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
+import plugins.api.tests.BaseApiTest;
 
 @Slf4j
 public class NpcTest extends BaseApiTest {

@@ -11,8 +11,7 @@ import net.runelite.api.NPCComposition;
 import net.runelite.api.widgets.Widget;
 
 import javax.inject.Inject;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -64,34 +63,40 @@ public class NPCPackets {
      */
     @SneakyThrows
     public void queueNPCAction(NPC npc, String... actionList) {
-        if (npc == null) {
-            return;
-        }
+        if (npc == null) return;
 
-        NPCComposition comp = ctxProvider.get().runOnClientThread(npc::getComposition);
-        if (comp == null || comp.getActions() == null) {
-            return;
-        }
+        Context ctx = ctxProvider.get();
+        NPCComposition comp = ctx.runOnClientThread(npc::getComposition);
+        if (comp == null || comp.getActions() == null) return;
 
-        List<String> actions = Arrays.stream(comp.getActions()).collect(Collectors.toList());
-        for (int i = 0; i < actions.size(); i++) {
-            if (actions.get(i) == null)
-                continue;
-            actions.set(i, actions.get(i).toLowerCase());
-        }
-        int num = -1;
-        for (String action : actions) {
-            for (String action2 : actionList) {
-                if (action != null && action.equalsIgnoreCase(action2)) {
-                    num = actions.indexOf(action.toLowerCase()) + 1;
-                }
+        List<String> actions = Arrays.asList(comp.getActions());
+
+        if (actions.stream().allMatch(Objects::isNull)) {
+            NPCComposition transformed = ctx.runOnClientThread(npc::getTransformedComposition);
+            if (transformed == null || transformed.getActions() == null) return;
+
+            actions = Arrays.asList(transformed.getActions());
+            if (actions.stream().allMatch(Objects::isNull)) {
+                log.error("All NPC actions and transformed actions are null. No action to take on NPC: {}", npc.getName());
+                return;
             }
         }
 
-        if (num < 1 || num > 10) {
-            return;
+        Set<String> targets = Arrays.stream(actionList)
+                .map(s -> s.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+
+        int num = -1;
+        for (int i = 0; i < actions.size(); i++) {
+            String action = actions.get(i);
+            if (action != null && targets.contains(action.toLowerCase(Locale.ROOT))) {
+                num = i + 1;
+                log.debug("[NPC Packets] Found NPC action: {} at index: {}", action, num);
+                break;
+            }
         }
 
+        if (num < 1 || num > 10) return;
         queueNPCAction(num, npc.getIndex(), false);
     }
 
