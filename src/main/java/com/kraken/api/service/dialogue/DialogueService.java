@@ -1,4 +1,4 @@
-package com.kraken.api.service.ui.dialogue;
+package com.kraken.api.service.dialogue;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;

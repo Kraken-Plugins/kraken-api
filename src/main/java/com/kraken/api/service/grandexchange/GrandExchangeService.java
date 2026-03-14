@@ -1,4 +1,4 @@
-package com.kraken.api.service.ui.grandexchange;
+package com.kraken.api.service.grandexchange;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;

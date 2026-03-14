@@ -3,7 +3,7 @@ package com.kraken.api.query.container.bank;
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
 import com.kraken.api.query.container.ContainerItem;
-import com.kraken.api.service.ui.dialogue.DialogueService;
+import com.kraken.api.service.bank.DepositBoxService;
 import net.runelite.api.gameval.InterfaceID;
 
 import java.util.Arrays;
@@ -53,7 +53,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits five of the given items from the players inventory into the bank deposit box.
+     * Deposits five of the given items from the players' inventory into the bank deposit box.
      * @return true if the deposit was successful and false otherwise.
      */
     public boolean depositFive() {
@@ -61,7 +61,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits ten of the given items from the players inventory into the bank deposit box.
+     * Deposits ten of the given items from the players' inventory into the bank deposit box.
      * @return true if the deposit was successful and false otherwise.
      */
     public boolean depositTen() {
@@ -74,7 +74,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
      * @return true if the deposit was successful and false otherwise.
      */
     public boolean depositX(int amount) {
-        setQuantity(amount);
+        ctx.getService(DepositBoxService.class).setQuantity(amount);
         return ctx.widgets()
                 .fromClient(InterfaceID.BankDepositbox.INVENTORY)
                 .interact(1, InterfaceID.BankDepositbox.INVENTORY, raw().getSlot(), getId());
@@ -89,13 +89,13 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits a set amount of the given item from the players inventory to the bank. If the amount is
-     * not one of: 1, 5, or 10 then all of the given item will be deposited by default.
-     * @param amount The amount of the item to deposit: 1, 5, 10, or any other integer for all of the item
+     * Deposits a set amount of the given item from the players' inventory to the bank. If the amount is
+     * not one of: 1, 5, or 10, then all the given items will be deposited by default.
+     * @param amount The amount of the item to deposit: 1, 5, 10, or any other integer for all the item
      * @return True if the deposit was successful and false otherwise
      */
     public boolean deposit(int amount) {
-        if(!ctx.depositBox().isOpen()) return false;
+        if(ctx.getService(DepositBoxService.class).isClosed()) return false;
         ContainerItem raw = raw();
 
         switch(amount) {
@@ -115,29 +115,18 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Returns true if the inventory item has the specified action. i.e "Swordfish" will have the action "Eat", "Drop", and "Examine" but not "Drink"
+     * Checks if the specified action is available in the inventory actions of the container item.
      *
-     * @param action The action to check for
-     * @return True if the item has the action and false otherwise
+     * <p>This method retrieves the item's inventory actions and verifies if any action matches
+     * the provided action string, ignoring case sensitivity.</p>
+     *
+     * @param action a {@code String} representing the name of the action to check for.
+     *               It is case-insensitive, and null or empty actions are ignored.
+     * @return {@code true} if the specified action is available in the item's inventory actions;
+     *         {@code false} otherwise.
      */
     public boolean hasAction(String action) {
         ContainerItem item = raw();
         return Arrays.stream(item.getInventoryActions()).anyMatch(a -> a != null && a.equalsIgnoreCase(action));
-    }
-
-    private boolean setQuantity(int amount) {
-        if (amount == 1) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._1).interact(1, InterfaceID.BankDepositbox._1, -1, -1);
-        } else if (amount == 5) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._5).interact(1, InterfaceID.BankDepositbox._5, -1, -1);
-        } else if (amount == 10) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._10).interact(1, InterfaceID.BankDepositbox._10, -1, -1);
-        } else if (amount == -1) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox.ALL).interact(1, InterfaceID.BankDepositbox.ALL, -1, -1);
-        }
-
-        boolean success = ctx.widgets().fromClient(InterfaceID.BankDepositbox.X).interact(1, InterfaceID.BankDepositbox.X, -1, -1);
-        ctx.getService(DialogueService.class).continueNumericDialogue(amount);
-        return success;
     }
 }

@@ -322,6 +322,17 @@ public interface ApiTestConfig extends Config {
         return true;
     }
 
+    @ConfigItem(
+            keyName = "enableDepositBoxService",
+            name = "Start Deposit Box Service Tests",
+            description = "Enable Deposit Box service tests",
+            section = serviceTests,
+            position = 12
+    )
+    default boolean enableDepositBoxService() {
+        return true;
+    }
+
     // ==============================================
     // ========== MOUSE SETTINGS ==========
     // ==============================================

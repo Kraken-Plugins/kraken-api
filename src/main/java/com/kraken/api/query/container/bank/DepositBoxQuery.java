@@ -3,10 +3,7 @@ package com.kraken.api.query.container.bank;
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractQuery;
 import com.kraken.api.query.container.ContainerItem;
-import com.kraken.api.query.equipment.EquipmentEntity;
 import com.kraken.api.query.widget.WidgetEntity;
-import com.kraken.api.service.ui.dialogue.DialogueService;
-import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.gameval.InterfaceID;
@@ -19,6 +16,31 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 
+/**
+ * Represents a query system for interacting with items stored in a deposit box interface.
+ *
+ * <p>This class provides functionality to filter and refine query results for items
+ * in the deposit box, which is a dedicated inventory structure for depositing items.
+ * It extends an abstract query mechanism, inheriting filtering and stream-processing
+ * capabilities.
+ *
+ * <p>The {@code DepositBoxQuery} is context-aware and operates based on the current
+ * client state. It retrieves items and their corresponding details (such as noted
+ * state, stackability, and quantity) directly from the deposit box widget in the client UI.
+ *
+ * <p>Supported features include:
+ * <ul>
+ *   <li>Filtering items by their ID.</li>
+ *   <li>Filtering items by noted or unnoted state.</li>
+ *   <li>Filtering items by stackable properties.</li>
+ *   <li>Filtering items by quantity thresholds.</li>
+ * </ul>
+ * <p>The query operations are chainable, allowing for the combination of multiple filters.
+ * This enables flexible and precise selection of deposit box items to meet various needs.
+ *
+ * <p><b>Thread Safety:</b> This class interacts with client UI components and should be used in
+ * the appropriate thread context (e.g., client-side thread) to ensure proper behavior.
+ */
 public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQuery, ContainerItem> {
 
     public DepositBoxQuery(Context ctx) {
@@ -33,8 +55,7 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
 
                 if(depositBox == null || !depositBox.isVisible()) {
                     return Collections.emptyList();
-                } // CS2 229 For hovering over close button
-                // CS2
+                }
 
                 Widget[] depositBoxWidgets = depositBox.raw().getDynamicChildren();
                 List<DepositBoxEntity> entities = new ArrayList<>();
@@ -52,198 +73,90 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
     }
 
     /**
-     * Determines whether the bank interface is currently open.
+     * Filters for items in the deposit box that have the specified item id.
      *
-     * <p>This method interacts with the {@code WidgetQuery} to check the status of the deposit box interface.
-     * The deposit box is considered open if the corresponding interface is visible and active in the client.
+     * <p>This method is used to refine the {@code DepositBoxQuery} by including only items
+     * within the deposit box that match the provided item id. It applies a filtering condition
+     * to the query and returns the updated query object.
      *
-     * @return {@code true} if the deposit box interface is open, {@code false} otherwise.
-     */
-    public boolean isOpen() {
-        return ctx.widgets().fromClient(InterfaceID.BankDepositbox.FRAME).isVisible();
-    }
-
-    /**
-     * Closes the deposit box interface if it is open.
-     * @return True if the deposit box interface was closed and false otherwise
-     */
-    public boolean close() {
-        ctx.runScript(29);
-        return true;
-    }
-
-    /**
-     * Deposits all items from the inventory into the deposit box
-     */
-    public boolean depositAll() {
-        return ctx.widgets().fromClient(InterfaceID.BankDepositbox.DEPOSIT_INV)
-                .interact(1, InterfaceID.BankDepositbox.DEPOSIT_INV, -1, -1);
-    }
-
-    /**
-     * Deposits all worn items from the inventory into the deposit box
-     */
-    public boolean depositWornItems() {
-        return ctx.widgets().fromClient(InterfaceID.BankDepositbox.DEPOSIT_WORN)
-                .interact(1, InterfaceID.BankDepositbox.DEPOSIT_WORN, -1, -1);
-    }
-
-    /**
-     * Deposits all items from the looting bag.
-     */
-    public boolean depositLootingBag() {
-        return ctx.widgets().fromClient(InterfaceID.BankDepositbox.DEPOSIT_LOOTINGBAG)
-                .interact(1, InterfaceID.BankDepositbox.DEPOSIT_LOOTINGBAG, -1, -1);
-    }
-
-    /**
-     * Deposits a worn item from the specified equipment slot into the bank deposit box.
-     *
-     * @param slot The equipment slot to deposit from.
-     * @return True if the deposit was successful and false otherwise
-     */
-    public boolean depositWorn(EquipmentInventorySlot slot) {
-        return invokeDepositWorn(slot);
-    }
-
-    /**
-     * Deposits a specific worn item by item its item id.
-     *
-     * @param id The item id to deposit into the deposit box.
-     * @return True if the deposit was successful and false otherwise
-     */
-    public boolean depositWorn(int id) {
-        EquipmentEntity equipment = ctx.equipment().inInterface().withId(id).first();
-        if (equipment == null) {
-            return false;
-        }
-
-        EquipmentInventorySlot slot = equipment.getSlot();
-        if (slot == null) {
-            return false;
-        }
-
-        return invokeDepositWorn(slot);
-    }
-
-    /**
-     * Deposits a specific worn item into the deposit box given the items name.
-     *
-     * @param name The item name to deposit.
-     * @return True if the deposit was successful and false otherwise.
-     */
-    public boolean depositWorn(String name) {
-        EquipmentEntity equipment = ctx.equipment().inInterface().withName(name).first();
-        if (equipment == null) {
-            return false;
-        }
-
-        EquipmentInventorySlot slot = equipment.getSlot();
-        if (slot == null) {
-            return false;
-        }
-
-        return invokeDepositWorn(slot);
-    }
-
-    /**
-     * Invokes the "deposit" action on a worn item in the equipment slot specified
-     * by the given {@code EquipmentInventorySlot}. This method is used internally to provide
-     * overloads to the depositWorn() method.
-     *
-     * @param slot The equipment slot.
-     * @return True if the invocation was successful and false otherwise.
-     */
-    private boolean invokeDepositWorn(EquipmentInventorySlot slot) {
-        int slotWidgetId = getDepositBoxWidget(slot);
-        return ctx.widgets().get(slotWidgetId).interact(2, slotWidgetId, -1, -1);
-    }
-
-    /**
-     * Maps an {@code EquipmentInventorySlot} to its corresponding Deposit box widget id. Given a slot
-     * in the players equipment this will return the associated interface id for the deposit box equipment slot.
-     *
-     * @param slot The equipment slot.
-     * @return The widget identifier for that slot in the deposit box interface.
-     * @throws IllegalArgumentException if the slot is not a valid mappable slot.
-     */
-    private int getDepositBoxWidget(EquipmentInventorySlot slot) {
-        switch (slot) {
-            case HEAD: return InterfaceID.BankDepositbox.SLOT0;
-            case CAPE: return InterfaceID.BankDepositbox.SLOT1;
-            case AMULET: return InterfaceID.BankDepositbox.SLOT2;
-            case WEAPON: return InterfaceID.BankDepositbox.SLOT3;
-            case BODY: return InterfaceID.BankDepositbox.SLOT4;
-            case SHIELD: return InterfaceID.BankDepositbox.SLOT5;
-            case LEGS: return InterfaceID.BankDepositbox.SLOT7;
-            case GLOVES: return InterfaceID.BankDepositbox.SLOT9;
-            case BOOTS: return InterfaceID.BankDepositbox.SLOT10;
-            case RING: return InterfaceID.BankDepositbox.SLOT12;
-            case AMMO: return InterfaceID.BankDepositbox.SLOT13;
-            default: throw new IllegalArgumentException("Unknown equipment slot provided: " + slot);
-        }
-    }
-
-    /**
-     * TODO This may belong in a service class since it is universal to all deposit boxes (same with deposit all, deposit worn (all methods) and deposit looting bag)
-     * Sets the deposit quantity for the deposit box.
-     *
-     * @param amount The amount to set (-1 for all items, 1, 5, 10, or X).
-     */
-    public boolean setQuantity(int amount) {
-        if (amount == 1) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._1).interact(1, InterfaceID.BankDepositbox._1, -1, -1);
-        } else if (amount == 5) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._5).interact(1, InterfaceID.BankDepositbox._5, -1, -1);
-        } else if (amount == 10) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._10).interact(1, InterfaceID.BankDepositbox._10, -1, -1);
-        } else if (amount == -1) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox.ALL).interact(1, InterfaceID.BankDepositbox.ALL, -1, -1);
-        }
-
-        boolean success = ctx.widgets().fromClient(InterfaceID.BankDepositbox.X).interact(1, InterfaceID.BankDepositbox.X, -1, -1);
-        ctx.getService(DialogueService.class).continueNumericDialogue(amount);
-        return success;
-    }
-
-    /**
-     * Filters for items in the bank which have a specified item id.
-     * @param id The item id to filter for
-     * @return BankQuery
+     * @param id The item id to filter for.
+     *           <ul>
+     *             <li>The id must represent a valid item within the deposit box.</li>
+     *             <li>If the id does not correspond to any item, the result will be an empty query.</li>
+     *           </ul>
+     * @return {@literal DepositBoxQuery} The updated {@code DepositBoxQuery} instance with the specified filter applied.
      */
     public DepositBoxQuery withId(int id) {
         return filter(item -> item.getId() == id);
     }
 
     /**
-     * Filters for items that are noted (cert).
-     * @return DepositBoxQuery
+     * Filters the {@code DepositBoxQuery} to include only items that are noted.
+     *
+     * <p>An item is considered "noted" if it is a placeholder or tradeable voucher
+     * referring to a stackable quantity of the item rather than the physical item itself.
+     * This method relies on the {@code isNoted()} method of the underlying item's composition
+     * to determine its noted state.
+     *
+     * @return {@literal DepositBoxQuery} A refined query instance including only the items
+     *         from the deposit box that are in a noted state.
      */
     public DepositBoxQuery noted() {
         return filter(item -> item.raw().isNoted());
     }
 
     /**
-     * Filters for un-noted items.
-     * @return DepositBoxQuery
+     * Filters the {@code DepositBoxQuery} to include only items that are unnoted.
+     *
+     * <p>An item is considered "unnoted" if it is the actual physical item
+     * rather than a placeholder or tradeable voucher for a stackable quantity.
+     * This method relies on the {@code isNoted()} method of the raw item to
+     * determine its state, and excludes items that are noted.
+     *
+     * @return {@literal DepositBoxQuery} A refined query instance including only the
+     *         items from the deposit box that are in an unnoted state.
      */
     public DepositBoxQuery unnoted() {
         return filter(item -> !item.raw().isNoted());
     }
 
     /**
-     * Filters for items that stack (runes, arrows, noted items).
-     * @return DepositBoxQuery
+     * Filters the {@code DepositBoxQuery} to include only items that are stackable.
+     *
+     * <p>This method refines the {@code DepositBoxQuery} by applying a filtering condition
+     * that selects items from the deposit box which are deemed stackable. Stackable items
+     * allow multiple units to occupy a single inventory slot.
+     *
+     * <ul>
+     *   <li>An item is considered stackable if its {@code isStackable()} method returns {@code true}.</li>
+     *   <li>If no stackable items are found, the result of this query will be empty.</li>
+     * </ul>
+     *
+     * @return {@literal DepositBoxQuery} A refined {@code DepositBoxQuery} instance that
+     *         includes only the stackable items in the deposit box.
      */
     public DepositBoxQuery stackable() {
         return filter(item -> item.raw().isStackable());
     }
 
     /**
-     * Filters by item quantity. This filter is strictly greater than i.e {@code ctx.inventory().nameContains("karambwanji").quantityGreaterThan(500);}
-     * will only return a {@code ContainerItem} when 501 Karambwanji's are present.
-     * @param amount The amount of the stack to filter for.
-     * @return DepositBoxQuery
+     * Filters the {@code DepositBoxQuery} to include only items with a quantity greater than the specified amount.
+     *
+     * <p>This method refines the {@code DepositBoxQuery} by applying a filtering condition that selects
+     * items from the deposit box where their quantity exceeds the given value. The resulting query will
+     * only include items meeting this criteria.
+     *
+     * <ul>
+     *   <li>If no items in the deposit box have a quantity greater than the provided amount, the query result will be empty.</li>
+     * </ul>
+     *
+     * @param amount The minimum quantity threshold for filtering items.
+     *               <ul>
+     *                 <li>Must be a non-negative integer.</li>
+     *                 <li>If {@code amount} is zero, all items with a positive quantity will be included in the result.</li>
+     *               </ul>
+     * @return {@literal DepositBoxQuery} An updated query instance including only items whose quantity
+     *                                    exceeds the specified amount.
      */
     public DepositBoxQuery quantityGreaterThan(int amount) {
         return filter(item -> item.raw().getQuantity() > amount);
