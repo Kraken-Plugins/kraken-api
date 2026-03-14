@@ -77,6 +77,20 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
         return filter(t -> false);
     }
 
+
+    /**
+     * Checks if the stream contains no elements.
+     * <p>
+     * This method determines whether the stream is empty by checking
+     * if the count of elements in the stream is equal to zero.
+     * </p>
+     *
+     * @return {@code true} if the stream contains no elements; otherwise, {@code false}.
+     */
+    public boolean isEmpty() {
+        return count() == 0;
+    }
+
     /**
      * Randomizes the order of elements in the stream and returns a new stream with the shuffled elements.
      * <p>

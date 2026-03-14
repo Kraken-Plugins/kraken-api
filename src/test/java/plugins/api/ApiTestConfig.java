@@ -202,6 +202,19 @@ public interface ApiTestConfig extends Config {
         return true;
     }
 
+
+    @ConfigItem(
+            keyName = "enableDepositBoxQuery",
+            name = "Start Deposit Box Query Tests",
+            description = "Enable Deposit Box query tests",
+            section = tests,
+            position = 11
+    )
+    default boolean enableDepositBoxQuery() {
+        return true;
+    }
+
+
     // ==============================================
     // ========== SERVICE TEST SETTINGS ==========
     // ==============================================
