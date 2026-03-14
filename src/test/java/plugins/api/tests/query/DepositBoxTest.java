@@ -1,13 +1,16 @@
 package plugins.api.tests.query;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.service.bank.DepositBoxService;
+import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
 import plugins.api.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Singleton
 public class DepositBoxTest extends BaseApiTest {
 
     @Inject
@@ -25,76 +28,120 @@ public class DepositBoxTest extends BaseApiTest {
 
             // --- Query filter tests ---
 
-            testsPassed &= !ctx.depositBox().isEmpty();
-            testsPassed &= ctx.depositBox().count() > 0;
+            boolean notEmpty = !ctx.depositBox().isEmpty();
+            testsPassed &= notEmpty;
+            log.info("[{}] depositBox is not empty", notEmpty ? "PASS" : "FAIL");
 
-            testsPassed &= ctx.depositBox().list().stream().allMatch(e -> e.getId() != -1);
-            testsPassed &= ctx.depositBox().list().stream().allMatch(e -> e.getName() != null && !e.getName().isEmpty());
+            boolean countAboveZero = ctx.depositBox().count() > 0;
+            testsPassed &= countAboveZero;
+            log.info("[{}] depositBox count > 0", countAboveZero ? "PASS" : "FAIL");
+
+            boolean allValidIds = ctx.depositBox().list().stream().allMatch(e -> e.getId() != -1);
+            testsPassed &= allValidIds;
+            log.info("[{}] all entities have valid IDs", allValidIds ? "PASS" : "FAIL");
+
+            boolean allValidNames = ctx.depositBox().list().stream().allMatch(e -> e.getName() != null && !e.getName().isEmpty());
+            testsPassed &= allValidNames;
+            log.info("[{}] all entities have valid names", allValidNames ? "PASS" : "FAIL");
 
             long total = ctx.depositBox().count();
             long noted = ctx.depositBox().noted().count();
             long unnoted = ctx.depositBox().unnoted().count();
-            testsPassed &= noted + unnoted == total;
+            boolean notedUnnotedSum = noted + unnoted == total;
+            testsPassed &= notedUnnotedSum;
+            log.info("[{}] noted({}) + unnoted({}) == total({})", notedUnnotedSum ? "PASS" : "FAIL", noted, unnoted, total);
 
-            testsPassed &= ctx.depositBox().stackable().count() <= total;
-            testsPassed &= ctx.depositBox().quantityGreaterThan(0).count() == total;
-            testsPassed &= ctx.depositBox().quantityGreaterThan(Integer.MAX_VALUE - 1).count() == 0;
+            boolean stackableSubset = ctx.depositBox().stackable().count() <= total;
+            testsPassed &= stackableSubset;
+            log.info("[{}] stackable count <= total({})", stackableSubset ? "PASS" : "FAIL", total);
+
+            boolean quantityGtZero = ctx.depositBox().quantityGreaterThan(0).count() == total;
+            testsPassed &= quantityGtZero;
+            log.info("[{}] quantityGreaterThan(0) == total({})", quantityGtZero ? "PASS" : "FAIL", total);
+
+            boolean quantityGtMax = ctx.depositBox().quantityGreaterThan(Integer.MAX_VALUE - 1).count() == 0;
+            testsPassed &= quantityGtMax;
+            log.info("[{}] quantityGreaterThan(MAX) == 0", quantityGtMax ? "PASS" : "FAIL");
 
             var first = ctx.depositBox().first();
-            testsPassed &= first != null;
-            testsPassed &= ctx.depositBox().withId(first.getId()).first() != null;
-            testsPassed &= first.count() > 0;
+            boolean firstNotNull = first != null;
+            testsPassed &= firstNotNull;
+            log.info("[{}] first entity is not null", firstNotNull ? "PASS" : "FAIL");
+
+            boolean withIdFindsFirst = ctx.depositBox().withId(first.getId()).first() != null;
+            testsPassed &= withIdFindsFirst;
+            log.info("[{}] withId({}) finds entity", withIdFindsFirst ? "PASS" : "FAIL", first.getId());
+
+            boolean firstCountAboveZero = first.count() > 0;
+            testsPassed &= firstCountAboveZero;
+            log.info("[{}] first entity count({}) > 0", firstCountAboveZero ? "PASS" : "FAIL", first.count());
 
             // --- Entity deposit action tests ---
 
-            // depositOne - use Coins since they are stackable and won't be fully consumed by one deposit
             var coins = ctx.depositBox().withId(995).first();
             if (coins != null) {
-                testsPassed &= coins.depositOne();
+                boolean depositOne = coins.depositOne();
+                testsPassed &= depositOne;
+                log.info("[{}] depositOne on coins", depositOne ? "PASS" : "FAIL");
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
             } else {
-                log.warn("No coins found, skipping depositOne test");
+                log.warn("[SKIP] No coins found, skipping depositOne test");
             }
 
-            // depositFive
-            var swordfish = ctx.depositBox().withName("Swordfish").first();
+            var swordfish = ctx.depositBox().noted().withName("Swordfish").first();
             if (swordfish != null) {
-                testsPassed &= swordfish.count() >= 5;
-                testsPassed &= swordfish.depositFive();
+                boolean hasEnough = swordfish.count() >= 5;
+                testsPassed &= hasEnough;
+                log.info("[{}] swordfish noted count({}) >= 5", hasEnough ? "PASS" : "FAIL", swordfish.count());
+
+                boolean depositFive = swordfish.depositFive();
+                testsPassed &= depositFive;
+                log.info("[{}] depositFive on swordfish", depositFive ? "PASS" : "FAIL");
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
             } else {
-                log.warn("No swordfish found, skipping depositFive test");
+                log.warn("[SKIP] No swordfish found, skipping depositFive test");
             }
 
-            // depositTen
-            var lobster = ctx.depositBox().withName("Lobster").first();
+            var lobster = ctx.depositBox().noted().withName("Lobster").first();
             if (lobster != null) {
-                testsPassed &= lobster.count() >= 10;
-                testsPassed &= lobster.depositTen();
+                boolean hasEnough = lobster.count() >= 10;
+                testsPassed &= hasEnough;
+                log.info("[{}] lobster noted count({}) >= 10", hasEnough ? "PASS" : "FAIL", lobster.count());
+
+                boolean depositTen = lobster.depositTen();
+                testsPassed &= depositTen;
+                log.info("[{}] depositTen on lobster", depositTen ? "PASS" : "FAIL");
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
             } else {
-                log.warn("No lobster found, skipping depositTen test");
+                log.warn("[SKIP] No lobster found, skipping depositTen test");
             }
 
-            // depositX - deposit 3 of an item
-            var fireRunes = ctx.depositBox().withName("Fire rune").first();
+            var fireRunes = ctx.depositBox().nameContains("Fire rune").first();
             if (fireRunes != null) {
-                testsPassed &= fireRunes.count() >= 3;
-                testsPassed &= fireRunes.depositX(3);
+                boolean hasEnough = fireRunes.count() >= 3;
+                testsPassed &= hasEnough;
+                log.info("[{}] fire rune count({}) >= 3", hasEnough ? "PASS" : "FAIL", fireRunes.count());
+
+                boolean depositX = fireRunes.depositX(3);
+                testsPassed &= depositX;
+                log.info("[{}] depositX(3) on fire runes", depositX ? "PASS" : "FAIL");
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
             } else {
-                log.warn("No fire runes found, skipping depositX test");
+                log.warn("[SKIP] No fire runes found, skipping depositX test");
             }
 
-            // depositAll - deposit all of one item and verify it's gone
             var lawRunes = ctx.depositBox().withName("Law rune").first();
             if (lawRunes != null) {
                 int lawRuneId = lawRunes.getId();
-                testsPassed &= lawRunes.depositAll();
-                Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-                testsPassed &= ctx.depositBox().withId(lawRuneId).first() == null;
+                boolean depositAll = lawRunes.depositAll();
+                testsPassed &= depositAll;
+                log.info("[{}] depositAll on law runes", depositAll ? "PASS" : "FAIL");
+                SleepService.sleepFor(3);
+                boolean goneAfterDeposit = ctx.depositBox().withId(lawRuneId).first() == null;
+                testsPassed &= goneAfterDeposit;
+                log.info("[{}] law runes no longer in inventory after depositAll", goneAfterDeposit ? "PASS" : "FAIL");
             } else {
-                log.warn("No law runes found, skipping depositAll test");
+                log.warn("[SKIP] No law runes found, skipping depositAll test");
             }
 
         } catch (Exception e) {

@@ -1,4 +1,4 @@
-package plugins.api.tests.query;
+package plugins.api.tests.service;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;

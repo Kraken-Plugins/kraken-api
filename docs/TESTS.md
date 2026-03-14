@@ -99,10 +99,11 @@ The following items must be present in your **Bank**:
 ### `DepositBoxQueryTest`
 - **Location**: Must be at a **deposit box** (e.g., Edgeville or Castle Wars).
 - **State**: The deposit box interface must be open before the test runs.
+- **Equipment**: You must be wearing an item in your head slot like a coif, full helm etc...
 - **Inventory**: The following items must be in your **inventory** before opening the deposit box:
   - **Coins** (any amount) — used to test `depositOne` on a stackable item
-  - **Swordfish** (at least 5) — used to test `depositFive`
-  - **Lobster** (at least 10) — used to test `depositTen`
+  - **Swordfish** (at least 5 noted) — used to test `depositFive`
+  - **Lobster** (at least 10 noted) — used to test `depositTen`
   - **Fire runes** (at least 3) — used to test `depositX`
   - **Law runes** (at least 1) — used to test `depositAll` and verify removal
 - **Note**: These items are consumed from your inventory into the deposit box during the test. They can be reclaimed from the bank afterward.
