@@ -3,6 +3,7 @@ package com.kraken.api.query.equipment;
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
 import com.kraken.api.query.container.ContainerItem;
+import net.runelite.api.EquipmentInventorySlot;
 
 public class EquipmentEntity extends AbstractEntity<ContainerItem> {
 
@@ -28,6 +29,21 @@ public class EquipmentEntity extends AbstractEntity<ContainerItem> {
     public int getId() {
         ContainerItem item = raw();
         return item != null ? item.getId() : -1;
+    }
+
+    /**
+     * Gets the slot this piece of equipment is in. i.e. HEAD, AMULET, LEGS, SHIELD, etc...
+     * @return int the slot id for the equipment
+     */
+    public EquipmentInventorySlot getSlot() {
+        for(EquipmentInventorySlot slot : EquipmentInventorySlot.values()) {
+            if(slot.getSlotIdx() == raw().getSlot()) {
+                return slot;
+            }
+        }
+
+        // Unknown slot for this item (should never happen since this item has been queried and exists).
+        return null;
     }
 
     /**
