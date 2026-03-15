@@ -2,16 +2,18 @@ package com.kraken.api.query.container.bank;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.query.ItemSource;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.widget.WidgetEntity;
+import com.kraken.api.service.bank.DepositBoxService;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -41,35 +43,138 @@ import java.util.stream.Stream;
  * <p><b>Thread Safety:</b> This class interacts with client UI components and should be used in
  * the appropriate thread context (e.g., client-side thread) to ensure proper behavior.
  */
+@Slf4j
 public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQuery, ContainerItem> {
+
+    private ItemSource dataSource = ItemSource.BOTH;
+    private Map<Integer, Integer> equipmentSlotWidgetMapping = new HashMap<>();
 
     public DepositBoxQuery(Context ctx) {
         super(ctx);
+        equipmentSlotWidgetMapping.put(0, 15);
+        equipmentSlotWidgetMapping.put(1, 16);
+        equipmentSlotWidgetMapping.put(2, 17);
+        equipmentSlotWidgetMapping.put(3, 18);
+        equipmentSlotWidgetMapping.put(4, 19);
+        equipmentSlotWidgetMapping.put(5, 20);
+        equipmentSlotWidgetMapping.put(7, 21);
+        equipmentSlotWidgetMapping.put(9, 22);
+        equipmentSlotWidgetMapping.put(10, 23);
+        equipmentSlotWidgetMapping.put(12, 24);
+        equipmentSlotWidgetMapping.put(13, 25);
+    }
+
+    /**
+     * Configures the query to only look for depositable items currently
+     * inside the player's inventory.
+     * @return DepositBoxQuery
+     */
+    public DepositBoxQuery inInventory() {
+        this.dataSource = ItemSource.INVENTORY_ONLY;
+        return this;
+    }
+
+    /**
+     * Configures the query to only look for items to deposit into the deposit box currently equipped
+     * on the player.
+     * @return DepositBoxQuery
+     */
+    public DepositBoxQuery inEquipment() {
+        this.dataSource = ItemSource.INTERFACE_ONLY;
+        return this;
+    }
+
+    /**
+     * Configures the query to look at both equipped items and wearable items
+     * in the inventory.
+     * @return EquipmentQuery
+     */
+    public DepositBoxQuery all() {
+        this.dataSource = ItemSource.BOTH;
+        return this;
     }
 
     @Override
     protected Supplier<Stream<DepositBoxEntity>> source() {
         return () -> {
-            List<DepositBoxEntity> depositBoxItems = ctx.runOnClientThread(() -> {
-                WidgetEntity depositBox = ctx.widgets().fromClient(InterfaceID.BankDepositbox.INVENTORY);
+            List<DepositBoxEntity> entities = new ArrayList<>();
+            if (dataSource == ItemSource.INVENTORY_ONLY || dataSource == ItemSource.BOTH) {
+                entities.addAll(collectInventoryItems());
+            }
 
-                if(depositBox == null || !depositBox.isVisible()) {
-                    return Collections.emptyList();
-                }
+            if (dataSource == ItemSource.INTERFACE_ONLY || dataSource == ItemSource.BOTH) {
+                entities.addAll(collectEquippedItems());
+            }
 
-                Widget[] depositBoxWidgets = depositBox.raw().getDynamicChildren();
-                List<DepositBoxEntity> entities = new ArrayList<>();
-                for (int i = 0; i < depositBoxWidgets.length; i++) {
-                    final Widget widget = depositBoxWidgets[i];
-                    if (widget.getItemId() == -1 || widget.getItemId() == 6512) continue;
-                    final ItemComposition itemComposition = ctx.getClient().getItemDefinition(widget.getItemId());
-                    entities.add(new DepositBoxEntity(ctx, new ContainerItem(new Item(widget.getItemId(), widget.getItemQuantity()), itemComposition, i, ctx, widget, null)));
-                }
-                return entities;
-            });
-
-            return depositBoxItems.stream();
+            return entities.stream();
         };
+    }
+
+    private List<DepositBoxEntity> collectInventoryItems() {
+        return ctx.runOnClientThread(() -> {
+            WidgetEntity depositBox = ctx.widgets().fromClient(InterfaceID.BankDepositbox.INVENTORY);
+
+            if(depositBox == null || !depositBox.isVisible()) {
+                return Collections.emptyList();
+            }
+
+            Widget[] depositBoxWidgets = depositBox.raw().getDynamicChildren();
+            List<DepositBoxEntity> entities = new ArrayList<>();
+            for (int i = 0; i < depositBoxWidgets.length; i++) {
+                final Widget widget = depositBoxWidgets[i];
+                if (widget.getItemId() == -1 || widget.getItemId() == 6512) continue;
+                final ItemComposition itemComposition = ctx.getClient().getItemDefinition(widget.getItemId());
+                entities.add(new DepositBoxEntity(ctx, new ContainerItem(new Item(widget.getItemId(), widget.getItemQuantity()), itemComposition, i, ctx, widget, null)));
+            }
+            return entities;
+        });
+    }
+
+    private List<DepositBoxEntity> collectEquippedItems() {
+        return ctx.runOnClientThread(() -> {
+            WidgetEntity container = ctx.widgets().fromClient(InterfaceID.BankDepositbox.WORN);
+            if(container == null) {
+                return Collections.emptyList();
+            }
+
+            List<DepositBoxEntity> entities = new ArrayList<>();
+            for(int i = InterfaceID.BankDepositbox.SLOT0; i < InterfaceID.BankDepositbox.SLOT13; i++) {
+                final Widget widget = ctx.getWidget(i);
+
+                if(widget.getDynamicChildren().length < 2) {
+                    log.error("Expected widget id: {} to have 2 dynamic children but got: {}", i, widget.getDynamicChildren().length);
+                    continue;
+                }
+
+                // Each widget has 2 dynamic children. The second child contains the item id. However, actions take to deposit items
+                // in the inventory require the parent widget not the dynamic child.
+                int id = widget.getDynamicChildren()[1].getItemId();
+                if (widget.getItemId() == -1) continue;
+                final ItemComposition itemComposition = ctx.getClient().getItemDefinition(id);
+                log.info("Found item: {} with id: {} in widget slot: {} for equipment", widget.getName(), id, i);
+                entities.add(new DepositBoxEntity(ctx, new ContainerItem(new Item(id, 1), itemComposition, i, ctx, widget, null)));
+            }
+            return entities;
+        });
+    }
+
+    /**
+     * Returns the interactable equipment entity for a given equipment slot.
+     * @param slot The {@code EquipmentInventorySlot} to retrieve.
+     * @return DepositBoxEntity
+     */
+    public DepositBoxEntity inSlot(EquipmentInventorySlot slot) {
+        // The container item returned from the raw().getSlot() will be the BankDepositBox.SLOT0,1,2, etc...
+        // so in order to lookup an equipment slot 1-13 -> Id 12582924-31 we need to map the deposit box widget
+        // otherwise we are comparing apples (1-13) to oranges (12582924-31)
+        DepositBoxService depositBoxService = ctx.getService(DepositBoxService.class);
+        int mappedIndex = depositBoxService.getDepositBoxWidget(slot);
+
+        return ctx.runOnClientThread(() -> collectEquippedItems()
+                .stream()
+                .filter(i -> i.raw().getSlot() == mappedIndex)
+                .findFirst()
+                .orElse(new DepositBoxEntity(ctx, null)));
     }
 
     /**

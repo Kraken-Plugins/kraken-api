@@ -2,6 +2,7 @@ package com.kraken.api.query.equipment;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.query.ItemSource;
 import com.kraken.api.query.container.ContainerItem;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.EquipmentInventorySlot;
@@ -20,16 +21,10 @@ import java.util.stream.Stream;
 @Slf4j
 public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuery, ContainerItem> {
 
-    private final HashMap<Integer, Integer> equipmentSlotWidgetMapping = new HashMap<>();
-    private final HashMap<Integer, Integer> intMapping = new HashMap<>();
+    private final Map<Integer, Integer> equipmentSlotWidgetMapping = new HashMap<>();
+    private final Map<Integer, Integer> intMapping = new HashMap<>();
 
-    private enum EquipmentSource {
-        INVENTORY_ONLY,
-        INTERFACE_ONLY,
-        BOTH
-    }
-
-    private EquipmentSource dataSource = EquipmentSource.BOTH;
+    private ItemSource dataSource = ItemSource.BOTH;
 
     public EquipmentQuery(Context ctx) {
         super(ctx);
@@ -64,7 +59,7 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
      * @return EquipmentQuery
      */
     public EquipmentQuery inInventory() {
-        this.dataSource = EquipmentSource.INVENTORY_ONLY;
+        this.dataSource = ItemSource.INVENTORY_ONLY;
         return this;
     }
 
@@ -74,7 +69,7 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
      * @return EquipmentQuery
      */
     public EquipmentQuery inInterface() {
-        this.dataSource = EquipmentSource.INTERFACE_ONLY;
+        this.dataSource = ItemSource.INTERFACE_ONLY;
         return this;
     }
 
@@ -84,7 +79,7 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
      * @return EquipmentQuery
      */
     public EquipmentQuery all() {
-        this.dataSource = EquipmentSource.BOTH;
+        this.dataSource = ItemSource.BOTH;
         return this;
     }
 
@@ -92,11 +87,11 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
     protected Supplier<Stream<EquipmentEntity>> source() {
         return () -> {
             List<EquipmentEntity> entities = new ArrayList<>();
-            if (dataSource == EquipmentSource.INVENTORY_ONLY || dataSource == EquipmentSource.BOTH) {
+            if (dataSource == ItemSource.INVENTORY_ONLY || dataSource == ItemSource.BOTH) {
                 entities.addAll(collectInventoryItems());
             }
 
-            if (dataSource == EquipmentSource.INTERFACE_ONLY || dataSource == EquipmentSource.BOTH) {
+            if (dataSource == ItemSource.INTERFACE_ONLY || dataSource == ItemSource.BOTH) {
                 entities.addAll(collectEquippedItems());
             }
 

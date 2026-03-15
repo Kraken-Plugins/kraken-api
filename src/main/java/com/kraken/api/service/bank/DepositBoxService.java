@@ -287,7 +287,7 @@ public class DepositBoxService {
      *
      * @throws IllegalArgumentException If an unknown or unsupported {@link EquipmentInventorySlot} is provided.
      */
-    private int getDepositBoxWidget(EquipmentInventorySlot slot) {
+    public int getDepositBoxWidget(EquipmentInventorySlot slot) {
         switch (slot) {
             case HEAD: return InterfaceID.BankDepositbox.SLOT0;
             case CAPE: return InterfaceID.BankDepositbox.SLOT1;

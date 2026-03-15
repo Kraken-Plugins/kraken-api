@@ -45,7 +45,22 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits one of the given item from the players inventory into the bank deposit box.
+     * Deposits the filtered equipped item from the player's inventory into the bank deposit box. This will only
+     * work when {@code ctx.depositBox().inEquipment();} is used to filter the deposit box.
+     *
+     * <p>This method interacts with the game's widget system to send a deposit request for a single piece
+     * of equipment.
+     *
+     * @return {@code true} if the deposit operation was executed successfully, {@code false} otherwise.
+     */
+    public boolean depositEquipment() {
+        // raw().getSlot() will be the widget id for the slot that we need to interact with
+        return ctx.widgets().get(raw().getSlot()).interact(2, raw().getSlot(), -1, -1);
+    }
+
+    /**
+     * Deposits one of the given item from the players inventory into the bank deposit box. This will **NOT** work
+     * for depositing equipment if {@code ctx.depositBox().inEquipment();} is used to filter the deposit box.
      * @return true if the deposit was successful and false otherwise.
      */
     public boolean depositOne() {
@@ -53,7 +68,8 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits five of the given items from the players' inventory into the bank deposit box.
+     * Deposits five of the given items from the players' inventory into the bank deposit box. This will **NOT** work
+     * for depositing equipment if {@code ctx.depositBox().inEquipment();} is used to filter the deposit box.
      * @return true if the deposit was successful and false otherwise.
      */
     public boolean depositFive() {
@@ -61,7 +77,8 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits ten of the given items from the players' inventory into the bank deposit box.
+     * Deposits ten of the given items from the players' inventory into the bank deposit box. This will **NOT** work
+     * for depositing equipment if {@code ctx.depositBox().inEquipment();} is used to filter the deposit box.
      * @return true if the deposit was successful and false otherwise.
      */
     public boolean depositTen() {
@@ -69,7 +86,8 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits X amount of an item from the players inventory into the bank deposit box.
+     * Deposits X amount of an item from the players inventory into the bank deposit box. This will **NOT** work
+     * or depositing equipment if {@code ctx.depositBox().inEquipment();} is used to filter the deposit box.
      * @param amount The amount of the item to deposit.
      * @return true if the deposit was successful and false otherwise.
      */
@@ -81,7 +99,8 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits all of the given item from the players inventory into the bank deposit box.
+     * Deposits all of the given item from the players inventory into the bank deposit box. This will **NOT** work
+     * for depositing equipment if {@code ctx.depositBox().inEquipment();} is used to filter the deposit box.
      * @return true if the deposit was successful and false otherwise.
      */
     public boolean depositAll() {
