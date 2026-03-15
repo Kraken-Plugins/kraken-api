@@ -5,7 +5,7 @@
 [Kraken API]\
 open fun [bank](bank.md)(): [BankQuery](../../com.kraken.api.query.container.bank/-bank-query/index.md)
 
-Creates a new query builder for the Bank interface. Usage: ctx.bank().withId(1234).interact(&quot;Withdraw-X&quot;);
+Creates a new query builder for the Bank interface. Usage: `ctx.bank().withId(1234).interact("Withdraw-X");`
 
 #### Return
 

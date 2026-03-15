@@ -626,6 +626,7 @@ $dokka.location:com.kraken.api.core/AbstractQuery/empty/#/PointingToDeclaration/
 $dokka.location:com.kraken.api.core/AbstractQuery/except/#java.util.function.Predicate<T>/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/except.md
 $dokka.location:com.kraken.api.core/AbstractQuery/filter/#java.util.function.Predicate<T>/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/filter.md
 $dokka.location:com.kraken.api.core/AbstractQuery/first/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/first.md
+$dokka.location:com.kraken.api.core/AbstractQuery/isEmpty/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/is-empty.md
 $dokka.location:com.kraken.api.core/AbstractQuery/list/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/list.md
 $dokka.location:com.kraken.api.core/AbstractQuery/map/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/map.md
 $dokka.location:com.kraken.api.core/AbstractQuery/nameContains/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/name-contains.md
@@ -997,6 +998,31 @@ $dokka.location:com.kraken.api.query.container.bank/BankQuery///PointingToDeclar
 $dokka.location:com.kraken.api.query.container.bank/BankQuery/BankQuery/#com.kraken.api.Context/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-bank-query/-bank-query.md
 $dokka.location:com.kraken.api.query.container.bank/BankQuery/isOpen/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-bank-query/is-open.md
 $dokka.location:com.kraken.api.query.container.bank/BankQuery/withId/#int/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-bank-query/with-id.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity///PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/index.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/DepositBoxEntity/#com.kraken.api.Context#com.kraken.api.query.container.ContainerItem/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/-deposit-box-entity.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/count/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/count.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/deposit/#int/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositAll/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-all.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositEquipment/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-equipment.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositFive/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-five.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositOne/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-one.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositTen/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-ten.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositX/#int/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-x.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/getId/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/get-id.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/getName/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/get-name.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/hasAction/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/has-action.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/interact/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/interact.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery///PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/index.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/DepositBoxQuery/#com.kraken.api.Context/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/-deposit-box-query.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/all/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/all.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/inEquipment/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/in-equipment.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/inInventory/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/in-inventory.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/inSlot/#EquipmentInventorySlot/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/in-slot.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/noted/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/noted.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/quantityGreaterThan/#int/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/quantity-greater-than.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/stackable/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/stackable.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/unnoted/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/unnoted.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxQuery/withId/#int/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-query/with-id.md
 $dokka.location:com.kraken.api.query.container.inventory////PointingToDeclaration/kraken-api/com.kraken.api.query.container.inventory/index.md
 $dokka.location:com.kraken.api.query.container.inventory/InventoryEntity///PointingToDeclaration/kraken-api/com.kraken.api.query.container.inventory/-inventory-entity/index.md
 $dokka.location:com.kraken.api.query.container.inventory/InventoryEntity/InventoryEntity/#com.kraken.api.Context#com.kraken.api.query.container.ContainerItem/PointingToDeclaration/kraken-api/com.kraken.api.query.container.inventory/-inventory-entity/-inventory-entity.md
@@ -1063,6 +1089,7 @@ $dokka.location:com.kraken.api.query.equipment/EquipmentEntity///PointingToDecla
 $dokka.location:com.kraken.api.query.equipment/EquipmentEntity/EquipmentEntity/#com.kraken.api.Context#com.kraken.api.query.container.ContainerItem/PointingToDeclaration/kraken-api/com.kraken.api.query.equipment/-equipment-entity/-equipment-entity.md
 $dokka.location:com.kraken.api.query.equipment/EquipmentEntity/getId/#/PointingToDeclaration/kraken-api/com.kraken.api.query.equipment/-equipment-entity/get-id.md
 $dokka.location:com.kraken.api.query.equipment/EquipmentEntity/getName/#/PointingToDeclaration/kraken-api/com.kraken.api.query.equipment/-equipment-entity/get-name.md
+$dokka.location:com.kraken.api.query.equipment/EquipmentEntity/getSlot/#/PointingToDeclaration/kraken-api/com.kraken.api.query.equipment/-equipment-entity/get-slot.md
 $dokka.location:com.kraken.api.query.equipment/EquipmentEntity/interact/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.query.equipment/-equipment-entity/interact.md
 $dokka.location:com.kraken.api.query.equipment/EquipmentEntity/remove/#/PointingToDeclaration/kraken-api/com.kraken.api.query.equipment/-equipment-entity/remove.md
 $dokka.location:com.kraken.api.query.equipment/EquipmentEntity/wear/#/PointingToDeclaration/kraken-api/com.kraken.api.query.equipment/-equipment-entity/wear.md
@@ -1281,6 +1308,12 @@ $dokka.location:com.kraken.api.query/InteractionManager/interact/#com.kraken.api
 $dokka.location:com.kraken.api.query/InteractionManager/interact/#com.kraken.api.query.container.bank.BankItemWidget#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.query/-interaction-manager/interact.md
 $dokka.location:com.kraken.api.query/InteractionManager/interact/#com.kraken.api.query.groundobject.GroundItem/PointingToDeclaration/kraken-api/com.kraken.api.query/-interaction-manager/interact.md
 $dokka.location:com.kraken.api.query/InteractionManager/interact/#int#int#int#int/PointingToDeclaration/kraken-api/com.kraken.api.query/-interaction-manager/interact.md
+$dokka.location:com.kraken.api.query/ItemSource.BOTH///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.query/-item-source/-b-o-t-h/index.md
+$dokka.location:com.kraken.api.query/ItemSource.INTERFACE_ONLY///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.query/-item-source/-i-n-t-e-r-f-a-c-e_-o-n-l-y/index.md
+$dokka.location:com.kraken.api.query/ItemSource.INVENTORY_ONLY///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.query/-item-source/-i-n-v-e-n-t-o-r-y_-o-n-l-y/index.md
+$dokka.location:com.kraken.api.query/ItemSource///PointingToDeclaration/kraken-api/com.kraken.api.query/-item-source/index.md
+$dokka.location:com.kraken.api.query/ItemSource/valueOf/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.query/-item-source/value-of.md
+$dokka.location:com.kraken.api.query/ItemSource/values/#/PointingToDeclaration/kraken-api/com.kraken.api.query/-item-source/values.md
 $dokka.location:com.kraken.api.service.actor////PointingToDeclaration/kraken-api/com.kraken.api.service.actor/index.md
 $dokka.location:com.kraken.api.service.actor/ActorService///PointingToDeclaration/kraken-api/com.kraken.api.service.actor/-actor-service/index.md
 $dokka.location:com.kraken.api.service.actor/ActorService/ActorService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.actor/-actor-service/-actor-service.md
@@ -1309,6 +1342,19 @@ $dokka.location:com.kraken.api.service.bank/BankService/isPinOpen/#/PointingToDe
 $dokka.location:com.kraken.api.service.bank/BankService/onScriptCallbackEvent/#ScriptCallbackEvent/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/on-script-callback-event.md
 $dokka.location:com.kraken.api.service.bank/BankService/setWithdrawMode/#boolean/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/set-withdraw-mode.md
 $dokka.location:com.kraken.api.service.bank/BankService/setXAmount/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/set-x-amount.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService///PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/index.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/DepositBoxService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/-deposit-box-service.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/close/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/close.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/depositAll/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/deposit-all.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/depositLootingBag/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/deposit-looting-bag.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/depositWorn/#EquipmentInventorySlot/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/deposit-worn.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/depositWorn/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/deposit-worn.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/depositWorn/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/deposit-worn.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/depositWornItems/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/deposit-worn-items.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/getDepositBoxWidget/#EquipmentInventorySlot/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/get-deposit-box-widget.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/isClosed/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/is-closed.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/isOpen/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/is-open.md
+$dokka.location:com.kraken.api.service.bank/DepositBoxService/setQuantity/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/set-quantity.md
 $dokka.location:com.kraken.api.service.camera////PointingToDeclaration/kraken-api/com.kraken.api.service.camera/index.md
 $dokka.location:com.kraken.api.service.camera/CameraService///PointingToDeclaration/kraken-api/com.kraken.api.service.camera/-camera-service/index.md
 $dokka.location:com.kraken.api.service.camera/CameraService/CameraService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.camera/-camera-service/-camera-service.md
@@ -1350,6 +1396,48 @@ $dokka.location:com.kraken.api.service.camera/CameraService/turnTo/#LocalPoint#i
 $dokka.location:com.kraken.api.service.camera/CameraService/turnTo/#LocalPoint/PointingToDeclaration/kraken-api/com.kraken.api.service.camera/-camera-service/turn-to.md
 $dokka.location:com.kraken.api.service.camera/CameraService/turnTo/#TileObject#int/PointingToDeclaration/kraken-api/com.kraken.api.service.camera/-camera-service/turn-to.md
 $dokka.location:com.kraken.api.service.camera/CameraService/turnTo/#TileObject/PointingToDeclaration/kraken-api/com.kraken.api.service.camera/-camera-service/turn-to.md
+$dokka.location:com.kraken.api.service.dialogue////PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/index.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService///PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/index.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/DialogueService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/-dialogue-service.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/continueDialogue/#/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/continue-dialogue.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/continueNumericDialogue/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/continue-numeric-dialogue.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/continueObjectDialogue/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/continue-object-dialogue.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/getDialogueHeader/#/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/get-dialogue-header.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/getDialogueOptions/#/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/get-dialogue-options.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/getDialogueText/#/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/get-dialogue-text.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/isDialoguePresent/#/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/is-dialogue-present.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/isOptionPresent/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/is-option-present.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/makeX/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/make-x.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/selectOption/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/select-option.md
+$dokka.location:com.kraken.api.service.dialogue/DialogueService/selectOption/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.dialogue/-dialogue-service/select-option.md
+$dokka.location:com.kraken.api.service.grandexchange////PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService///PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/GrandExchangeService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/-grand-exchange-service.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/cancelOffer/#com.kraken.api.service.grandexchange.GrandExchangeSlot/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/cancel-offer.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/collect/#com.kraken.api.service.grandexchange.GrandExchangeSlot#boolean/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/collect.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/collectAll/#/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/collect-all.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/getFirstFreeSlot/#/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/get-first-free-slot.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/isOfferDetailsOpen/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/is-offer-details-open.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/isOpen/#/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/is-open.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/queueBuyOrder/#com.kraken.api.query.container.inventory.InventoryEntity#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/queue-buy-order.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/queueBuyOrder/#int#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/queue-buy-order.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/queueSellOrder/#com.kraken.api.query.container.inventory.InventoryEntity#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/queue-sell-order.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/queueSellOrder/#int#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/queue-sell-order.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeService/queueSellOrder/#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-service/queue-sell-order.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot.SLOT_1///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/-s-l-o-t_1/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot.SLOT_2///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/-s-l-o-t_2/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot.SLOT_3///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/-s-l-o-t_3/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot.SLOT_4///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/-s-l-o-t_4/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot.SLOT_5///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/-s-l-o-t_5/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot.SLOT_6///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/-s-l-o-t_6/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot.SLOT_7///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/-s-l-o-t_7/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot.SLOT_8///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/-s-l-o-t_8/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot///PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/index.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot/getBySlot/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/get-by-slot.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot/getItemId/#/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/get-item-id.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot/isFulfilled/#/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/is-fulfilled.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot/valueOf/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/value-of.md
+$dokka.location:com.kraken.api.service.grandexchange/GrandExchangeSlot/values/#/PointingToDeclaration/kraken-api/com.kraken.api.service.grandexchange/-grand-exchange-slot/values.md
 $dokka.location:com.kraken.api.service.magic.rune////PointingToDeclaration/kraken-api/com.kraken.api.service.magic.rune/index.md
 $dokka.location:com.kraken.api.service.magic.rune/Rune.AETHER///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.magic.rune/-rune/-a-e-t-h-e-r/index.md
 $dokka.location:com.kraken.api.service.magic.rune/Rune.AIR///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.magic.rune/-rune/-a-i-r/index.md
@@ -1663,6 +1751,8 @@ $dokka.location:com.kraken.api.service.movement/VariableStrideConfig/VariableStr
 $dokka.location:com.kraken.api.service.movement/VariableStrideConfig/computeStride/#/PointingToDeclaration/kraken-api/com.kraken.api.service.movement/-variable-stride-config/compute-stride.md
 $dokka.location:com.kraken.api.service.movement/VariableStrideConfig/withTileDeviation/#/PointingToDeclaration/kraken-api/com.kraken.api.service.movement/-variable-stride-config/with-tile-deviation.md
 $dokka.location:com.kraken.api.service.pathfinding////PointingToDeclaration/kraken-api/com.kraken.api.service.pathfinding/index.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinderConfig///PointingToDeclaration/kraken-api/com.kraken.api.service.pathfinding/-global-pathfinder-config/index.md
+$dokka.location:com.kraken.api.service.pathfinding/GlobalPathfinderConfig/GlobalPathfinderConfig/#/PointingToDeclaration/kraken-api/com.kraken.api.service.pathfinding/-global-pathfinder-config/-global-pathfinder-config.md
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder///PointingToDeclaration/kraken-api/com.kraken.api.service.pathfinding/-local-pathfinder/index.md
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder/LocalPathfinder/#/PointingToDeclaration/kraken-api/com.kraken.api.service.pathfinding/-local-pathfinder/-local-pathfinder.md
 $dokka.location:com.kraken.api.service.pathfinding/LocalPathfinder/findApproximatePath/#WorldPoint#WorldArea/PointingToDeclaration/kraken-api/com.kraken.api.service.pathfinding/-local-pathfinder/find-approximate-path.md
@@ -1847,48 +1937,6 @@ $dokka.location:com.kraken.api.service.tile/TileService/isTileReachable/#WorldPo
 $dokka.location:com.kraken.api.service.tile/TileService/localToWorldDistance/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.tile/-tile-service/local-to-world-distance.md
 $dokka.location:com.kraken.api.service.tile/TileService/toInstance/#WorldPoint/PointingToDeclaration/kraken-api/com.kraken.api.service.tile/-tile-service/to-instance.md
 $dokka.location:com.kraken.api.service.tile/TileService/worldToLocalDistance/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.tile/-tile-service/world-to-local-distance.md
-$dokka.location:com.kraken.api.service.ui.dialogue////PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/index.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService///PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/index.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/DialogueService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/-dialogue-service.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/continueDialogue/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/continue-dialogue.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/continueNumericDialogue/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/continue-numeric-dialogue.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/continueObjectDialogue/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/continue-object-dialogue.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/getDialogueHeader/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/get-dialogue-header.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/getDialogueOptions/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/get-dialogue-options.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/getDialogueText/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/get-dialogue-text.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/isDialoguePresent/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/is-dialogue-present.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/isOptionPresent/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/is-option-present.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/makeX/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/make-x.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/selectOption/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/select-option.md
-$dokka.location:com.kraken.api.service.ui.dialogue/DialogueService/selectOption/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.dialogue/-dialogue-service/select-option.md
-$dokka.location:com.kraken.api.service.ui.grandexchange////PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService///PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/GrandExchangeService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/-grand-exchange-service.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/cancelOffer/#com.kraken.api.service.ui.grandexchange.GrandExchangeSlot/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/cancel-offer.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/collect/#com.kraken.api.service.ui.grandexchange.GrandExchangeSlot#boolean/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/collect.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/collectAll/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/collect-all.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/getFirstFreeSlot/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/get-first-free-slot.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/isOfferDetailsOpen/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/is-offer-details-open.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/isOpen/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/is-open.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/queueBuyOrder/#com.kraken.api.query.container.inventory.InventoryEntity#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/queue-buy-order.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/queueBuyOrder/#int#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/queue-buy-order.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/queueSellOrder/#com.kraken.api.query.container.inventory.InventoryEntity#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/queue-sell-order.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/queueSellOrder/#int#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/queue-sell-order.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeService/queueSellOrder/#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-service/queue-sell-order.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot.SLOT_1///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/-s-l-o-t_1/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot.SLOT_2///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/-s-l-o-t_2/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot.SLOT_3///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/-s-l-o-t_3/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot.SLOT_4///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/-s-l-o-t_4/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot.SLOT_5///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/-s-l-o-t_5/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot.SLOT_6///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/-s-l-o-t_6/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot.SLOT_7///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/-s-l-o-t_7/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot.SLOT_8///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/-s-l-o-t_8/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot///PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/index.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot/getBySlot/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/get-by-slot.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot/getItemId/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/get-item-id.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot/isFulfilled/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/is-fulfilled.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot/valueOf/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/value-of.md
-$dokka.location:com.kraken.api.service.ui.grandexchange/GrandExchangeSlot/values/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.grandexchange/-grand-exchange-slot/values.md
 $dokka.location:com.kraken.api.service.ui.login////PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/index.md
 $dokka.location:com.kraken.api.service.ui.login/AccountType.JAGEX///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.login/-account-type/-j-a-g-e-x/index.md
 $dokka.location:com.kraken.api.service.ui.login/AccountType.LEGACY///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.service.ui.login/-account-type/-l-e-g-a-c-y/index.md
@@ -2474,6 +2522,7 @@ $dokka.location:com.kraken.api/Context///PointingToDeclaration/kraken-api/com.k
 $dokka.location:com.kraken.api/Context/Context/#Client#ClientThread#com.kraken.api.input.mouse.VirtualMouse#EventBus#Injector#com.kraken.api.query.InteractionManager#com.kraken.api.service.tile.TileService#ItemManager#com.kraken.api.service.bank.BankService#com.kraken.api.core.interceptor.PacketInterceptor#com.kraken.api.core.interceptor.MouseHookInterceptor/PointingToDeclaration/kraken-api/com.kraken.api/-context/-context.md
 $dokka.location:com.kraken.api/Context/bank/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/bank.md
 $dokka.location:com.kraken.api/Context/bankInventory/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/bank-inventory.md
+$dokka.location:com.kraken.api/Context/depositBox/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/deposit-box.md
 $dokka.location:com.kraken.api/Context/equipment/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/equipment.md
 $dokka.location:com.kraken.api/Context/gameObjects/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/game-objects.md
 $dokka.location:com.kraken.api/Context/getEnum/#int/PointingToDeclaration/kraken-api/com.kraken.api/-context/get-enum.md
@@ -2491,6 +2540,7 @@ $dokka.location:com.kraken.api/Context/players/#/PointingToDeclaration/kraken-a
 $dokka.location:com.kraken.api/Context/runOnClientThread/#java.lang.Runnable/PointingToDeclaration/kraken-api/com.kraken.api/-context/run-on-client-thread.md
 $dokka.location:com.kraken.api/Context/runOnClientThread/#java.util.concurrent.Callable<T>/PointingToDeclaration/kraken-api/com.kraken.api/-context/run-on-client-thread.md
 $dokka.location:com.kraken.api/Context/runOnClientThreadOptional/#java.util.concurrent.Callable<T>/PointingToDeclaration/kraken-api/com.kraken.api/-context/run-on-client-thread-optional.md
+$dokka.location:com.kraken.api/Context/runScript/#int/PointingToDeclaration/kraken-api/com.kraken.api/-context/run-script.md
 $dokka.location:com.kraken.api/Context/widgets/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/widgets.md
 $dokka.location:com.kraken.api/Context/worlds/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/worlds.md
 com.kraken.api
@@ -2529,6 +2579,8 @@ com.kraken.api.service
 com.kraken.api.service.actor
 com.kraken.api.service.bank
 com.kraken.api.service.camera
+com.kraken.api.service.dialogue
+com.kraken.api.service.grandexchange
 com.kraken.api.service.magic
 com.kraken.api.service.magic.rune
 com.kraken.api.service.magic.spellbook
@@ -2538,8 +2590,6 @@ com.kraken.api.service.pathfinding
 com.kraken.api.service.prayer
 com.kraken.api.service.tile
 com.kraken.api.service.ui
-com.kraken.api.service.ui.dialogue
-com.kraken.api.service.ui.grandexchange
 com.kraken.api.service.ui.login
 com.kraken.api.service.ui.processing
 com.kraken.api.service.ui.tab

@@ -268,7 +268,7 @@ public class DepositBoxService {
      *
      * @param slot The {@link EquipmentInventorySlot} representing the equipment slot
      *             for which the deposit box widget ID is to be retrieved.
-     * <p><ul>
+     * <ul>
      *     <li>{@literal @code HEAD} maps to {@literal @code SLOT0}</li>
      *     <li>{@literal @code CAPE} maps to {@literal @code SLOT1}</li>
      *     <li>{@literal @code AMULET} maps to {@literal @code SLOT2}</li>
@@ -280,7 +280,7 @@ public class DepositBoxService {
      *     <li>{@literal @code BOOTS} maps to {@literal @code SLOT10}</li>
      *     <li>{@literal @code RING} maps to {@literal @code SLOT12}</li>
      *     <li>{@literal @code AMMO} maps to {@literal @code SLOT13}</li>
-     * </ul></p>
+     * </ul>
      *
      * @return The interface widget ID as an integer that corresponds to the
      *         provided {@link EquipmentInventorySlot}.
