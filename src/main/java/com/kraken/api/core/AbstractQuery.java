@@ -218,7 +218,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
 
     /**
      * Filters the stream to only include elements that are distinct based on a property.
-     * Usage: ctx.npcs().distinct(NpcEntity::getName).list();
+     * Usage: {@code ctx.npcs().distinct(NpcEntity::getName).list();}
      * (Returns one of each type of NPC nearby)
      * @param keyExtractor The function to use to determine uniqueness keys between entities
      * @return Q The distinct entities
@@ -226,6 +226,38 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     public Q distinct(Function<T, Object> keyExtractor) {
         Set<Object> seen = ConcurrentHashMap.newKeySet();
         return filter(t -> seen.add(keyExtractor.apply(t)));
+    }
+
+    /**
+     * Ensures that only unique elements based on their IDs are included in the stream.
+     * <p>
+     * This method acts as a wrapper around the {@code distinctById()} method to provide a concise alias.
+     * It guarantees that the resulting stream contains only distinct elements whose IDs have not
+     * previously appeared in the stream.
+     * </p>
+     *
+     * @return Q A filtered stream containing only unique elements based on their IDs.
+     */
+    public Q unique() {
+        return distinctById();
+    }
+
+    /**
+     * Filters the stream of elements, ensuring only unique elements are returned based on their IDs.
+     * <p>
+     * This method uses a thread-safe {@literal Set} to track IDs of processed elements.
+     * The elements are included in the resulting stream only if their ID has not been seen before.
+     * </p>
+     *
+     * <p>
+     * <b>Note:</b> This operation assumes that each element in the stream has a unique identifier accessible through {@code getId()}.
+     * </p>
+     *
+     * @return Q A filtered stream containing only elements with unique IDs.
+     */
+    public Q distinctById() {
+        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        return filter(t -> seen.add(t.getId()));
     }
 
     /**
@@ -283,7 +315,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
 
     /**
      * Returns the first type of object being queried (e.g., NpcEntity, WidgetEntity) from the stream.
-     * If the stream contains no objects then this will return null.
+     * If the stream contains no objects, then this will return null.
      * @return T The type of object being queried (e.g., NpcEntity, WidgetEntity)
      */
     public T first() {
