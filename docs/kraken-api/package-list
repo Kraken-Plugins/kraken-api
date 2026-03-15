@@ -1001,9 +1001,9 @@ $dokka.location:com.kraken.api.query.container.bank/BankQuery/withId/#int/Pointi
 $dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity///PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/index.md
 $dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/DepositBoxEntity/#com.kraken.api.Context#com.kraken.api.query.container.ContainerItem/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/-deposit-box-entity.md
 $dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/count/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/count.md
+$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/deposit/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit.md
 $dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/deposit/#int/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit.md
 $dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositAll/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-all.md
-$dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositEquipment/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-equipment.md
 $dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositFive/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-five.md
 $dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositOne/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-one.md
 $dokka.location:com.kraken.api.query.container.bank/DepositBoxEntity/depositTen/#/PointingToDeclaration/kraken-api/com.kraken.api.query.container.bank/-deposit-box-entity/deposit-ten.md
