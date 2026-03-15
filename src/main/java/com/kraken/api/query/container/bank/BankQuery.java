@@ -11,6 +11,7 @@ import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.gameval.InventoryID;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,8 +33,9 @@ public class BankQuery extends AbstractQuery<BankEntity, BankQuery, BankItemWidg
             .maximumSize(1000)
             .expireAfterWrite(20, TimeUnit.MINUTES)
             .build(new CacheLoader<>() {
+                       @NonNull
                        @Override
-                       public ItemComposition load(Integer itemId) {
+                       public ItemComposition load(@NonNull Integer itemId) {
                            return ctx.runOnClientThread(() -> ctx.getItemManager().getItemComposition(itemId));
                        }
                    }

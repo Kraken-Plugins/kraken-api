@@ -11,6 +11,7 @@ import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.InteractionManager;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;
+import com.kraken.api.query.container.bank.DepositBoxQuery;
 import com.kraken.api.query.container.inventory.InventoryQuery;
 import com.kraken.api.query.equipment.EquipmentQuery;
 import com.kraken.api.query.gameobject.GameObjectQuery;
@@ -140,6 +141,16 @@ public class Context {
                 mouseHookInterceptor::injectHook,
                 "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
         );
+    }
+
+
+    /**
+     * Wraps the RuneLite client's run script method scheduling the run on the client thread.
+     * This is a convenience method for {@code ctx.runOnClientThread(() -> ctx.getClient().runScript(...));}
+     * @param id The CS2 script id to run.
+     */
+    public void runScript(int id) {
+        runOnClientThread(() -> client.runScript(id));
     }
 
     /**
@@ -282,7 +293,7 @@ public class Context {
 
     /**
      * Creates a new query builder for NPCs.
-     * Usage: ctx.npcs().withName("Goblin").first().interact("Attack");
+     * Usage: {@code ctx.npcs().withName("Goblin").first().interact("Attack");}
      *
      * @return NpcQuery object used to chain together predicates to select specific NPC's within the scene.
      */
@@ -293,8 +304,8 @@ public class Context {
     /**
      * Creates a new query builder for Players. This will also include the local player as well which can be
      * grabbed with {@code .local()}.
-     * Usage: ctx.players().withName("Zezima").first().interact("Follow");
-     * ctx.players().local().getName();
+     * Usage: {@code ctx.players().withName("Zezima").first().interact("Follow");}
+     * {@code ctx.players().local().getName();}
      *
      * @return PlayerQuery object used to chain together predicates to select specific Players's within the scene.
      */
@@ -305,7 +316,7 @@ public class Context {
     /**
      * Creates a new query builder for the standard Backpack Inventory. This is only for finding items in a players inventory and
      * should not be used when the Bank is open to deposit items. Instead, use {@code BankInventoryQuery} for depositing items.
-     * Usage: ctx.inventory().withId(1234).count();
+     * Usage: {@code ctx.inventory().withId(1234).count();}
      *
      * @return InventoryQuery object used to chain together predicates to select specific items or groups of items within
      * the players inventory.
@@ -319,7 +330,7 @@ public class Context {
      * deposit items from the players inventory into the bank. A different parent widget is used for the players inventory
      * while the bank is open compared to the normal players inventory. For querying the players inventory to eat food,
      * interact with objects, or perform general actions without a bank use: {@code InventoryQuery}.
-     * Usage: ctx.bankInventory().withId(1234).count();
+     * Usage: {@code ctx.bankInventory().withId(1234).count();}
      *
      * @return BankInventoryQuery object used to chain together predicates to select specific items or groups of items within
      * the players inventory while the bank interface is open.
@@ -329,8 +340,17 @@ public class Context {
     }
 
     /**
+     * Creates a new query builder for the Deposit box.
+     * Usage: {@code ctx.depositBox().withId(1234).depositOne()}
+     * @return DepositBoxQuery used to chain together deposit box operations.
+     */
+    public DepositBoxQuery depositBox() {
+        return new DepositBoxQuery(this);
+    }
+
+    /**
      * Creates a new query builder for the Bank interface.
-     * Usage: ctx.bank().withId(1234).interact("Withdraw-X");
+     * Usage: {@code ctx.bank().withId(1234).interact("Withdraw-X");}
      * @return BankQuery object used to chain together predicates to select specific items or groups of items within the players
      * bank.
      */
@@ -340,8 +360,8 @@ public class Context {
 
     /**
      * Creates a new query builder for the equipment interface.
-     * Usage: ctx.equipment().inSlot(EquipmentInventorySlot.HEAD).interact("Remove");
-     * ctx.equipment().withId(1234).interact("Wield");
+     * Usage: {@code ctx.equipment().inSlot(EquipmentInventorySlot.HEAD).interact("Remove");}
+     * {@code ctx.equipment().withId(1234).interact("Wield");}
      *
      * @return EquipmentQuery object used to chain together predicates to select specific items or groups of items within the players
      * equipment or inventory interface. Only items with the action "wield" or "wear" will be interactable using this query from the inventory.
@@ -353,7 +373,7 @@ public class Context {
     /**
      * Creates a new query builder for game objects. Game objects are objects in the game world like: Trees, ore, or fishing
      * spots which exist on tiles, can be interacted with, but cannot be picked up by the player. Usage:
-     * ctx.gameObjects().withName("Oak Tree").nearest().interact("Chop");
+     * {@code ctx.gameObjects().withName("Oak Tree").nearest().interact("Chop");}
      *
      * @return GameObjectQuery used to chain together predicates to select specific game objects within the scene.
      */
@@ -364,7 +384,7 @@ public class Context {
     /**
      * Creates a new query builder for Ground Items. GroundItems are items that exist on a tile that the player can pick up
      * and store in their inventory. Examples include: bones dropped from an NPC or loot dropped by another player on a tile.
-     * Usage: ctx.groundObjects().withName("Twisted Bow").nearest().interact("Take");
+     * Usage: {@code ctx.groundObjects().withName("Twisted Bow").nearest().interact("Take");}
      *
      * @return GroundObjectQuery used to chain together predicates to select specific ground items within the scene.
      */
@@ -373,7 +393,7 @@ public class Context {
     }
 
     /**
-     * Creates a new query builder for Widgets. Usage: ctx.widgets().withText("Log Out").interact();
+     * Creates a new query builder for Widgets. Usage: {@code ctx.widgets().withText("Log Out").interact();}
      * @return WidgetQuery used to chain together predicates to select specific widgets within the client.
      */
     public WidgetQuery widgets() {

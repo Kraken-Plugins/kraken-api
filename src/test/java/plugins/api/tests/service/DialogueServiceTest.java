@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.query.npc.NpcEntity;
-import com.kraken.api.service.ui.dialogue.DialogueService;
+import com.kraken.api.service.dialogue.DialogueService;
 import com.kraken.api.service.util.SleepService;
 import plugins.api.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;

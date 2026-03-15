@@ -1,4 +1,4 @@
-package com.kraken.api.service.ui.grandexchange;
+package com.kraken.api.service.grandexchange;
 
 import com.kraken.api.Context;
 import lombok.Getter;

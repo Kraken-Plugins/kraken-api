@@ -202,6 +202,19 @@ public interface ApiTestConfig extends Config {
         return true;
     }
 
+
+    @ConfigItem(
+            keyName = "enableDepositBoxQuery",
+            name = "Start Deposit Box Query Tests",
+            description = "Enable Deposit Box query tests",
+            section = tests,
+            position = 11
+    )
+    default boolean enableDepositBoxQuery() {
+        return true;
+    }
+
+
     // ==============================================
     // ========== SERVICE TEST SETTINGS ==========
     // ==============================================
@@ -319,6 +332,17 @@ public interface ApiTestConfig extends Config {
             position = 11
     )
     default boolean enableBankServiceTests() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "enableDepositBoxService",
+            name = "Start Deposit Box Service Tests",
+            description = "Enable Deposit Box service tests",
+            section = serviceTests,
+            position = 12
+    )
+    default boolean enableDepositBoxService() {
         return true;
     }
 

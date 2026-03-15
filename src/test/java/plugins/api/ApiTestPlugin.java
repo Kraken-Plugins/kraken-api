@@ -126,10 +126,10 @@ public class ApiTestPlugin extends Plugin {
             PrayerServiceTest prayerServiceTest, BankTest bankQueryTest, EquipmentTest equipmentQueryTest,
             InventoryTest inventoryQueryTest, BankInventoryTest bankInventoryQueryTest, GameObjectTest gameObjectQueryTest,
             NpcTest npcQueryTest, GroundObjectTest groundObjectQueryTest, PlayerTest playerQueryTest,
-            WidgetTest widgetQueryTest, SpellServiceTest spellServiceTest, MovementServiceTest movementServiceTest,
+            WidgetTest widgetQueryTest, DepositBoxTest depositBoxQuery, SpellServiceTest spellServiceTest, MovementServiceTest movementServiceTest,
             CameraServiceTest cameraServiceTest, PathfinderServiceTest pathfinderServiceTest, PathfinderServiceTest pathfinderTest, WorldQueryTest worldQueryTest,
             TaskChainTest taskChainTest, MouseTest mouseTest, DialogueServiceTest dialogueServiceTest, ProcessingServiceTest processingServiceTest,
-            AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest
+            AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest
     ) {
         registerTest("enablePrayer", "PrayerServiceTest", config::enablePrayerTests, prayerServiceTest::executeTest);
         registerTest("enableBankQuery", "BankQuery", config::enableBankQuery, bankQueryTest::executeTest);
@@ -153,6 +153,8 @@ public class ApiTestPlugin extends Plugin {
         registerTest("enableAreaService", "AreaService", config::enableAreaService, areaServiceTest::executeTest);
         registerTest("enableGrandExchangeService", "GrandExchangeService", config::enableGrandExchangeService, grandExchangeServiceTest::executeTest);
         registerTest("enableBankServiceTests", "BankService", config::enableBankServiceTests, bankServiceTest::executeTest);
+        registerTest("enableDepositBoxService", "DepositBoxService", config::enableDepositBoxService, depositBoxServiceTest::executeTest);
+        registerTest("enableDepositBoxQuery", "DepositBoxQuery", config::enableDepositBoxQuery, depositBoxQuery::executeTest);
     }
 
     private void registerTest(String configKey, String testName, BooleanSupplier enabled, Supplier<java.util.concurrent.CompletableFuture<Boolean>> test) {

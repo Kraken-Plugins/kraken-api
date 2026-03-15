@@ -124,7 +124,7 @@ public class WidgetEntity extends AbstractEntity<Widget> {
      */
     public boolean isVisible() {
         if(raw() == null) return false;
-        return !raw().isHidden() && !raw().isSelfHidden();
+        return ctx.runOnClientThread(() -> !raw().isHidden() && !raw().isSelfHidden());
     }
 
     /**
