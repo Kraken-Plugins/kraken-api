@@ -5,7 +5,7 @@
 [Kraken API]\
 open fun [widgets](widgets.md)(): [WidgetQuery](../../com.kraken.api.query.widget/-widget-query/index.md)
 
-Creates a new query builder for Widgets. Usage: ctx.widgets().withText(&quot;Log Out&quot;).interact();
+Creates a new query builder for Widgets. Usage: `ctx.widgets().withText("Log Out").interact();`
 
 #### Return
 

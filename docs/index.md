@@ -42,6 +42,8 @@
 | [com.kraken.api.service.actor](kraken-api/com.kraken.api.service.actor/index.md) |
 | [com.kraken.api.service.bank](kraken-api/com.kraken.api.service.bank/index.md) |
 | [com.kraken.api.service.camera](kraken-api/com.kraken.api.service.camera/index.md) |
+| [com.kraken.api.service.dialogue](kraken-api/com.kraken.api.service.dialogue/index.md) |
+| [com.kraken.api.service.grandexchange](kraken-api/com.kraken.api.service.grandexchange/index.md) |
 | [com.kraken.api.service.magic](kraken-api/com.kraken.api.service.magic/index.md) |
 | [com.kraken.api.service.magic.rune](kraken-api/com.kraken.api.service.magic.rune/index.md) |
 | [com.kraken.api.service.magic.spellbook](kraken-api/com.kraken.api.service.magic.spellbook/index.md) |
@@ -51,8 +53,6 @@
 | [com.kraken.api.service.prayer](kraken-api/com.kraken.api.service.prayer/index.md) |
 | [com.kraken.api.service.tile](kraken-api/com.kraken.api.service.tile/index.md) |
 | [com.kraken.api.service.ui](kraken-api/com.kraken.api.service.ui/index.md) |
-| [com.kraken.api.service.ui.dialogue](kraken-api/com.kraken.api.service.ui.dialogue/index.md) |
-| [com.kraken.api.service.ui.grandexchange](kraken-api/com.kraken.api.service.ui.grandexchange/index.md) |
 | [com.kraken.api.service.ui.login](kraken-api/com.kraken.api.service.ui.login/index.md) |
 | [com.kraken.api.service.ui.processing](kraken-api/com.kraken.api.service.ui.processing/index.md) |
 | [com.kraken.api.service.ui.tab](kraken-api/com.kraken.api.service.ui.tab/index.md) |

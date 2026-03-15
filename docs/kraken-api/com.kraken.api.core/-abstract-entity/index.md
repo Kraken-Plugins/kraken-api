@@ -10,6 +10,7 @@ abstract class [AbstractEntity](index.md)&lt;[T](index.md)&gt; : [Interactable](
 |---|
 | [BankEntity](../../com.kraken.api.query.container.bank/-bank-entity/index.md) |
 | [BankInventoryEntity](../../com.kraken.api.query.container.bank/-bank-inventory-entity/index.md) |
+| [DepositBoxEntity](../../com.kraken.api.query.container.bank/-deposit-box-entity/index.md) |
 | [InventoryEntity](../../com.kraken.api.query.container.inventory/-inventory-entity/index.md) |
 | [EquipmentEntity](../../com.kraken.api.query.equipment/-equipment-entity/index.md) |
 | [GameObjectEntity](../../com.kraken.api.query.gameobject/-game-object-entity/index.md) |

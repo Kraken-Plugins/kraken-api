@@ -5,7 +5,7 @@
 [Kraken API]\
 open fun [equipment](equipment.md)(): [EquipmentQuery](../../com.kraken.api.query.equipment/-equipment-query/index.md)
 
-Creates a new query builder for the equipment interface. Usage: ctx.equipment().inSlot(EquipmentInventorySlot.HEAD).interact(&quot;Remove&quot;); ctx.equipment().withId(1234).interact(&quot;Wield&quot;);
+Creates a new query builder for the equipment interface. Usage: `ctx.equipment().inSlot(EquipmentInventorySlot.HEAD).interact("Remove");``ctx.equipment().withId(1234).interact("Wield");`
 
 #### Return
 
