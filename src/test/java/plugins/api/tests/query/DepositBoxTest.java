@@ -6,6 +6,7 @@ import com.kraken.api.Context;
 import com.kraken.api.service.bank.DepositBoxService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
+import net.runelite.api.EquipmentInventorySlot;
 import plugins.api.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -142,6 +143,15 @@ public class DepositBoxTest extends BaseApiTest {
                 log.info("[{}] law runes no longer in inventory after depositAll", goneAfterDeposit ? "PASS" : "FAIL");
             } else {
                 log.warn("[SKIP] No law runes found, skipping depositAll test");
+            }
+
+            var helm = ctx.depositBox().inEquipment().inSlot(EquipmentInventorySlot.HEAD);
+            if(helm != null) {
+                boolean success = helm.deposit();
+                log.info("[{}] deposit() on helm", success ? "PASS" : "FAIL");
+                Thread.sleep(RandomUtils.randomIntBetween(400, 900));
+            } else {
+                log.warn("[SKIP] No helm found in equipment.");
             }
 
         } catch (Exception e) {

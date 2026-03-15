@@ -44,19 +44,6 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
         return raw != null ? raw.getQuantity() : -1;
     }
 
-    /**
-     * Deposits the filtered equipped item from the player's inventory into the bank deposit box. This will only
-     * work when {@code ctx.depositBox().inEquipment();} is used to filter the deposit box.
-     *
-     * <p>This method interacts with the game's widget system to send a deposit request for a single piece
-     * of equipment.
-     *
-     * @return {@code true} if the deposit operation was executed successfully, {@code false} otherwise.
-     */
-    public boolean depositEquipment() {
-        // raw().getSlot() will be the widget id for the slot that we need to interact with
-        return ctx.widgets().get(raw().getSlot()).interact(2, raw().getSlot(), -1, -1);
-    }
 
     /**
      * Deposits one of the given item from the players inventory into the bank deposit box. This will **NOT** work
@@ -131,6 +118,25 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
                 ctx.getInteractionManager().interact(raw, "Deposit-All");
                 return true;
         }
+    }
+
+    /**
+     * Deposits a single instance of the specified item into the bank deposit box.
+     * <p>
+     * This method performs different actions based on the origin of the container item:
+     * <ul>
+     *   <li>If the item's origin is {@literal @EQUIPMENT}, it interacts with the associated widget to deposit the item.</li>
+     *   <li>Otherwise, it uses the interaction manager to execute a "Deposit-1" action for the item.</li>
+     * </ul>
+     *
+     * @return {@code true} if the deposit operation is executed successfully, {@code false} otherwise.
+     */
+    public boolean deposit() {
+        if(raw().getOrigin() == ContainerItem.ItemOrigin.EQUIPMENT) {
+            return ctx.widgets().get(raw().getSlot()).interact(2, raw().getSlot(), -1, -1);
+        }
+        ctx.getInteractionManager().interact(raw, "Deposit-1");
+        return true;
     }
 
     /**

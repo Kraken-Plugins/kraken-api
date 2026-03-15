@@ -124,7 +124,7 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
                 final Widget widget = depositBoxWidgets[i];
                 if (widget.getItemId() == -1 || widget.getItemId() == 6512) continue;
                 final ItemComposition itemComposition = ctx.getClient().getItemDefinition(widget.getItemId());
-                entities.add(new DepositBoxEntity(ctx, new ContainerItem(new Item(widget.getItemId(), widget.getItemQuantity()), itemComposition, i, ctx, widget, null)));
+                entities.add(new DepositBoxEntity(ctx, new ContainerItem(new Item(widget.getItemId(), widget.getItemQuantity()), itemComposition, i, ctx, widget, ContainerItem.ItemOrigin.INVENTORY)));
             }
             return entities;
         });
@@ -152,7 +152,7 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
                 if (widget.getItemId() == -1) continue;
                 final ItemComposition itemComposition = ctx.getClient().getItemDefinition(id);
                 log.info("Found item: {} with id: {} in widget slot: {} for equipment", widget.getName(), id, i);
-                entities.add(new DepositBoxEntity(ctx, new ContainerItem(new Item(id, 1), itemComposition, i, ctx, widget, null)));
+                entities.add(new DepositBoxEntity(ctx, new ContainerItem(new Item(id, 1), itemComposition, i, ctx, widget, ContainerItem.ItemOrigin.EQUIPMENT)));
             }
             return entities;
         });
@@ -170,11 +170,10 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
         DepositBoxService depositBoxService = ctx.getService(DepositBoxService.class);
         int mappedIndex = depositBoxService.getDepositBoxWidget(slot);
 
-        return ctx.runOnClientThread(() -> collectEquippedItems()
-                .stream()
+        return source().get()
                 .filter(i -> i.raw().getSlot() == mappedIndex)
                 .findFirst()
-                .orElse(new DepositBoxEntity(ctx, null)));
+                .orElse(new DepositBoxEntity(ctx, null));
     }
 
     /**
