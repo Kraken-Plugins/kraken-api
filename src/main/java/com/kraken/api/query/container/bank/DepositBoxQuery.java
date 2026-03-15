@@ -47,21 +47,9 @@ import java.util.stream.Stream;
 public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQuery, ContainerItem> {
 
     private ItemSource dataSource = ItemSource.BOTH;
-    private Map<Integer, Integer> equipmentSlotWidgetMapping = new HashMap<>();
 
     public DepositBoxQuery(Context ctx) {
         super(ctx);
-        equipmentSlotWidgetMapping.put(0, 15);
-        equipmentSlotWidgetMapping.put(1, 16);
-        equipmentSlotWidgetMapping.put(2, 17);
-        equipmentSlotWidgetMapping.put(3, 18);
-        equipmentSlotWidgetMapping.put(4, 19);
-        equipmentSlotWidgetMapping.put(5, 20);
-        equipmentSlotWidgetMapping.put(7, 21);
-        equipmentSlotWidgetMapping.put(9, 22);
-        equipmentSlotWidgetMapping.put(10, 23);
-        equipmentSlotWidgetMapping.put(12, 24);
-        equipmentSlotWidgetMapping.put(13, 25);
     }
 
     /**
@@ -131,12 +119,12 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
     }
 
     private List<DepositBoxEntity> collectEquippedItems() {
-        return ctx.runOnClientThread(() -> {
-            WidgetEntity container = ctx.widgets().fromClient(InterfaceID.BankDepositbox.WORN);
-            if(container == null) {
-                return Collections.emptyList();
-            }
+        Widget container = ctx.getWidget(InterfaceID.BankDepositbox.FRAME);
+        if(container == null) {
+            return Collections.emptyList();
+        }
 
+        return ctx.runOnClientThread(() -> {
             List<DepositBoxEntity> entities = new ArrayList<>();
             for(int i = InterfaceID.BankDepositbox.SLOT0; i < InterfaceID.BankDepositbox.SLOT13; i++) {
                 final Widget widget = ctx.getWidget(i);
@@ -146,14 +134,14 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
                     continue;
                 }
 
-                // Each widget has 2 dynamic children. The second child contains the item id. However, actions take to deposit items
-                // in the inventory require the parent widget not the dynamic child.
+                // Each widget has 2 dynamic children. The second child contains the item id. However, actions taken to deposit items
+                // in the inventory require the parent widget not the dynamic child. i = the parent widget id (i.e SLOT0, SLOT1, etc...)
                 int id = widget.getDynamicChildren()[1].getItemId();
-                if (widget.getItemId() == -1) continue;
+                if (id == -1) continue;
                 final ItemComposition itemComposition = ctx.getClient().getItemDefinition(id);
-                log.info("Found item: {} with id: {} in widget slot: {} for equipment", widget.getName(), id, i);
                 entities.add(new DepositBoxEntity(ctx, new ContainerItem(new Item(id, 1), itemComposition, i, ctx, widget, ContainerItem.ItemOrigin.EQUIPMENT)));
             }
+
             return entities;
         });
     }
@@ -164,7 +152,7 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
      * @return DepositBoxEntity
      */
     public DepositBoxEntity inSlot(EquipmentInventorySlot slot) {
-        // The container item returned from the raw().getSlot() will be the BankDepositBox.SLOT0,1,2, etc...
+        // The container item returned from the raw().getSlot() will be the BankDepositBox.SLOT0,SLOT1,SLOT2, etc...
         // so in order to lookup an equipment slot 1-13 -> Id 12582924-31 we need to map the deposit box widget
         // otherwise we are comparing apples (1-13) to oranges (12582924-31)
         DepositBoxService depositBoxService = ctx.getService(DepositBoxService.class);
@@ -173,7 +161,7 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
         return source().get()
                 .filter(i -> i.raw().getSlot() == mappedIndex)
                 .findFirst()
-                .orElse(new DepositBoxEntity(ctx, null));
+                .orElse(null);
     }
 
     /**

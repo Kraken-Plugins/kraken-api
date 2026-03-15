@@ -340,6 +340,7 @@ public class DepositBoxService {
         }
 
         boolean success = ctx.widgets().fromClient(InterfaceID.BankDepositbox.X).interact(1, InterfaceID.BankDepositbox.X, -1, -1);
+        // TODO Sleep here for 1 tick?
         ctx.getService(DialogueService.class).continueNumericDialogue(amount);
         return success;
     }

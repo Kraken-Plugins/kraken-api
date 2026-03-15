@@ -86,7 +86,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     }
 
     /**
-     * Deposits all of the given item from the players inventory into the bank deposit box. This will **NOT** work
+     * Deposits all the given items from the players inventory into the bank deposit box. This will **NOT** work
      * for depositing equipment if {@code ctx.depositBox().inEquipment();} is used to filter the deposit box.
      * @return true if the deposit was successful and false otherwise.
      */
@@ -105,6 +105,9 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
         ContainerItem raw = raw();
 
         switch(amount) {
+            case -1:
+                ctx.getInteractionManager().interact(raw, "Deposit-All");
+                return true;
             case 1:
                 ctx.getInteractionManager().interact(raw, "Deposit-1");
                 return true;
@@ -115,13 +118,16 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
                 ctx.getInteractionManager().interact(raw, "Deposit-10");
                 return true;
             default:
-                ctx.getInteractionManager().interact(raw, "Deposit-All");
-                return true;
+                ctx.getService(DepositBoxService.class).setQuantity(amount);
+                return ctx.widgets()
+                        .fromClient(InterfaceID.BankDepositbox.INVENTORY)
+                        .interact(1, InterfaceID.BankDepositbox.INVENTORY, raw().getSlot(), getId());
         }
     }
 
     /**
-     * Deposits a single instance of the specified item into the bank deposit box.
+     * Deposits a single instance of the specified item into the bank deposit box. If the instance is stackable like arrows
+     * it will deposit all arrows into the bank.
      * <p>
      * This method performs different actions based on the origin of the container item:
      * <ul>

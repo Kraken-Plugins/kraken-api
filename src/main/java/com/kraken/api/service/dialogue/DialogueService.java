@@ -229,7 +229,7 @@ public class DialogueService {
      */
     public void continueNumericDialogue(int value) {
          ctx.runOnClientThread(() -> {
-            widgetPackets.queueResumeCount(value);
+             widgetPackets.queueResumeCount(value);
              WidgetEntity widgetOne = ctx.widgets().get(WidgetInfo.CHATBOX_INPUT);
              WidgetEntity widgetTwo = ctx.widgets().get(WidgetInfo.CHATBOX_FULL_INPUT);
              if(widgetOne != null || widgetTwo != null) {
