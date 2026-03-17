@@ -6,7 +6,11 @@ The API is broken up into 2 distinct ways of accessing game information:
 - Query System (`com.kraken.api.query`)
 
 Each API paradigm has its strengths, and it's likely you will need both when building semi and fully autonomous RuneLite
-plugins. Read more about each API paradigm below to see which one (or a combination of both) suites your plugin needs.
+plugins. Read more about each API paradigm below to see which one (or a combination of both) suites your plugin needs. 
+
+The Kraken API also ships with a variety of useful utilties for plugins from logging, mouse, and table overlays to 
+custom RuneLite events (like `onPacketSent`), randomization, math and string utilties, and more! To learn more about
+Kraken's extra utilities, check out [this doc](UTILITIES.md).
 
 ## Services
 

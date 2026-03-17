@@ -215,6 +215,12 @@ check out the detailed [scripting guide](docs/SCRIPTING.md).
 For more information on mouse movement in the API check out the
 detailed [mouse movement guide](docs/MOUSE.md)
 
+## Utilities
+
+The Kraken API also ships with a variety of useful utilities for plugins from logging, mouse, and table overlays to
+custom RuneLite events, randomization, math and string methods! To learn more about
+Kraken's extra utilities, check out [this doc](docs/UTILITIES.md).
+
 ## Simulation
 
 For information on how to use Kraken's API to simulate game outcomes,  
