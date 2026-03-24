@@ -622,6 +622,7 @@ $dokka.location:com.kraken.api.core/AbstractQuery///PointingToDeclaration/krake
 $dokka.location:com.kraken.api.core/AbstractQuery/AbstractQuery/#com.kraken.api.Context/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/-abstract-query.md
 $dokka.location:com.kraken.api.core/AbstractQuery/count/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/count.md
 $dokka.location:com.kraken.api.core/AbstractQuery/distinct/#java.util.function.Function<T,java.lang.Object>/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/distinct.md
+$dokka.location:com.kraken.api.core/AbstractQuery/distinctById/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/distinct-by-id.md
 $dokka.location:com.kraken.api.core/AbstractQuery/empty/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/empty.md
 $dokka.location:com.kraken.api.core/AbstractQuery/except/#java.util.function.Predicate<T>/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/except.md
 $dokka.location:com.kraken.api.core/AbstractQuery/filter/#java.util.function.Predicate<T>/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/filter.md
@@ -638,6 +639,7 @@ $dokka.location:com.kraken.api.core/AbstractQuery/sorted/#java.util.Comparator<T
 $dokka.location:com.kraken.api.core/AbstractQuery/stream/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/stream.md
 $dokka.location:com.kraken.api.core/AbstractQuery/take/#int/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/take.md
 $dokka.location:com.kraken.api.core/AbstractQuery/toRuneLite/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/to-rune-lite.md
+$dokka.location:com.kraken.api.core/AbstractQuery/unique/#/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/unique.md
 $dokka.location:com.kraken.api.core/AbstractQuery/withId/#int/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/with-id.md
 $dokka.location:com.kraken.api.core/AbstractQuery/withName/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.core/-abstract-query/with-name.md
 $dokka.location:com.kraken.api.core/Interactable///PointingToDeclaration/kraken-api/com.kraken.api.core/-interactable/index.md
@@ -778,6 +780,26 @@ $dokka.location:com.kraken.api.input/KeyboardService/releaseShift/#/PointingToDe
 $dokka.location:com.kraken.api.input/KeyboardService/typeChar/#char/PointingToDeclaration/kraken-api/com.kraken.api.input/-keyboard-service/type-char.md
 $dokka.location:com.kraken.api.input/KeyboardService/typeString/#java.lang.String#int#int/PointingToDeclaration/kraken-api/com.kraken.api.input/-keyboard-service/type-string.md
 $dokka.location:com.kraken.api.input/KeyboardService/typeString/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.input/-keyboard-service/type-string.md
+$dokka.location:com.kraken.api.overlay.log////PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/index.md
+$dokka.location:com.kraken.api.overlay.log/LogEntry///PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-entry/index.md
+$dokka.location:com.kraken.api.overlay.log/LogEntry/from/#ILoggingEvent/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-entry/from.md
+$dokka.location:com.kraken.api.overlay.log/LogEntry/of/#com.kraken.api.overlay.log.LogLevel#java.lang.String#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-entry/of.md
+$dokka.location:com.kraken.api.overlay.log/LogLevel.ERROR///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.overlay.log/-log-level/-e-r-r-o-r/index.md
+$dokka.location:com.kraken.api.overlay.log/LogLevel.INFO///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.overlay.log/-log-level/-i-n-f-o/index.md
+$dokka.location:com.kraken.api.overlay.log/LogLevel.WARN///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.overlay.log/-log-level/-w-a-r-n/index.md
+$dokka.location:com.kraken.api.overlay.log/LogLevel///PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-level/index.md
+$dokka.location:com.kraken.api.overlay.log/LogLevel/valueOf/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-level/value-of.md
+$dokka.location:com.kraken.api.overlay.log/LogLevel/values/#/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-level/values.md
+$dokka.location:com.kraken.api.overlay.log/LogOverlayComponent///PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-overlay-component/index.md
+$dokka.location:com.kraken.api.overlay.log/LogOverlayComponent/LogOverlayComponent/#com.kraken.api.overlay.log.PluginLogger/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-overlay-component/-log-overlay-component.md
+$dokka.location:com.kraken.api.overlay.log/LogOverlayComponent/addTo/#PanelComponent/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-log-overlay-component/add-to.md
+$dokka.location:com.kraken.api.overlay.log/PluginLogger///PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-plugin-logger/index.md
+$dokka.location:com.kraken.api.overlay.log/PluginLogger/PluginLogger/#/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-plugin-logger/-plugin-logger.md
+$dokka.location:com.kraken.api.overlay.log/PluginLogger/PluginLogger/#int/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-plugin-logger/-plugin-logger.md
+$dokka.location:com.kraken.api.overlay.log/PluginLogger/attach/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-plugin-logger/attach.md
+$dokka.location:com.kraken.api.overlay.log/PluginLogger/clear/#/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-plugin-logger/clear.md
+$dokka.location:com.kraken.api.overlay.log/PluginLogger/detach/#/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-plugin-logger/detach.md
+$dokka.location:com.kraken.api.overlay.log/PluginLogger/getEntries/#/PointingToDeclaration/kraken-api/com.kraken.api.overlay.log/-plugin-logger/get-entries.md
 $dokka.location:com.kraken.api.overlay.table////PointingToDeclaration/kraken-api/com.kraken.api.overlay.table/index.md
 $dokka.location:com.kraken.api.overlay.table/TableAlignment.CENTER///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.overlay.table/-table-alignment/-c-e-n-t-e-r/index.md
 $dokka.location:com.kraken.api.overlay.table/TableAlignment.LEFT///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.overlay.table/-table-alignment/-l-e-f-t/index.md
@@ -2563,6 +2585,7 @@ com.kraken.api.input.mouse.strategy.none
 com.kraken.api.input.mouse.strategy.replay
 com.kraken.api.input.mouse.strategy.wind
 com.kraken.api.overlay
+com.kraken.api.overlay.log
 com.kraken.api.overlay.table
 com.kraken.api.query
 com.kraken.api.query.container

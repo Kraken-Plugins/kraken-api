@@ -5,7 +5,7 @@
 [Kraken API]\
 open fun [distinct](distinct.md)(keyExtractor: ([T](index.md)) -&gt; [Any](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-any/index.html)): [Q](index.md)
 
-Filters the stream to only include elements that are distinct based on a property. Usage: ctx.npcs().distinct(NpcEntity::getName).list(); (Returns one of each type of NPC nearby)
+Filters the stream to only include elements that are distinct based on a property. Usage: `ctx.npcs().distinct(NpcEntity::getName).list();` (Returns one of each type of NPC nearby)
 
 #### Return
 

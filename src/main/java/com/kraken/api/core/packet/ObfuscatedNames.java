@@ -9,6 +9,9 @@ package com.kraken.api.core.packet;
  * This class contains all the definitions which map arguments for sending specific packets and client level packet related classes
  * to their obfuscated names. By utilizing this class we can use reflection to send packets through the game client by invoking the
  * right obfuscated methods with arguments.
+ *
+ * TODO Maintainer may be stepping away so should move this over to using VitaLite mappings
+ *  <a href="https://github.com/Tonic-Box/VitaLite/blob/main/src/main/resources/com/tonic/injector/mappings.json">here</a>
  */
 public final class ObfuscatedNames {
 

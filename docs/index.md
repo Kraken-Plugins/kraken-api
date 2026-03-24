@@ -26,6 +26,7 @@
 | [com.kraken.api.input.mouse.strategy.replay](kraken-api/com.kraken.api.input.mouse.strategy.replay/index.md) |
 | [com.kraken.api.input.mouse.strategy.wind](kraken-api/com.kraken.api.input.mouse.strategy.wind/index.md) |
 | [com.kraken.api.overlay](kraken-api/com.kraken.api.overlay/index.md) |
+| [com.kraken.api.overlay.log](kraken-api/com.kraken.api.overlay.log/index.md) |
 | [com.kraken.api.overlay.table](kraken-api/com.kraken.api.overlay.table/index.md) |
 | [com.kraken.api.query](kraken-api/com.kraken.api.query/index.md) |
 | [com.kraken.api.query.container](kraken-api/com.kraken.api.query.container/index.md) |
