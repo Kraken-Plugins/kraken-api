@@ -5,7 +5,7 @@
 [Kraken API]\
 open fun [first](first.md)(): [T](index.md)
 
-Returns the first type of object being queried (e.g., NpcEntity, WidgetEntity) from the stream. If the stream contains no objects then this will return null.
+Returns the first type of object being queried (e.g., NpcEntity, WidgetEntity) from the stream. If the stream contains no objects, then this will return null.
 
 #### Return
 

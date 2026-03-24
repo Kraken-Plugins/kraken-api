@@ -29,6 +29,7 @@ public class LogOverlayComponent {
      * Appends a log section directly to the given panel.
      * Call this at the end of your overlay's render() method.
      *
+     * @param panelComponent The panel component to add to
      * <pre>
      *   {@literal @}Override
      *   public Dimension render(Graphics2D graphics) {
