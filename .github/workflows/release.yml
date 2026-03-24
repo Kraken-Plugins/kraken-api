@@ -135,7 +135,7 @@ jobs:
       - name: Sync VitaLite Packets
         run: |
           echo "Downloading latest packets.json from VitaLite..."
-          curl -fsSL "https://raw.githubusercontent.com/Tonic-Box/VitaLite/main/src/main/resources/com/tonic/packets/packets.json" \
+          curl -fsSL "https://raw.githubusercontent.com/Tonic-Box/VitaLite/main/base-api/src/main/resources/com/tonic/packets/packets.json" \
             -o packets.json
 
           echo "Uploading packets.json to MinIO..."
