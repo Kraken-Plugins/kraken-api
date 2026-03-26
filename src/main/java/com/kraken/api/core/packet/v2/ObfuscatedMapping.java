@@ -21,8 +21,8 @@ public enum ObfuscatedMapping {
     // Both come from the same "offset" field in "Buffer", different properties.
     // -------------------------------------------------------------------------
 
-    INDEX_MULTIPLIER("offset", "Buffer", SearchScope.FIELD, ExtractTarget.GETTER, Long.class),
-    OFFSET_MULTIPLIER("offset", "Buffer", SearchScope.FIELD, ExtractTarget.SETTER, Long.class),
+    INDEX_MULTIPLIER("offset", "Buffer", SearchScope.FIELD, ExtractTarget.GETTER, Integer.class),
+    OFFSET_MULTIPLIER("offset", "Buffer", SearchScope.FIELD, ExtractTarget.SETTER, Integer.class),
     BUFFER_OFFSET_FIELD("offset", "Buffer", SearchScope.FIELD, ExtractTarget.OBFUSCATED_NAME, String.class),
     BUFFER_ARRAY_FIELD("array", "Buffer", SearchScope.FIELD, ExtractTarget.OBFUSCATED_NAME, String.class),
 

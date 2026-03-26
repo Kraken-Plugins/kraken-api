@@ -10,7 +10,13 @@ import com.kraken.api.core.packet.v2.model.MappingNotFoundException;
 import com.kraken.api.core.packet.v2.model.MethodMapping;
 import lombok.extern.slf4j.Slf4j;
 
-import java.lang.reflect.Type;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -21,16 +27,58 @@ import java.util.Map;
  */
 @Slf4j
 public class MappingsResolver {
+    private static final String MAPPINGS_URL = "https://minio.kraken-plugins.com/kraken-bootstrap-static/mappings.json";
 
+    // Statically cache the mappings so they are only loaded once across all instances
+    private static volatile List<ClassMapping> cachedClasses = null;
+
+    private static final Gson gson = new GsonBuilder()
+            .setFieldNamingPolicy(FieldNamingPolicy.IDENTITY)
+            .setPrettyPrinting()
+            .create();
+
+    // Instance variable points to the statically loaded cache
     private final List<ClassMapping> classes;
 
-    public MappingsResolver(String mappingsJson) {
-        Gson gson = new GsonBuilder()
-                .setFieldNamingPolicy(FieldNamingPolicy.IDENTITY)
-                .create();
-        Type listType = new TypeToken<List<ClassMapping>>() {}.getType();
-        this.classes = gson.fromJson(mappingsJson, listType);
-        log.info("Loaded {} class mappings", classes.size());
+    public MappingsResolver() {
+        // Ensure the cache is populated when an instance is created
+        if (cachedClasses == null) {
+            loadMappings();
+        }
+        this.classes = cachedClasses;
+    }
+
+    /**
+     * Fetches and parses mappings.json from MinIO.
+     * Synchronized to prevent multiple threads from fetching the 2MB file simultaneously on startup.
+     */
+    public static synchronized void loadMappings() {
+        if (cachedClasses != null) {
+            return; // Already loaded
+        }
+
+        try {
+            log.info("Fetching mappings from MinIO: {}", MAPPINGS_URL);
+            URL url = new URL(MAPPINGS_URL);
+            URLConnection connection = url.openConnection();
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(10000);
+
+            try (InputStream inputStream = connection.getInputStream();
+                 InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+                cachedClasses = gson.fromJson(reader, new TypeToken<List<ClassMapping>>() {}.getType());
+
+                if (cachedClasses == null) {
+                    cachedClasses = Collections.emptyList();
+                    log.warn("Mappings JSON parsed to null.");
+                } else {
+                    log.info("Successfully loaded {} class mappings", cachedClasses.size());
+                }
+            }
+        } catch (IOException e) {
+            log.error("Failed to load class mappings json from MinIO: ", e);
+            cachedClasses = Collections.emptyList();
+        }
     }
 
     /**
