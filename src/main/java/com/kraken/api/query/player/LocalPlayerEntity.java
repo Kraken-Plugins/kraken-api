@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 public class LocalPlayerEntity extends PlayerEntity {
     private static final int VENOM_VALUE_CUTOFF = -38;
     private static final int VENOM_THRESHOLD = 1000000;
-    private static final int LOGOUT_WIDGET_ID = 11927560;
 
     private final  ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
 

@@ -88,8 +88,9 @@ public class CameraService {
      * @return the angle in degrees (0-359), where 0 is east and increases counter-clockwise
      */
     public int angleToTile(WorldPoint worldPoint) {
-        int angle = (int) Math.toDegrees(Math.atan2(worldPoint.getY() - ctx.getClient().getLocalPlayer().getWorldLocation().getY(),
-                worldPoint.getX() - ctx.getClient().getLocalPlayer().getWorldLocation().getX()));
+        WorldPoint loc = ctx.players().local().location();
+        int angle = (int) Math.toDegrees(Math.atan2(worldPoint.getY() - loc.getY(),
+                worldPoint.getX() - loc.getX()));
         return angle >= 0 ? angle : 360 + angle;
     }
 

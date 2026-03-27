@@ -64,7 +64,7 @@ public class PlayerTest extends BaseApiTest {
             }
 
             // 4. Location Query (.at)
-            WorldPoint targetLoc = target.raw().getWorldLocation();
+            WorldPoint targetLoc = ctx.runOnClientThread(() -> target.raw().getWorldLocation());
             boolean foundByLoc = !ctx.players().at(targetLoc).first().isNull();
             if (!foundByLoc) {
                 log.error("Failed to find player via .at(" + targetLoc + ")");
