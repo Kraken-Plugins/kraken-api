@@ -173,7 +173,7 @@ public class GameObjectQuery extends AbstractQuery<GameObjectEntity, GameObjectQ
      * @return GameObjectQuery
      */
     public GameObjectEntity nearest() {
-        final WorldPoint playerLoc = ctx.players().local().raw().getWorldLocation();
+        final WorldPoint playerLoc = ctx.players().local().location();
         return sorted(Comparator.comparingInt(obj -> obj.raw().getWorldLocation().distanceTo(playerLoc))).first();
     }
 
@@ -182,7 +182,7 @@ public class GameObjectQuery extends AbstractQuery<GameObjectEntity, GameObjectQ
      * @return GameObjectQuery
      */
     public GameObjectQuery sortByDistance() {
-        final WorldPoint playerLoc = ctx.players().local().raw().getWorldLocation();
+        final WorldPoint playerLoc = ctx.players().local().location();
         return sorted(Comparator.comparingInt(obj -> obj.raw().getWorldLocation().distanceTo(playerLoc)));
     }
 
@@ -203,7 +203,7 @@ public class GameObjectQuery extends AbstractQuery<GameObjectEntity, GameObjectQ
      * @return True if the object is within the specified distance from the anchor point, false otherwise.
      */
     public GameObjectQuery within(int distance) {
-        LocalPoint anchor = ctx.players().local().raw().getLocalLocation();
+        LocalPoint anchor = ctx.players().local().localLocation();
         int range = distance * Perspective.LOCAL_TILE_SIZE;
 
         return filter(obj -> obj.raw().getLocalLocation().distanceTo(anchor) <= range);

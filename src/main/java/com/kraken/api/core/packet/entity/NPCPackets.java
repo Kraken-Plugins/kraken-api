@@ -48,7 +48,8 @@ public class NPCPackets {
     @SneakyThrows
     public void queueNPCAction(int actionFieldNo, int npcIndex, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpNpc(actionFieldNo), npcIndex, ctrl);
+        int subop = 0;
+        packetClientProvider.get().sendPacket(packetDefFactory.getOpNpc(actionFieldNo), npcIndex, ctrl, subop);
     }
 
     /**

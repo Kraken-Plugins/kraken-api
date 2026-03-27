@@ -16,7 +16,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPOBJ1", k -> new PacketDefinition(
                 ObfuscatedNames.OPOBJ1_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPOBJ1_WRITE1, ObfuscatedNames.OPOBJ1_WRITE2,
-                        ObfuscatedNames.OPOBJ1_WRITE3, ObfuscatedNames.OPOBJ1_WRITE4},
+                        ObfuscatedNames.OPOBJ1_WRITE3, ObfuscatedNames.OPOBJ1_WRITE4, ObfuscatedNames.OPOBJ1_WRITE5},
                 ObfuscatedNames.OPOBJ1_WRITES,
                 PacketType.OPOBJ
         ));
@@ -26,7 +26,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPOBJ2", k -> new PacketDefinition(
                 ObfuscatedNames.OPOBJ2_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPOBJ2_WRITE1, ObfuscatedNames.OPOBJ2_WRITE2,
-                        ObfuscatedNames.OPOBJ2_WRITE3, ObfuscatedNames.OPOBJ2_WRITE4},
+                        ObfuscatedNames.OPOBJ2_WRITE3, ObfuscatedNames.OPOBJ2_WRITE4, ObfuscatedNames.OPOBJ2_WRITE5},
                 ObfuscatedNames.OPOBJ2_WRITES,
                 PacketType.OPOBJ
         ));
@@ -36,7 +36,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPOBJ3", k -> new PacketDefinition(
                 ObfuscatedNames.OPOBJ3_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPOBJ3_WRITE1, ObfuscatedNames.OPOBJ3_WRITE2,
-                        ObfuscatedNames.OPOBJ3_WRITE3, ObfuscatedNames.OPOBJ3_WRITE4},
+                        ObfuscatedNames.OPOBJ3_WRITE3, ObfuscatedNames.OPOBJ3_WRITE4, ObfuscatedNames.OPOBJ3_WRITE5},
                 ObfuscatedNames.OPOBJ3_WRITES,
                 PacketType.OPOBJ
         ));
@@ -46,7 +46,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPOBJ4", k -> new PacketDefinition(
                 ObfuscatedNames.OPOBJ4_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPOBJ4_WRITE1, ObfuscatedNames.OPOBJ4_WRITE2,
-                        ObfuscatedNames.OPOBJ4_WRITE3, ObfuscatedNames.OPOBJ4_WRITE4},
+                        ObfuscatedNames.OPOBJ4_WRITE3, ObfuscatedNames.OPOBJ4_WRITE4, ObfuscatedNames.OPOBJ4_WRITE5},
                 ObfuscatedNames.OPOBJ4_WRITES,
                 PacketType.OPOBJ
         ));
@@ -56,7 +56,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPOBJ5", k -> new PacketDefinition(
                 ObfuscatedNames.OPOBJ5_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPOBJ5_WRITE1, ObfuscatedNames.OPOBJ5_WRITE2,
-                        ObfuscatedNames.OPOBJ5_WRITE3, ObfuscatedNames.OPOBJ5_WRITE4},
+                        ObfuscatedNames.OPOBJ5_WRITE3, ObfuscatedNames.OPOBJ5_WRITE4, ObfuscatedNames.OPOBJ5_WRITE5},
                 ObfuscatedNames.OPOBJ5_WRITES,
                 PacketType.OPOBJ
         ));
@@ -67,7 +67,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPLOC1", k -> new PacketDefinition(
                 ObfuscatedNames.OPLOC1_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPLOC1_WRITE1, ObfuscatedNames.OPLOC1_WRITE2,
-                        ObfuscatedNames.OPLOC1_WRITE3, ObfuscatedNames.OPLOC1_WRITE4},
+                        ObfuscatedNames.OPLOC1_WRITE3, ObfuscatedNames.OPLOC1_WRITE4, ObfuscatedNames.OPLOC1_WRITE5},
                 ObfuscatedNames.OPLOC1_WRITES,
                 PacketType.OPLOC
         ));
@@ -77,7 +77,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPLOC2", k -> new PacketDefinition(
                 ObfuscatedNames.OPLOC2_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPLOC2_WRITE1, ObfuscatedNames.OPLOC2_WRITE2,
-                        ObfuscatedNames.OPLOC2_WRITE3, ObfuscatedNames.OPLOC2_WRITE4},
+                        ObfuscatedNames.OPLOC2_WRITE3, ObfuscatedNames.OPLOC2_WRITE4, ObfuscatedNames.OPLOC2_WRITE5},
                 ObfuscatedNames.OPLOC2_WRITES,
                 PacketType.OPLOC
         ));
@@ -87,7 +87,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPLOC3", k -> new PacketDefinition(
                 ObfuscatedNames.OPLOC3_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPLOC3_WRITE1, ObfuscatedNames.OPLOC3_WRITE2,
-                        ObfuscatedNames.OPLOC3_WRITE3, ObfuscatedNames.OPLOC3_WRITE4},
+                        ObfuscatedNames.OPLOC3_WRITE3, ObfuscatedNames.OPLOC3_WRITE4, ObfuscatedNames.OPLOC3_WRITE5},
                 ObfuscatedNames.OPLOC3_WRITES,
                 PacketType.OPLOC
         ));
@@ -97,7 +97,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPLOC4", k -> new PacketDefinition(
                 ObfuscatedNames.OPLOC4_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPLOC4_WRITE1, ObfuscatedNames.OPLOC4_WRITE2,
-                        ObfuscatedNames.OPLOC4_WRITE3, ObfuscatedNames.OPLOC4_WRITE4},
+                        ObfuscatedNames.OPLOC4_WRITE3, ObfuscatedNames.OPLOC4_WRITE4, ObfuscatedNames.OPLOC4_WRITE5},
                 ObfuscatedNames.OPLOC4_WRITES,
                 PacketType.OPLOC
         ));
@@ -107,7 +107,7 @@ public class PacketDefFactory {
         return cache.computeIfAbsent("OPLOC5", k -> new PacketDefinition(
                 ObfuscatedNames.OPLOC5_OBFUSCATEDNAME,
                 new String[]{ObfuscatedNames.OPLOC5_WRITE1, ObfuscatedNames.OPLOC5_WRITE2,
-                        ObfuscatedNames.OPLOC5_WRITE3, ObfuscatedNames.OPLOC5_WRITE4},
+                        ObfuscatedNames.OPLOC5_WRITE3, ObfuscatedNames.OPLOC5_WRITE4, ObfuscatedNames.OPLOC5_WRITE5},
                 ObfuscatedNames.OPLOC5_WRITES,
                 PacketType.OPLOC
         ));
@@ -117,7 +117,7 @@ public class PacketDefFactory {
     public PacketDefinition getOpNpc1() {
         return cache.computeIfAbsent("OPNPC1", k -> new PacketDefinition(
                 ObfuscatedNames.OPNPC1_OBFUSCATEDNAME,
-                new String[]{ObfuscatedNames.OPNPC1_WRITE1, ObfuscatedNames.OPNPC1_WRITE2},
+                new String[]{ObfuscatedNames.OPNPC1_WRITE1, ObfuscatedNames.OPNPC1_WRITE2, ObfuscatedNames.OPNPC1_WRITE3},
                 ObfuscatedNames.OPNPC1_WRITES,
                 PacketType.OPNPC
         ));
@@ -126,7 +126,7 @@ public class PacketDefFactory {
     public PacketDefinition getOpNpc2() {
         return cache.computeIfAbsent("OPNPC2", k -> new PacketDefinition(
                 ObfuscatedNames.OPNPC2_OBFUSCATEDNAME,
-                new String[]{ObfuscatedNames.OPNPC2_WRITE1, ObfuscatedNames.OPNPC2_WRITE2},
+                new String[]{ObfuscatedNames.OPNPC2_WRITE1, ObfuscatedNames.OPNPC2_WRITE2, ObfuscatedNames.OPNPC2_WRITE3},
                 ObfuscatedNames.OPNPC2_WRITES,
                 PacketType.OPNPC
         ));
@@ -135,7 +135,7 @@ public class PacketDefFactory {
     public PacketDefinition getOpNpc3() {
         return cache.computeIfAbsent("OPNPC3", k -> new PacketDefinition(
                 ObfuscatedNames.OPNPC3_OBFUSCATEDNAME,
-                new String[]{ObfuscatedNames.OPNPC3_WRITE1, ObfuscatedNames.OPNPC3_WRITE2},
+                new String[]{ObfuscatedNames.OPNPC3_WRITE1, ObfuscatedNames.OPNPC3_WRITE2, ObfuscatedNames.OPNPC3_WRITE3},
                 ObfuscatedNames.OPNPC3_WRITES,
                 PacketType.OPNPC
         ));
@@ -144,7 +144,7 @@ public class PacketDefFactory {
     public PacketDefinition getOpNpc4() {
         return cache.computeIfAbsent("OPNPC4", k -> new PacketDefinition(
                 ObfuscatedNames.OPNPC4_OBFUSCATEDNAME,
-                new String[]{ObfuscatedNames.OPNPC4_WRITE1, ObfuscatedNames.OPNPC4_WRITE2},
+                new String[]{ObfuscatedNames.OPNPC4_WRITE1, ObfuscatedNames.OPNPC4_WRITE2, ObfuscatedNames.OPNPC4_WRITE3},
                 ObfuscatedNames.OPNPC4_WRITES,
                 PacketType.OPNPC
         ));
@@ -153,7 +153,7 @@ public class PacketDefFactory {
     public PacketDefinition getOpNpc5() {
         return cache.computeIfAbsent("OPNPC5", k -> new PacketDefinition(
                 ObfuscatedNames.OPNPC5_OBFUSCATEDNAME,
-                new String[]{ObfuscatedNames.OPNPC5_WRITE1, ObfuscatedNames.OPNPC5_WRITE2},
+                new String[]{ObfuscatedNames.OPNPC5_WRITE1, ObfuscatedNames.OPNPC5_WRITE2, ObfuscatedNames.OPNPC5_WRITE3},
                 ObfuscatedNames.OPNPC5_WRITES,
                 PacketType.OPNPC
         ));

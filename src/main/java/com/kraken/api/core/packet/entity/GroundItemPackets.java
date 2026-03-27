@@ -43,7 +43,8 @@ public class GroundItemPackets {
     @SneakyThrows
     public void queueGroundItemAction(int actionFieldNo, int objectId, int worldPointX, int worldPointY, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpObj(actionFieldNo), objectId, worldPointX, worldPointY, ctrl);
+        int subop = 0;
+        packetClientProvider.get().sendPacket(packetDefFactory.getOpObj(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
     }
 
     /**

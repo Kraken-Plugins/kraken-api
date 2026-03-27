@@ -6,6 +6,7 @@ import com.kraken.api.service.tile.GameArea;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.InterfaceID;
@@ -21,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 public class LocalPlayerEntity extends PlayerEntity {
     private static final int VENOM_VALUE_CUTOFF = -38;
     private static final int VENOM_THRESHOLD = 1000000;
-    private static final int LOGOUT_WIDGET_ID = 11927560;
 
     private final  ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
 
@@ -71,7 +71,24 @@ public class LocalPlayerEntity extends PlayerEntity {
 
     @Override
     public Player raw() {
-        return ctx.getClient().getLocalPlayer();
+        return ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer());
+    }
+
+    /**
+     * Returns the players current world point location. This method is thread safe and
+     * executes on the client thread
+     * @return WorldPoint
+     */
+    public WorldPoint location() {
+        return ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer().getWorldLocation());
+    }
+
+    /**
+     * Returns the players local location
+     * @return LocalPoint
+     */
+    public LocalPoint localLocation() {
+        return ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer().getLocalLocation());
     }
 
     /**
