@@ -52,7 +52,8 @@ public class GameObjectPackets {
     @SneakyThrows
     public void queueObjectAction(int actionFieldNo, int objectId, int worldPointX, int worldPointY, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpLoc(actionFieldNo), objectId, worldPointX, worldPointY, ctrl);
+        int subop = 0;
+        packetClientProvider.get().sendPacket(packetDefFactory.getOpLoc(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
     }
 
     /**

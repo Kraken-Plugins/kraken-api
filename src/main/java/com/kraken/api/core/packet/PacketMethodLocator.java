@@ -39,7 +39,7 @@ public class PacketMethodLocator {
 
     // This is the primary output of the locator and will be null until initialize() is successfully called.
     public static PacketMethods packetMethods;
-    private static final int REQUIRED_CLIENT_REV = 236;
+    private static final int REQUIRED_CLIENT_REV = 237;
     private static final Path WORKING_DIRECTORY = RuneLite.RUNELITE_DIR.toPath().resolve("kraken");
     private static String loadedCacheFileName = "";
     private static final Gson gson = new Gson();
@@ -318,7 +318,7 @@ public class PacketMethodLocator {
 
         // Group by call signature and count occurrences, finding the max call count
         Optional<Map.Entry<String, Long>> mostUsedMethod = methodCalls.stream()
-                .filter(str -> !str.contains("** while"))
+                .filter(str -> !str.contains("** while") && !str.contains("throw"))
                 .collect(Collectors.groupingBy(str -> str, Collectors.counting()))
                 .entrySet().stream().min(Map.Entry.comparingByValue(Comparator.reverseOrder()));
 

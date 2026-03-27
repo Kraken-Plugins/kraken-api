@@ -82,16 +82,16 @@ public enum PacketType {
             params = List.of("widgetId", "slot", "itemId", "opCode");
         }
         if (this == PacketType.OPLOC) {
-            params = List.of("objectId", "worldPointX", "worldPointY", "ctrlDown");
+            params = List.of("objectId", "worldPointX", "worldPointY", "ctrlDown", "subop");
         }
         if (this == PacketType.OPNPC) {
-            params = List.of("npcIndex", "ctrlDown");
+            params = List.of("npcIndex", "ctrlDown", "subop");
         }
         if (this == PacketType.OPPLAYER) {
             params = List.of("playerIndex", "ctrlDown");
         }
         if (this == PacketType.OPOBJ) {
-            params = List.of("objectId", "worldPointX", "worldPointY", "ctrlDown");
+            params = List.of("objectId", "worldPointX", "worldPointY", "ctrlDown", "subop");
         }
         if (this == PacketType.OPOBJT) {
             params = List.of("objectId", "worldPointX", "worldPointY", "slot", "itemId", "widgetId",
