@@ -6,6 +6,7 @@ import com.kraken.api.service.tile.GameArea;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.InterfaceID;
@@ -71,7 +72,24 @@ public class LocalPlayerEntity extends PlayerEntity {
 
     @Override
     public Player raw() {
-        return ctx.getClient().getLocalPlayer();
+        return ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer());
+    }
+
+    /**
+     * Returns the players current world point location. This method is thread safe and
+     * executes on the client thread
+     * @return WorldPoint
+     */
+    public WorldPoint location() {
+        return ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer().getWorldLocation());
+    }
+
+    /**
+     * Returns the players local location
+     * @return LocalPoint
+     */
+    public LocalPoint localLocation() {
+        return ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer().getLocalLocation());
     }
 
     /**
