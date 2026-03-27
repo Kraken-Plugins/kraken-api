@@ -61,8 +61,9 @@ public class MouseTest extends BaseApiTest {
         Thread.sleep(RandomService.between(3000, 5000));
 
         // Find a random world point
-        int x = ctx.players().local().raw().getWorldLocation().getX() + RandomService.between(1, 10);
-        int y = ctx.players().local().raw().getWorldLocation().getY() + RandomService.between(1, 10);
+        WorldPoint pt = ctx.players().local().location();
+        int x = pt.getX() + RandomService.between(1, 10);
+        int y = pt.getY() + RandomService.between(1, 10);
         log.info("Moving to random world point: ({}, {})", x, y);
         mouse.move(new WorldPoint(x, y, 0));
 
