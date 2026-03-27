@@ -150,7 +150,7 @@ public class GroundObjectQuery extends AbstractQuery<GroundObjectEntity, GroundO
      * @return GroundObjectQuery
      */
     public GroundObjectEntity nearest() {
-        WorldPoint playerLoc = ctx.players().local().raw().getWorldLocation();
+        WorldPoint playerLoc = ctx.players().local().location();
         return sorted(Comparator.comparingInt(obj -> obj.raw().getLocation().distanceTo(playerLoc))).first();
     }
 
@@ -159,7 +159,7 @@ public class GroundObjectQuery extends AbstractQuery<GroundObjectEntity, GroundO
      * @return GroundObjectQuery
      */
     public GroundObjectQuery sortByDistance() {
-        final WorldPoint playerLoc = ctx.players().local().raw().getWorldLocation();
+        final WorldPoint playerLoc = ctx.players().local().location();
         return sorted(Comparator.comparingInt(obj -> obj.raw().getLocation().distanceTo(playerLoc)));
     }
 
@@ -169,7 +169,7 @@ public class GroundObjectQuery extends AbstractQuery<GroundObjectEntity, GroundO
      * @return True if the object is within the specified distance from the anchor point, false otherwise.
      */
     public GroundObjectQuery within(int distance) {
-        WorldPoint anchor = ctx.players().local().raw().getWorldLocation();
+        WorldPoint anchor = ctx.players().local().location();
         return filter(obj -> obj.raw().getLocation().distanceTo(anchor) <= distance);
     }
 

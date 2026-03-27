@@ -76,7 +76,7 @@ public class GroundObjectTest extends BaseApiTest {
                 testsPassed = false;
             } else {
                 // Validate it's actually close
-                int dist = nearestItem.raw().getLocation().distanceTo(ctx.players().local().raw().getWorldLocation());
+                int dist = nearestItem.raw().getLocation().distanceTo(ctx.players().local().location());
                 if (dist > 2) {
                     log.error("nearest() returned an item that is {} tiles away, expected < 2", dist);
                     testsPassed = false;

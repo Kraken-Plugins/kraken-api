@@ -16,6 +16,9 @@ public class MovementServiceTest extends BaseApiTest {
     private Client client;
 
     @Inject
+    private Context ctx;
+
+    @Inject
     private MovementService movementService;
 
     @Inject
@@ -52,7 +55,7 @@ public class MovementServiceTest extends BaseApiTest {
 
         // Loop while the test is running
         while (timeoutTicks < maxTicks) {
-            WorldPoint playerLoc = client.getLocalPlayer().getWorldLocation();
+            WorldPoint playerLoc = ctx.players().local().location();
             log.info("Local play loc: {}", playerLoc);
 
             // Check distance to target

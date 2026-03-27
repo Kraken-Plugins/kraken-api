@@ -34,7 +34,7 @@ public class NpcTest extends BaseApiTest {
 
             // Area Query (.withinArea)
             // Define a box around the player and ensure we find NPCs inside it
-            WorldPoint playerLoc = ctx.players().local().raw().getWorldLocation();
+            WorldPoint playerLoc = ctx.players().local().location();
             WorldPoint min = new WorldPoint(playerLoc.getX() - 15, playerLoc.getY() - 15, playerLoc.getPlane());
             WorldPoint max = new WorldPoint(playerLoc.getX() + 15, playerLoc.getY() + 15, playerLoc.getPlane());
 
