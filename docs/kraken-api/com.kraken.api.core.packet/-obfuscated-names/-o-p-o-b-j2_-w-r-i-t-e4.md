@@ -3,4 +3,4 @@
 # OPOBJ2_WRITE4
 
 [Kraken API]\
-val [OPOBJ2_WRITE4](-o-p-o-b-j2_-w-r-i-t-e4.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;objectId&quot;
+val [OPOBJ2_WRITE4](-o-p-o-b-j2_-w-r-i-t-e4.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;subop&quot;

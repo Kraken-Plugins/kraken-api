@@ -8,17 +8,17 @@ abstract class [AbstractEntity](index.md)&lt;[T](index.md)&gt; : [Interactable](
 
 | |
 |---|
-| [BankEntity](../../com.kraken.api.query.container.bank/-bank-entity/index.md) |
-| [BankInventoryEntity](../../com.kraken.api.query.container.bank/-bank-inventory-entity/index.md) |
-| [DepositBoxEntity](../../com.kraken.api.query.container.bank/-deposit-box-entity/index.md) |
-| [InventoryEntity](../../com.kraken.api.query.container.inventory/-inventory-entity/index.md) |
-| [EquipmentEntity](../../com.kraken.api.query.equipment/-equipment-entity/index.md) |
-| [GameObjectEntity](../../com.kraken.api.query.gameobject/-game-object-entity/index.md) |
-| [GroundObjectEntity](../../com.kraken.api.query.groundobject/-ground-object-entity/index.md) |
-| [NpcEntity](../../com.kraken.api.query.npc/-npc-entity/index.md) |
-| [PlayerEntity](../../com.kraken.api.query.player/-player-entity/index.md) |
 | [WidgetEntity](../../com.kraken.api.query.widget/-widget-entity/index.md) |
 | [WorldEntity](../../com.kraken.api.query.world/-world-entity/index.md) |
+| [BankInventoryEntity](../../com.kraken.api.query.container.bank/-bank-inventory-entity/index.md) |
+| [BankEntity](../../com.kraken.api.query.container.bank/-bank-entity/index.md) |
+| [DepositBoxEntity](../../com.kraken.api.query.container.bank/-deposit-box-entity/index.md) |
+| [InventoryEntity](../../com.kraken.api.query.container.inventory/-inventory-entity/index.md) |
+| [GroundObjectEntity](../../com.kraken.api.query.groundobject/-ground-object-entity/index.md) |
+| [GameObjectEntity](../../com.kraken.api.query.gameobject/-game-object-entity/index.md) |
+| [EquipmentEntity](../../com.kraken.api.query.equipment/-equipment-entity/index.md) |
+| [NpcEntity](../../com.kraken.api.query.npc/-npc-entity/index.md) |
+| [PlayerEntity](../../com.kraken.api.query.player/-player-entity/index.md) |
 
 ## Constructors
 

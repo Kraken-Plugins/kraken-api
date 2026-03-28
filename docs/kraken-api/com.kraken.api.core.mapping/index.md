@@ -7,3 +7,4 @@
 | Name | Summary |
 |---|---|
 | [ClientDownloader](-client-downloader/index.md) | [Kraken API]<br>open class [ClientDownloader](-client-downloader/index.md) |
+| [ClientMapper](-client-mapper/index.md) | [Kraken API]<br>open class [ClientMapper](-client-mapper/index.md) |

@@ -3,4 +3,4 @@
 # OPOBJ5_OBFUSCATEDNAME
 
 [Kraken API]\
-val [OPOBJ5_OBFUSCATEDNAME](-o-p-o-b-j5_-o-b-f-u-s-c-a-t-e-d-n-a-m-e.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;bw&quot;
+val [OPOBJ5_OBFUSCATEDNAME](-o-p-o-b-j5_-o-b-f-u-s-c-a-t-e-d-n-a-m-e.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;bv&quot;

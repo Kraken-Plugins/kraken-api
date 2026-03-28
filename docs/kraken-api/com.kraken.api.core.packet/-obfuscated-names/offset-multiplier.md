@@ -3,4 +3,4 @@
 # offsetMultiplier
 
 [Kraken API]\
-val [offsetMultiplier](offset-multiplier.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;-962389735&quot;
+val [offsetMultiplier](offset-multiplier.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;1044177923&quot;

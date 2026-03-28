@@ -3,4 +3,4 @@
 # MouseHandler_lastPressedTimeMillisClass
 
 [Kraken API]\
-val [MouseHandler_lastPressedTimeMillisClass](-mouse-handler_last-pressed-time-millis-class.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;bu&quot;
+val [MouseHandler_lastPressedTimeMillisClass](-mouse-handler_last-pressed-time-millis-class.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;sj&quot;

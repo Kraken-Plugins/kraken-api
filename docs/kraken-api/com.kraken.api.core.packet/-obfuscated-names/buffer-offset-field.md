@@ -3,4 +3,4 @@
 # bufferOffsetField
 
 [Kraken API]\
-val [bufferOffsetField](buffer-offset-field.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ai&quot;
+val [bufferOffsetField](buffer-offset-field.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;as&quot;

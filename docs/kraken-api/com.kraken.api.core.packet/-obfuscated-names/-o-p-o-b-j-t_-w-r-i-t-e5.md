@@ -3,4 +3,4 @@
 # OPOBJT_WRITE5
 
 [Kraken API]\
-val [OPOBJT_WRITE5](-o-p-o-b-j-t_-w-r-i-t-e5.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;itemId&quot;
+val [OPOBJT_WRITE5](-o-p-o-b-j-t_-w-r-i-t-e5.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;worldPointX&quot;

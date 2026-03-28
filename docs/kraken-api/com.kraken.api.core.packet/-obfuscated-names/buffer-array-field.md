@@ -3,4 +3,4 @@
 # bufferArrayField
 
 [Kraken API]\
-val [bufferArrayField](buffer-array-field.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;av&quot;
+val [bufferArrayField](buffer-array-field.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;am&quot;

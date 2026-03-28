@@ -20,17 +20,17 @@ Kraken API
 
 | |
 |---|
-| [BankInventoryQuery](../../com.kraken.api.query.container.bank/-bank-inventory-query/index.md) |
-| [BankQuery](../../com.kraken.api.query.container.bank/-bank-query/index.md) |
-| [DepositBoxQuery](../../com.kraken.api.query.container.bank/-deposit-box-query/index.md) |
-| [InventoryQuery](../../com.kraken.api.query.container.inventory/-inventory-query/index.md) |
-| [EquipmentQuery](../../com.kraken.api.query.equipment/-equipment-query/index.md) |
-| [GameObjectQuery](../../com.kraken.api.query.gameobject/-game-object-query/index.md) |
-| [GroundObjectQuery](../../com.kraken.api.query.groundobject/-ground-object-query/index.md) |
-| [NpcQuery](../../com.kraken.api.query.npc/-npc-query/index.md) |
-| [PlayerQuery](../../com.kraken.api.query.player/-player-query/index.md) |
 | [WidgetQuery](../../com.kraken.api.query.widget/-widget-query/index.md) |
 | [WorldQuery](../../com.kraken.api.query.world/-world-query/index.md) |
+| [DepositBoxQuery](../../com.kraken.api.query.container.bank/-deposit-box-query/index.md) |
+| [BankQuery](../../com.kraken.api.query.container.bank/-bank-query/index.md) |
+| [BankInventoryQuery](../../com.kraken.api.query.container.bank/-bank-inventory-query/index.md) |
+| [InventoryQuery](../../com.kraken.api.query.container.inventory/-inventory-query/index.md) |
+| [GroundObjectQuery](../../com.kraken.api.query.groundobject/-ground-object-query/index.md) |
+| [GameObjectQuery](../../com.kraken.api.query.gameobject/-game-object-query/index.md) |
+| [EquipmentQuery](../../com.kraken.api.query.equipment/-equipment-query/index.md) |
+| [NpcQuery](../../com.kraken.api.query.npc/-npc-query/index.md) |
+| [PlayerQuery](../../com.kraken.api.query.player/-player-query/index.md) |
 
 ## Constructors
 

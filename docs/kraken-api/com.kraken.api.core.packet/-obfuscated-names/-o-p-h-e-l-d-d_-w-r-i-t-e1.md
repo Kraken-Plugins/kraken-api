@@ -3,4 +3,4 @@
 # OPHELDD_WRITE1
 
 [Kraken API]\
-val [OPHELDD_WRITE1](-o-p-h-e-l-d-d_-w-r-i-t-e1.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;destId&quot;
+val [OPHELDD_WRITE1](-o-p-h-e-l-d-d_-w-r-i-t-e1.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;destChildIndex&quot;
