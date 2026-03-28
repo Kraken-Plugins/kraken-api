@@ -3,4 +3,4 @@
 # clientPacketClassName
 
 [Kraken API]\
-val [clientPacketClassName](client-packet-class-name.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;mu&quot;
+val [clientPacketClassName](client-packet-class-name.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;iq&quot;

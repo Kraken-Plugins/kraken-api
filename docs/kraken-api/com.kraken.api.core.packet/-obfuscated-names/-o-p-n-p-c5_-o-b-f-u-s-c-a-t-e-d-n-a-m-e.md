@@ -3,4 +3,4 @@
 # OPNPC5_OBFUSCATEDNAME
 
 [Kraken API]\
-val [OPNPC5_OBFUSCATEDNAME](-o-p-n-p-c5_-o-b-f-u-s-c-a-t-e-d-n-a-m-e.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ce&quot;
+val [OPNPC5_OBFUSCATEDNAME](-o-p-n-p-c5_-o-b-f-u-s-c-a-t-e-d-n-a-m-e.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ec&quot;

@@ -84,6 +84,7 @@ public class MappingsResolver {
     /**
      * Resolves all mappings at once. Logs a warning for any that can't be found
      * rather than blowing up, so you can see all failures at once on startup.
+     * @return Map of ObfuscatedMapping to resolved value.
      */
     public Map<ObfuscatedMapping, Object> resolveAll() {
         Map<ObfuscatedMapping, Object> results = new EnumMap<>(ObfuscatedMapping.class);

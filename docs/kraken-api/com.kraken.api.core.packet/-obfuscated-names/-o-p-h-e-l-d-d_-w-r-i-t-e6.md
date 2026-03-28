@@ -3,4 +3,4 @@
 # OPHELDD_WRITE6
 
 [Kraken API]\
-val [OPHELDD_WRITE6](-o-p-h-e-l-d-d_-w-r-i-t-e6.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;selectedChildIndex&quot;
+val [OPHELDD_WRITE6](-o-p-h-e-l-d-d_-w-r-i-t-e6.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;destItemId&quot;

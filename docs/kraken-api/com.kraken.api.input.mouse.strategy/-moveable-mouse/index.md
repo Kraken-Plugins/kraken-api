@@ -11,9 +11,9 @@ interface [MoveableMouse](index.md)
 | [BezierStrategy](../../com.kraken.api.input.mouse.strategy.bezier/-bezier-strategy/index.md) |
 | [InstantStrategy](../../com.kraken.api.input.mouse.strategy.instant/-instant-strategy/index.md) |
 | [LinearStrategy](../../com.kraken.api.input.mouse.strategy.linear/-linear-strategy/index.md) |
-| [NoMovement](../../com.kraken.api.input.mouse.strategy.none/-no-movement/index.md) |
-| [ReplayStrategy](../../com.kraken.api.input.mouse.strategy.replay/-replay-strategy/index.md) |
 | [WindStrategy](../../com.kraken.api.input.mouse.strategy.wind/-wind-strategy/index.md) |
+| [ReplayStrategy](../../com.kraken.api.input.mouse.strategy.replay/-replay-strategy/index.md) |
+| [NoMovement](../../com.kraken.api.input.mouse.strategy.none/-no-movement/index.md) |
 
 ## Functions
 

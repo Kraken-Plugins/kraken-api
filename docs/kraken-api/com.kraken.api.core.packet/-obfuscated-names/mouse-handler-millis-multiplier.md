@@ -3,4 +3,4 @@
 # mouseHandlerMillisMultiplier
 
 [Kraken API]\
-val [mouseHandlerMillisMultiplier](mouse-handler-millis-multiplier.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;1507165324631712439&quot;
+val [mouseHandlerMillisMultiplier](mouse-handler-millis-multiplier.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;2959047111086142593&quot;

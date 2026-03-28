@@ -3,4 +3,4 @@
 # OPLOC4_METHOD_NAME3
 
 [Kraken API]\
-val [OPLOC4_METHOD_NAME3](-o-p-l-o-c4_-m-e-t-h-o-d_-n-a-m-e3.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ev&quot;
+val [OPLOC4_METHOD_NAME3](-o-p-l-o-c4_-m-e-t-h-o-d_-n-a-m-e3.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;cp&quot;

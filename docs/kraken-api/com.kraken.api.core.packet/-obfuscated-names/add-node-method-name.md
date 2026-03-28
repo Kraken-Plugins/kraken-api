@@ -3,4 +3,4 @@
 # addNodeMethodName
 
 [Kraken API]\
-val [addNodeMethodName](add-node-method-name.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ah&quot;
+val [addNodeMethodName](add-node-method-name.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ae&quot;

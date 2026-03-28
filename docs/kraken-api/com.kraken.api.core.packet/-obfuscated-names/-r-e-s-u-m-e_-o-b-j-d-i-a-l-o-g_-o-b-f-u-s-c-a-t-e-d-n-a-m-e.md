@@ -3,4 +3,4 @@
 # RESUME_OBJDIALOG_OBFUSCATEDNAME
 
 [Kraken API]\
-val [RESUME_OBJDIALOG_OBFUSCATEDNAME](-r-e-s-u-m-e_-o-b-j-d-i-a-l-o-g_-o-b-f-u-s-c-a-t-e-d-n-a-m-e.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;az&quot;
+val [RESUME_OBJDIALOG_OBFUSCATEDNAME](-r-e-s-u-m-e_-o-b-j-d-i-a-l-o-g_-o-b-f-u-s-c-a-t-e-d-n-a-m-e.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ck&quot;

@@ -3,4 +3,4 @@
 # OPNPC4_METHOD_NAME1
 
 [Kraken API]\
-val [OPNPC4_METHOD_NAME1](-o-p-n-p-c4_-m-e-t-h-o-d_-n-a-m-e1.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ev&quot;
+val [OPNPC4_METHOD_NAME1](-o-p-n-p-c4_-m-e-t-h-o-d_-n-a-m-e1.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;dn&quot;

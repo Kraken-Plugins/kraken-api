@@ -3,4 +3,4 @@
 # indexMultiplier
 
 [Kraken API]\
-val [indexMultiplier](index-multiplier.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;1342780201&quot;
+val [indexMultiplier](index-multiplier.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;-288102741&quot;

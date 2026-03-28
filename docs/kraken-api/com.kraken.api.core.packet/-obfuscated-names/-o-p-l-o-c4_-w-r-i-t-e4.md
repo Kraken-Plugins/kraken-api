@@ -3,4 +3,4 @@
 # OPLOC4_WRITE4
 
 [Kraken API]\
-val [OPLOC4_WRITE4](-o-p-l-o-c4_-w-r-i-t-e4.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;worldPointX&quot;
+val [OPLOC4_WRITE4](-o-p-l-o-c4_-w-r-i-t-e4.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;objectId&quot;

@@ -3,4 +3,4 @@
 # doActionMethodName
 
 [Kraken API]\
-val [doActionMethodName](do-action-method-name.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;kf&quot;
+val [doActionMethodName](do-action-method-name.md): [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) = &quot;ek&quot;
