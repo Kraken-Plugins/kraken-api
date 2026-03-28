@@ -706,7 +706,7 @@ public class SceneOverlay extends Overlay {
 
     private void renderGameObjects(Graphics2D graphics) {
         for(GameObjectEntity entity : ctx.gameObjects().within(config.gameObjectRange()).interactable().list()) {
-            LocalPoint playerLoc = ctx.players().local().raw().getLocalLocation();
+            LocalPoint playerLoc = ctx.players().local().localLocation();
             LocalPoint objLoc = entity.raw().getLocalLocation();
 
             int distance = playerLoc.distanceTo(objLoc) / Perspective.LOCAL_TILE_SIZE;

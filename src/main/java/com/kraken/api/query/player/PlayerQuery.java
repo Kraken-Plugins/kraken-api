@@ -85,7 +85,7 @@ public class PlayerQuery extends AbstractQuery<PlayerEntity, PlayerQuery, Player
      * @return PlayerQuery
      */
     public PlayerQuery withinDistance(int distance) {
-        return filter(p -> p.raw().getWorldLocation().distanceTo(ctx.getClient().getLocalPlayer().getWorldLocation()) <= distance);
+        return filter(p -> p.raw().getWorldLocation().distanceTo(ctx.players().local().location()) <= distance);
     }
 
     /**
@@ -136,7 +136,7 @@ public class PlayerQuery extends AbstractQuery<PlayerEntity, PlayerQuery, Player
      * @return PlayerQuery
      */
     public PlayerQuery sortByDistance() {
-        final WorldPoint playerLoc = ctx.players().local().raw().getWorldLocation();
+        final WorldPoint playerLoc = ctx.players().local().location();
         return sorted(Comparator.comparingInt(obj -> obj.raw().getWorldLocation().distanceTo(playerLoc)));
     }
 

@@ -147,7 +147,7 @@ public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
      * @return NpcQuery
      */
     public NpcQuery sortByDistance() {
-        final WorldPoint playerLoc = ctx.players().local().raw().getWorldLocation();
+        final WorldPoint playerLoc = ctx.players().local().location();
         return sorted(Comparator.comparingInt(obj -> obj.raw().getWorldLocation().distanceTo(playerLoc)));
     }
 
@@ -164,7 +164,7 @@ public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
      */
     public NpcQuery within(int distance) {
         return filter(npc ->
-                npc.raw().getWorldLocation().distanceTo(ctx.getClient().getLocalPlayer().getWorldLocation()) <= distance
+                npc.raw().getWorldLocation().distanceTo(ctx.players().local().location()) <= distance
         );
     }
 

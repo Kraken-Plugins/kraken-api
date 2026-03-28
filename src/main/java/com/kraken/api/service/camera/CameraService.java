@@ -52,8 +52,9 @@ public class CameraService {
      * @return the angle in degrees (0-359), where 0 is east and increases counter-clockwise
      */
     public int angleToTile(Actor t) {
-        int angle = (int) Math.toDegrees(Math.atan2(t.getWorldLocation().getY() - ctx.getClient().getLocalPlayer().getWorldLocation().getY(),
-                t.getWorldLocation().getX() - ctx.getClient().getLocalPlayer().getWorldLocation().getX()));
+        WorldPoint p = ctx.players().local().location();
+        int angle = (int) Math.toDegrees(Math.atan2(t.getWorldLocation().getY() - p.getY(),
+                t.getWorldLocation().getX() - p.getX()));
         return angle >= 0 ? angle : 360 + angle;
     }
 
@@ -64,8 +65,9 @@ public class CameraService {
      * @return the angle in degrees (0-359), where 0 is east and increases counter-clockwise
      */
     public int angleToTile(TileObject t) {
-        int angle = (int) Math.toDegrees(Math.atan2(t.getWorldLocation().getY() - ctx.getClient().getLocalPlayer().getWorldLocation().getY(),
-                t.getWorldLocation().getX() - ctx.getClient().getLocalPlayer().getWorldLocation().getX()));
+        WorldPoint p = ctx.players().local().location();
+        int angle = (int) Math.toDegrees(Math.atan2(t.getWorldLocation().getY() - p.getY(),
+                t.getWorldLocation().getX() - p.getX()));
         return angle >= 0 ? angle : 360 + angle;
     }
 
@@ -76,8 +78,9 @@ public class CameraService {
      * @return the angle in degrees (0-359), where 0 is east and increases counter-clockwise
      */
     public int angleToTile(LocalPoint localPoint) {
-        int angle = (int) Math.toDegrees(Math.atan2(localPoint.getY() - ctx.getClient().getLocalPlayer().getLocalLocation().getY(),
-                localPoint.getX() - ctx.getClient().getLocalPlayer().getLocalLocation().getX()));
+        LocalPoint p = ctx.players().local().localLocation();
+        int angle = (int) Math.toDegrees(Math.atan2(localPoint.getY() - p.getY(),
+                localPoint.getX() - p.getX()));
         return angle >= 0 ? angle : 360 + angle;
     }
 

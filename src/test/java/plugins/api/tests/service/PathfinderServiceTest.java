@@ -24,7 +24,7 @@ public class PathfinderServiceTest extends BaseApiTest {
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        WorldPoint playerLocation = ctx.players().local().raw().getWorldLocation();
+        WorldPoint playerLocation = ctx.players().local().location();
         if (playerLocation == null) {
             log.error("Pathfinder test failed: local player world location is unavailable.");
             updateOverlayPath(ctx, Collections.emptyList());
