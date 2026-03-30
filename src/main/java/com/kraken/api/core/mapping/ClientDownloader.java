@@ -36,7 +36,9 @@ public class ClientDownloader {
      *                    must include the file name for the target file, and parent directories will
      *                    be created if they do not exist.
      */
-    public static void downloadInjectedClient(String version, Path destination) {
+    public static Path downloadInjectedClient(String version, Path destination) {
+        if(Files.exists(destination)) return destination;
+
         try {
             Files.createDirectories(destination.getParent());
 
@@ -60,9 +62,11 @@ public class ClientDownloader {
             try (InputStream clientStream = injectedURL.openStream()) {
                 Files.copy(clientStream, destination, StandardCopyOption.REPLACE_EXISTING);
             }
+            return destination;
         } catch (IOException e) {
             log.error("IOException thrown while downloading injected client to destination: {}, error:", destination, e);
         }
+        return null;
     }
 
     /**
