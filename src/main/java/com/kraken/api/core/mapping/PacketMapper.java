@@ -27,7 +27,7 @@ public class PacketMapper {
     public void run(Path jarPath) throws Exception {
         loadJar(jarPath);
 
-        fingerprintCoreStructures();
+        fingerprintDoAction();
 
         if (doActionMethod == null || clientPacketClassName == null) {
             throw new IllegalStateException("Failed to find doAction or ClientPacket class!");
@@ -62,7 +62,7 @@ public class PacketMapper {
         }
     }
 
-    private void fingerprintCoreStructures() {
+    private void fingerprintDoAction() {
         for (ClassNode cn : classes.values()) {
             // Find ClientPacket class (Phase 2)
             // Heuristic: A class with an unusually high number of public static final fields of its own type.
