@@ -39,9 +39,9 @@ public class PacketMapper {
         extractMappings(doActionMethod);
         analyzeHelperMethods();
 
-        System.out.println("\n--- Final Mappings ---");
+        System.out.println("--- Final Mappings ---");
         packetMappings.forEach((opcode, field) ->
-            System.out.println("Menu Action: " + opcode + " " + MenuAction.of(opcode).name() + " -> " + clientPacketClassName + "." + field + " -> " + MenuActionMapping.fromId(opcode).getPacketName())
+            System.out.println(MenuAction.of(opcode).name() + "(" + opcode + ") -> " + clientPacketClassName + "." + field + " -> " + MenuActionMapping.fromId(opcode).getPacketName())
         );
     }
 
@@ -90,27 +90,59 @@ public class PacketMapper {
         }
     }
 
-    private void extractMappings(MethodNode method) {
-        InsnList instructions = method.instructions;
+  private void extractMappings(MethodNode method) {
+    InsnList instructions = method.instructions;
 
-        for (int i = 0; i < instructions.size(); i++) {
-            AbstractInsnNode insn = instructions.get(i);
+    for (int i = 0; i < instructions.size(); i++) {
+        AbstractInsnNode insn = instructions.get(i);
 
-            // Look for an integer push (the Action ID / opcode)
-            int opcodeValue = getPushedInt(insn);
-            if (opcodeValue != -1) {
-                // Look ahead for the jump instruction (IF_ICMPEQ or IF_ICMPNE)
-                AbstractInsnNode nextInsn = getNextRealInstruction(insn);
-                if (nextInsn instanceof JumpInsnNode) {
-                    // We found an if (action == X) block.
-                    // Now scan forward in this local block for a GETSTATIC of our ClientPacket class.
-                    String mappedField = scanForwardForPacketField(nextInsn, 30); // Scan next 30 instructions
-                    if (mappedField != null) {
-                        packetMappings.put(opcodeValue, mappedField);
-                    }
+        // 1. Handle LookupSwitch Statements (Dense switch-cases)
+        if (insn instanceof LookupSwitchInsnNode) {
+            LookupSwitchInsnNode lsin = (LookupSwitchInsnNode) insn;
+            for (int j = 0; j < lsin.keys.size(); j++) {
+                int opcodeValue = lsin.keys.get(j);
+                LabelNode target = lsin.labels.get(j);
+                // Scan directly from the target label, increase limit to 100
+                String mappedField = scanForwardForPacketField(target, 100);
+                if (mappedField != null) packetMappings.put(opcodeValue, mappedField);
+            }
+            continue;
+        }
+
+        // 2. Handle TableSwitch Statements (Sparse switch-cases)
+        if (insn instanceof TableSwitchInsnNode) {
+            TableSwitchInsnNode tsin = (TableSwitchInsnNode) insn;
+            int opcodeValue = tsin.min;
+            for (LabelNode target : tsin.labels) {
+                String mappedField = scanForwardForPacketField(target, 100);
+                if (mappedField != null) packetMappings.put(opcodeValue, mappedField);
+                opcodeValue++;
+            }
+            continue;
+        }
+
+        // 3. Handle standard if-statements
+        int opcodeValue = getPushedInt(insn);
+        if (opcodeValue != -1) {
+            AbstractInsnNode nextInsn = getNextRealInstruction(insn);
+            if (nextInsn instanceof JumpInsnNode) {
+                JumpInsnNode jump = (JumpInsnNode) nextInsn;
+                String mappedField = null;
+
+                if (jump.getOpcode() == Opcodes.IF_ICMPEQ) {
+                    // If ==, the execution block is at the jump target!
+                    mappedField = scanForwardForPacketField(jump.label, 100);
+                } else if (jump.getOpcode() == Opcodes.IF_ICMPNE) {
+                    // If !=, the execution block is the fallthrough!
+                    mappedField = scanForwardForPacketField(jump.getNext(), 100);
+                }
+
+                if (mappedField != null) {
+                    packetMappings.put(opcodeValue, mappedField);
                 }
             }
         }
+    }
     }
 
     private void analyzeHelperMethods() {
