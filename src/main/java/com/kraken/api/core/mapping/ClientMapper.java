@@ -32,5 +32,11 @@ public class ClientMapper {
         String packetWriterClass = (String) mappings.get(ObfuscatedMapping.PACKET_WRITER_CLASS_NAME);
         long   indexMultiplier   = (Integer)   mappings.get(ObfuscatedMapping.INDEX_MULTIPLIER);
         int    addNodeGarbage    = (Integer) mappings.get(ObfuscatedMapping.ADD_NODE_GARBAGE_VALUE);
+
+        try {
+            new PacketMapper().run(output);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

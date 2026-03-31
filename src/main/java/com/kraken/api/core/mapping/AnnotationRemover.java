@@ -6,6 +6,7 @@ import net.bytebuddy.jar.asm.*;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -15,6 +16,7 @@ import java.util.jar.JarOutputStream;
 public class AnnotationRemover {
 
     public static void stripNamedAnnotations(Path input, Path output) throws IOException {
+        if(Files.exists(output)) return;
         try (JarFile jar = new JarFile(input.toFile());
              JarOutputStream out = new JarOutputStream(new FileOutputStream(output.toFile()))) {
 
