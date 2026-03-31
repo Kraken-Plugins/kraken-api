@@ -1,8 +1,8 @@
 package com.kraken.api.core.mapping;
 
+import net.runelite.api.MenuAction;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.*;
 
 import java.io.InputStream;
@@ -27,7 +27,6 @@ public class PacketMapper {
     public void run(Path jarPath) throws Exception {
         loadJar(jarPath);
 
-        System.out.println("Phase 1 & 2: Fingerprinting classes...");
         fingerprintCoreStructures();
 
         if (doActionMethod == null || clientPacketClassName == null) {
@@ -37,15 +36,12 @@ public class PacketMapper {
         System.out.println("Found ClientPacket Class: " + clientPacketClassName);
         System.out.println("Found doAction Method in: " + doActionClass.name);
 
-        System.out.println("\nPhase 3: Extracting Core Mappings from doAction...");
         extractMappings(doActionMethod);
-
-        System.out.println("\nPhase 4: Hunting down Helper Methods (OPLOC, OPNPC)...");
         analyzeHelperMethods();
 
         System.out.println("\n--- Final Mappings ---");
         packetMappings.forEach((opcode, field) ->
-            System.out.println("Action " + opcode + " -> " + clientPacketClassName + "." + field)
+            System.out.println("Menu Action: " + opcode + " " + MenuAction.of(opcode).name() + " -> " + clientPacketClassName + "." + field + " -> " + MenuActionMapping.fromId(opcode).getPacketName())
         );
     }
 
@@ -80,18 +76,15 @@ public class PacketMapper {
 
             if (selfTypeFields > 50 && !cn.interfaces.isEmpty()) {
                 clientPacketClassName = cn.name;
-                System.out.println("Found ClientPacket class: " + clientPacketClassName);
             }
 
             // Find doAction method (Phase 1)
             for (MethodNode mn : cn.methods) {
                 if ((mn.access & Opcodes.ACC_STATIC) != 0 && mn.desc.equals(DO_ACTION_DESC)) {
                     if (cn.superName.equals("java/util/AbstractQueue")) {
-                        System.out.println("Verified superclass is AbstractQueue.");
                         doActionMethod = mn;
                         doActionClass = cn;
                     }
-                    System.out.println("Found doAction method: " + mn.name);
                 }
             }
         }
