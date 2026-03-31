@@ -22,7 +22,7 @@ public class PacketMapper {
     private final Map<Integer, String> packetMappings = new HashMap<>();
 
     // Target signature for doAction: (int, int, int, int, int, String, String, int, int, int)
-    private static final String DO_ACTION_DESC = "(IIIIILjava/lang/String;Ljava/lang/String;III)V";
+    private static final String DO_ACTION_DESC = "(IIIIIILjava/lang/String;Ljava/lang/String;III)V";
 
     public void run(Path jarPath) throws Exception {
         loadJar(jarPath);
@@ -77,18 +77,20 @@ public class PacketMapper {
                     selfTypeFields++;
                 }
             }
-            // TODO iq implements an interface whereas jt doesn't. Add this restriction in to fingerprint more accurately
-            if (selfTypeFields > 50) { // ClientPacket has 80+ packet definitions
+
+            if (selfTypeFields > 50 && !cn.interfaces.isEmpty()) {
                 clientPacketClassName = cn.name;
                 System.out.println("Found ClientPacket class: " + clientPacketClassName);
             }
 
             // Find doAction method (Phase 1)
             for (MethodNode mn : cn.methods) {
-                // TODO Desc is wrong here...
                 if ((mn.access & Opcodes.ACC_STATIC) != 0 && mn.desc.equals(DO_ACTION_DESC)) {
-                    doActionMethod = mn;
-                    doActionClass = cn;
+                    if (cn.superName.equals("java/util/AbstractQueue")) {
+                        System.out.println("Verified superclass is AbstractQueue.");
+                        doActionMethod = mn;
+                        doActionClass = cn;
+                    }
                     System.out.println("Found doAction method: " + mn.name);
                 }
             }
