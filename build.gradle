@@ -57,9 +57,6 @@ dependencies {
     implementation("org.benf:cfr:0.152") // 2.0 mb
     implementation("net.bytebuddy:byte-buddy:1.18.4") // 9.4 mb
     implementation("net.bytebuddy:byte-buddy-agent:1.18.4") // 0.2 mb
-// TODO The mapping package needs to go in its own repo as an updater. These are not runtime dependencies
-//    implementation("org.ow2.asm:asm-tree:9.9.1")
-//    implementation("org.ow2.asm:asm:9.9.1")
 
     // Git submodule
     implementation 'shortestpath:shortest-path:1.0.0'
