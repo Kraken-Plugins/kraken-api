@@ -3,6 +3,7 @@ package com.kraken.api;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Singleton;
+import com.kraken.api.core.interceptor.DoActionInterceptor;
 import com.kraken.api.core.packet.PacketMethodLocator;
 import com.kraken.api.core.interceptor.MouseHookInterceptor;
 import com.kraken.api.core.interceptor.InterceptorBuilder;
@@ -69,13 +70,14 @@ public class Context {
 
     private final PacketInterceptor packetInterceptor;
     private final MouseHookInterceptor mouseHookInterceptor;
+    private final DoActionInterceptor doActionInterceptor;
     private final Injector injector;
 
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
                    final Injector injector, final InteractionManager interactionManager, final TileService tileService,
                    final ItemManager itemManager, final BankService bankService, final PacketInterceptor packetInterceptor,
-                   final MouseHookInterceptor mouseHookInterceptor) {
+                   final MouseHookInterceptor mouseHookInterceptor, final DoActionInterceptor doActionInterceptor) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
@@ -85,6 +87,7 @@ public class Context {
         this.itemManager = itemManager;
         this.packetInterceptor = packetInterceptor;
         this.mouseHookInterceptor = mouseHookInterceptor;
+        this.doActionInterceptor = doActionInterceptor;
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
@@ -141,6 +144,11 @@ public class Context {
                 mouseHookInterceptor::injectHook,
                 "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
         );
+
+        initializeInterceptor(resolvedConfiguration.isDoActionInterceptor(),
+                "do action interceptor",
+                doActionInterceptor::injectHook,
+                "Cannot hook doAction() method. This will not log parameters for menu action clicks.");
     }
 
 

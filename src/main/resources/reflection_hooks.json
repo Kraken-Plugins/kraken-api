@@ -15,5 +15,8 @@
     "jxLegacyValueFieldName": "aq",
     "jxLegacyValueClassName": "zw",
     "mouseHookClassName": "client",
-    "mouseHookMethodName": "rb"
+    "mouseHookMethodName": "rb",
+    "doActionClassName": "ox",
+    "doActionMethodName": "ek",
+    "doActionGarbageValue": -1948098697
 }

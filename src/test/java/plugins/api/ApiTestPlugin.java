@@ -235,6 +235,7 @@ public class ApiTestPlugin extends Plugin {
                 InterceptorBuilder.builder()
                         .withPacketInterceptor(false)
                         .withMouseHookInterceptor(true)
+                        .withDoActionInterceptor(true)
                         .build()
         );
 
