@@ -9,12 +9,9 @@
 | [com.kraken.api](kraken-api/com.kraken.api/index.md) |
 | [com.kraken.api.core](kraken-api/com.kraken.api.core/index.md) |
 | [com.kraken.api.core.interceptor](kraken-api/com.kraken.api.core.interceptor/index.md) |
-| [com.kraken.api.core.mapping](kraken-api/com.kraken.api.core.mapping/index.md) |
 | [com.kraken.api.core.packet](kraken-api/com.kraken.api.core.packet/index.md) |
 | [com.kraken.api.core.packet.entity](kraken-api/com.kraken.api.core.packet.entity/index.md) |
 | [com.kraken.api.core.packet.model](kraken-api/com.kraken.api.core.packet.model/index.md) |
-| [com.kraken.api.core.packet.v2](kraken-api/com.kraken.api.core.packet.v2/index.md) |
-| [com.kraken.api.core.packet.v2.model](kraken-api/com.kraken.api.core.packet.v2.model/index.md) |
 | [com.kraken.api.core.script](kraken-api/com.kraken.api.core.script/index.md) |
 | [com.kraken.api.core.script.breakhandler](kraken-api/com.kraken.api.core.script.breakhandler/index.md) |
 | [com.kraken.api.input](kraken-api/com.kraken.api.input/index.md) |
