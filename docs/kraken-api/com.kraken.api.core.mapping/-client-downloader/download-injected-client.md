@@ -3,7 +3,7 @@
 # downloadInjectedClient
 
 [Kraken API]\
-open fun [downloadInjectedClient](download-injected-client.md)(version: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html), destination: [Path](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/file/Path.html))
+open fun [downloadInjectedClient](download-injected-client.md)(version: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html), destination: [Path](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/file/Path.html)): [Path](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/file/Path.html)
 
 Downloads the injected client JAR file for a specified version to the given destination path. 
 

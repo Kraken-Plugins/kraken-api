@@ -115,8 +115,7 @@ public class PacketClient {
             bufferField.setAccessible(false);
         } catch (IllegalAccessException | NoSuchFieldException e) {
             log.error("Failed to get packet buffer from node: ", e);
-            e.printStackTrace();
-            return; // Can't proceed without the buffer
+            return;
         }
 
         // Map the PacketType to the expected parameter order.
