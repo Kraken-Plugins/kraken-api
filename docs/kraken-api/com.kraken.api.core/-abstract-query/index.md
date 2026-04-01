@@ -20,17 +20,17 @@ Kraken API
 
 | |
 |---|
-| [WidgetQuery](../../com.kraken.api.query.widget/-widget-query/index.md) |
-| [WorldQuery](../../com.kraken.api.query.world/-world-query/index.md) |
-| [DepositBoxQuery](../../com.kraken.api.query.container.bank/-deposit-box-query/index.md) |
-| [BankQuery](../../com.kraken.api.query.container.bank/-bank-query/index.md) |
 | [BankInventoryQuery](../../com.kraken.api.query.container.bank/-bank-inventory-query/index.md) |
+| [BankQuery](../../com.kraken.api.query.container.bank/-bank-query/index.md) |
+| [DepositBoxQuery](../../com.kraken.api.query.container.bank/-deposit-box-query/index.md) |
 | [InventoryQuery](../../com.kraken.api.query.container.inventory/-inventory-query/index.md) |
-| [GroundObjectQuery](../../com.kraken.api.query.groundobject/-ground-object-query/index.md) |
-| [GameObjectQuery](../../com.kraken.api.query.gameobject/-game-object-query/index.md) |
 | [EquipmentQuery](../../com.kraken.api.query.equipment/-equipment-query/index.md) |
+| [GameObjectQuery](../../com.kraken.api.query.gameobject/-game-object-query/index.md) |
+| [GroundObjectQuery](../../com.kraken.api.query.groundobject/-ground-object-query/index.md) |
 | [NpcQuery](../../com.kraken.api.query.npc/-npc-query/index.md) |
 | [PlayerQuery](../../com.kraken.api.query.player/-player-query/index.md) |
+| [WidgetQuery](../../com.kraken.api.query.widget/-widget-query/index.md) |
+| [WorldQuery](../../com.kraken.api.query.world/-world-query/index.md) |
 
 ## Constructors
 
@@ -49,6 +49,8 @@ Kraken API
 | [except](except.md) | [Kraken API]<br>open fun [except](except.md)(predicate: [Predicate](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/function/Predicate.html)&lt;[T](index.md)&gt;): [Q](index.md)<br>Filters out elements that match the given predicate. |
 | [filter](filter.md) | [Kraken API]<br>open fun [filter](filter.md)(predicate: [Predicate](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/function/Predicate.html)&lt;[T](index.md)&gt;): [Q](index.md)<br>Applies a predicate to the stream to filter elements of the stream. |
 | [first](first.md) | [Kraken API]<br>open fun [first](first.md)(): [T](index.md)<br>Returns the first type of object being queried (e.g., NpcEntity, WidgetEntity) from the stream. |
+| [interact](interact.md) | [Kraken API]<br>open fun [interact](interact.md)(action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)<br>Interacts with the first matching entity using the given action. |
+| [interactRandom](interact-random.md) | [Kraken API]<br>open fun [interactRandom](interact-random.md)(action: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)<br>Interacts with a random matching entity. |
 | [isEmpty](is-empty.md) | [Kraken API]<br>open fun [isEmpty](is-empty.md)(): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)<br>Checks if the stream contains no elements. |
 | [list](list.md) | [Kraken API]<br>open fun [list](list.md)(): [List](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/List.html)&lt;[T](index.md)&gt;<br>Returns the stream of entities as a list of objects |
 | [map](map.md) | [Kraken API]<br>open fun [map](map.md)(): [Map](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)&lt;[Integer](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Integer.html), [T](index.md)&gt;<br>Collects the stream of entities into a map keyed by the id of the element in the map. |

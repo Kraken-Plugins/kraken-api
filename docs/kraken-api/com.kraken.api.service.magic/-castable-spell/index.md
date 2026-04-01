@@ -8,10 +8,10 @@ interface [CastableSpell](index.md)
 
 | |
 |---|
-| [Standard](../../com.kraken.api.service.magic.spellbook/-standard/index.md) |
-| [Lunar](../../com.kraken.api.service.magic.spellbook/-lunar/index.md) |
 | [Ancient](../../com.kraken.api.service.magic.spellbook/-ancient/index.md) |
 | [Arceuus](../../com.kraken.api.service.magic.spellbook/-arceuus/index.md) |
+| [Lunar](../../com.kraken.api.service.magic.spellbook/-lunar/index.md) |
+| [Standard](../../com.kraken.api.service.magic.spellbook/-standard/index.md) |
 
 ## Functions
 

@@ -209,6 +209,8 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      * Interacts with the first matching entity using the given action.
      * Returns false if no entity is found or the interaction fails.
      * Usage: ctx.gameObjects().nameContains("Bank").interact("Open");
+     * @param action The action string to perform the interaction i.e. "Open", "Take", "Bank", etc...
+     * @return Boolean true if the interaction was successful and false otherwise.
      */
     public boolean interact(String action) {
         T entity = first();
@@ -219,6 +221,8 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      * Interacts with a random matching entity.
      * Returns false if no entity is found or the interaction fails.
      * Usage: ctx.npcs().withName("Cow").interactRandom("Attack");
+     * @param action The action string to perform the interaction i.e. "Open", "Take", "Bank", etc...
+     * @return Boolean true if the interaction was successful and false otherwise.
      */
     public boolean interactRandom(String action) {
         T entity = random();

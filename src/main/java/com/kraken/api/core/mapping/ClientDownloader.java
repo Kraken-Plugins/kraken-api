@@ -35,6 +35,7 @@ public class ClientDownloader {
      * @param destination the {@link Path} where the injected client JAR will be downloaded. The path
      *                    must include the file name for the target file, and parent directories will
      *                    be created if they do not exist.
+     * @return Path the path to the written jar file on disk
      */
     public static Path downloadInjectedClient(String version, Path destination) {
         if(Files.exists(destination)) return destination;

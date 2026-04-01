@@ -12,7 +12,7 @@ import java.util.Map;
 @Slf4j
 public class ClientUpdater {
 
-    private static final String CLIENT_VERSION = "1.12.22.1";
+    private static final String CLIENT_VERSION = "1.12.23";
 
     public static void main(String[] args) throws IOException {
         Path input = Paths.get(System.getProperty("user.home"), "injected-client-" + CLIENT_VERSION + ".jar");
