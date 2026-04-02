@@ -1,5 +1,7 @@
 package com.kraken.api.core.packet;
 
+import com.kraken.api.core.packet.model.BufferOperation;
+
 import java.lang.reflect.Field;
 
 /**
@@ -7,9 +9,6 @@ import java.lang.reflect.Field;
  * obfuscated buffer objects (e.g., PacketBuffer). This class provides a stable
  * API to get/set the buffer's underlying byte array and its current offset,
  * and to write data using the client's specific (and obfuscated) methods.
- * <p>
- * This class is a copy (with comments) of the BufferMethods from the EthanVann PacketUtils class found here:
- * https://github.com/Ethan-Vann/PacketUtils/blob/master/src/main/java/com/example/Packets/BufferMethods.java
  */
 public class BufferUtils {
 
@@ -86,42 +85,54 @@ public class BufferUtils {
     }
 
     /**
-     * Writes a single integer value to the buffer using a specified "write description".
-     * This method handles the client's obfuscated write types (add, subtract, etc.)
-     * and the complex index calculation.
+     * Writes a single typed buffer operation to the packet buffer.
      *
-     * @param writeDescription A string (e.g., "a128", "s", "v") defining the write operation.
-     * @param value            The integer value to write.
-     * @param bufferInstance   The obfuscated buffer object.
+     * @param operation      The operation to apply.
+     * @param value          The source value for the operation.
+     * @param bufferInstance The obfuscated buffer object.
      */
-    public static void writeValue(String writeDescription, int value, Object bufferInstance) {
-        // Parse magnitude from description (e.g., "s128" -> 128). Default to 0 if 'v' (variable).
-        int writeTypeMagnitude = writeDescription.contains("v") ? 0 : Integer.parseInt(writeDescription.substring(1).trim());
+    public static void writeOperation(BufferOperation operation, Object value, Object bufferInstance) {
+        switch (operation.getType()) {
+            case STRING_CP1252_NULL_TERMINATED:
+                writeStringCp1252NullTerminated((String) value, bufferInstance);
+                return;
+            case STRING_CP1252_NULL_CIRCUMFIXED:
+                writeStringCp1252NullCircumfixed((String) value, bufferInstance);
+                return;
+            case RAW:
+            case ADD:
+            case SUBTRACT:
+            case RIGHT_SHIFT:
+                writeNumericOperation(operation, ((Number) value).intValue(), bufferInstance);
+                return;
+            default:
+                throw new IllegalArgumentException("Unsupported buffer operation: " + operation);
+        }
+    }
 
-        // Get the buffer's current data
+    private static void writeNumericOperation(BufferOperation operation, int value, Object bufferInstance) {
         byte[] arr = getArray(bufferInstance);
 
-        // Calculate the next logical offset and update the buffer
         int index = nextIndex(getOffset(bufferInstance));
         setOffset(bufferInstance, index);
 
-        // Calculate the *actual* byte array index using the obfuscated multiplier.
         index = index * Integer.parseInt(ObfuscatedNames.indexMultiplier) - 1;
 
-        // Perform the write operation based on the first character of the description
-        switch (writeDescription.charAt(0)) {
-            case 's': // Subtract
-                setArray(bufferInstance, writeSub(writeTypeMagnitude, value, arr, index));
+        switch (operation.getType()) {
+            case SUBTRACT:
+                setArray(bufferInstance, writeSub(operation.requireOperand(), value, arr, index));
                 break;
-            case 'a': // Add
-                setArray(bufferInstance, writeAdd(writeTypeMagnitude, value, arr, index));
+            case ADD:
+                setArray(bufferInstance, writeAdd(operation.requireOperand(), value, arr, index));
                 break;
-            case 'r': // Right-shift
-                setArray(bufferInstance, writeRightShifted(writeTypeMagnitude, value, arr, index));
+            case RIGHT_SHIFT:
+                setArray(bufferInstance, writeRightShifted(operation.requireOperand(), value, arr, index));
                 break;
-            case 'v': // Variable / Raw
+            case RAW:
                 setArray(bufferInstance, writeVar(value, arr, index));
                 break;
+            default:
+                throw new IllegalArgumentException("Unsupported numeric buffer operation: " + operation);
         }
     }
 

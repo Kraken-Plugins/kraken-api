@@ -2,8 +2,8 @@ package com.kraken.api.core.interceptor;
 
 import com.kraken.api.core.packet.ObfuscatedNames;
 import com.kraken.api.core.packet.PacketBufferReader;
-import com.kraken.api.core.packet.model.PacketData;
-import com.kraken.api.core.packet.model.PacketSent;
+import com.kraken.api.core.interceptor.model.PacketData;
+import com.kraken.api.core.interceptor.model.PacketSent;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;

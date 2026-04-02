@@ -1,13 +1,15 @@
 package com.kraken.api.core.packet.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.*;
 
 @Getter
+@ToString
+@NoArgsConstructor
+@EqualsAndHashCode
 @AllArgsConstructor
 public class PacketDefinition {
-    private final String name;
-    private final String[] writeData;
-    private final String[][] writeMethods;
-    private final PacketType type;
+    private String packetName;
+    private String obfuscatedName;
+    private PacketWrite[] writes;
+    private PacketType type;
 }

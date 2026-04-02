@@ -1,4 +1,4 @@
-package com.kraken.api.core.packet.model;
+package com.kraken.api.core.interceptor.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
