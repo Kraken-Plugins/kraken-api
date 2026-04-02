@@ -84,22 +84,22 @@ public class DoActionInterceptor {
     public static class DoActionAdvice {
         @Advice.OnMethodEnter
         public static void onEnter(
-                @Advice.Argument(0) int p0,
-                @Advice.Argument(1) int p1,
+                @Advice.Argument(0) int param0,
+                @Advice.Argument(1) int param1,
                 @Advice.Argument(2) int opcode,
                 @Advice.Argument(3) int id,
-                @Advice.Argument(4) int p4,
-                @Advice.Argument(5) int p5,
+                @Advice.Argument(4) int itemId,
+                @Advice.Argument(5) int worldView,
                 @Advice.Argument(6) String option,
                 @Advice.Argument(7) String target,
-                @Advice.Argument(8) int p8,
-                @Advice.Argument(9) int p9,
-                @Advice.Argument(10) int p10) {
+                @Advice.Argument(8) int mouseX,
+                @Advice.Argument(9) int mouseY,
+                @Advice.Argument(10) int garbageValue) {
 
             // Using System.out is safer inside Advice as SLF4J might not be
             // accessible depending on the target class's classloader hierarchy.
-            System.out.printf("[MAPPER] doAction -> Op: %s | Target: %s | Opcode: %d | ID: %d | P0: %d | P1: %d | P4: %d | P5: %d | P8: %d | P9: %d | P10: %d\n",
-                    option, target, opcode, id, p0, p1, p4, p5, p8, p9, p10);
+            System.out.printf("[MAPPER] doAction -> Op: %s | Target: %s | Opcode: %d | ID: %d | Param0: %d | Param1: %d | P4: %d | WorldView: %d | MouseX: %d | MouseY: %d | Garbage: %d\n",
+                    option, target, opcode, id, param0, param1, itemId, worldView, mouseX, mouseY, garbageValue);
         }
     }
 }
