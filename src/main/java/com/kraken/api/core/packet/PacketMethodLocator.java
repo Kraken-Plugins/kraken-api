@@ -187,11 +187,14 @@ public class PacketMethodLocator {
 
         if (!usingClient) {
             String[] parts = packetMethodName.split("\\.");
+
+            // will be something like ay.ae
             String className = parts[0];
             String methodName = parts[1];
-            Class<?> addNodeClass = client.getClass().getClassLoader().loadClass(className);
+            Class<?> addNodeClass = client.getClass().getClassLoader().loadClass(className); // load ay
 
             for (Method method : addNodeClass.getDeclaredMethods()) {
+                // if ae == packet writer class name we found the add node method
                 if (method.getName().equals(methodName) && method.getParameterCount() > 0 && method.getParameterTypes().length != 0 && method.getParameterTypes()[0].getSimpleName().equals(ObfuscatedNames.packetWriterClassName)) {
                     addNodeMethod = method;
                     break;
