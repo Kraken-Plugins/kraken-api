@@ -98,8 +98,9 @@ public class DoActionInterceptor {
 
             // Using System.out is safer inside Advice as SLF4J might not be
             // accessible depending on the target class's classloader hierarchy.
-            System.out.printf("[MAPPER] doAction -> Op: %s | Target: %s | Opcode: %d | ID: %d | Param0: %d | Param1: %d | P4: %d | WorldView: %d | MouseX: %d | MouseY: %d | Garbage: %d\n",
-                    option, target, opcode, id, param0, param1, itemId, worldView, mouseX, mouseY, garbageValue);
+            // Commenting this out as it's mostly just for debugging. Don't want to spam up client logs with clicks
+//            System.out.printf("[MAPPER] doAction -> Op: %s | Target: %s | Opcode: %d | ID: %d | Param0: %d | Param1: %d | P4: %d | WorldView: %d | MouseX: %d | MouseY: %d | Garbage: %d\n",
+//                    option, target, opcode, id, param0, param1, itemId, worldView, mouseX, mouseY, garbageValue);
         }
     }
 }
