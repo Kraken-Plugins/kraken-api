@@ -1,4 +1,4 @@
-package com.kraken.api.core.packet.model;
+package com.kraken.api.core.interceptor.model;
 
 import com.kraken.api.core.packet.PacketBufferReader;
 import lombok.Data;

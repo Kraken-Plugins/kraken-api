@@ -1,7 +1,9 @@
 package com.kraken.api.core.packet;
 
+import com.kraken.api.core.packet.model.BufferOperation;
 import com.kraken.api.core.packet.model.PacketDefinition;
 import com.kraken.api.core.packet.model.PacketMethods;
+import com.kraken.api.core.packet.model.PacketWrite;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +15,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@code PacketClient} is an instance-based RuneLite client packet sending utility which uses reflection to
@@ -68,7 +72,7 @@ public class PacketClient {
         Object isaac = getIsaacObject();
 
         if (getPacketBufferNode == null || clientPacket == null || isaac == null) {
-            log.error("Failed to get critical reflection components for sending packet: {}", def.getName());
+            log.error("Failed to get critical reflection components for sending packet: {}", def.getObfuscatedName());
             return;
         }
 
@@ -78,9 +82,9 @@ public class PacketClient {
         long garbageValue = Math.abs(Long.parseLong(ObfuscatedNames.getPacketBufferNodeGarbageValue));
 
         try {
-            Field packetField = fetchPacketField(def.getName());
+            Field packetField = fetchPacketField(def.getObfuscatedName());
             if (packetField == null) {
-                log.error("Could not find packet field for: {}", def.getName());
+                log.error("Could not find packet field for: {}", def.getObfuscatedName());
                 getPacketBufferNode.setAccessible(false);
                 return;
             }
@@ -102,7 +106,7 @@ public class PacketClient {
         }
 
         if (packetBufferNode == null) {
-            log.error("PacketBufferNode was null after creation attempt for packet: {}", def.getName());
+            log.error("PacketBufferNode was null after creation attempt for packet: {}", def.getObfuscatedName());
             return;
         }
 
@@ -125,24 +129,21 @@ public class PacketClient {
 
         // If the packet type is recognized, write the data into the buffer.
         if (params != null) {
-            for (int i = 0; i < def.getWriteData().length; i++) {
-                // Find the index of the data element (e.g., "widgetId") in the params list
-                int index = params.indexOf(def.getWriteData()[i]);
-                // Get the corresponding value from the varargs
-                Object writeValue = objects[index];
+            Map<String, Integer> paramIndices = new HashMap<>();
+            for (int i = 0; i < params.size(); i++) {
+                paramIndices.put(params.get(i), i);
+            }
 
-                // Write the value to the buffer using the specified method(s) (e.g., "strn", "writeInt")
-                for (String s : def.getWriteMethods()[i]) {
-                    if (s.equalsIgnoreCase("strn")) {
-                        BufferUtils.writeStringCp1252NullTerminated((String) writeValue, buffer);
-                        continue;
-                    }
-                    if (s.equalsIgnoreCase("strc")) {
-                        BufferUtils.writeStringCp1252NullCircumfixed((String) writeValue, buffer);
-                        continue;
-                    }
-                    // Assumes all other write methods take an Integer
-                    BufferUtils.writeValue(s, (Integer) writeValue, buffer);
+            for (PacketWrite write : def.getWrites()) {
+                Integer index = paramIndices.get(write.getParam());
+                if (index == null || index >= objects.length) {
+                    log.error("Missing packet value for {}.{} param {}", def.getPacketName(), def.getObfuscatedName(), write.getParam());
+                    return;
+                }
+
+                Object writeValue = objects[index];
+                for (BufferOperation operation : write.getOperations()) {
+                    BufferUtils.writeOperation(operation, writeValue, buffer);
                 }
             }
 
@@ -175,7 +176,7 @@ public class PacketClient {
     /**
      * Queues the completed {@code PacketBufferNode} to the client's {@code PacketWriter}.
      * This method handles two different ways the client might queue packets, determined
-     * by the analysis from {@link PacketMethodLocator}.
+     * by the analysis from
      *
      * @param packetWriter     The client's PacketWriter instance.
      * @param packetBufferNode The fully constructed packet to be sent.
@@ -228,7 +229,6 @@ public class PacketClient {
             }
         } catch (Exception e) {
             log.error("Failed during addNode packet queueing: ", e);
-            e.printStackTrace();
         }
     }
 

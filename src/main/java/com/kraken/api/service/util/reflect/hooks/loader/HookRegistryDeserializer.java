@@ -1,6 +1,7 @@
 package com.kraken.api.service.util.reflect.hooks.loader;
 
 import com.google.gson.*;
+import com.kraken.api.service.util.reflect.hooks.DoActionHooks;
 import com.kraken.api.service.util.reflect.hooks.HookRegistry;
 import com.kraken.api.service.util.reflect.hooks.LoginHooks;
 import com.kraken.api.service.util.reflect.hooks.MouseHooks;
@@ -22,7 +23,8 @@ public class HookRegistryDeserializer implements JsonDeserializer<HookRegistry> 
 
         return new HookRegistry(
                 parseLoginHooks(root),
-                parseMouseHooks(root)
+                parseMouseHooks(root),
+                parseDoActionHooks(root)
         );
     }
 
@@ -39,6 +41,16 @@ public class HookRegistryDeserializer implements JsonDeserializer<HookRegistry> 
                 new FieldHook(getStr(root, "jxAccountCheckFieldName"), getStr(root, "jxAccountCheckClassName")),
                 new FieldHook(getStr(root, "jxJagexValueFieldName"), getStr(root, "jxJagexValueClassName")),
                 new FieldHook(getStr(root, "jxLegacyValueFieldName"), getStr(root, "jxLegacyValueClassName"))
+        );
+    }
+
+    private DoActionHooks parseDoActionHooks(JsonObject root) {
+        return new DoActionHooks(
+                new MethodHook(
+                        getStr(root, "doActionMethodName"),
+                        getStr(root, "doActionClassName"),
+                        getIntOrNull(root, "doActionGarbageValue")
+                )
         );
     }
 

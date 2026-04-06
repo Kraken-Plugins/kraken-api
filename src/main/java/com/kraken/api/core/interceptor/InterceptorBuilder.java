@@ -15,4 +15,7 @@ public class InterceptorBuilder {
 
     @Builder.Default
     private final boolean mouseHookInterceptor = true;
+
+    @Builder.Default
+    private final boolean doActionInterceptor = true;
 }

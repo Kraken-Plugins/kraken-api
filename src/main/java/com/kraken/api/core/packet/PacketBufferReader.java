@@ -1,6 +1,6 @@
 package com.kraken.api.core.packet;
 
-import com.kraken.api.core.packet.model.PacketData;
+import com.kraken.api.core.interceptor.model.PacketData;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
