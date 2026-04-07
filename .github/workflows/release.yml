@@ -123,6 +123,12 @@ jobs:
           echo "Uploading reflection_hooks.json to MinIO..."
           mc cp src/main/resources/reflection_hooks.json s3/kraken-bootstrap-static/reflection_hooks.json
 
+      - name: Sync Packets
+        run: |
+          echo "Uploading packets.json to MinIO..."
+          mc cp src/main/resources/packets.json s3/kraken-bootstrap-static/packets.json
+
+      # TODO With Kraken Updater we shouldn't need this anymore
       - name: Sync VitaLite mappings
         run: |
           echo "Downloading latest mappings.json from VitaLite..."
@@ -130,7 +136,7 @@ jobs:
             -o mappings.json
 
           echo "Uploading mappings.json to MinIO..."
-          mc cp mappings.json s3/kraken-bootstrap-static/mappings.json
+          mc cp mappings.json s3/kraken-bootstrap-static/mappings-vitalite.json
 
       - name: Sync VitaLite Packets
         run: |
@@ -139,7 +145,7 @@ jobs:
             -o packets.json
 
           echo "Uploading packets.json to MinIO..."
-          mc cp packets.json s3/kraken-bootstrap-static/packets.json
+          mc cp packets.json s3/kraken-bootstrap-static/packets-vitalite.json
 
       - name: Publish to GitHub Packages
         run: |

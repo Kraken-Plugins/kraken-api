@@ -9,5 +9,6 @@ import java.util.Map;
 @AllArgsConstructor
 public class MappedPackets {
     private String clientVersion;
+    private PacketMetadata reflectionHooks;
     private Map<String, PacketDefinition> packets;
 }

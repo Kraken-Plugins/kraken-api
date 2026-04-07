@@ -138,17 +138,18 @@ public class Context {
                 "Subscriptions to onPacketSent within the EventBus will fail."
         );
 
-        initializeInterceptor(
-                resolvedConfiguration.isMouseHookInterceptor(),
-                "mouse hook interceptor",
-                mouseHookInterceptor::injectHook,
-                "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
-        );
-
-        initializeInterceptor(resolvedConfiguration.isDoActionInterceptor(),
-                "do action interceptor",
-                doActionInterceptor::injectHook,
-                "Cannot hook doAction() method. This will not log parameters for menu action clicks.");
+        // TODO Temporarily removing these interceptors since they have been causing instability (specifically mouse one)
+//        initializeInterceptor(
+//                resolvedConfiguration.isMouseHookInterceptor(),
+//                "mouse hook interceptor",
+//                mouseHookInterceptor::injectHook,
+//                "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
+//        );
+//
+//        initializeInterceptor(resolvedConfiguration.isDoActionInterceptor(),
+//                "do action interceptor",
+//                doActionInterceptor::injectHook,
+//                "Cannot hook doAction() method. This will not log parameters for menu action clicks.");
     }
 
 
