@@ -84,6 +84,8 @@ public class MouseHookInterceptor {
     public static class MouseHookAdvice {
         @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
         public static boolean onEnter() {
+            // TODO This needs to be more targeted at a specific call in a specific method given the method name.
+            // we shouldn't be just patching out the whole thing as it can cause unintended side effects within the client.
             return true;
         }
     }
