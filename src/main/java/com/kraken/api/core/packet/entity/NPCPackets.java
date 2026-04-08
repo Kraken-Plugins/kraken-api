@@ -3,7 +3,7 @@ package com.kraken.api.core.packet.entity;
 import com.google.inject.Provider;
 import com.kraken.api.Context;
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.NPC;
@@ -20,14 +20,14 @@ import java.util.stream.Collectors;
  * <p>
  * This class handles various forms of NPC interaction, including standard action clicks
  * (e.g., Talk-to, Attack) and "use-with" actions (e.g., using an item on an NPC).
- * It uses a {@link PacketDefFactory} to determine the correct packet type and a
+ * It uses a {@link PacketFactory} to determine the correct packet type and a
  * {@link PacketClient} to send the raw data.
  */
 @Slf4j
 public class NPCPackets {
 
     @Inject
-    private PacketDefFactory packetDefFactory;
+    private PacketFactory packetFactory;
 
     @Inject
     private Provider<PacketClient> packetClientProvider;
@@ -49,7 +49,7 @@ public class NPCPackets {
     public void queueNPCAction(int actionFieldNo, int npcIndex, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
         int subop = 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpNpc(actionFieldNo), npcIndex, ctrl, subop);
+        packetClientProvider.get().sendPacket(packetFactory.getOpNpc(actionFieldNo), npcIndex, ctrl, subop);
     }
 
     /**
@@ -115,7 +115,7 @@ public class NPCPackets {
      */
     public void queueWidgetOnNPC(int npcIndex, int sourceItemId, int sourceSlot, int sourceWidgetId, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpNpcT(), npcIndex, sourceItemId, sourceSlot, sourceWidgetId, ctrl);
+        packetClientProvider.get().sendPacket(packetFactory.getOpNpcT(), npcIndex, sourceItemId, sourceSlot, sourceWidgetId, ctrl);
     }
 
     /**

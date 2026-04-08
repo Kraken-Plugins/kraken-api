@@ -1,7 +1,7 @@
 package com.kraken.api.core.packet.entity;
 
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import lombok.SneakyThrows;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
@@ -27,7 +27,7 @@ public class PlayerPackets {
     private Provider<PacketClient> packetClientProvider;
 
     @Inject
-    private PacketDefFactory packetDefFactory;
+    private PacketFactory packetFactory;
 
     @Inject
     private Client client;
@@ -45,7 +45,7 @@ public class PlayerPackets {
     @SneakyThrows
     public void queuePlayerAction(int actionFieldNo, int playerIndex, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpPlayer(actionFieldNo), playerIndex, ctrl);
+        packetClientProvider.get().sendPacket(packetFactory.getOpPlayer(actionFieldNo), playerIndex, ctrl);
     }
 
     /**
@@ -102,7 +102,7 @@ public class PlayerPackets {
      */
     public void queueWidgetOnPlayer(int playerIndex, int sourceItemId, int sourceSlot, int sourceWidgetId, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpPlayerT(), playerIndex, sourceItemId, sourceSlot, sourceWidgetId, ctrl);
+        packetClientProvider.get().sendPacket(packetFactory.getOpPlayerT(), playerIndex, sourceItemId, sourceSlot, sourceWidgetId, ctrl);
     }
 
     /**

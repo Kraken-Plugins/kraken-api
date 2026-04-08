@@ -2,10 +2,8 @@ package com.kraken.api.core.packet.model;
 
 import lombok.*;
 
-@Getter
-@ToString
+@Data
 @NoArgsConstructor
-@EqualsAndHashCode
 @AllArgsConstructor
 public class PacketWrite {
     private String param;

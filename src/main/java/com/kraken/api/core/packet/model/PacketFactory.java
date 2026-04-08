@@ -2,24 +2,39 @@ package com.kraken.api.core.packet.model;
 
 import com.google.gson.Gson;
 import com.google.inject.Singleton;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * <p>A factory class for creating and managing {@link PacketDefinition} instances for various packet types and actions.
+ * This class initializes packet definitions by fetching and parsing a JSON configuration file from a remote URL.</p>
+ */
+@Slf4j
 @Singleton
-public class PacketDefFactory {
+public class PacketFactory {
 
-    private final Map<String, PacketDefinition> packets;
+    @Getter
+    private static Map<String, PacketDefinition> packets = new HashMap<>();
+
+    @Getter
+    private static PacketMetadata packetMetadata = null;
+
+    @Getter
+    private static String clientVersion = "";
+
     private static final String PACKETS_URL = "https://minio.kraken-plugins.com/kraken-bootstrap-static/packets.json";
 
-    public PacketDefFactory() {
+    static {
         try {
             HttpURLConnection connection = getHttpURLConnection();
-
             try (InputStreamReader reader = new InputStreamReader(connection.getInputStream())) {
                 Gson gson = new Gson();
                 MappedPackets mappedPackets = gson.fromJson(reader, MappedPackets.class);
@@ -28,11 +43,13 @@ public class PacketDefFactory {
                     throw new IllegalStateException("Parsed MappedPackets or its packet map was null.");
                 }
 
-                this.packets = mappedPackets.getPackets();
+                packets = mappedPackets.getPackets();
+                packetMetadata = mappedPackets.getReflectionHooks();
+                clientVersion = mappedPackets.getClientVersion();
             }
 
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize PacketDefFactory from remote JSON", e);
+            log.error("Failed to initialize PacketFactory from remote JSON", e);
         }
     }
 

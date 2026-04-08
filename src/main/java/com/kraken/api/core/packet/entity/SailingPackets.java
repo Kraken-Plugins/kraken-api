@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import net.runelite.api.Client;
 
 @Singleton
@@ -17,7 +17,7 @@ public class SailingPackets {
     private Provider<PacketClient> packetSenderProvider;
 
     @Inject
-    private PacketDefFactory packetDefFactory;
+    private PacketFactory packetFactory;
 
 
     /**
@@ -55,6 +55,6 @@ public class SailingPackets {
         if(direction < 0 || direction > 15) {
             throw new IllegalArgumentException("Invalid direction value: " + direction + ", expected 0-15");
         }
-        packetSenderProvider.get().sendPacket(packetDefFactory.getSetHeading(), direction);
+        packetSenderProvider.get().sendPacket(packetFactory.getSetHeading(), direction);
     }
 }

@@ -2,7 +2,7 @@ package com.kraken.api.core.packet.entity;
 
 
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import lombok.SneakyThrows;
 import net.runelite.api.TileItem;
 import net.runelite.api.coords.WorldPoint;
@@ -25,7 +25,7 @@ public class GroundItemPackets {
     private Provider<PacketClient> packetClientProvider;
 
     @Inject
-    private PacketDefFactory packetDefFactory;
+    private PacketFactory packetFactory;
 
     /**
      * Queues the low-level packet to perform a generic action click on a ground item.
@@ -44,7 +44,7 @@ public class GroundItemPackets {
     public void queueGroundItemAction(int actionFieldNo, int objectId, int worldPointX, int worldPointY, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
         int subop = 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpObj(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
+        packetClientProvider.get().sendPacket(packetFactory.getOpObj(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
     }
 
     /**
@@ -63,7 +63,7 @@ public class GroundItemPackets {
      */
     public void queueWidgetOnGroundItem(int objectId, int worldPointX, int worldPointY, int sourceSlot, int sourceItemId, int sourceWidgetId, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpObjT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId,
+        packetClientProvider.get().sendPacket(packetFactory.getOpObjT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId,
                 sourceWidgetId, ctrl);
     }
 

@@ -1,7 +1,7 @@
 package com.kraken.api.core.packet.entity;
 
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import com.kraken.api.service.tile.TileService;
 import lombok.SneakyThrows;
 import net.runelite.api.*;
@@ -29,7 +29,7 @@ public class GameObjectPackets {
     private Provider<PacketClient> packetClientProvider;
 
     @Inject
-    private PacketDefFactory packetDefFactory;
+    private PacketFactory packetFactory;
 
     @Inject
     private TileService tileService;
@@ -53,7 +53,7 @@ public class GameObjectPackets {
     public void queueObjectAction(int actionFieldNo, int objectId, int worldPointX, int worldPointY, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
         int subop = 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpLoc(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
+        packetClientProvider.get().sendPacket(packetFactory.getOpLoc(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
     }
 
     /**
@@ -127,7 +127,7 @@ public class GameObjectPackets {
      */
     public void queueWidgetOnTileObject(int objectId, int worldPointX, int worldPointY, int sourceSlot, int sourceItemId, int sourceWidgetId, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetDefFactory.getOpLocT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId, sourceWidgetId, ctrl);
+        packetClientProvider.get().sendPacket(packetFactory.getOpLocT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId, sourceWidgetId, ctrl);
     }
 
     /**

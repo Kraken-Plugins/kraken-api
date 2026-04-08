@@ -137,6 +137,60 @@ public class BufferUtils {
     }
 
     /**
+     * Reads a single numeric value from the obfuscated buffer by reversing Jagex's
+     * mathematical mutations and index obfuscation.
+     *
+     * @param operation      The expected operation (from your static analysis).
+     * @param bufferInstance The obfuscated buffer object.
+     * @return The unscrambled integer value (or partial value for shifted bytes).
+     */
+    public static int readNumericOperation(BufferOperation operation, Object bufferInstance) {
+        byte[] arr = getArray(bufferInstance);
+
+        // 1. Progress the logical offset exactly like the write method
+        int offset = getOffset(bufferInstance);
+        offset = nextIndex(offset);
+        setOffset(bufferInstance, offset); // Save the advanced offset
+
+        // 2. Calculate the physical byte array index
+        int indexMultiplier = Integer.parseInt(ObfuscatedNames.indexMultiplier);
+        int physicalIndex = offset * indexMultiplier - 1;
+
+        // 3. Read the raw byte
+        byte rawByte = arr[physicalIndex];
+
+        // 4. Reverse the mutation
+        switch (operation.getType()) {
+            case SUBTRACT:
+                // Write was: subValue - value. Read is: subValue - rawByte
+                return (operation.requireOperand() - rawByte) & 0xFF;
+
+            case ADD:
+                // Write was: addValue + value. Read is: rawByte - addValue
+                return (rawByte - operation.requireOperand()) & 0xFF;
+
+            case RIGHT_SHIFT:
+                // Reconstructs larger integers. Shift the bits back to the left.
+                return (rawByte & 0xFF) << operation.requireOperand();
+
+            case RAW:
+                return rawByte & 0xFF;
+
+            default:
+                throw new IllegalArgumentException("Unsupported read operation: " + operation.getType());
+        }
+    }
+
+    public static int readInt(BufferOperation[] ops, Object bufferInstance) {
+        int reconstructedValue = 0;
+        for (BufferOperation op : ops) {
+            // Reads the byte, reverses the math, and shifts it back into position
+            reconstructedValue |= readNumericOperation(op, bufferInstance);
+        }
+        return reconstructedValue;
+    }
+
+    /**
      * Writes a string to the buffer, encoded in CP1252, followed by a
      * single null (0) byte terminator.
      *

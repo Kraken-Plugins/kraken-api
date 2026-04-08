@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.interceptor.InterceptorBuilder;
 import com.kraken.api.core.script.breakhandler.BreakConditions;
 import com.kraken.api.core.script.breakhandler.BreakManager;
 import com.kraken.api.core.script.breakhandler.BreakProfile;
@@ -231,13 +230,7 @@ public class ApiTestPlugin extends Plugin {
     @Override
     protected void startUp() {
         context.initializePackets();
-        context.initializeInterceptors(
-                InterceptorBuilder.builder()
-                        .withPacketInterceptor(false)
-                        .withMouseHookInterceptor(true)
-                        .withDoActionInterceptor(true)
-                        .build()
-        );
+        context.initializeInterceptors();
 
         exampleScript.start();
 

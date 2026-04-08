@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ItemComposition;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * This class abstracts the complexity of constructing and sending
  * packets related to widget (interface) interactions, such as clicking buttons.
  * It uses a {@link PacketClient} provider to send the low-level packets,
- * which are defined by the {@link PacketDefFactory}.
+ * which are defined by the {@link PacketFactory}.
  */
 @Slf4j
 @Singleton
@@ -31,7 +31,7 @@ public class WidgetPackets {
     private Provider<PacketClient> packetSenderProvider;
 
     @Inject
-    private PacketDefFactory packetDefFactory;
+    private PacketFactory packetFactory;
 
     /**
      * Queues a low-level widget action packet (IF_BUTTONX).
@@ -51,7 +51,7 @@ public class WidgetPackets {
         // Sends the IF_BUTTONX packet (generic widget action packet)
         // actionFieldNo & 65535 is a bitmask to ensure the value fits within an unsigned short,
         // which is how the client likely processes it.
-        packetSenderProvider.get().sendPacket(packetDefFactory.getIfButtonX(), widgetId, childId, itemId, actionFieldNo & 65535);
+        packetSenderProvider.get().sendPacket(packetFactory.getIfButtonX(), widgetId, childId, itemId, actionFieldNo & 65535);
     }
 
     /**
@@ -166,7 +166,7 @@ public class WidgetPackets {
         }
 
         packetSenderProvider.get()
-                .sendPacket(packetDefFactory.getIfSubOp(), widget.getId(), widget.getIndex(), widget.getItemId(), menuIndex, actionIndex);
+                .sendPacket(packetFactory.getIfSubOp(), widget.getId(), widget.getIndex(), widget.getItemId(), menuIndex, actionIndex);
     }
 
 
@@ -196,7 +196,7 @@ public class WidgetPackets {
      * @param destinationItemId The item ID within the destination slot.
      */
     public void queueWidgetOnWidget(int sourceWidgetId, int sourceSlot, int sourceItemId, int destinationWidgetId, int destinationSlot, int destinationItemId) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getIfButtonT(), sourceWidgetId, sourceSlot, sourceItemId, destinationWidgetId,
+        packetSenderProvider.get().sendPacket(packetFactory.getIfButtonT(), sourceWidgetId, sourceSlot, sourceItemId, destinationWidgetId,
                 destinationSlot, destinationItemId);
     }
 
@@ -210,7 +210,7 @@ public class WidgetPackets {
      * @param childId The ID of the child component that was clicked.
      */
     public void queueResumePause(int widgetId, int childId) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumePausebutton(), widgetId, childId);
+        packetSenderProvider.get().sendPacket(packetFactory.getResumePausebutton(), widgetId, childId);
     }
 
     /**
@@ -222,7 +222,7 @@ public class WidgetPackets {
      * @param packed The packed widget ID, which includes both group and child IDs.
      */
     public void queueResumePause(int packed) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumePausebutton(), packed, -1);
+        packetSenderProvider.get().sendPacket(packetFactory.getResumePausebutton(), packed, -1);
     }
 
     /**
@@ -232,7 +232,7 @@ public class WidgetPackets {
      * @param id The integer value entered by the player.
      */
     public void queueResumeCount(int id) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumeCountDialog(), id);
+        packetSenderProvider.get().sendPacket(packetFactory.getResumeCountDialog(), id);
     }
 
     /**
@@ -243,7 +243,7 @@ public class WidgetPackets {
      * @param value The numerical value associated with the dialog option.
      */
     public void queueResumeObj(int value) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumeObjDialog(), value);
+        packetSenderProvider.get().sendPacket(packetFactory.getResumeObjDialog(), value);
     }
 
     /**
@@ -255,7 +255,7 @@ public class WidgetPackets {
      * @param dest The destination widget/slot onto which the item is dropped.
      */
     public void queueDragAndDrop(Widget src, Widget dest) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getOpHeldd(), src.getId(), src.getIndex(),
+        packetSenderProvider.get().sendPacket(packetFactory.getOpHeldd(), src.getId(), src.getIndex(),
                 src.getItemId(), dest.getId(), dest.getIndex(), dest.getItemId());
     }
 
@@ -268,7 +268,7 @@ public class WidgetPackets {
      * @param name The string name entered by the player.
      */
     public void queueResumeName(String name) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumeNameDialog(), name.length() + 1, name);
+        packetSenderProvider.get().sendPacket(packetFactory.getResumeNameDialog(), name.length() + 1, name);
     }
 
     /**
@@ -280,6 +280,6 @@ public class WidgetPackets {
      * @param string The string input entered by the player.
      */
     public void queueResumeString(String string) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumeStringDialog(), string.length() + 1, string);
+        packetSenderProvider.get().sendPacket(packetFactory.getResumeStringDialog(), string.length() + 1, string);
     }
 }
