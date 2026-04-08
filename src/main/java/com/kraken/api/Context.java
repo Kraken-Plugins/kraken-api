@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Singleton;
 import com.kraken.api.core.interceptor.DoActionInterceptor;
+import com.kraken.api.core.packet.PacketMapper;
 import com.kraken.api.core.packet.PacketMethodLocator;
 import com.kraken.api.core.interceptor.MouseHookInterceptor;
 import com.kraken.api.core.interceptor.InterceptorBuilder;
@@ -77,7 +78,7 @@ public class Context {
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
                    final Injector injector, final InteractionManager interactionManager, final TileService tileService,
                    final ItemManager itemManager, final BankService bankService, final PacketInterceptor packetInterceptor,
-                   final MouseHookInterceptor mouseHookInterceptor, final DoActionInterceptor doActionInterceptor) {
+                   final MouseHookInterceptor mouseHookInterceptor, final DoActionInterceptor doActionInterceptor, PacketMapper mapper) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
@@ -91,6 +92,7 @@ public class Context {
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
+        eventBus.register(mapper);
     }
 
     /**

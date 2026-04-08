@@ -6,6 +6,5 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class PacketSent {
-    Object packetBuffer; // The OSRS client object encapsulating the packet data
-    PacketData packet; // The read packet byte array
+    EncodedPacket packet; // The encoded packet data including id, size, and payload byte array
 }

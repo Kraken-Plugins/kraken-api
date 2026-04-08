@@ -1,6 +1,7 @@
 package com.kraken.api.core.packet;
 
 import com.kraken.api.core.packet.model.BufferOperation;
+import com.kraken.api.core.packet.model.PacketFactory;
 
 import java.lang.reflect.Field;
 
@@ -20,7 +21,7 @@ public class BufferUtils {
      */
     public static void setOffset(Object bufferInstance, int offset) {
         try {
-            Field offsetField = bufferInstance.getClass().getField(ObfuscatedNames.bufferOffsetField);
+            Field offsetField = bufferInstance.getClass().getField(PacketFactory.getPacketMetadata().getBufferOffsetField());
             offsetField.setAccessible(true);
             offsetField.setInt(bufferInstance, offset);
             offsetField.setAccessible(false);
@@ -37,7 +38,7 @@ public class BufferUtils {
      */
     public static int getOffset(Object bufferInstance) {
         try {
-            Field offsetField = bufferInstance.getClass().getField(ObfuscatedNames.bufferOffsetField);
+            Field offsetField = bufferInstance.getClass().getField(PacketFactory.getPacketMetadata().getBufferOffsetField());
             offsetField.setAccessible(true);
             int offset = offsetField.getInt(bufferInstance); // Get the current value
             offsetField.setAccessible(false);
@@ -56,7 +57,7 @@ public class BufferUtils {
      */
     public static void setArray(Object bufferInstance, byte[] array) {
         try {
-            Field arrayField = bufferInstance.getClass().getField(ObfuscatedNames.bufferArrayField);
+            Field arrayField = bufferInstance.getClass().getField(PacketFactory.getPacketMetadata().getBufferArrayField());
             arrayField.setAccessible(true);
             arrayField.set(bufferInstance, array);
             arrayField.setAccessible(false);
@@ -73,7 +74,7 @@ public class BufferUtils {
      */
     public static byte[] getArray(Object bufferInstance) {
         try {
-            Field arrayField = bufferInstance.getClass().getField(ObfuscatedNames.bufferArrayField);
+            Field arrayField = bufferInstance.getClass().getField(PacketFactory.getPacketMetadata().getBufferArrayField());
             arrayField.setAccessible(true);
             byte[] array = (byte[]) arrayField.get(bufferInstance);
             arrayField.setAccessible(false);
@@ -201,9 +202,9 @@ public class BufferUtils {
         byte[] arr = getArray(bufferInstance);
 
         int offset = getOffset(bufferInstance);
-        int indexMultiplier = Integer.parseInt(ObfuscatedNames.indexMultiplier);
+        int indexMultiplier = Integer.parseInt(PacketFactory.getPacketMetadata().getIndexMultiplier());
         // The offset multiplier is also an obfuscated value, often a large negative number.
-        int offsetMultiplier = (int) Long.parseLong(ObfuscatedNames.offsetMultiplier);
+        int offsetMultiplier = (int) Long.parseLong(PacketFactory.getPacketMetadata().getOffsetMultiplier());
 
         // Calculate the real starting index in the byte array
         int realIndex = offset * indexMultiplier;
@@ -239,8 +240,8 @@ public class BufferUtils {
         byte[] arr = getArray(bufferInstance);
 
         int offset = getOffset(bufferInstance);
-        int indexMultiplier = Integer.parseInt(ObfuscatedNames.indexMultiplier);
-        int offsetMultiplier = (int) Long.parseLong(ObfuscatedNames.offsetMultiplier);
+        int indexMultiplier = Integer.parseInt(PacketFactory.getPacketMetadata().getIndexMultiplier());
+        int offsetMultiplier = (int) Long.parseLong(PacketFactory.getPacketMetadata().getOffsetMultiplier());
 
         // Advance offset and write the leading null byte
         offset += offsetMultiplier;
@@ -304,7 +305,7 @@ public class BufferUtils {
      * @return The next logical offset.
      */
     static public int nextIndex(int offset) {
-        offset += (int) Long.parseLong(ObfuscatedNames.offsetMultiplier);
+        offset += (int) Long.parseLong(PacketFactory.getPacketMetadata().getOffsetMultiplier());
         return offset;
     }
 
