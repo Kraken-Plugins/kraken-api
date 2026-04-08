@@ -27,7 +27,8 @@
     "packetBufferFieldName": "ai",
     "packetBufferNodeGarbageValue": "-46",
     "doActionClassName": "ox",
-    "doActionMethodName": "ek"
+    "doActionMethodName": "ek",
+    "doActionGarbageValue": "-1948098697"
   },
   "packets": {
     "OPLOCT": {
