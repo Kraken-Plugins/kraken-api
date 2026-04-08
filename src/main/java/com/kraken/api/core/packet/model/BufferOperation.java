@@ -50,5 +50,4 @@ public class BufferOperation {
         STRING_CP1252_NULL_TERMINATED,
         STRING_CP1252_NULL_CIRCUMFIXED
     }
-
 }
