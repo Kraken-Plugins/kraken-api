@@ -298,6 +298,7 @@ public class InteractionManager {
             Client client = ctx.getClient();
             MenuOption option = resolve(client, widget, action, client.getTopLevelWorldView().getId());
             if (option == null) {
+                log.info("Failed to resolve widget interaction: {}, action: {}", widget.getId(), action);
                 return null;
             }
 
@@ -390,6 +391,92 @@ public class InteractionManager {
             );
 
             return new ResolvedMenuAction(option, subActionName);
+        });
+    }
+
+    private ResolvedMenuAction resolveBankInteraction(BankItemWidget item, String action) {
+        if (action == null) return null;
+
+        Context ctx = ctxProvider.get();
+        return ctx.runOnClientThread(() -> {
+            Client client = ctx.getClient();
+
+            int identifier = -1;
+            MenuAction menuAction = MenuAction.CC_OP;
+
+            String[] actions = item.getActions();
+            if (actions == null || actions.length == 0) {
+                Widget parent = item.getParent();
+                if (parent != null) {
+                    actions = parent.getActions();
+                }
+            }
+
+            // Try to match the action string to the array
+            if (actions != null) {
+                for (int i = 0; i < actions.length; i++) {
+                    if (matchesAction(action, actions[i])) {
+                        identifier = i + 1; // CC_OP indices are 1-based
+                        break;
+                    }
+                }
+            }
+
+            // 3. Fallback: Hardcode standard OSRS bank indices if array lookup fails
+            if (identifier == -1) {
+                String sanitized = Text.sanitize(action).toLowerCase();
+                switch (sanitized) {
+                    case "withdraw-1":
+                        identifier = 2;
+                        break;
+                    case "withdraw-5":
+                        identifier = 3;
+                        break;
+                    case "withdraw-10":
+                        identifier = 4;
+                        break;
+                    case "withdraw-all":
+                        identifier = 5;
+                        break;
+                    case "withdraw-x":
+                        identifier = 6;
+                        break;
+                    case "withdraw-all-but-1":
+                        identifier = 7;
+                        break;
+                    case "examine":
+                        identifier = 8;
+                        break;
+                    default:
+                        // If it's a dynamic left-click quantity like "Withdraw-50" that isn't in the standard list,
+                        // it is the default left-click option (id = 1).
+                        identifier = 1;
+                        break;
+                }
+            }
+
+            // 4. Match the engine logs: Actions like Withdraw-X (id=6+) use CC_OP_LOW_PRIORITY
+            if (identifier >= 6) {
+                menuAction = MenuAction.CC_OP_LOW_PRIORITY;
+            }
+
+            // 5. Construct the target string WITH colors, exactly as the game engine logs it
+            String target = "";
+            if (item.getItemId() != -1) {
+                ItemComposition comp = client.getItemDefinition(item.getItemId());
+                target = "<col=ff9040>" + comp.getName() + "</col>";
+            }
+
+            MenuOption option = new MenuOption(
+                    menuAction,
+                    identifier,
+                    item.getIndex(),     // Param0: Slot in bank (e.g., 179)
+                    item.getId(),        // Param1: Packed container ID (786444)
+                    item.getItemId(),    // ItemId (e.g., 558)
+                    client.getTopLevelWorldView().getId()
+            );
+
+            return new ResolvedMenuAction(option, target);
         });
     }
 
@@ -519,13 +606,11 @@ public class InteractionManager {
         if(!ctxProvider.get().isPacketsLoaded()) return;
         Point pt = UIService.getClickbox(item);
 
-        log.info("BANK ITEM WIDGET INTERACTION!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        ResolvedMenuAction resolvedAction = resolveWidgetInteraction(item, action);
+        ResolvedMenuAction resolvedAction = resolveBankInteraction(item, action);
         if (resolvedAction != null) {
             mousePackets.queueClickPacket(pt.getX(), pt.getY());
             interact(pt, action, resolvedAction);
         }
-        // widgetPackets.queueWidgetAction(item, action);
     }
 
     /**
