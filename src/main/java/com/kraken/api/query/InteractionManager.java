@@ -86,16 +86,6 @@ public class InteractionManager {
     private Class<?> doActionClass;
     private Method doActionMethod;
 
-//    @SneakyThrows
-//    private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, String option, String target, int canvasX, int canvasY) {
-//        invokeMenu(param0, param1, opcode, identifier, itemId, -1, option, target, canvasX, canvasY);
-//    }
-//
-//    @SneakyThrows
-//    private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, String option, String target) {
-//        invokeMenu(param0, param1, opcode, identifier, itemId, -1, option, target, -1, -1);
-//    }
-
     @SneakyThrows
     private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, int worldViewId, String option, String target, int canvasX, int canvasY) {
         Context ctx = RuneLite.getInjector().getInstance(Context.class);
@@ -422,7 +412,7 @@ public class InteractionManager {
                 }
             }
 
-            // 3. Fallback: Hardcode standard OSRS bank indices if array lookup fails
+            // Fallback: Hardcode standard OSRS bank indices if array lookup fails
             if (identifier == -1) {
                 String sanitized = Text.sanitize(action).toLowerCase();
                 switch (sanitized) {
@@ -455,12 +445,12 @@ public class InteractionManager {
                 }
             }
 
-            // 4. Match the engine logs: Actions like Withdraw-X (id=6+) use CC_OP_LOW_PRIORITY
+            // Match the engine logs: Actions like Withdraw-X (id=6+) use CC_OP_LOW_PRIORITY
             if (identifier >= 6) {
                 menuAction = MenuAction.CC_OP_LOW_PRIORITY;
             }
 
-            // 5. Construct the target string WITH colors, exactly as the game engine logs it
+            // Construct the target string WITH colors, exactly as the game engine logs it
             String target = "";
             if (item.getItemId() != -1) {
                 ItemComposition comp = client.getItemDefinition(item.getItemId());
@@ -558,14 +548,15 @@ public class InteractionManager {
             if(item == null) return;
 
             Widget w = item.getWidget();
-            if (w == null) {
-                log.error("Failed to resolve widget for item interaction: {}", item.getName());
-                return;
-            }
+            if (w == null) return;
 
             Point pt = UIService.getClickbox(item);
-            mousePackets.queueClickPacket(pt.getX(), pt.getY());
-            widgetPackets.queueWidgetAction(w, action);
+
+            ResolvedMenuAction resolvedAction = resolveWidgetInteraction(item.getWidget(), action);
+            if (resolvedAction != null) {
+                mousePackets.queueClickPacket(pt.getX(), pt.getY());
+                interact(pt, action, resolvedAction);
+            }
         });
     }
 
@@ -592,8 +583,19 @@ public class InteractionManager {
             }
 
             Point pt = UIService.getClickbox(item);
-            mousePackets.queueClickPacket(pt.getX(), pt.getY());
-            widgetPackets.queueWidgetAction(w, actions);
+
+            for (String action : actions) {
+                ResolvedMenuAction resolvedAction = resolveWidgetInteraction(w, action);
+
+                // If we successfully resolved an action, queue it and exit the method
+                if (resolvedAction != null) {
+                    mousePackets.queueClickPacket(pt.getX(), pt.getY());
+                    interact(pt, action, resolvedAction);
+                    return;
+                }
+            }
+
+            log.warn("Failed to resolve any of the specified actions {} for item: {}", java.util.Arrays.toString(actions), item.getName());
         });
     }
 
@@ -698,7 +700,6 @@ public class InteractionManager {
 
         ResolvedMenuAction resolvedAction = resolveWidgetInteraction(src, src.getTargetVerb());
         if(resolvedAction != null) {
-
             // Resolve our own menu action because resolveWidgetInteraction doesn't support WIDGET_TARGET_ON_NPC (we know we are targeting an NPC in this)
             ResolvedMenuAction targetAction = ctxProvider.get().runOnClientThread(() -> {
                 Client client = ctxProvider.get().getClient();
