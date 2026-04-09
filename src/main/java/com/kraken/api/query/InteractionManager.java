@@ -4,15 +4,18 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.packet.entity.*;
+import com.kraken.api.core.packet.entity.GameObjectPackets;
+import com.kraken.api.core.packet.entity.MousePackets;
+import com.kraken.api.core.packet.entity.NPCPackets;
+import com.kraken.api.core.packet.entity.WidgetPackets;
 import com.kraken.api.core.packet.model.PacketFactory;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.container.bank.BankItemWidget;
 import com.kraken.api.query.groundobject.GroundItem;
 import com.kraken.api.service.ui.UIService;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
@@ -83,24 +86,22 @@ public class InteractionManager {
     private Class<?> doActionClass;
     private Method doActionMethod;
 
-    @SneakyThrows
-    private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, String option, String target, int canvasX, int canvasY) {
-        invokeMenu(param0, param1, opcode, identifier, itemId, -1, option, target, canvasX, canvasY);
-    }
-
-    @SneakyThrows
-    private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, String option, String target) {
-        invokeMenu(param0, param1, opcode, identifier, itemId, -1, option, target, -1, -1);
-    }
+//    @SneakyThrows
+//    private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, String option, String target, int canvasX, int canvasY) {
+//        invokeMenu(param0, param1, opcode, identifier, itemId, -1, option, target, canvasX, canvasY);
+//    }
+//
+//    @SneakyThrows
+//    private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, String option, String target) {
+//        invokeMenu(param0, param1, opcode, identifier, itemId, -1, option, target, -1, -1);
+//    }
 
     @SneakyThrows
     private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, int worldViewId, String option, String target, int canvasX, int canvasY) {
         Context ctx = RuneLite.getInjector().getInstance(Context.class);
         Client client = ctx.getClient();
 
-        // TODO Hasn't been released yet
-        // int garbageValue = Integer.parseInt(PacketFactory.getPacketMetadata().getDoActionGarbageValue());
-        int garbageValue = -1948098697;
+        int garbageValue = Integer.parseInt(PacketFactory.getPacketMetadata().getDoActionGarbageValue());
         if(doActionClass == null) {
             String doActionClassName = PacketFactory.getPacketMetadata().getDoActionClassName();
             String doActionMethodName = PacketFactory.getPacketMetadata().getDoActionMethodName();
@@ -121,18 +122,6 @@ public class InteractionManager {
         doActionMethod.setAccessible(true);
         ctx.runOnClientThreadOptional(() -> doActionMethod.invoke(null, param0, param1, opcode, identifier, itemId, worldViewId, option, target, canvasX, canvasY, garbageValue));
         doActionMethod.setAccessible(false);
-    }
-
-    /**
-     * Interacts with an NPC using the specified action i.e. "Attack", "Talk-To", or "Examine".
-     *
-     * @param npc the NPC to interact with
-     * @param action The action to take, "Attack", "Talk-To", or "Examine".
-     */
-    public void interact(NPC npc, String action) {
-        if(!ctxProvider.get().isPacketsLoaded()) return;
-        Point point = UIService.getClickbox(npc);
-        interact(point, action, resolveNpcInteraction(npc, action));
     }
 
     private MenuOption resolve(Client client, NPC npc, String op, int worldView) {
@@ -169,33 +158,57 @@ public class InteractionManager {
     }
 
     private MenuOption resolve(Client client, TileObject object, String op, int worldView) {
-        Point scenePoint = getScenePoint(object);
-        if (scenePoint == null) {
-            return null;
+        int sceneX;
+        int sceneY;
+
+        // Multi-tile game objects must use their South-West (minimum) tile coordinate.
+        // Standard TileObjects can fall back to standard local point conversion.
+        if (object instanceof GameObject) {
+            GameObject go = (GameObject) object;
+            sceneX = go.getSceneMinLocation().getX();
+            sceneY = go.getSceneMinLocation().getY();
+        } else {
+            LocalPoint localPoint = object.getLocalLocation();
+            sceneX = localPoint.getSceneX();
+            sceneY = localPoint.getSceneY();
         }
 
         if (client.isWidgetSelected() && op.equalsIgnoreCase("Use")) {
-            return new MenuOption(MenuAction.WIDGET_TARGET_ON_GAME_OBJECT, object.getId(), scenePoint.getX(), scenePoint.getY(), -1, worldView);
+            return new MenuOption(MenuAction.WIDGET_TARGET_ON_GAME_OBJECT, object.getId(), sceneX, sceneY, -1, worldView);
         }
 
         ObjectComposition composition = getObjectComposition(client, object);
         if (composition == null) {
+            log.info("Failed to resolve object composition for object: {}", object.getId());
             return null;
         }
 
         return resolveAction(op, composition.getActions(), i -> i < GAME_OBJECT_ACTIONS.length
-                ? new MenuOption(GAME_OBJECT_ACTIONS[i], object.getId(), scenePoint.getX(), scenePoint.getY(), -1, worldView)
+                ? new MenuOption(GAME_OBJECT_ACTIONS[i], object.getId(), sceneX, sceneY, -1, worldView)
                 : null);
     }
 
     private MenuOption resolve(Client client, GroundItem item, String op, int worldView) {
-        LocalPoint point = getGroundItemLocalPoint(client, item);
+        TileObject tileObject = item.getTileObject();
+        LocalPoint point;
+        if (tileObject != null) {
+            point = tileObject.getLocalLocation();
+        } else {
+            point = LocalPoint.fromWorld(ctxProvider.get().getClient().getTopLevelWorldView(), item.getLocation());
+        }
+
         if (point == null) {
             return null;
         }
 
         if (client.isWidgetSelected() && op.equalsIgnoreCase("Use")) {
             return new MenuOption(MenuAction.WIDGET_TARGET_ON_GROUND_ITEM, item.getTileItem().getId(), point.getSceneX(), point.getSceneY(), -1, worldView);
+        }
+
+        // OSRS Client hardcodes "Take" as the 3rd option (Index 2).
+        // It is rarely present in the actual ItemComposition ground actions array.
+        if (op.equalsIgnoreCase("Take")) {
+            return new MenuOption(MenuAction.GROUND_ITEM_THIRD_OPTION, item.getTileItem().getId(), point.getSceneX(), point.getSceneY(), -1, worldView);
         }
 
         return resolveAction(op, GroundItem.getGroundItemActions(item.getItemComposition()), i -> i < GROUND_ITEM_ACTIONS.length
@@ -208,12 +221,8 @@ public class InteractionManager {
             return null;
         }
 
-        if (client.isWidgetSelected() && op.equalsIgnoreCase("Use")) {
-            int events = widget.getClickMask();
-            boolean targetable = (events >> 21 & 0x1) != 0;
-            if (targetable) {
-                return new MenuOption(MenuAction.WIDGET_TARGET_ON_WIDGET, 0, widget.getIndex(), widget.getId(), widget.getItemId(), worldView);
-            }
+        if (client.isWidgetSelected() && (op.equalsIgnoreCase("Use") || op.equalsIgnoreCase("Cast"))) {
+            return new MenuOption(MenuAction.WIDGET_TARGET_ON_WIDGET, 0, widget.getIndex(), widget.getId(), widget.getItemId(), worldView);
         }
 
         String targetVerb = widget.getTargetVerb();
@@ -229,65 +238,16 @@ public class InteractionManager {
                 widget.getItemId(),
                 worldView
         ));
+
         if (widgetAction != null) {
             return widgetAction;
         }
 
-        if ((widget.getClickMask() & 0x1) != 0 && matchesAction(op, "Continue")) {
+        if ((widget.getClickMask() & 0x1) != 0) {
             return new MenuOption(MenuAction.WIDGET_CONTINUE, 0, widget.getIndex(), widget.getId(), widget.getItemId(), worldView);
         }
 
         return null;
-    }
-
-    private MenuOption resolveAction(String requestedAction, String[] availableActions, IntFunction<MenuOption> optionFactory) {
-        if (availableActions == null) {
-            return null;
-        }
-
-        for (int i = 0; i < availableActions.length; i++) {
-            if (matchesAction(requestedAction, availableActions[i])) {
-                return optionFactory.apply(i);
-            }
-        }
-
-        return null;
-    }
-
-    private boolean matchesAction(String requestedAction, String candidateAction) {
-        return candidateAction != null && requestedAction.equalsIgnoreCase(Text.sanitize(candidateAction));
-    }
-
-    private Point getScenePoint(TileObject object) {
-        if (object instanceof GameObject) {
-            return ((GameObject) object).getSceneMinLocation();
-        }
-
-        LocalPoint localPoint = object.getLocalLocation();
-        if (localPoint == null) {
-            return null;
-        }
-
-        return new Point(localPoint.getSceneX(), localPoint.getSceneY());
-    }
-
-    private LocalPoint getGroundItemLocalPoint(Client client, GroundItem item) {
-        TileObject tileObject = item.getTileObject();
-        if (tileObject != null) {
-            return tileObject.getLocalLocation();
-        }
-
-        return LocalPoint.fromWorld(client.getTopLevelWorldView(), item.getLocation());
-    }
-
-    private ObjectComposition getObjectComposition(Client client, TileObject object) {
-        ObjectComposition composition = client.getObjectDefinition(object.getId());
-        if (composition == null) {
-            return null;
-        }
-
-        ObjectComposition transformed = composition.getImpostor();
-        return transformed != null ? transformed : composition;
     }
 
     private ResolvedMenuAction resolveNpcInteraction(NPC npc, String action) {
@@ -322,6 +282,7 @@ public class InteractionManager {
             Client client = ctx.getClient();
             MenuOption option = resolve(client, object, action, client.getTopLevelWorldView().getId());
             if (option == null) {
+                log.info("Failed to resolve tile object interaction: {}, action: {}", object.getId(), action);
                 return null;
             }
 
@@ -355,6 +316,7 @@ public class InteractionManager {
             Client client = ctx.getClient();
             MenuOption option = resolve(client, item, action, client.getTopLevelWorldView().getId());
             if (option == null) {
+                log.info("Failed to resolve ground item interaction: {}, action: {}", item.getId(), action);
                 return null;
             }
 
@@ -362,6 +324,92 @@ public class InteractionManager {
         });
     }
 
+
+    private ResolvedMenuAction resolveWidgetSubAction(Widget widget, String primaryMenu, String subActionName) {
+        Context ctx = ctxProvider.get();
+        return ctx.runOnClientThread(() -> {
+            Client client = ctx.getClient();
+
+            if (widget == null || widget.getItemId() == -1) {
+                return null;
+            }
+
+            // Find the primary action index (e.g., "Rub")
+            int primaryActionIndex = -1;
+            String[] actions = widget.getActions();
+            if (actions != null) {
+                for (int i = 0; i < actions.length; i++) {
+                    if (matchesAction(primaryMenu, actions[i])) {
+                        // CC_OP primary indices are 1-based
+                        primaryActionIndex = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            if (primaryActionIndex == -1) {
+                log.error("Failed to resolve primary action '{}' on widget: {}", primaryMenu, widget.getId());
+                return null;
+            }
+
+            // 2. Find the sub-action index (e.g., "Fortis Colosseum")
+            int subActionIndex = -1;
+            ItemComposition composition = client.getItemDefinition(widget.getItemId());
+            String[][] subOps = composition.getSubops();
+
+            if (subOps != null) {
+                for (String[] subOpArray : subOps) {
+                    if (subActionIndex != -1) break;
+                    if (subOpArray != null) {
+                        for (int i = 0; i < subOpArray.length; i++) {
+                            if (matchesAction(subActionName, subOpArray[i])) {
+                                subActionIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (subActionIndex == -1) {
+                log.error("Failed to resolve sub-action '{}' for item: {}", subActionName, widget.getItemId());
+                return null;
+            }
+
+            // Pack the identifier: (primaryIndex << 16) | subActionIndex
+            int identifier = (primaryActionIndex << 16) | subActionIndex;
+
+            // Construct the sub-action menu option
+            MenuOption option = new MenuOption(
+                    MenuAction.CC_OP_LOW_PRIORITY,
+                    identifier,
+                    widget.getIndex(),             // Param0
+                    widget.getId(),                // Param1
+                    widget.getItemId(),
+                    client.getTopLevelWorldView().getId()
+            );
+
+            return new ResolvedMenuAction(option, subActionName);
+        });
+    }
+
+    /**
+     * Interacts with a specific point on the game canvas using the provided action and resolved menu action.
+     * This method sends the necessary packets to perform the interaction as defined by the resolved action.
+     *
+     * <p>
+     * The {@code interact} method is a low-level interaction utility meant for internal use. It combines
+     * mouse click simulation and menu invocation to interact with various in-game entities based on the
+     * specified coordinates and parameters.
+     *
+     * @param point The {@code Point} representing the canvas coordinates (x, y) where the interaction should occur.
+     *              This specifies the location of the screen to click.
+     * @param action A {@code String} representing the menu action text, used as a descriptor for the interaction
+     *               (e.g., "Attack", "Examine", "Walk here").
+     * @param resolvedAction A {@code ResolvedMenuAction} object containing the pre-resolved {@link MenuOption}
+     *                       and target for the interaction. This encapsulates the menu option parameters and the
+     *                       target string for the operation.
+     */
     private void interact(Point point, String action, ResolvedMenuAction resolvedAction) {
         if (point == null || resolvedAction == null) {
             return;
@@ -369,6 +417,7 @@ public class InteractionManager {
 
         MenuOption option = resolvedAction.getOption();
         mousePackets.queueClickPacket(point.getX(), point.getY());
+        log.info("interact: param0 = {}, param1 = {}, menu action = {}, id = {}, itemId = {}, wv = {}, action = {}, target = {}, x = {}, y = {}", option.getParam0(), option.getParam1(), option.getType().name(), option.getIdentifier(), option.getItemId(), option.getWorldView(), action, resolvedAction.getTarget(), point.getX(), point.getY());
         invokeMenu(
                 option.getParam0(),
                 option.getParam1(),
@@ -382,6 +431,19 @@ public class InteractionManager {
                 point.getY()
         );
     }
+
+    /**
+     * Interacts with an NPC using the specified action i.e. "Attack", "Talk-To", or "Examine".
+     *
+     * @param npc the NPC to interact with
+     * @param action The action to take, "Attack", "Talk-To", or "Examine".
+     */
+    public void interact(NPC npc, String action) {
+        if(!ctxProvider.get().isPacketsLoaded()) return;
+        Point point = UIService.getClickbox(npc);
+        interact(point, action, resolveNpcInteraction(npc, action));
+    }
+
 
     /**
      * Interacts with a Player using the specified action i.e. "Attack", "Trade", or "Follow"
@@ -457,10 +519,13 @@ public class InteractionManager {
         if(!ctxProvider.get().isPacketsLoaded()) return;
         Point pt = UIService.getClickbox(item);
 
-        if(pt != null) {
+        log.info("BANK ITEM WIDGET INTERACTION!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        ResolvedMenuAction resolvedAction = resolveWidgetInteraction(item, action);
+        if (resolvedAction != null) {
             mousePackets.queueClickPacket(pt.getX(), pt.getY());
-            widgetPackets.queueWidgetAction(item, action);
+            interact(pt, action, resolvedAction);
         }
+        // widgetPackets.queueWidgetAction(item, action);
     }
 
     /**
@@ -471,22 +536,28 @@ public class InteractionManager {
     public void interact(Widget item, String action) {
         if(!ctxProvider.get().isPacketsLoaded()) return;
         Point pt = UIService.getClickbox(item);
-        interact(pt, action, resolveWidgetInteraction(item, action));
+        ResolvedMenuAction resolvedAction = resolveWidgetInteraction(item, action);
+        if (resolvedAction != null) {
+            mousePackets.queueClickPacket(pt.getX(), pt.getY());
+            interact(pt, action, resolvedAction);
+        }
     }
 
     /**
      * Interacts with a widget using the specific sub action.
      * @param item The widget to interact with
-     * @param menu The menu to select
-     * @param action The action to take i.e. Wield, Use or Examine
+     * @param menu The primary menu to select (e.g., "Rub")
+     * @param action The sub-action to take (e.g., "Fortis Colosseum")
      */
     public void interact(Widget item, String menu, String action) {
         if(!ctxProvider.get().isPacketsLoaded()) return;
         Point pt = UIService.getClickbox(item);
 
-        if(pt != null) {
+        // TODO Doesn't work but is probably something simple
+        ResolvedMenuAction resolvedAction = resolveWidgetSubAction(item, menu, action);
+        if (resolvedAction != null) {
             mousePackets.queueClickPacket(pt.getX(), pt.getY());
-            widgetPackets.queueWidgetSubAction(item, menu, action);
+            interact(pt, action, resolvedAction);
         }
     }
 
@@ -501,10 +572,18 @@ public class InteractionManager {
         Point pt = UIService.getClickbox(src);
         Point destPoint = UIService.getClickbox(dest);
 
-        if(pt != null) {
+        ResolvedMenuAction resolvedAction = resolveWidgetInteraction(src, src.getTargetVerb());
+        if(resolvedAction != null) {
+            // TODO Test with HLA because that is a Cast -> Cast and this may only support "Use" like chiseling gems etc...
             mousePackets.queueClickPacket(pt.getX(), pt.getY());
-            mousePackets.queueClickPacket(destPoint.getX(), destPoint.getY());
-            widgetPackets.queueWidgetOnWidget(src, dest);
+            interact(pt, src.getTargetVerb(), resolvedAction);
+
+             // now client.isWidgetSelected() will be true so the next resolve will be for WIDGET_TARGET_ON_WIDGET
+            ResolvedMenuAction targetAction = resolveWidgetInteraction(dest, dest.getTargetVerb());
+            if(targetAction != null) {
+                mousePackets.queueClickPacket(destPoint.getX(), destPoint.getY());
+                interact(destPoint, dest.getTargetVerb(), targetAction);
+            }
         }
     }
 
@@ -528,33 +607,87 @@ public class InteractionManager {
      * @param npc The NPC to use the widget on
      */
     public void interact(Widget src, NPC npc) {
-        if(!ctxProvider.get().isPacketsLoaded()) return;
-
+        if (!ctxProvider.get().isPacketsLoaded()) return;
         Point pt = UIService.getClickbox(src);
         Point npcPoint = UIService.getClickbox(npc);
 
-        if(pt != null) {
+        ResolvedMenuAction resolvedAction = resolveWidgetInteraction(src, src.getTargetVerb());
+        if(resolvedAction != null) {
+
+            // Resolve our own menu action because resolveWidgetInteraction doesn't support WIDGET_TARGET_ON_NPC (we know we are targeting an NPC in this)
+            ResolvedMenuAction targetAction = ctxProvider.get().runOnClientThread(() -> {
+                Client client = ctxProvider.get().getClient();
+                MenuOption option = new MenuOption(
+                        MenuAction.WIDGET_TARGET_ON_NPC,
+                        npc.getIndex(),
+                        0,
+                        0,
+                        -1,
+                        client.getTopLevelWorldView().getId()
+                );
+
+                String npcName = npc.getName() == null ? "" : npc.getName();
+                String target = resolvedAction.getTarget() + " -> " + npcName;
+                return new ResolvedMenuAction(option, target);
+            });
+
             mousePackets.queueClickPacket(pt.getX(), pt.getY());
+            interact(pt, src.getTargetVerb(), resolvedAction);
             mousePackets.queueClickPacket(npcPoint.getX(), npcPoint.getY());
-            npcPackets.queueWidgetOnNPC(npc, src);
+            interact(npcPoint, src.getTargetVerb(), targetAction);
         }
     }
 
     /**
      * Uses a source widget on a destination Game Object (i.e. "Bones" on the "Chaos Altar")
      * @param src The source widget to use on the destination widget
-     * @param gameObject The Game Object to use the widget on
+     * @param object The Tile Object (Game Object) to use the widget on
      */
-    public void interact(Widget src, GameObject gameObject) {
-        if(!ctxProvider.get().isPacketsLoaded()) return;
-
+    public void interact(Widget src, TileObject object) {
+        if (!ctxProvider.get().isPacketsLoaded()) return;
         Point pt = UIService.getClickbox(src);
-        Point gameObjectPoint = UIService.getClickbox(gameObject);
+        Point gameObjectPoint = UIService.getClickbox(object);
 
-        if(pt != null) {
+        // Target verb will be: "Use", "Cast", etc... this basically ensures this action resolves to WIDGET_TARGET
+        ResolvedMenuAction resolvedAction = resolveWidgetInteraction(src, src.getTargetVerb());
+        if(resolvedAction != null) {
+
+            Point p;
+            if (object instanceof GameObject) {
+                GameObject gameObject = (GameObject) object;
+                p = gameObject.getSceneMinLocation();
+            } else {
+                p = new Point(object.getLocalLocation().getSceneX(), object.getLocalLocation().getSceneY());
+            }
+
+            // Resolve our own menu action because resolveWidgetInteraction doesn't support WIDGET_TARGET_ON_GAME_OBJECT
+            ResolvedMenuAction targetAction = ctxProvider.get().runOnClientThread(() -> {
+                Client client = ctxProvider.get().getClient();
+                MenuOption option = new MenuOption(
+                        MenuAction.WIDGET_TARGET_ON_GAME_OBJECT,
+                        object.getId(),
+                        p.getX(),
+                        p.getY(),
+                        -1,
+                        client.getTopLevelWorldView().getId()
+                );
+
+                String name;
+                ObjectComposition composition = getObjectComposition(client, object);
+                if(composition == null) {
+                    name = "";
+                } else {
+                    name = composition.getName();
+                }
+
+                String target = resolvedAction.getTarget() + " -> " + name;
+                return new ResolvedMenuAction(option, target);
+            });
+
             mousePackets.queueClickPacket(pt.getX(), pt.getY());
+            interact(pt, src.getTargetVerb(), resolvedAction); // -> MenuAction=WIDGET_TARGET, ItemId=1925, id=0, Option=Use, Target=<col=ff9040>Bucket</col>
             mousePackets.queueClickPacket(gameObjectPoint.getX(), gameObjectPoint.getY());
-            gameObjectPackets.queueWidgetOnTileObject(src, gameObject);
+            interact(gameObjectPoint, src.getTargetVerb(), targetAction); // -> MenuAction=WIDGET_TARGET_ON_GAME_OBJECT, ItemId=-1, id=5125, Option=Use, Target=<col=ff9040>Bucket</col><col=ffffff> -> <col=ffff>Fountain
         }
     }
 
@@ -589,21 +722,100 @@ public class InteractionManager {
         interact(pt, action, resolveGroundItemInteraction(item, action));
     }
 
-    @Getter
-    @AllArgsConstructor
-    public static class MenuOption {
-        private final MenuAction type;
-        private final int identifier;
-        private final int param0;
-        private final int param1;
-        private final int itemId;
-        private final int worldView;
+    // -------------------------
+    // Helper methods
+    // -------------------------
+
+    /**
+     * Resolves the appropriate {@code MenuOption} based on a requested action and a list of available actions.
+     * <p>
+     * This method compares the {@code requestedAction} with each {@code availableActions} entry to find a match.
+     * If a match is found, the corresponding {@code MenuOption} is generated using the provided {@code optionFactory}.
+     * If no match is found or if {@code availableActions} is {@code null}, the method returns {@code null}.
+     * </p>
+     *
+     * @param requestedAction The action requested by the user. This string is compared against the available actions
+     *                        to find a match. Must not be {@code null}.
+     * @param availableActions An array of actions to compare against the {@code requestedAction}.
+     *                         It can be {@code null}, in which case the method will return {@code null}.
+     * @param optionFactory A factory function to generate a {@code MenuOption} for the matching action's index in the
+     *                      {@code availableActions} array. Must not be {@code null}.
+     *
+     * @return The {@code MenuOption} corresponding to the matched action, or {@code null} if no match is found or
+     *         if {@code availableActions} is {@code null}.
+     */
+    private MenuOption resolveAction(String requestedAction, String[] availableActions, IntFunction<MenuOption> optionFactory) {
+        if (availableActions == null) {
+            return null;
+        }
+
+        for (int i = 0; i < availableActions.length; i++) {
+            if (matchesAction(requestedAction, availableActions[i])) {
+                return optionFactory.apply(i);
+            }
+        }
+
+        return null;
     }
 
-    @Getter
-    @AllArgsConstructor
+    /**
+     * Determines if the requested action matches the candidate action after sanitization.
+     *
+     * <p>This method compares the {@code requestedAction} with a sanitized version of
+     * {@code candidateAction} in a case-insensitive manner. Returns {@code true} if they match and
+     * {@code false} otherwise. If {@code candidateAction} is {@code null}, the method returns {@code false}.
+     *
+     * @param requestedAction The action being requested. Must not be {@code null}.
+     * @param candidateAction The action to compare against the requested action. Can be {@code null}.
+     * @return {@code true} if the {@code requestedAction} matches the sanitized {@code candidateAction},
+     *         ignoring case. {@code false} otherwise.
+     */
+    private boolean matchesAction(String requestedAction, String candidateAction) {
+        return candidateAction != null && requestedAction.equalsIgnoreCase(Text.sanitize(candidateAction));
+    }
+
+    /**
+     * Retrieves the {@link ObjectComposition} of the specified {@link TileObject}.
+     * <p>
+     * This method runs on the client thread to ensure safe access to client state.
+     * It first retrieves the {@link ObjectComposition} corresponding to the object's ID.
+     * If the composition has been transformed (via impostor), the transformed
+     * {@link ObjectComposition} is returned; otherwise, the original composition is returned.
+     *
+     * @param client the {@link Client} instance used to interact with the game state.
+     * @param object the {@link TileObject} whose {@link ObjectComposition} is to be fetched.
+     *               The {@link TileObject} must have a valid ID associated with it.
+     * @return the {@link ObjectComposition} of the given {@link TileObject}, or {@code null}
+     *         if no composition could be retrieved or determined.
+     */
+    private ObjectComposition getObjectComposition(Client client, TileObject object) {
+        ObjectComposition composition = client.getObjectDefinition(object.getId());
+        if (composition == null) {
+            log.error("Failed to resolve object composition for object: {}", object.getId());
+            return null;
+        }
+
+        if(composition.getImpostorIds() == null) {
+            return composition;
+        }
+
+        ObjectComposition transformed = composition.getImpostor();
+        return transformed != null ? transformed : composition;
+    }
+
+    @Value
+    public static class MenuOption {
+        MenuAction type;
+        int identifier;
+        int param0;
+        int param1;
+        int itemId;
+        int worldView;
+    }
+
+    @Value
     private static class ResolvedMenuAction {
-        private final MenuOption option;
-        private final String target;
+        MenuOption option;
+        String target;
     }
 }

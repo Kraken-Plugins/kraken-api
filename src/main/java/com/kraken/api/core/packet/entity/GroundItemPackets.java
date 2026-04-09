@@ -3,7 +3,6 @@ package com.kraken.api.core.packet.entity;
 
 import com.kraken.api.core.packet.PacketClient;
 import com.kraken.api.core.packet.model.PacketFactory;
-import lombok.SneakyThrows;
 import net.runelite.api.TileItem;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
@@ -25,26 +24,6 @@ public class GroundItemPackets {
     private Provider<PacketClient> packetClientProvider;
 
     /**
-     * Queues the low-level packet to perform a generic action click on a ground item.
-     * <p>
-     * This method sends one of the {@code OPOBJ} packets (e.g., {@code OPOBJ1} through {@code OPOBJ5},
-     * depending on the packet factory implementation). These packets are used for actions
-     * like "Take," "Examine," or other option clicks on a ground item.
-     *
-     * @param actionFieldNo The 1-based index of the action to execute (typically 1-5 for ground items).
-     * @param objectId The Item ID of the ground item.
-     * @param worldPointX The X coordinate of the item's location in the world.
-     * @param worldPointY The Y coordinate of the item's location in the world.
-     * @param ctrlDown If true, indicates the control key was held down.
-     */
-    @SneakyThrows
-    public void queueGroundItemAction(int actionFieldNo, int objectId, int worldPointX, int worldPointY, boolean ctrlDown) {
-        int ctrl = ctrlDown ? 1 : 0;
-        int subop = 0;
-        packetClientProvider.get().sendPacket(PacketFactory.getOpObj(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
-    }
-
-    /**
      * Queues the raw packet for using a widget (typically an item) on a ground item.
      * <p>
      * This method sends the {@code OPOBJT} (Use Widget on Object/Item) packet, which
@@ -62,20 +41,6 @@ public class GroundItemPackets {
         int ctrl = ctrlDown ? 1 : 0;
         packetClientProvider.get().sendPacket(PacketFactory.getOpObjT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId,
                 sourceWidgetId, ctrl);
-    }
-
-    /**
-     * Queues the packet to perform the default "Take" action (Action 3) on a ground item.
-     * <p>
-     * This is a convenience method for the most common interaction with a ground item.
-     * It uses action index 3, which is conventionally the "Take" option for items.
-     *
-     * @param item The target {@link TileItem} object.
-     * @param location The {@link WorldPoint} location of the item on the map.
-     * @param ctrlDown If true, indicates the control key was held down.
-     */
-    public void queueGroundItemAction(TileItem item, WorldPoint location, boolean ctrlDown) {
-        queueGroundItemAction(3, item.getId(), location.getX(), location.getY(), ctrlDown);
     }
 
     /**

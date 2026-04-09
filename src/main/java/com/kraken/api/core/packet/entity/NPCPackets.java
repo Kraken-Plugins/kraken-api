@@ -1,7 +1,6 @@
 package com.kraken.api.core.packet.entity;
 
 import com.google.inject.Provider;
-import com.kraken.api.Context;
 import com.kraken.api.core.packet.PacketClient;
 import com.kraken.api.core.packet.model.PacketFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -23,13 +22,7 @@ import javax.inject.Inject;
 public class NPCPackets {
 
     @Inject
-    private PacketFactory packetFactory;
-
-    @Inject
     private Provider<PacketClient> packetClientProvider;
-
-    @Inject
-    private Provider<Context> ctxProvider;
 
     /**
      * Queues the raw packet for using a widget (typically an item) on an NPC.
@@ -45,7 +38,7 @@ public class NPCPackets {
      */
     public void queueWidgetOnNPC(int npcIndex, int sourceItemId, int sourceSlot, int sourceWidgetId, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetFactory.getOpNpcT(), npcIndex, sourceItemId, sourceSlot, sourceWidgetId, ctrl);
+        packetClientProvider.get().sendPacket(PacketFactory.getOpNpcT(), npcIndex, sourceItemId, sourceSlot, sourceWidgetId, ctrl);
     }
 
     /**

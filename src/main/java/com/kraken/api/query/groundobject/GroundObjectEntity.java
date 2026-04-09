@@ -24,20 +24,15 @@ public class GroundObjectEntity extends AbstractEntity<GroundItem> {
     }
 
     /**
-     * Interact interacts with the ground object. This interact is slightly different from other interactions because the underlying
-     * packet object does not accept an action to take on the ground object. It is always "Take" because that is the only action
-     * you can perform to an item on the ground.
-     * <p>
-     * To conform to the interface for an {@code AbstractEntity} we still accept an action parameter although it will do
-     * nothing in this particular instance.
-     * @param action The menu action to trigger (e.g. "Take")
+     * Interacts with the ground object using the requested menu action.
+     * @param action The menu action to trigger (e.g. "Take" or "Examine")
      * @return True if the interaction is successful and false otherwise
      */
     @Override
     public boolean interact(String action) {
         GroundItem raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw);
+        ctx.getInteractionManager().interact(raw, action);
         return true;
     }
 

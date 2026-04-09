@@ -34,11 +34,11 @@ public class SpellServiceTest extends BaseApiTest {
 
             bankService.depositAll();
             ctx.bank().withName("Mind rune").first().withdrawTen();
-            Thread.sleep(RandomUtils.randomIntBetween(400, 1000));
+            Thread.sleep(RandomUtils.randomIntBetween(700, 1000));
             ctx.bank().withName("Fire rune").first().withdraw(50);
-            Thread.sleep(RandomUtils.randomIntBetween(400, 1000));
+            Thread.sleep(RandomUtils.randomIntBetween(700, 1000));
             ctx.bank().withName("Air rune").first().withdrawFive();
-            Thread.sleep(RandomUtils.randomIntBetween(400, 1000));
+            Thread.sleep(RandomUtils.randomIntBetween(700, 1000));
             boolean hasRunes = magicService.hasRequiredRunes(Standard.VARROCK_TELEPORT);
             if(hasRunes) {
                 log.info("Spell Service tests failed, hasRequiredRunes returned true when player should not have VARROCK_TELEPORT runes");

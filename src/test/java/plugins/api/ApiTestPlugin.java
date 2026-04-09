@@ -9,6 +9,11 @@ import com.kraken.api.core.script.breakhandler.BreakManager;
 import com.kraken.api.core.script.breakhandler.BreakProfile;
 import com.kraken.api.input.mouse.MouseRecorder;
 import com.kraken.api.overlay.MouseOverlay;
+import com.kraken.api.query.container.inventory.InventoryEntity;
+import com.kraken.api.query.gameobject.GameObjectEntity;
+import com.kraken.api.query.npc.NpcEntity;
+import com.kraken.api.service.magic.MagicService;
+import com.kraken.api.service.magic.spellbook.Standard;
 import com.kraken.api.service.map.WorldMapService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.ui.login.LoginService;
@@ -169,9 +174,9 @@ public class ApiTestPlugin extends Plugin {
     @Subscribe
     private void onMenuOptionClicked(MenuOptionClicked event) {
         if (config.showDebugInfo()) {
-            log.info("Option={}, Target={}, Param0={}, Param1={}, MenuAction={}, ItemId={}, id={}, itemOp={}, str={}",
-                    event.getMenuOption(), event.getMenuTarget(), event.getParam0(), event.getParam1(), event.getMenuAction().name(), event.getItemId(),
-                    event.getId(), event.getItemOp(), event);
+            log.info("Evt: Param0={}, Param1={}, MenuAction={}, ItemId={}, id={}, Option={}, Target={}, itemOp={}",
+                    event.getParam0(), event.getParam1(), event.getMenuAction().name(), event.getItemId(),
+                    event.getId(), event.getMenuOption(), event.getMenuTarget(), event.getItemOp());
         }
     }
 
@@ -192,6 +197,60 @@ public class ApiTestPlugin extends Plugin {
             log.info("Logging out of the client...");
             context.players().local().logout();
         }
+
+        if(key.equals("widgetTargetOnNpc") && config.widgetTargetOnNpc()) {
+            NpcEntity guard = context.npcs().nameContains("Guard").nearest();
+            if(guard == null) {
+                log.error("Spell Service tests failed, could not find a guard");
+                return;
+            }
+
+            log.info("Casting fire strike on guard");
+            context.getService(MagicService.class).castOn(Standard.FIRE_STRIKE, guard.raw());
+        }
+
+        if(key.equals("widgetTargetOnGameObject") && config.widgetTargetOnGameObject()) {
+            InventoryEntity e = context.inventory().withName("Bucket").first();
+            if(e == null) {
+                log.error("Inventory test failed, could not find a bucket");
+                return;
+            }
+
+            GameObjectEntity gameObject = context.gameObjects().withId(5125).first();
+            if (gameObject == null) {
+                log.error("GameObject test failed, could not find a fountain game object");
+                return;
+            }
+
+            e.useOn(gameObject.raw());
+        }
+
+        if(key.equals("widgetTargetOnWidget") && config.widgetTargetOnWidget()) {
+            InventoryEntity chisel = context.inventory().withName("Chisel").first();
+            if(chisel == null) {
+                log.error("Inventory test failed, could not find a chisel");
+                return;
+            }
+
+            InventoryEntity gem = context.inventory().withId(1623).first();
+            if (gem == null) {
+                log.error("Widget test failed, could not find an uncut sapphire");
+                return;
+            }
+
+            chisel.useOn(gem.raw());
+        }
+
+        if(key.equals("widgetSubAction") && config.widgetSubAction()) {
+            InventoryEntity ringOfDueling = context.inventory().nameContains("Ring of").first();
+            if(ringOfDueling == null) {
+                log.error("Inventory test failed, could not find a Ring of dueling");
+                return;
+            }
+
+            context.getInteractionManager().interact(ringOfDueling.raw().getWidget(), "Rub", "Fortis Colosseum");
+        }
+
 
         if(key.equalsIgnoreCase("pauseScript") && config.pauseScript()) {
             exampleScript.pause();

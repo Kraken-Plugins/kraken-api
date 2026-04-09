@@ -47,12 +47,51 @@ public interface ApiTestConfig extends Config {
         return false;
     }
 
+    @ConfigItem(
+            name = "Widget Target NPC",
+            keyName = "widgetTargetOnNpc",
+            description = "Targets NPC with fire strick.",
+            position = 1
+    )
+    default boolean widgetTargetOnNpc() {
+        return false;
+    }
+
+    @ConfigItem(
+            name = "Widget Target Game Object",
+            keyName = "widgetTargetOnGameObject",
+            description = "Targets a Bucket to be used on a fountain.",
+            position = 2
+    )
+    default boolean widgetTargetOnGameObject() {
+        return false;
+    }
+
+    @ConfigItem(
+            name = "Widget Target Widget",
+            keyName = "widgetTargetOnWidget",
+            description = "Targets a chisel to be used on a sapphire.",
+            position = 3
+    )
+    default boolean widgetTargetOnWidget() {
+        return false;
+    }
+
+    @ConfigItem(
+            name = "Widget Sub Action",
+            keyName = "widgetSubAction",
+            description = "Targets a sub action of the ring of dueling teleport.",
+            position = 4
+    )
+    default boolean widgetSubAction() {
+        return false;
+    }
 
     // =========== Tests Section ================
     @ConfigSection(
             name = "Pathfinding Tests",
             description = "Settings for enabling and testing pathfinding across the world",
-            position = 1
+            position = 99
     )
     String pathfinding = "pathfinding";
 
@@ -87,7 +126,7 @@ public interface ApiTestConfig extends Config {
     @ConfigSection(
             name = "Query Tests",
             description = "Settings for enabling specific API query tests.",
-            position = 2
+            position = 100
     )
     String tests = "Query Tests";
 
@@ -134,7 +173,6 @@ public interface ApiTestConfig extends Config {
     default boolean enableEquipmentQuery() {
         return true;
     }
-
 
     @ConfigItem(
             keyName = "enableGameObjectQuery",
@@ -221,7 +259,7 @@ public interface ApiTestConfig extends Config {
     @ConfigSection(
             name = "Service Tests",
             description = "Options for configuring service class tests",
-            position = 3
+            position = 101
     )
     String serviceTests = "Service Tests";
 
@@ -352,7 +390,7 @@ public interface ApiTestConfig extends Config {
     @ConfigSection(
             name = "Mouse Settings",
             description = "Settings for testing mouse movement, pathing, and recording.",
-            position = 80
+            position = 102
     )
     String mouseSettings = "Mouse Settings";
 
@@ -397,7 +435,7 @@ public interface ApiTestConfig extends Config {
     @ConfigSection(
             name = "Overlay Settings",
             description = "General overlay configuration for tests, debugging, and sim visualization",
-            position = 90
+            position = 103
     )
     String overlaySettings = "Overlay Settings";
 
@@ -560,12 +598,12 @@ public interface ApiTestConfig extends Config {
     }
 
     // ==============================================
-    // ========== GENERAL OVERLAY SETTINGS ==========
+    // ========== LoS SETTINGS ==========
     // ==============================================
     @ConfigSection(
             name = "Line of Sight Settings",
             description = "General configurations for NPC line of sight mechanics.",
-            position = 99
+            position = 104
     )
     String los = "NPC LoS & Pathing";
 
