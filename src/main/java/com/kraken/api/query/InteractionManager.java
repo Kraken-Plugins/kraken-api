@@ -68,14 +68,6 @@ public class InteractionManager {
             MenuAction.GROUND_ITEM_FIFTH_OPTION
     };
 
-    // TODO The BankDepositBox tests isn't working for RuneFull helm?
-    // 1. determine what its trying to do
-    // 2. fix it
-    // here are logs for interacting with deposit box rune full helm:
-    // 2026-04-09 16:16:05 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=12582922, MenuAction=CC_OP, ItemId=-1, id=1, Option=Remove, Target=<col=ff9040>Rune full helm</col>, itemOp=-1
-    //2026-04-09 16:16:18 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=7, Param1=12582936, MenuAction=CC_OP_LOW_PRIORITY, ItemId=1163, id=9, Option=Wear, Target=<col=ff9040>Rune full helm</col>, itemOp=-1
-    //2026-04-09 16:16:21 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=12582922, MenuAction=CC_OP, ItemId=-1, id=2, Option=Bank, Target=<col=ff9040>Rune full helm</col>, itemOp=-1
-
     @Inject
     private NPCPackets npcPackets;
 

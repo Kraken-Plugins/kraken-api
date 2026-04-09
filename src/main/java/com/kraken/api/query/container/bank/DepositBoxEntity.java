@@ -82,7 +82,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
         ctx.getService(DepositBoxService.class).setQuantity(amount);
         return ctx.widgets()
                 .fromClient(InterfaceID.BankDepositbox.INVENTORY)
-                .interact(1, InterfaceID.BankDepositbox.INVENTORY, raw().getSlot(), getId());
+                .interact(InterfaceID.BankDepositbox.INVENTORY, raw().getSlot(), getId(), 1);
     }
 
     /**
@@ -121,7 +121,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
                 ctx.getService(DepositBoxService.class).setQuantity(amount);
                 return ctx.widgets()
                         .fromClient(InterfaceID.BankDepositbox.INVENTORY)
-                        .interact(1, InterfaceID.BankDepositbox.INVENTORY, raw().getSlot(), getId());
+                        .interact(InterfaceID.BankDepositbox.INVENTORY, raw().getSlot(), getId(), 1);
         }
     }
 
@@ -139,7 +139,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
      */
     public boolean deposit() {
         if(raw().getOrigin() == ContainerItem.ItemOrigin.EQUIPMENT) {
-            return ctx.widgets().get(raw().getSlot()).interact(2, raw().getSlot(), -1, -1);
+            return ctx.widgets().get(raw().getSlot()).interact(raw().getSlot(), -1, -1, 1);
         }
         ctx.getInteractionManager().interact(raw, "Deposit-1");
         return true;

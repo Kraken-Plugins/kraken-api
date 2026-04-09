@@ -104,13 +104,13 @@ public class WidgetEntity extends AbstractEntity<Widget> {
 
     /**
      * Interacts with a widget using the specified action index.
-     * @param action The action index to take.
      * @param packedId The packed widget id
      * @param childId The child id of the widget
      * @param itemId The item id of the widget.
+     * @param action The action index to take.
      * @return True if the interaction was successful and false otherwise
      */
-    public boolean interact(int action, int packedId, int childId, int itemId) {
+    public boolean interact(int packedId, int childId, int itemId, int action) {
         ctx.getInteractionManager().interact(packedId, childId, itemId, action);
         return true;
     }
