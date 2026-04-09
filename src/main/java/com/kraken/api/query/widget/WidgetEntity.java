@@ -111,7 +111,7 @@ public class WidgetEntity extends AbstractEntity<Widget> {
      * @return True if the interaction was successful and false otherwise
      */
     public boolean interact(int action, int packedId, int childId, int itemId) {
-        ctx.getInteractionManager().interact(action, packedId, childId, itemId);
+        ctx.getInteractionManager().interact(packedId, childId, itemId, action);
         return true;
     }
 

@@ -6,7 +6,7 @@ import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.packet.entity.MousePackets;
 import com.kraken.api.core.packet.entity.SailingPackets;
-import com.kraken.api.core.packet.entity.WidgetPackets;
+import com.kraken.api.query.InteractionManager;
 import com.kraken.api.service.ui.UIService;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Point;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarbitID;
-
-import java.awt.*;
 
 @Slf4j
 @Singleton
@@ -31,7 +29,7 @@ public class SailingService {
     private SailingPackets sailingPackets;
 
     @Inject
-    private WidgetPackets widgetPackets;
+    private InteractionManager interactionManager;
 
     public static final int SAILING_CONTROLS_ID = InterfaceID.SailingSidepanel.FACILITIES_CONTENT_CLICKLAYER;
     public static final int NAVIGATING_VARBIT = VarbitID.SAILING_BOAT_FACILITY_LOCKEDIN; // 0 = not navigating, 3 = navigating (? maybe != 0 == navigating)
@@ -81,9 +79,7 @@ public class SailingService {
             return;
         }
 
-        Point pt = UIService.getClickbox(ctx.widgets().fromClient(SAILING_CONTROLS_ID).raw());
-        mousePackets.queueClickPacket(pt.getX(), pt.getY());
-        widgetPackets.queueWidgetActionPacket(SAILING_CONTROLS_ID, 2, -1, 1);
+        interactionManager.interact(SAILING_CONTROLS_ID, 2, -1, 1);
     }
 
     /**
@@ -104,9 +100,7 @@ public class SailingService {
             return;
         }
 
-        Point pt = UIService.getClickbox(ctx.widgets().fromClient(SAILING_CONTROLS_ID).raw());
-        mousePackets.queueClickPacket(pt.getX(), pt.getY());
-        widgetPackets.queueWidgetActionPacket(SAILING_CONTROLS_ID, 1, -1, 1);
+        interactionManager.interact(SAILING_CONTROLS_ID, 1, -1, 1);
     }
 
     /**
@@ -141,7 +135,7 @@ public class SailingService {
 
         Point pt = UIService.getClickbox(ctx.widgets().fromClient(SAILING_CONTROLS_ID).raw());
         mousePackets.queueClickPacket(pt.getX(), pt.getY());
-        widgetPackets.queueWidgetActionPacket(SAILING_CONTROLS_ID, 0, -1, 1);
+        interactionManager.interact(SAILING_CONTROLS_ID, 0, -1, 1);
     }
 
     /**
@@ -157,9 +151,7 @@ public class SailingService {
             return;
         }
 
-        Point pt = UIService.getClickbox(ctx.widgets().fromClient(SAILING_CONTROLS_ID).raw());
-        mousePackets.queueClickPacket(pt.getX(), pt.getY());
-        widgetPackets.queueWidgetActionPacket(SAILING_CONTROLS_ID, 0, -1, 1);
+        interactionManager.interact(SAILING_CONTROLS_ID, 0, -1, 1);
     }
 
     /**

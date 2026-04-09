@@ -68,6 +68,14 @@ public class InteractionManager {
             MenuAction.GROUND_ITEM_FIFTH_OPTION
     };
 
+    // TODO The BankDepositBox tests isn't working for RuneFull helm?
+    // 1. determine what its trying to do
+    // 2. fix it
+    // here are logs for interacting with deposit box rune full helm:
+    // 2026-04-09 16:16:05 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=12582922, MenuAction=CC_OP, ItemId=-1, id=1, Option=Remove, Target=<col=ff9040>Rune full helm</col>, itemOp=-1
+    //2026-04-09 16:16:18 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=7, Param1=12582936, MenuAction=CC_OP_LOW_PRIORITY, ItemId=1163, id=9, Option=Wear, Target=<col=ff9040>Rune full helm</col>, itemOp=-1
+    //2026-04-09 16:16:21 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=12582922, MenuAction=CC_OP, ItemId=-1, id=2, Option=Bank, Target=<col=ff9040>Rune full helm</col>, itemOp=-1
+
     @Inject
     private NPCPackets npcPackets;
 
@@ -83,8 +91,8 @@ public class InteractionManager {
     @Inject
     private Provider<Context> ctxProvider;
 
-    private Class<?> doActionClass;
-    private Method doActionMethod;
+    private static Class<?> doActionClass;
+    private static Method doActionMethod;
 
     @SneakyThrows
     private void invokeMenu(int param0, int param1, int opcode, int identifier, int itemId, int worldViewId, String option, String target, int canvasX, int canvasY) {
@@ -554,7 +562,6 @@ public class InteractionManager {
 
             ResolvedMenuAction resolvedAction = resolveWidgetInteraction(item.getWidget(), action);
             if (resolvedAction != null) {
-                mousePackets.queueClickPacket(pt.getX(), pt.getY());
                 interact(pt, action, resolvedAction);
             }
         });
@@ -589,7 +596,6 @@ public class InteractionManager {
 
                 // If we successfully resolved an action, queue it and exit the method
                 if (resolvedAction != null) {
-                    mousePackets.queueClickPacket(pt.getX(), pt.getY());
                     interact(pt, action, resolvedAction);
                     return;
                 }
@@ -610,7 +616,6 @@ public class InteractionManager {
 
         ResolvedMenuAction resolvedAction = resolveBankInteraction(item, action);
         if (resolvedAction != null) {
-            mousePackets.queueClickPacket(pt.getX(), pt.getY());
             interact(pt, action, resolvedAction);
         }
     }
@@ -625,7 +630,6 @@ public class InteractionManager {
         Point pt = UIService.getClickbox(item);
         ResolvedMenuAction resolvedAction = resolveWidgetInteraction(item, action);
         if (resolvedAction != null) {
-            mousePackets.queueClickPacket(pt.getX(), pt.getY());
             interact(pt, action, resolvedAction);
         }
     }
@@ -643,7 +647,6 @@ public class InteractionManager {
         // TODO Doesn't work but is probably something simple
         ResolvedMenuAction resolvedAction = resolveWidgetSubAction(item, menu, action);
         if (resolvedAction != null) {
-            mousePackets.queueClickPacket(pt.getX(), pt.getY());
             interact(pt, action, resolvedAction);
         }
     }
@@ -662,13 +665,11 @@ public class InteractionManager {
         ResolvedMenuAction resolvedAction = resolveWidgetInteraction(src, src.getTargetVerb());
         if(resolvedAction != null) {
             // TODO Test with HLA because that is a Cast -> Cast and this may only support "Use" like chiseling gems etc...
-            mousePackets.queueClickPacket(pt.getX(), pt.getY());
             interact(pt, src.getTargetVerb(), resolvedAction);
 
              // now client.isWidgetSelected() will be true so the next resolve will be for WIDGET_TARGET_ON_WIDGET
             ResolvedMenuAction targetAction = resolveWidgetInteraction(dest, dest.getTargetVerb());
             if(targetAction != null) {
-                mousePackets.queueClickPacket(destPoint.getX(), destPoint.getY());
                 interact(destPoint, dest.getTargetVerb(), targetAction);
             }
         }
@@ -676,16 +677,52 @@ public class InteractionManager {
 
     /**
      * Interacts with a widget using the specific action index
-     * @param action The action index to take
-     * @param packedWidgetId The packed widget id
+     * @param widgetId The packed widget id
      * @param childId The child id of the widget to interact with
      * @param itemId The item id of the widget to interact with
+     * @param action The action index to take
      */
-    public void interact(int action, int packedWidgetId, int childId, int itemId) {
+    public void interact(int widgetId, int childId, int itemId, int action) {
         if(!ctxProvider.get().isPacketsLoaded()) return;
-        Point pt = UIService.getClickbox(ctxProvider.get().widgets().get(packedWidgetId).raw());
-        mousePackets.queueClickPacket(pt.getX(), pt.getY());
-        widgetPackets.queueWidgetActionPacket(packedWidgetId, childId, itemId, action);
+
+        Context ctx = ctxProvider.get();
+        Widget widget = ctx.getWidget(widgetId);
+
+        if(widget == null) {
+            log.error("Failed to resolve widget for interaction: {}", widgetId);
+            return;
+        }
+
+        Point pt = UIService.getClickbox(widget);
+        MenuOption option = new MenuOption(
+                MenuAction.CC_OP,
+                action,             // identifier (id)
+                childId,            // param0
+                widgetId,     // param1
+                itemId,             // ItemId
+                ctx.getClient().getTopLevelWorldView().getId()
+        );
+
+        String actionName = "";
+        String[] actions = widget.getActions();
+        if (actions != null && action > 0 && action <= actions.length) {
+            String potentialAction = actions[action - 1];
+            if (potentialAction != null && !potentialAction.isEmpty()) {
+                actionName = potentialAction;
+            }
+        }
+
+        if(actionName.equalsIgnoreCase("")) {
+            log.warn("Failed to resolve action name for action index: {}", action);
+        }
+
+        String target = widget.getName();
+        if (target == null || target.isBlank()) {
+            target = widget.getText();
+        }
+
+        ResolvedMenuAction resolvedAction = new ResolvedMenuAction(option, target == null ? "" : Text.removeTags(target));
+        interact(pt, actionName, resolvedAction);
     }
 
     /**

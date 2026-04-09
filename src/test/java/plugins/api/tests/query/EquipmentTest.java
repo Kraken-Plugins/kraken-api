@@ -57,7 +57,6 @@ public class EquipmentTest extends BaseApiTest {
                 testsPassed = false;
             }
 
-            // --- Added sleeps after each equip action ---
             if(!ctx.equipment().inInventory().nameContains("scimi").first().wield()) {
                 log.info("Equipment tests failed, could not wield scimitar");
                 testsPassed = false;
@@ -71,7 +70,6 @@ public class EquipmentTest extends BaseApiTest {
             SleepService.sleepFor(2);
 
             if(!ctx.equipment().inInventory().withId(1163).first().wear()) {
-                // Fixed a minor log typo here (1163 is the full helm, not platelegs)
                 log.info("Equipment tests failed, could not wear rune full helm");
                 testsPassed = false;
             }

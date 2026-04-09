@@ -3,8 +3,7 @@ package com.kraken.api.service.prayer;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.packet.entity.MousePackets;
-import com.kraken.api.core.packet.entity.WidgetPackets;
+import com.kraken.api.query.InteractionManager;
 import com.kraken.api.service.ui.UIService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Point;
@@ -27,10 +26,7 @@ public class PrayerService {
     private Context ctx;
 
     @Inject
-    private MousePackets mousePackets;
-
-    @Inject
-    private WidgetPackets widgetPackets;
+    private InteractionManager interactionManager;
 
     /**
      * Wrapper method which turns a prayer on.
@@ -93,8 +89,7 @@ public class PrayerService {
 
         Widget widget = ctx.getWidget(prayerExtended.getIndex());
         Point point = UIService.getClickbox(widget);
-        mousePackets.queueClickPacket(point.getX(), point.getY());
-        widgetPackets.queueWidgetActionPacket(prayerExtended.getIndex(), -1, -1, 1);
+        interactionManager.interact(prayerExtended.getIndex(), -1, -1, 1);
         return true;
     }
 
@@ -331,13 +326,13 @@ public class PrayerService {
      *                Null values and prayers that are already set will be ignored.
      */
     public void setQuickPrayers(InteractablePrayer... prayers) {
-        widgetPackets.queueWidgetActionPacket(InterfaceID.Orbs.PRAYERBUTTON, -1, -1, 2);
+        interactionManager.interact(InterfaceID.Orbs.PRAYERBUTTON, -1, -1, 2);
         for(InteractablePrayer prayer : prayers) {
             if(prayer == null) continue;
             if(isQuickPrayerSet(prayer)) continue;
-            widgetPackets.queueWidgetActionPacket(InterfaceID.Quickprayer.BUTTONS, prayer.getQuickPrayerIndex(), -1, 1);
+            interactionManager.interact(InterfaceID.Quickprayer.BUTTONS, prayer.getQuickPrayerIndex(), -1, 1);
         }
-        widgetPackets.queueWidgetActionPacket(InterfaceID.Quickprayer.CLOSE, -1, -1, 1);
+        interactionManager.interact(InterfaceID.Quickprayer.CLOSE, -1, -1, 1);
     }
 
     /**
@@ -353,7 +348,7 @@ public class PrayerService {
      * If they are off, they will be turned on.
      */
     public void toggleQuickPrayers() {
-        widgetPackets.queueWidgetActionPacket(InterfaceID.Orbs.PRAYERBUTTON, -1, -1, 1);
+        interactionManager.interact(InterfaceID.Orbs.PRAYERBUTTON, -1, -1, 1);
     }
 
     /**

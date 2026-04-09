@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.packet.entity.WidgetPackets;
+import com.kraken.api.query.InteractionManager;
 import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.ui.UIService;
 import com.kraken.api.service.util.SleepService;
@@ -21,6 +22,9 @@ public class GrandExchangeService {
 
     @Inject
     private WidgetPackets widgetPackets;
+
+    @Inject
+    private InteractionManager interactionManager;
 
     @Inject
     private Context ctx;
@@ -73,7 +77,7 @@ public class GrandExchangeService {
      * Collects all completed offers in the Grand Exchange.
      */
     public void collectAll() {
-        widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.COLLECTALL, 0,  -1, 1);
+        interactionManager.interact(InterfaceID.GeOffers.COLLECTALL, 0,  -1, 1);
     }
 
     /**
@@ -86,11 +90,11 @@ public class GrandExchangeService {
         int itemId = slot.getItemId();
         ctx.runOnClientThread(() -> {
             if(!isOfferDetailsOpen(itemId)) {
-                widgetPackets.queueWidgetActionPacket(slot.getId(), 2,  -1, 1);
+                interactionManager.interact(slot.getId(), 2,  -1, 1);
             }
             // action, widget, child, item -> widget, child, item, action
-            widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.DETAILS_COLLECT, 2, itemId, noted ? 1 : 2);
-            widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.DETAILS_COLLECT, 3, ItemID.COINS, 1);
+            interactionManager.interact(InterfaceID.GeOffers.DETAILS_COLLECT, 2, itemId, noted ? 1 : 2);
+            interactionManager.interact(InterfaceID.GeOffers.DETAILS_COLLECT, 3, ItemID.COINS, 1);
         });
     }
 
@@ -124,16 +128,16 @@ public class GrandExchangeService {
             }
 
             int itemSlot = item.raw().getSlot();
-            widgetPackets.queueWidgetActionPacket(slot.getId(), slot.getSellChild(), -1, 1);
-            widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffersSide.ITEMS, itemSlot, itemId, 1);
+            interactionManager.interact(slot.getId(), slot.getSellChild(), -1, 1);
+            interactionManager.interact(InterfaceID.GeOffersSide.ITEMS, itemSlot, itemId, 1);
 
-            widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.SETUP, 12, -1, 1);
+            interactionManager.interact(InterfaceID.GeOffers.SETUP, 12, -1, 1);
             widgetPackets.queueResumeCount(price);
             if(amount != -1) {
-                widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.SETUP, 7, -1, 1);
+                interactionManager.interact(InterfaceID.GeOffers.SETUP, 7, -1, 1);
                 widgetPackets.queueResumeCount(amount);
             }
-            widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.SETUP_CONFIRM, -1, -1, 1);
+            interactionManager.interact(InterfaceID.GeOffers.SETUP_CONFIRM, -1, -1, 1);
             widgetPackets.queueResumeCount(1);
             UIService.closeNumberDialogue();
         });
@@ -169,13 +173,13 @@ public class GrandExchangeService {
         }
 
         ctx.runOnClientThread(() -> {
-            widgetPackets.queueWidgetActionPacket(slot.getId(), slot.getBuyChild(), -1, 1);
+            interactionManager.interact(slot.getId(), slot.getBuyChild(), -1, 1);
             widgetPackets.queueResumeObj(itemId);
-            widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.SETUP, 12, -1, 1);
+            interactionManager.interact(InterfaceID.GeOffers.SETUP, 12, -1, 1);
             widgetPackets.queueResumeCount(price);
-            widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.SETUP, 7, -1, 1);
+            interactionManager.interact(InterfaceID.GeOffers.SETUP, 7, -1, 1);
             widgetPackets.queueResumeCount(amount);
-            widgetPackets.queueWidgetActionPacket(InterfaceID.GeOffers.SETUP_CONFIRM, -1, -1, 1);
+            interactionManager.interact(InterfaceID.GeOffers.SETUP_CONFIRM, -1, -1, 1);
             UIService.closeNumberDialogue();
         });
         return slot;
@@ -197,7 +201,7 @@ public class GrandExchangeService {
      * @param slot The GrandExchangeSlot to cancel.
      */
     public void cancelOffer(GrandExchangeSlot slot) {
-        widgetPackets.queueWidgetActionPacket(2, slot.getId(), 2, -1);
+        interactionManager.interact(2, slot.getId(), 2, -1);
         SleepService.sleepFor(2);
     }
 }

@@ -2,14 +2,13 @@ package com.kraken.api.service.bank;
 
 import com.google.inject.Provider;
 import com.kraken.api.Context;
-import com.kraken.api.core.packet.entity.MousePackets;
 import com.kraken.api.core.packet.entity.WidgetPackets;
 import com.kraken.api.input.KeyboardService;
+import com.kraken.api.query.InteractionManager;
 import com.kraken.api.service.ui.UIService;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.Point;
 import net.runelite.api.events.ScriptCallbackEvent;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.InventoryID;
@@ -46,6 +45,9 @@ public class BankService {
 
     @Inject
     private KeyboardService keyboard;
+
+    @Inject
+    private InteractionManager interactionManager;
 
     /**
      * Checks whether the bank interface is open.
@@ -140,9 +142,6 @@ public class BankService {
      * @return True if the withdrawal mode was set correctly and false otherwise.
      */
     public boolean setWithdrawMode(boolean noted) {
-        MousePackets mousePackets = ctxProvider.get().getService(MousePackets.class);
-        WidgetPackets widgetPackets = ctxProvider.get().getService(WidgetPackets.class);
-
         int targetMode = noted ? 1 : 0;
         int currentMode = ctxProvider.get().getVarbitValue(BANK_WITHDRAWNOTES);
 
@@ -158,12 +157,8 @@ public class BankService {
 
             if (!hasAction) return false;
 
-            Point pt = UIService.getClickbox(toggleWidget);
-            if (pt != null) {
-                mousePackets.queueClickPacket(pt.getX(), pt.getY());
-                widgetPackets.queueWidgetAction(toggleWidget, cleanedAction);
-                return true;
-            }
+            interactionManager.interact(toggleWidget, cleanedAction);
+            return true;
         }
         return false;
     }
@@ -176,15 +171,14 @@ public class BankService {
     public void setXAmount(int amount) {
         int withdrawMode = ctxProvider.get().getVarbitValue(VarbitID.BANK_QUANTITY_TYPE);
         WidgetPackets widgetPackets = ctxProvider.get().getService(WidgetPackets.class);
-
-
+        
         if(withdrawMode != 3) {
-            widgetPackets.queueWidgetActionPacket(InterfaceID.Bankmain.QUANTITYX, -1, -1, 1);
+            interactionManager.interact(InterfaceID.Bankmain.QUANTITYX, -1, -1, 1);
         }
 
         int quantity = getXAmount();
         if(quantity != amount && amount != 1 && amount != 5 && amount != 10 && amount != -1) {
-            widgetPackets.queueWidgetActionPacket(InterfaceID.Bankmain.QUANTITYX, -1, -1, 2);
+            interactionManager.interact(InterfaceID.Bankmain.QUANTITYX, -1, -1, 2);
             widgetPackets.queueResumeCount(amount);
             UIService.closeNumberDialogue();
         }

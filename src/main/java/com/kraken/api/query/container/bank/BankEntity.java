@@ -126,13 +126,13 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
 
             // The X value is already exactly what we need.
             if(quantitySet == amount) {
-                ctx.getInteractionManager().getWidgetPackets().queueWidgetAction(raw, "Withdraw-" + amount);
+                ctx.getInteractionManager().interact(raw, "Withdraw-" + amount);
                 ctx.getInteractionManager().getWidgetPackets().queueResumeCount(amount);
                 return true;
             }
 
             bankService.setXAmount(amount);
-            ctx.getInteractionManager().getWidgetPackets().queueWidgetAction(raw, "Withdraw-X");
+            ctx.getInteractionManager().interact(raw, "Withdraw-X");
             ctx.getInteractionManager().getWidgetPackets().queueResumeCount(amount);
             return true;
         });
