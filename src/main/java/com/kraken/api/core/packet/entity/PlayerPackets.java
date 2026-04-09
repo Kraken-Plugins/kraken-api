@@ -27,9 +27,6 @@ public class PlayerPackets {
     private Provider<PacketClient> packetClientProvider;
 
     @Inject
-    private PacketFactory packetFactory;
-
-    @Inject
     private Client client;
 
     /**
@@ -45,7 +42,7 @@ public class PlayerPackets {
     @SneakyThrows
     public void queuePlayerAction(int actionFieldNo, int playerIndex, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetFactory.getOpPlayer(actionFieldNo), playerIndex, ctrl);
+        packetClientProvider.get().sendPacket(PacketFactory.getOpPlayer(actionFieldNo), playerIndex, ctrl);
     }
 
     /**
@@ -102,7 +99,7 @@ public class PlayerPackets {
      */
     public void queueWidgetOnPlayer(int playerIndex, int sourceItemId, int sourceSlot, int sourceWidgetId, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetFactory.getOpPlayerT(), playerIndex, sourceItemId, sourceSlot, sourceWidgetId, ctrl);
+        packetClientProvider.get().sendPacket(PacketFactory.getOpPlayerT(), playerIndex, sourceItemId, sourceSlot, sourceWidgetId, ctrl);
     }
 
     /**

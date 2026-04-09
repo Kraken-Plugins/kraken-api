@@ -5,20 +5,12 @@ import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.core.packet.PacketClient;
 import com.kraken.api.core.packet.model.PacketFactory;
-import net.runelite.api.Client;
 
 @Singleton
 public class SailingPackets {
 
     @Inject
-    private Client client;
-
-    @Inject
     private Provider<PacketClient> packetSenderProvider;
-
-    @Inject
-    private PacketFactory packetFactory;
-
 
     /**
      * Queues a packet to set the direction of the boat in the game.
@@ -55,6 +47,6 @@ public class SailingPackets {
         if(direction < 0 || direction > 15) {
             throw new IllegalArgumentException("Invalid direction value: " + direction + ", expected 0-15");
         }
-        packetSenderProvider.get().sendPacket(packetFactory.getSetHeading(), direction);
+        packetSenderProvider.get().sendPacket(PacketFactory.getSetHeading(), direction);
     }
 }

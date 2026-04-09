@@ -26,13 +26,12 @@ public class PacketInterceptor {
     public static PacketInterceptor instance;
     public boolean injected = false;
     public Client client;
-    public PacketFactory packetFactory;
+
 
     @Inject
-    public PacketInterceptor(Client client, PacketFactory packetFactory) {
+    public PacketInterceptor(Client client) {
         instance = this;
         this.client = client;
-        this.packetFactory = packetFactory;
         eventBus.register(this);
     }
 
@@ -93,8 +92,8 @@ public class PacketInterceptor {
         EncodedPacket rawPacket = new EncodedPacket();
         try {
             Class<?> nodeClass = packetBufferNode.getClass();
-            Object clientPacket = null; // iq.ap
-            Object packetBuffer = null; // wg.ai
+            Object clientPacket = null;
+            Object packetBuffer = null;
 
             // Iterate through every declared field in the PacketBufferNode class
             for (Field field : nodeClass.getDeclaredFields()) {
@@ -103,7 +102,6 @@ public class PacketInterceptor {
                 Class<?> fieldType = field.getType();
                 String typeName = fieldType.getSimpleName();
 
-                // METHOD 1: If you know the current obfuscated class names ("iq", "wg")
                 if (typeName.equals(PacketFactory.getPacketMetadata().getClientPacketClassName())) {
                     clientPacket = field.get(packetBufferNode);
                 } else if (typeName.equals(PacketFactory.getPacketMetadata().getBufferClassName())) {

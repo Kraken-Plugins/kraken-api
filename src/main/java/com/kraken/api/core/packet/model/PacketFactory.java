@@ -1,12 +1,12 @@
 package com.kraken.api.core.packet.model;
 
 import com.google.gson.Gson;
-import com.google.inject.Singleton;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -15,10 +15,10 @@ import java.util.Map;
 
 /**
  * <p>A factory class for creating and managing {@link PacketDefinition} instances for various packet types and actions.
- * This class initializes packet definitions by fetching and parsing a JSON configuration file from a remote URL.</p>
+ * This class initializes packet definitions by fetching and parsing a JSON configuration file locally first,
+ * then falling back to a remote URL.</p>
  */
 @Slf4j
-@Singleton
 public class PacketFactory {
 
     @Getter
@@ -31,26 +31,56 @@ public class PacketFactory {
     private static String clientVersion = "";
 
     private static final String PACKETS_URL = "https://minio.kraken-plugins.com/kraken-bootstrap-static/packets.json";
+    private static final String LOCAL_PACKETS_PATH = "/packets.json";
 
     static {
+        if (!loadFromLocalResources()) {
+            log.info("Local packets.json not found or failed to load. Falling back to remote URL: {}", PACKETS_URL);
+            loadFromRemote();
+        } else {
+            log.debug("Successfully loaded packets.json from local resources.");
+        }
+    }
+
+    private static boolean loadFromLocalResources() {
+        try (InputStream is = PacketFactory.class.getResourceAsStream(LOCAL_PACKETS_PATH)) {
+            if (is == null) {
+                return false; // File not found in resources
+            }
+            try (InputStreamReader reader = new InputStreamReader(is)) {
+                log.info("Loaded packets.json from local resources.");
+                parseJson(reader);
+                return true;
+            }
+        } catch (Exception e) {
+            log.warn("Exception while trying to load packets.json locally", e);
+            return false;
+        }
+    }
+
+    private static void loadFromRemote() {
         try {
             HttpURLConnection connection = getHttpURLConnection();
             try (InputStreamReader reader = new InputStreamReader(connection.getInputStream())) {
-                Gson gson = new Gson();
-                MappedPackets mappedPackets = gson.fromJson(reader, MappedPackets.class);
-
-                if (mappedPackets == null || mappedPackets.getPackets() == null) {
-                    throw new IllegalStateException("Parsed MappedPackets or its packet map was null.");
-                }
-
-                packets = mappedPackets.getPackets();
-                packetMetadata = mappedPackets.getReflectionHooks();
-                clientVersion = mappedPackets.getClientVersion();
+                log.info("Loaded packets.json from remote.");
+                parseJson(reader);
             }
-
         } catch (Exception e) {
             log.error("Failed to initialize PacketFactory from remote JSON", e);
         }
+    }
+
+    private static void parseJson(InputStreamReader reader) {
+        Gson gson = new Gson();
+        MappedPackets mappedPackets = gson.fromJson(reader, MappedPackets.class);
+
+        if (mappedPackets == null || mappedPackets.getPackets() == null) {
+            throw new IllegalStateException("Parsed MappedPackets or its packet map was null.");
+        }
+
+        packets = mappedPackets.getPackets();
+        packetMetadata = mappedPackets.getReflectionHooks();
+        clientVersion = mappedPackets.getClientVersion();
     }
 
     private static @NonNull HttpURLConnection getHttpURLConnection() throws IOException {
@@ -71,7 +101,7 @@ public class PacketFactory {
     /**
      * Helper method to safely retrieve a packet and fail fast if the JSON is missing definitions.
      */
-    private PacketDefinition getPacket(String packetName) {
+    private static PacketDefinition getPacket(String packetName) {
         PacketDefinition def = packets.get(packetName);
         if (def == null) {
             throw new IllegalStateException("Packet definition not found in mapped JSON for: " + packetName);
@@ -80,61 +110,61 @@ public class PacketFactory {
     }
 
     // OPOBJ packets (1-5)
-    public PacketDefinition getOpObj1() { return getPacket("OPOBJ1"); }
-    public PacketDefinition getOpObj2() { return getPacket("OPOBJ2"); }
-    public PacketDefinition getOpObj3() { return getPacket("OPOBJ3"); }
-    public PacketDefinition getOpObj4() { return getPacket("OPOBJ4"); }
-    public PacketDefinition getOpObj5() { return getPacket("OPOBJ5"); }
+    public static PacketDefinition getOpObj1() { return getPacket("OPOBJ1"); }
+    public static PacketDefinition getOpObj2() { return getPacket("OPOBJ2"); }
+    public static PacketDefinition getOpObj3() { return getPacket("OPOBJ3"); }
+    public static PacketDefinition getOpObj4() { return getPacket("OPOBJ4"); }
+    public static PacketDefinition getOpObj5() { return getPacket("OPOBJ5"); }
 
     // OPLOC packets (1-5)
-    public PacketDefinition getOpLoc1() { return getPacket("OPLOC1"); }
-    public PacketDefinition getOpLoc2() { return getPacket("OPLOC2"); }
-    public PacketDefinition getOpLoc3() { return getPacket("OPLOC3"); }
-    public PacketDefinition getOpLoc4() { return getPacket("OPLOC4"); }
-    public PacketDefinition getOpLoc5() { return getPacket("OPLOC5"); }
+    public static PacketDefinition getOpLoc1() { return getPacket("OPLOC1"); }
+    public static PacketDefinition getOpLoc2() { return getPacket("OPLOC2"); }
+    public static PacketDefinition getOpLoc3() { return getPacket("OPLOC3"); }
+    public static PacketDefinition getOpLoc4() { return getPacket("OPLOC4"); }
+    public static PacketDefinition getOpLoc5() { return getPacket("OPLOC5"); }
 
     // OPNPC packets (1-5)
-    public PacketDefinition getOpNpc1() { return getPacket("OPNPC1"); }
-    public PacketDefinition getOpNpc2() { return getPacket("OPNPC2"); }
-    public PacketDefinition getOpNpc3() { return getPacket("OPNPC3"); }
-    public PacketDefinition getOpNpc4() { return getPacket("OPNPC4"); }
-    public PacketDefinition getOpNpc5() { return getPacket("OPNPC5"); }
+    public static PacketDefinition getOpNpc1() { return getPacket("OPNPC1"); }
+    public static PacketDefinition getOpNpc2() { return getPacket("OPNPC2"); }
+    public static PacketDefinition getOpNpc3() { return getPacket("OPNPC3"); }
+    public static PacketDefinition getOpNpc4() { return getPacket("OPNPC4"); }
+    public static PacketDefinition getOpNpc5() { return getPacket("OPNPC5"); }
 
     // OPPLAYER packets (1-8)
-    public PacketDefinition getOpPlayer1() { return getPacket("OPPLAYER1"); }
-    public PacketDefinition getOpPlayer2() { return getPacket("OPPLAYER2"); }
-    public PacketDefinition getOpPlayer3() { return getPacket("OPPLAYER3"); }
-    public PacketDefinition getOpPlayer4() { return getPacket("OPPLAYER4"); }
-    public PacketDefinition getOpPlayer5() { return getPacket("OPPLAYER5"); }
-    public PacketDefinition getOpPlayer6() { return getPacket("OPPLAYER6"); }
-    public PacketDefinition getOpPlayer7() { return getPacket("OPPLAYER7"); }
-    public PacketDefinition getOpPlayer8() { return getPacket("OPPLAYER8"); }
+    public static PacketDefinition getOpPlayer1() { return getPacket("OPPLAYER1"); }
+    public static PacketDefinition getOpPlayer2() { return getPacket("OPPLAYER2"); }
+    public static PacketDefinition getOpPlayer3() { return getPacket("OPPLAYER3"); }
+    public static PacketDefinition getOpPlayer4() { return getPacket("OPPLAYER4"); }
+    public static PacketDefinition getOpPlayer5() { return getPacket("OPPLAYER5"); }
+    public static PacketDefinition getOpPlayer6() { return getPacket("OPPLAYER6"); }
+    public static PacketDefinition getOpPlayer7() { return getPacket("OPPLAYER7"); }
+    public static PacketDefinition getOpPlayer8() { return getPacket("OPPLAYER8"); }
 
     // Special operation packets with items
-    public PacketDefinition getOpLocT() { return getPacket("OPLOCT"); }
-    public PacketDefinition getOpNpcT() { return getPacket("OPNPCT"); }
-    public PacketDefinition getOpPlayerT() { return getPacket("OPPLAYERT"); }
-    public PacketDefinition getOpObjT() { return getPacket("OPOBJT"); }
+    public static PacketDefinition getOpLocT() { return getPacket("OPLOCT"); }
+    public static PacketDefinition getOpNpcT() { return getPacket("OPNPCT"); }
+    public static PacketDefinition getOpPlayerT() { return getPacket("OPPLAYERT"); }
+    public static PacketDefinition getOpObjT() { return getPacket("OPOBJT"); }
 
     // Interface/Widget packets
-    public PacketDefinition getIfButtonT() { return getPacket("IF_BUTTONT"); }
-    public PacketDefinition getIfButtonX() { return getPacket("IF_BUTTONX"); }
-    public PacketDefinition getIfSubOp() { return getPacket("IF_SUBOP"); }
-    public PacketDefinition getOpHeldd() { return getPacket("OPHELDD"); }
+    public static PacketDefinition getIfButtonT() { return getPacket("IF_BUTTONT"); }
+    public static PacketDefinition getIfButtonX() { return getPacket("IF_BUTTONX"); }
+    public static PacketDefinition getIfSubOp() { return getPacket("IF_SUBOP"); }
+    public static PacketDefinition getOpHeldd() { return getPacket("OPHELDD"); }
 
     // Resume packets for dialogues with NPC's in the chatbox.
-    public PacketDefinition getResumePausebutton() { return getPacket("RESUME_PAUSEBUTTON"); }
-    public PacketDefinition getResumeCountDialog() { return getPacket("RESUME_COUNTDIALOG"); }
-    public PacketDefinition getResumeObjDialog() { return getPacket("RESUME_OBJDIALOG"); }
-    public PacketDefinition getResumeNameDialog() { return getPacket("RESUME_NAMEDIALOG"); }
-    public PacketDefinition getResumeStringDialog() { return getPacket("RESUME_STRINGDIALOG"); }
+    public static PacketDefinition getResumePausebutton() { return getPacket("RESUME_PAUSEBUTTON"); }
+    public static PacketDefinition getResumeCountDialog() { return getPacket("RESUME_COUNTDIALOG"); }
+    public static PacketDefinition getResumeObjDialog() { return getPacket("RESUME_OBJDIALOG"); }
+    public static PacketDefinition getResumeNameDialog() { return getPacket("RESUME_NAMEDIALOG"); }
+    public static PacketDefinition getResumeStringDialog() { return getPacket("RESUME_STRINGDIALOG"); }
 
     // Movement and event packets
-    public PacketDefinition getMoveGameClick() { return getPacket("MOVE_GAMECLICK"); }
-    public PacketDefinition getEventMouseClick() { return getPacket("EVENT_MOUSE_CLICK"); }
-    public PacketDefinition getSetHeading() { return getPacket("SET_HEADING"); }
+    public static PacketDefinition getMoveGameClick() { return getPacket("MOVE_GAMECLICK"); }
+    public static PacketDefinition getEventMouseClick() { return getPacket("EVENT_MOUSE_CLICK"); }
+    public static PacketDefinition getSetHeading() { return getPacket("SET_HEADING"); }
 
-    public PacketDefinition getDefinitionForType(PacketType type) {
+    public static PacketDefinition getDefinitionForType(PacketType type) {
         switch (type) {
             case OPOBJ: return getOpObj1();
             case OPLOC: return getOpLoc1();
@@ -162,7 +192,7 @@ public class PacketFactory {
         }
     }
 
-    public PacketDefinition getDefinitionForType(PacketType type, int action) {
+    public static PacketDefinition getDefinitionForType(PacketType type, int action) {
         switch (type) {
             case OPOBJ: return getOpObj(action);
             case OPLOC: return getOpLoc(action);
@@ -189,7 +219,7 @@ public class PacketFactory {
         }
     }
 
-    public PacketDefinition getOpObj(int action) {
+    public static PacketDefinition getOpObj(int action) {
         switch (action) {
             case 1: return getOpObj1();
             case 2: return getOpObj2();
@@ -200,7 +230,7 @@ public class PacketFactory {
         }
     }
 
-    public PacketDefinition getOpLoc(int action) {
+    public static PacketDefinition getOpLoc(int action) {
         switch (action) {
             case 1: return getOpLoc1();
             case 2: return getOpLoc2();
@@ -211,7 +241,7 @@ public class PacketFactory {
         }
     }
 
-    public PacketDefinition getOpNpc(int action) {
+    public static PacketDefinition getOpNpc(int action) {
         switch (action) {
             case 1: return getOpNpc1();
             case 2: return getOpNpc2();
@@ -222,7 +252,7 @@ public class PacketFactory {
         }
     }
 
-    public PacketDefinition getOpPlayer(int action) {
+    public static PacketDefinition getOpPlayer(int action) {
         switch (action) {
             case 1: return getOpPlayer1();
             case 2: return getOpPlayer2();

@@ -24,9 +24,6 @@ public class GroundItemPackets {
     @Inject
     private Provider<PacketClient> packetClientProvider;
 
-    @Inject
-    private PacketFactory packetFactory;
-
     /**
      * Queues the low-level packet to perform a generic action click on a ground item.
      * <p>
@@ -44,7 +41,7 @@ public class GroundItemPackets {
     public void queueGroundItemAction(int actionFieldNo, int objectId, int worldPointX, int worldPointY, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
         int subop = 0;
-        packetClientProvider.get().sendPacket(packetFactory.getOpObj(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
+        packetClientProvider.get().sendPacket(PacketFactory.getOpObj(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
     }
 
     /**
@@ -63,7 +60,7 @@ public class GroundItemPackets {
      */
     public void queueWidgetOnGroundItem(int objectId, int worldPointX, int worldPointY, int sourceSlot, int sourceItemId, int sourceWidgetId, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetFactory.getOpObjT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId,
+        packetClientProvider.get().sendPacket(PacketFactory.getOpObjT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId,
                 sourceWidgetId, ctrl);
     }
 

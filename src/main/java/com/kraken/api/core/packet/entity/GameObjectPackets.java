@@ -29,9 +29,6 @@ public class GameObjectPackets {
     private Provider<PacketClient> packetClientProvider;
 
     @Inject
-    private PacketFactory packetFactory;
-
-    @Inject
     private TileService tileService;
 
     @Inject
@@ -53,7 +50,7 @@ public class GameObjectPackets {
     public void queueObjectAction(int actionFieldNo, int objectId, int worldPointX, int worldPointY, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
         int subop = 0;
-        packetClientProvider.get().sendPacket(packetFactory.getOpLoc(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
+        packetClientProvider.get().sendPacket(PacketFactory.getOpLoc(actionFieldNo), objectId, worldPointX, worldPointY, ctrl, subop);
     }
 
     /**
@@ -127,7 +124,7 @@ public class GameObjectPackets {
      */
     public void queueWidgetOnTileObject(int objectId, int worldPointX, int worldPointY, int sourceSlot, int sourceItemId, int sourceWidgetId, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClientProvider.get().sendPacket(packetFactory.getOpLocT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId, sourceWidgetId, ctrl);
+        packetClientProvider.get().sendPacket(PacketFactory.getOpLocT(), objectId, worldPointX, worldPointY, sourceSlot, sourceItemId, sourceWidgetId, ctrl);
     }
 
     /**

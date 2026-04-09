@@ -12,9 +12,6 @@ import javax.inject.Inject;
 public class MovementPackets {
 
     @Inject
-    private PacketFactory packetFactory;
-
-    @Inject
     private Provider<PacketClient> packetClient;
 
     @Inject
@@ -28,7 +25,7 @@ public class MovementPackets {
      */
     public void queueMovement(int worldPointX, int worldPointY, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClient.get().sendPacket(packetFactory.getMoveGameClick(), worldPointX, worldPointY, ctrl, 5);
+        packetClient.get().sendPacket(PacketFactory.getMoveGameClick(), worldPointX, worldPointY, ctrl, 5);
     }
 
     /**
