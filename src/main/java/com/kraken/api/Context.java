@@ -8,7 +8,6 @@ import com.kraken.api.core.interceptor.DoActionInterceptor;
 import com.kraken.api.core.interceptor.InterceptorBuilder;
 import com.kraken.api.core.interceptor.MouseHookInterceptor;
 import com.kraken.api.core.interceptor.PacketInterceptor;
-import com.kraken.api.core.packet.PacketMapper;
 import com.kraken.api.core.packet.PacketMethodLocator;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
@@ -74,15 +73,11 @@ public class Context {
     private final DoActionInterceptor doActionInterceptor;
     private final Injector injector;
 
-    private Injector childInjector; // Contains guice bindings for InteractionManager
-
-
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
                    final Injector injector, final TileService tileService, final ItemManager itemManager, final BankService bankService,
                    final PacketInterceptor packetInterceptor, final MouseHookInterceptor mouseHookInterceptor, final DoActionInterceptor doActionInterceptor,
-                   final InteractionManager interactionManager,
-                   final PacketMapper mapper) {
+                   final InteractionManager interactionManager) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
@@ -96,7 +91,6 @@ public class Context {
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
-        eventBus.register(mapper);
     }
 
     /**

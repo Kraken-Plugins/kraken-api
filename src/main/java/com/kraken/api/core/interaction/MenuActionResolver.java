@@ -22,6 +22,7 @@ public interface MenuActionResolver<T> {
 
     /**
      * The entity type this resolver handles. Used for registry lookup.
+     * @return {@literal Class<T>} The type of game entity this resolver handles (e.g. NPC, Widget, TileObject, etc.)
      */
     Class<T> getEntityType();
 }

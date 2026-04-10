@@ -41,7 +41,7 @@ public class ProcessingService {
      * @param itemIds A variable-length list of item IDs to compare against the processable
      *                items currently available. These represent the items the user
      *                wants to confirm.
-     *
+     * @param action The action to perform. i.e. "Cook", "Make", "Craft", "Smelt", etc...
      * @return {@code true} if at least one of the provided {@code itemIds} matches the processable
      *         items and an interaction is successfully queued; {@code false} otherwise.
      */
@@ -76,7 +76,7 @@ public class ProcessingService {
      * @param containerItem A non null container item to compare against the processable
      *                items currently available. These represent the items the user
      *                wants to confirm.
-     *
+     * @param action The action to perform. i.e. "Cook", "Make", "Craft", "Smelt", etc...
      * @return {@code true} if at least one of the provided {@code itemIds} matches the processable
      *         items and an interaction is successfully queued; {@code false} otherwise.
      */
@@ -109,7 +109,7 @@ public class ProcessingService {
      * @param itemNames A variable-length list of item names to compare against the processable
      *                  items currently available. These represent the items the user
      *                  wants to confirm.
-     *
+     * @param action The action to perform. i.e. "Cook", "Make", "Craft", "Smelt", etc...
      * @return {@code true} if at least one of the provided {@code itemNames} matches the processable
      *         items and an interaction is successfully queued; {@code false} otherwise.
      */
@@ -139,7 +139,7 @@ public class ProcessingService {
      * the widget ID using a base interface ID and the provided {@code index}, and queues
      * the corresponding "resume/pause" action packet using the multi-quantity value
      * retrieved by {@code getAmount()}.</p>
-     *
+     * @param action The action to perform. i.e. "Cook", "Make", "Craft", "Smelt", etc...
      * @param index The index to confirm in the interface. This value determines the child
      *              component of the base widget that the action will target.
      */

@@ -33,7 +33,7 @@ import java.util.Map;
  * </ul>
  *
  * <p>The {@code indexMultiplier} and {@code offsetMultiplier} are the same obfuscated
- * constants used by {@link BufferUtils} and are loaded from {@link PacketFactory#getPacketMetadata()}.
+ * constants used by {@link BufferUtils} and are loaded from PacketFactory.getPacketMetadata.
  */
 public class BufferReader {
 

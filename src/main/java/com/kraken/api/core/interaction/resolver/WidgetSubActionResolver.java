@@ -26,9 +26,11 @@ public class WidgetSubActionResolver {
     private Provider<Context> ctxProvider;
 
     /**
+     * Resolves a widget sub-action menu interaction, i.e. the nested option menu like Max cape teleports, games necklace teleports, or fairy ring sub options.
      * @param widget        The widget to interact with (e.g. Ring of Dueling in inventory)
      * @param primaryMenu   The primary action label (e.g. "Rub")
      * @param subActionName The sub-action label (e.g. "Fortis Colosseum")
+     * @return The resolved sub-action menu as an optional
      */
     public Optional<ResolvedMenuAction> resolve(Widget widget, String primaryMenu, String subActionName) {
         if (widget == null || widget.getItemId() == -1) {

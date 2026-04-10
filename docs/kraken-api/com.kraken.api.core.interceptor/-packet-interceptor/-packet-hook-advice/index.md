@@ -5,7 +5,7 @@
 [Kraken API]\
 open class [PacketHookAdvice](index.md)
 
-The Advice class. This code is injected DIRECTLY into the start of the &quot;addNode&quot; method. It must be public and static.
+The Advice class injected directly into &quot;addNode&quot;.
 
 ## Constructors
 

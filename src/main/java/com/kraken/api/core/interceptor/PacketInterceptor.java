@@ -87,6 +87,8 @@ public class PacketInterceptor {
 
     /**
      * Extracts the encrypted Packet id (not opcode), size, and byte array payload from the PacketBufferNode.
+     * @param packetBufferNode The packet buffer node object.
+     * @return EncodedPacket The encoded packet, containing the id (not opcode), size, and byte array payload.
      */
     public static EncodedPacket analyzePacket(Object packetBufferNode) {
         EncodedPacket rawPacket = new EncodedPacket();
