@@ -2,7 +2,7 @@ package com.kraken.api.core.packet.entity;
 
 import com.google.inject.Provider;
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import net.runelite.api.Client;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
@@ -10,9 +10,6 @@ import net.runelite.api.coords.WorldPoint;
 import javax.inject.Inject;
 
 public class MovementPackets {
-
-    @Inject
-    private PacketDefFactory packetDefFactory;
 
     @Inject
     private Provider<PacketClient> packetClient;
@@ -28,7 +25,7 @@ public class MovementPackets {
      */
     public void queueMovement(int worldPointX, int worldPointY, boolean ctrlDown) {
         int ctrl = ctrlDown ? 1 : 0;
-        packetClient.get().sendPacket(packetDefFactory.getMoveGameClick(), worldPointX, worldPointY, ctrl, 5);
+        packetClient.get().sendPacket(PacketFactory.getMoveGameClick(), worldPointX, worldPointY, ctrl, 5);
     }
 
     /**

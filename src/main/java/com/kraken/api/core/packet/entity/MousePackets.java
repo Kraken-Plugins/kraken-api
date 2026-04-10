@@ -3,9 +3,8 @@ package com.kraken.api.core.packet.entity;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
-import com.kraken.api.core.packet.ObfuscatedNames;
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import com.kraken.api.util.MathUtils;
 import com.kraken.api.util.RandomUtils;
 import lombok.SneakyThrows;
@@ -25,9 +24,6 @@ public class MousePackets {
 
     @Inject
     private Provider<PacketClient> packetSenderProvider;
-
-    @Inject
-    private PacketDefFactory packetDefFactory;
 
     private static long randomDelay = RandomUtils.randomDelay();
 
@@ -50,7 +46,7 @@ public class MousePackets {
         if (deltaMs > 32767) deltaMs = 32767L;
         int mouseInfo = ((int) deltaMs << 1);
 
-        packetSenderProvider.get().sendPacket(packetDefFactory.getEventMouseClick(), mouseInfo, x, y, 0);
+        packetSenderProvider.get().sendPacket(PacketFactory.getEventMouseClick(), mouseInfo, x, y, 0);
 
         int idleClientTicks = client.getKeyboardIdleTicks();
         if (client.getMouseIdleTicks() < idleClientTicks) {
@@ -72,27 +68,27 @@ public class MousePackets {
 
     @SneakyThrows
     private long getClientLastMillis() {
-        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(ObfuscatedNames.clientMillisField);
+        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getClientMillisField());
         clientLastPressedTimeMillis.setAccessible(true);
-        long retValue = clientLastPressedTimeMillis.getLong(client) * Long.parseLong(ObfuscatedNames.clientMillisMultiplier);
+        long retValue = clientLastPressedTimeMillis.getLong(client) * Long.parseLong(PacketFactory.getPacketMetadata().getClientMillisMultiplier());
         clientLastPressedTimeMillis.setAccessible(false);
         return retValue;
     }
 
     @SneakyThrows
     private void setMouseHandlerLastMillis(long time) {
-        Class<?> mouseHandler = client.getClass().getClassLoader().loadClass(ObfuscatedNames.MouseHandler_lastPressedTimeMillisClass);
-        Field mouseHandlerLastPressedTime = mouseHandler.getDeclaredField(ObfuscatedNames.MouseHandler_lastPressedTimeMillisField);
+        Class<?> mouseHandler = client.getClass().getClassLoader().loadClass(PacketFactory.getPacketMetadata().getMouseHandlerLastPressedClass());
+        Field mouseHandlerLastPressedTime = mouseHandler.getDeclaredField(PacketFactory.getPacketMetadata().getMouseHandlerLastPressedField());
         mouseHandlerLastPressedTime.setAccessible(true);
-        mouseHandlerLastPressedTime.setLong(null, time * MathUtils.modInverse(Long.parseLong(ObfuscatedNames.mouseHandlerMillisMultiplier)));
+        mouseHandlerLastPressedTime.setLong(null, time * MathUtils.modInverse(Long.parseLong(PacketFactory.getPacketMetadata().getMouseHandlerMultiplier())));
         mouseHandlerLastPressedTime.setAccessible(false);
     }
 
     @SneakyThrows
     private void setClientLastMillis(long time) {
-        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(ObfuscatedNames.clientMillisField);
+        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getClientMillisField());
         clientLastPressedTimeMillis.setAccessible(true);
-        clientLastPressedTimeMillis.setLong(client, time * MathUtils.modInverse(Long.parseLong(ObfuscatedNames.clientMillisMultiplier)));
+        clientLastPressedTimeMillis.setLong(client, time * MathUtils.modInverse(Long.parseLong(PacketFactory.getPacketMetadata().getClientMillisMultiplier())));
         clientLastPressedTimeMillis.setAccessible(false);
     }
 }

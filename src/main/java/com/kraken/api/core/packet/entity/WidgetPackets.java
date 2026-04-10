@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketDefFactory;
+import com.kraken.api.core.packet.model.PacketFactory;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ItemComposition;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * This class abstracts the complexity of constructing and sending
  * packets related to widget (interface) interactions, such as clicking buttons.
  * It uses a {@link PacketClient} provider to send the low-level packets,
- * which are defined by the {@link PacketDefFactory}.
+ * which are defined by the {@link PacketFactory}.
  */
 @Slf4j
 @Singleton
@@ -29,76 +29,6 @@ public class WidgetPackets {
 
     @Inject
     private Provider<PacketClient> packetSenderProvider;
-
-    @Inject
-    private PacketDefFactory packetDefFactory;
-
-    /**
-     * Queues a low-level widget action packet (IF_BUTTONX).
-     * <p>
-     * This method is a direct wrapper for the IF_BUTTONX packet, which is used
-     * for most widget interactions. It corresponds to one of the 10 "IF_BUTTON"
-     * opcodes (e.g., IF_BUTTON1, IF_BUTTON2, etc.).
-     *
-     * @param widgetId      The parent widget ID (e.g., WidgetInfo.BANK_CONTAINER.getId()).
-     * @param childId       The specific child widget index (slot) within the parent. -1 for no specific child.
-     * @param itemId        The item ID associated with the slot, if any. -1 for no item.
-     * @param actionFieldNo The action number (1-10) to execute. This maps to the
-     * specific packet (e.g., 1 = IF_BUTTON1, 2 = IF_BUTTON2).
-     */
-    @SneakyThrows
-    public void queueWidgetActionPacket(int widgetId, int childId, int itemId, int actionFieldNo) {
-        // Sends the IF_BUTTONX packet (generic widget action packet)
-        // actionFieldNo & 65535 is a bitmask to ensure the value fits within an unsigned short,
-        // which is how the client likely processes it.
-        packetSenderProvider.get().sendPacket(packetDefFactory.getIfButtonX(), widgetId, childId, itemId, actionFieldNo & 65535);
-    }
-
-    /**
-     * Queues a widget action by searching for a specific action string (e.g., "Withdraw-1", "Bank").
-     * <p>
-     * This is a higher-level convenience method. Instead of needing to know the
-     * exact action number (1-10), you can provide the human-readable text of the
-     * action. The method will find the corresponding action number and send the correct packet.
-     *
-     * @param widget     The {@link Widget} object to interact with.
-     * @param actionlist A varargs list of action strings to search for. The method will
-     * use the *first* match it finds. The search is case-insensitive
-     * and ignores color tags.
-     */
-    @SneakyThrows
-    public void queueWidgetAction(Widget widget, String... actionlist) {
-        if (widget == null || widget.getActions() == null || widget.getActions().length == 0) {
-            return;
-        }
-
-        List<String> actions = Arrays.stream(widget.getActions()).collect(Collectors.toList());
-        for (int i = 0; i < actions.size(); i++) {
-            if (actions.get(i) == null)
-                continue;
-            actions.set(i, actions.get(i).toLowerCase());
-        }
-
-        int num = -1;
-        for (String action : actions) {
-            for (String action2 : actionlist) {
-                if (action != null && Text.removeTags(action).equalsIgnoreCase(action2)) {
-                    num = actions.indexOf(action.toLowerCase()) + 1;
-                    break;
-                }
-            }
-            if (num != -1) break;
-        }
-
-        // If no valid action was found (1-10), do nothing.
-        if (num < 1 || num > 10) {
-            String actionsString = actions.stream().filter(Objects::nonNull).map(Text::removeTags).collect(Collectors.joining(", "));
-            log.error("No valid action found for: {}, Actions: [{}]", actionlist, actionsString);
-            return;
-        }
-
-        queueWidgetActionPacket(widget.getId(), widget.getIndex(), widget.getItemId(), num);
-    }
 
     /**
      * Queues a widget sub-action packet by identifying the specific sub-action
@@ -166,63 +96,7 @@ public class WidgetPackets {
         }
 
         packetSenderProvider.get()
-                .sendPacket(packetDefFactory.getIfSubOp(), widget.getId(), widget.getIndex(), widget.getItemId(), menuIndex, actionIndex);
-    }
-
-
-    /**
-     * Queues a packet simulating the use of one widget item (source) on another
-     * widget item (destination). This is typically used for "Use" menu actions
-     * like using a potion on a bank slot or an item on a piece of equipment.
-     * <p>
-     * Delegates to the overloaded method using the raw IDs and indices.
-     *
-     * @param srcWidget The source widget (e.g., the item being "used").
-     * @param destWidget The destination widget (e.g., the item or slot being used "on").
-     */
-    public void queueWidgetOnWidget(Widget srcWidget, Widget destWidget) {
-        queueWidgetOnWidget(srcWidget.getId(), srcWidget.getIndex(), srcWidget.getItemId(), destWidget.getId(), destWidget.getIndex(), destWidget.getItemId());
-    }
-
-    /**
-     * Queues the raw IF_BUTTONT packet, simulating using an item/slot from a
-     * source widget on an item/slot of a destination widget.
-     *
-     * @param sourceWidgetId The ID of the source widget (interface).
-     * @param sourceSlot The slot/index within the source widget.
-     * @param sourceItemId The item ID within the source slot.
-     * @param destinationWidgetId The ID of the destination widget (interface).
-     * @param destinationSlot The slot/index within the destination widget.
-     * @param destinationItemId The item ID within the destination slot.
-     */
-    public void queueWidgetOnWidget(int sourceWidgetId, int sourceSlot, int sourceItemId, int destinationWidgetId, int destinationSlot, int destinationItemId) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getIfButtonT(), sourceWidgetId, sourceSlot, sourceItemId, destinationWidgetId,
-                destinationSlot, destinationItemId);
-    }
-
-    /**
-     * Queues the RESUME_PAUSEBUTTON packet, typically sent when the player
-     * clicks a "Click here to continue" or "Close" button on a standard,
-     * non-interactable dialog, such as a dialogue with an NPC. The widget id should be
-     * a packed integer (containing both the group and child ids).
-     *
-     * @param widgetId The ID of the top-level widget (packed to include group and child ids).
-     * @param childId The ID of the child component that was clicked.
-     */
-    public void queueResumePause(int widgetId, int childId) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumePausebutton(), widgetId, childId);
-    }
-
-    /**
-     * Queues the RESUME_PAUSEBUTTON packet, usually sent when interacting with
-     * non-interactable dialogs (e.g., "Click here to continue").
-     *
-     * <p>This method sends a packet using the provided packed widget ID.
-     *
-     * @param packed The packed widget ID, which includes both group and child IDs.
-     */
-    public void queueResumePause(int packed) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumePausebutton(), packed, -1);
+                .sendPacket(PacketFactory.getIfSubOp(), widget.getId(), widget.getIndex(), widget.getItemId(), menuIndex, actionIndex);
     }
 
     /**
@@ -232,7 +106,7 @@ public class WidgetPackets {
      * @param id The integer value entered by the player.
      */
     public void queueResumeCount(int id) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumeCountDialog(), id);
+        packetSenderProvider.get().sendPacket(PacketFactory.getResumeCountDialog(), id);
     }
 
     /**
@@ -243,43 +117,6 @@ public class WidgetPackets {
      * @param value The numerical value associated with the dialog option.
      */
     public void queueResumeObj(int value) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumeObjDialog(), value);
-    }
-
-    /**
-     * Queues the OPHELDD packet, which simulates a drag-and-drop action
-     * between two slots within the same or different widgets (e.g., moving
-     * an item in the inventory or bank).
-     *
-     * @param src The source widget/slot from which the item is dragged.
-     * @param dest The destination widget/slot onto which the item is dropped.
-     */
-    public void queueDragAndDrop(Widget src, Widget dest) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getOpHeldd(), src.getId(), src.getIndex(),
-                src.getItemId(), dest.getId(), dest.getIndex(), dest.getItemId());
-    }
-
-    /**
-     * Queues the RESUME_NAMEDIALOG packet, sent in response to a chat dialog
-     * asking the player to enter a name (e.g., setting a clan name).
-     * <p>
-     * Note: The packet data includes the length of the string plus one for the null terminator.
-     *
-     * @param name The string name entered by the player.
-     */
-    public void queueResumeName(String name) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumeNameDialog(), name.length() + 1, name);
-    }
-
-    /**
-     * Queues the RESUME_STRINGDIALOG packet, sent in response to a chat dialog
-     * asking the player to enter a generic string (e.g., a search query).
-     * <p>
-     * Note: The packet data includes the length of the string plus one for the null terminator.
-     *
-     * @param string The string input entered by the player.
-     */
-    public void queueResumeString(String string) {
-        packetSenderProvider.get().sendPacket(packetDefFactory.getResumeStringDialog(), string.length() + 1, string);
+        packetSenderProvider.get().sendPacket(PacketFactory.getResumeObjDialog(), value);
     }
 }

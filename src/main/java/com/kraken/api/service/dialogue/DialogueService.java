@@ -3,6 +3,7 @@ package com.kraken.api.service.dialogue;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.core.packet.entity.WidgetPackets;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.ui.UIService;
@@ -36,6 +37,9 @@ public class DialogueService {
 
     @Inject
     private WidgetPackets widgetPackets;
+
+    @Inject
+    private InteractionManager interactionManager;
 
     /**
      * Checks if any type of dialogue is currently present in the game client.
@@ -126,7 +130,7 @@ public class DialogueService {
      * @param option the index of the option to select, typically starting from 0 for the first option.
      */
     public void selectOption(int option) {
-        ctx.runOnClientThread(() -> widgetPackets.queueResumePause(UIService.pack(WidgetID.DIALOG_OPTION_GROUP_ID, DialogOption.OPTIONS), option));
+        interactionManager.interact(UIService.pack(WidgetID.DIALOG_OPTION_GROUP_ID, DialogOption.OPTIONS), option);
     }
 
     /**
@@ -166,43 +170,6 @@ public class DialogueService {
     }
 
     /**
-     * Resumes an object-based dialogue in the game by interacting with relevant widgets
-     * and invoking a client-side script to continue the process.
-     *
-     * <p>
-     * This method is specifically designed to handle dialogues involving object IDs and
-     * ensures that the appropriate actions are executed to progress through the dialogue.
-     * It queues a RESUME_OBJDIALOG packet with the given object ID and checks for specific
-     * chatbox input widgets to determine whether a client script needs to be executed.
-     * If either of the relevant widgets is detected, a predefined client script is invoked.
-     * </p>
-     *
-     * <p>
-     * The execution occurs on the client thread to ensure proper synchronization with the
-     * game's UI and safe interaction with client methods and widgets.
-     * </p>
-     *
-     * <ul>
-     *     <li>Queues the RESUME_OBJDIALOG packet using {@literal ctx.widgetPackets.queueResumeObj}.</li>
-     *     <li>Checks {@literal WidgetInfo.CHATBOX_INPUT} and {@literal WidgetInfo.CHATBOX_FULL_INPUT} for presence.</li>
-     *     <li>Executes a client script ({@literal 138}) if either widget is detected.</li>
-     * </ul>
-     *
-     * @param id The ID of the object used in the dialogue. This ID represents the object or
-     *           item referenced by the dialogue option and ensures its selection and continuation.
-     */
-    public void continueObjectDialogue(int id) {
-        ctx.runOnClientThread(() -> {
-            widgetPackets.queueResumeObj(id);
-            WidgetEntity widgetOne = ctx.widgets().get(WidgetInfo.CHATBOX_INPUT);
-            WidgetEntity widgetTwo = ctx.widgets().get(WidgetInfo.CHATBOX_FULL_INPUT);
-            if(widgetOne != null || widgetTwo != null) {
-                ctx.getClient().runScript(138);
-            }
-        });
-    }
-
-    /**
      * Resumes a numeric dialogue in the game by interacting with the appropriate widgets and invoking
      * client-side scripts to continue the process.
      *
@@ -236,26 +203,6 @@ public class DialogueService {
                  ctx.getClient().runScript(138);
              }
         });
-    }
-
-    /**
-     * Executes the "Make X" operation for a specified quantity.
-     * <p>
-     * This method interacts with the game's client thread to queue a resume/pause
-     * packet for completing a quantity-based action, such as creating multiple
-     * items in a crafting or production interface.
-     * </p>
-     * <p>
-     * The operation is carried out by sending a specific widget interaction request
-     * using {@code widgetPackets.queueResumePause}. The widget ID used is hardcoded
-     * in the method and corresponds to a predefined interface element within the game.
-     * </p>
-     *
-     * @param quantity The number of items or actions to perform. Must be a positive integer
-     *                 representing the desired quantity for the "Make X" operation.
-     */
-    public void makeX(int quantity) {
-        ctx.runOnClientThread(() -> widgetPackets.queueResumePause(17694734, quantity));
     }
 
     /**
@@ -397,39 +344,35 @@ public class DialogueService {
         return ctx.runOnClientThread(() -> {
             // When an NPC is speaking
             if (ctx.getClient().getWidget(WidgetID.DIALOG_NPC_GROUP_ID, DialogNPC.CONTINUE) != null) {
-                widgetPackets.queueResumePause(UIService.pack(WidgetID.DIALOG_NPC_GROUP_ID, DialogNPC.CONTINUE), -1);
+                interactionManager.interact(UIService.pack(WidgetID.DIALOG_NPC_GROUP_ID, DialogNPC.CONTINUE), -1);
                 return true;
             }
 
             if (ctx.getClient().getWidget(633, 0) != null) {
-                widgetPackets.queueResumePause(UIService.pack(633, 0), -1);
+                interactionManager.interact(UIService.pack(633, 0), -1);
                 return true;
             }
 
             // When the player speaks
             if (ctx.getClient().getWidget(WidgetID.DIALOG_PLAYER_GROUP_ID, DialogPlayer.CONTINUE) != null) {
-                int id = UIService.pack(WidgetID.DIALOG_PLAYER_GROUP_ID, DialogPlayer.CONTINUE);
-                widgetPackets.queueResumePause(id, -1);
+                interactionManager.interact(UIService.pack(WidgetID.DIALOG_PLAYER_GROUP_ID, DialogPlayer.CONTINUE), -1);
                 return true;
             }
 
             // When a sprite is shown
             if (ctx.getClient().getWidget(WidgetInfo.DIALOG_SPRITE) != null) {
-                int id = UIService.pack(11, 0);
-                widgetPackets.queueResumePause(id, 0);
+                interactionManager.interact(UIService.pack(11, 0), -1);
                 return true;
             }
 
             if (ctx.getClient().getWidget(11, 0) != null) {
-                int id = UIService.pack(11, DialogSprite2.CONTINUE);
-                widgetPackets.queueResumePause(id, -1);
+                interactionManager.interact(UIService.pack(11, DialogSprite2.CONTINUE), -1);
                 return true;
             }
             if (ctx.getClient().getWidget(229, MinigameDialog.CONTINUE) != null) {
                 Widget w = ctx.getClient().getWidget(229, MinigameDialog.CONTINUE);
                 if(w != null && w.getText() != null && w.getText().equals("Click here to continue")) {
-                    int id = UIService.pack(229, MinigameDialog.CONTINUE);
-                    widgetPackets.queueResumePause(id, -1);
+                    interactionManager.interact(UIService.pack(229, MinigameDialog.CONTINUE), -1);
                     return true;
                 }
             }
@@ -437,8 +380,7 @@ public class DialogueService {
             if (ctx.getClient().getWidget(229, DialogNotification.CONTINUE) != null) {
                 Widget w = ctx.getClient().getWidget(229, DialogNotification.CONTINUE);
                 if(w != null && w.getText() != null && w.getText().equals("Click here to continue")) {
-                    int id = UIService.pack(229, DialogNotification.CONTINUE);
-                    widgetPackets.queueResumePause(id, -1);
+                    interactionManager.interact(UIService.pack(229, DialogNotification.CONTINUE), -1);
                     return true;
                 }
             }
@@ -446,8 +388,7 @@ public class DialogueService {
             if (ctx.getClient().getWidget(WidgetID.LEVEL_UP_GROUP_ID, LevelUp.CONTINUE) != null) {
                 Widget w = ctx.getClient().getWidget(WidgetID.LEVEL_UP_GROUP_ID, LevelUp.CONTINUE);
                 if(w != null && w.getText() != null && w.getText().equals("Click here to continue")) {
-                    int id = UIService.pack(WidgetID.LEVEL_UP_GROUP_ID, LevelUp.CONTINUE);
-                    widgetPackets.queueResumePause(id, -1);
+                    interactionManager.interact(UIService.pack(WidgetID.LEVEL_UP_GROUP_ID, LevelUp.CONTINUE), -1);
                     return true;
                 }
             }
@@ -455,7 +396,7 @@ public class DialogueService {
             if(ctx.getClient().getWidget(InterfaceID.Messagebox.CONTINUE) != null) {
                 Widget w = ctx.getClient().getWidget(InterfaceID.Messagebox.CONTINUE);
                 if(w != null && w.getText() != null && w.getText().equals("Click here to continue")) {
-                    widgetPackets.queueResumePause(InterfaceID.Messagebox.CONTINUE, -1);
+                    interactionManager.interact(InterfaceID.Messagebox.CONTINUE, -1);
                     return true;
                 }
             }

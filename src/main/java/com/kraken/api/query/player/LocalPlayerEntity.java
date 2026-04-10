@@ -291,12 +291,12 @@ public class LocalPlayerEntity extends PlayerEntity {
 
         WidgetEntity logoutButton = ctx.widgets().fromClient(InterfaceID.Logout.LOGOUT);
         if (logoutButton != null) {
-            return logoutButton.interact(1, InterfaceID.Logout.LOGOUT, -1, -1);
+            return logoutButton.interact(InterfaceID.Logout.LOGOUT, -1, -1, 1);
         }
 
         logoutButton = ctx.widgets().fromClient(InterfaceID.Logout.LOGOUT);
         if (logoutButton != null) {
-            return logoutButton.interact(1, InterfaceID.Worldswitcher.LOGOUT, -1, -1);
+            return logoutButton.interact(InterfaceID.Worldswitcher.LOGOUT, -1, -1, 1);
         }
 
         return false;

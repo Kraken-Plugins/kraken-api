@@ -112,7 +112,6 @@ public class MovementService {
             converted = WorldPoint.fromLocal(ctx.getClient(), point);
         }
 
-
         Point clickingPoint = UIService.getClickbox(converted);
         mousePackets.queueClickPacket(clickingPoint.getX(), clickingPoint.getY());
         movementPackets.queueMovement(converted);

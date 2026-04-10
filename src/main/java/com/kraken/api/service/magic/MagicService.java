@@ -3,18 +3,15 @@ package com.kraken.api.service.magic;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.packet.entity.MousePackets;
-import com.kraken.api.core.packet.entity.WidgetPackets;
+import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.magic.rune.Rune;
 import com.kraken.api.service.magic.rune.RunePouch;
 import com.kraken.api.service.magic.spellbook.Spellbook;
-import com.kraken.api.service.ui.UIService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
-import net.runelite.api.Point;
 import net.runelite.api.Skill;
 import net.runelite.api.widgets.Widget;
 
@@ -30,10 +27,7 @@ public class MagicService {
     private Context ctx;
 
     @Inject
-    private WidgetPackets widgetPackets;
-
-    @Inject
-    private MousePackets mousePackets;
+    private InteractionManager interactionManager;
 
     private static final List<Integer> SPELLS_REQUIRING_PRAYER = List.of(
             14287032,
@@ -144,10 +138,7 @@ public class MagicService {
 
         WidgetEntity w = getSpellWidget(spell);
         if (w == null) return false;
-
-        Point pt = UIService.getClickingPoint(w.raw().getBounds(), true);
-        mousePackets.queueClickPacket(pt.getX(), pt.getY());
-        widgetPackets.queueWidgetActionPacket(spell.getWidget(), -1, -1, spell.getAction());
+        interactionManager.interact(spell.getWidget(), -1, -1, spell.getAction());
         return true;
     }
 

@@ -58,6 +58,7 @@ public class PacketMetadata {
     // packets are mapped via this key class/method
     private String doActionClassName;
     private String doActionMethodName;
+    private String doActionGarbageValue;
 
     @Override
     public String toString() {
@@ -83,6 +84,7 @@ public class PacketMetadata {
                 "  packetBufferNodeGarbageValue='" + packetBufferNodeGarbageValue + "',\n" +
                 "  doActionClassName='" + doActionClassName + "',\n" +
                 "  doActionMethodName='" + doActionMethodName + "'\n" +
+                "  doActionGarbageValue='" + doActionGarbageValue + "'\n" +
                 "  mouseHandlerLastPressedClass='" + mouseHandlerLastPressedClass + "'\n" +
                 "  mouseHandlerLastPressedField='" + mouseHandlerLastPressedField + "'\n" +
                 "  mouseHandlerMultiplier='" + mouseHandlerMultiplier + "'\n" +

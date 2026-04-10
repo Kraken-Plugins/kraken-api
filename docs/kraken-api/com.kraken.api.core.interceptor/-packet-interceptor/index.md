@@ -15,7 +15,7 @@ open class [PacketInterceptor](index.md)
 
 | Name | Summary |
 |---|---|
-| [PacketHookAdvice](-packet-hook-advice/index.md) | [Kraken API]<br>open class [PacketHookAdvice](-packet-hook-advice/index.md)<br>The Advice class. |
+| [PacketHookAdvice](-packet-hook-advice/index.md) | [Kraken API]<br>open class [PacketHookAdvice](-packet-hook-advice/index.md)<br>The Advice class injected directly into &quot;addNode&quot;. |
 
 ## Properties
 
@@ -30,4 +30,5 @@ open class [PacketInterceptor](index.md)
 
 | Name | Summary |
 |---|---|
+| [analyzePacket](analyze-packet.md) | [Kraken API]<br>open fun [analyzePacket](analyze-packet.md)(packetBufferNode: [Any](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-any/index.html)): [EncodedPacket](../../com.kraken.api.core.interceptor.model/-encoded-packet/index.md)<br>Extracts the encrypted Packet id (not opcode), size, and byte array payload from the PacketBufferNode. |
 | [injectHook](inject-hook.md) | [Kraken API]<br>open fun [injectHook](inject-hook.md)()<br>Modifies the bytecode of the &quot;addNode&quot; method within the client at runtime to invoke the [PacketHookAdvice](-packet-hook-advice/index.md) class whenever the method is called. |

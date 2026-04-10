@@ -101,7 +101,7 @@ public class DepositBoxService {
      */
     public boolean depositAll() {
         return ctxProvider.get().widgets().fromClient(InterfaceID.BankDepositbox.DEPOSIT_INV)
-                .interact(1, InterfaceID.BankDepositbox.DEPOSIT_INV, -1, -1);
+                .interact(InterfaceID.BankDepositbox.DEPOSIT_INV, -1, -1, 1);
     }
 
     /**
@@ -122,7 +122,7 @@ public class DepositBoxService {
      */
     public boolean depositWornItems() {
         return ctxProvider.get().widgets().fromClient(InterfaceID.BankDepositbox.DEPOSIT_WORN)
-                .interact(1, InterfaceID.BankDepositbox.DEPOSIT_WORN, -1, -1);
+                .interact(InterfaceID.BankDepositbox.DEPOSIT_WORN, -1, -1,1);
     }
 
     /**
@@ -142,7 +142,7 @@ public class DepositBoxService {
      */
     public boolean depositLootingBag() {
         return ctxProvider.get().widgets().fromClient(InterfaceID.BankDepositbox.DEPOSIT_LOOTINGBAG)
-                .interact(1, InterfaceID.BankDepositbox.DEPOSIT_LOOTINGBAG, -1, -1);
+                .interact(InterfaceID.BankDepositbox.DEPOSIT_LOOTINGBAG, -1, -1, 1);
     }
 
 
@@ -330,16 +330,16 @@ public class DepositBoxService {
     public boolean setQuantity(int amount) {
         Context ctx = ctxProvider.get();
         if (amount == 1) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._1).interact(1, InterfaceID.BankDepositbox._1, -1, -1);
+            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._1).interact(InterfaceID.BankDepositbox._1, -1, -1, 1);
         } else if (amount == 5) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._5).interact(1, InterfaceID.BankDepositbox._5, -1, -1);
+            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._5).interact(InterfaceID.BankDepositbox._5, -1, -1, 1);
         } else if (amount == 10) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._10).interact(1, InterfaceID.BankDepositbox._10, -1, -1);
+            return ctx.widgets().fromClient(InterfaceID.BankDepositbox._10).interact(InterfaceID.BankDepositbox._10, -1, -1, 1);
         } else if (amount == -1) {
-            return ctx.widgets().fromClient(InterfaceID.BankDepositbox.ALL).interact(1, InterfaceID.BankDepositbox.ALL, -1, -1);
+            return ctx.widgets().fromClient(InterfaceID.BankDepositbox.ALL).interact(InterfaceID.BankDepositbox.ALL, -1, -1, 1);
         }
 
-        boolean success = ctx.widgets().fromClient(InterfaceID.BankDepositbox.X).interact(1, InterfaceID.BankDepositbox.X, -1, -1);
+        boolean success = ctx.widgets().fromClient(InterfaceID.BankDepositbox.X).interact(InterfaceID.BankDepositbox.X, -1, -1, 1);
         // TODO Sleep here for 1 tick?
         ctx.getService(DialogueService.class).continueNumericDialogue(amount);
         return success;

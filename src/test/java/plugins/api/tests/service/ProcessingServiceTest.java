@@ -41,13 +41,22 @@ public class ProcessingServiceTest extends BaseApiTest {
 
          SleepService.sleep(2000, 2500);
          processingService.setAmount(2);
-         if(!processingService.process(329)) { // Cooked salmon is what we want to make raw salmon 335 is what we have
+         if(!processingService.process("Cook", 329)) { // Cooked salmon is what we want to make raw salmon 335 is what we have
              log.error("Failed to process item 329 -> 335");
              return false;
          }
 
-         SleepService.sleep(5000, 8500);
-         if(!processingService.process(333)) { // Cooked trout 333 is what we want, 331 raw is what we have
+         SleepService.sleepFor(15);
+
+        boolean interacted2 = ctx.gameObjects().withId(BARBARIAN_VILLAGE_FIRE).first().interact("Cook");
+
+        if(!interacted2) {
+            log.error("Failed to interact with fire for cooking trout");
+            return false;
+        }
+
+        SleepService.sleepFor(2);
+        if(!processingService.process("Cook", 333)) { // Cooked trout 333 is what we want, 331 raw is what we have
              log.error("Failed to process item 331 -> 333");
              return false;
          }

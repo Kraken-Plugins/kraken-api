@@ -4,11 +4,11 @@ import com.google.inject.Inject;
 import com.kraken.api.Context;
 import com.kraken.api.query.equipment.EquipmentEntity;
 import com.kraken.api.service.bank.BankService;
+import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
 import plugins.api.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.EquipmentInventorySlot;
-
 @Slf4j
 public class EquipmentTest extends BaseApiTest {
 
@@ -39,6 +39,7 @@ public class EquipmentTest extends BaseApiTest {
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
                 ctx.bank().withName("Rune full helm").first().withdraw(1);
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
+                ctx.bank().withName("Studded body").first().withdraw(1);
                 bankService.close();
                 Thread.sleep(RandomUtils.randomIntBetween(1200, 1600));
             } else {
@@ -49,6 +50,8 @@ public class EquipmentTest extends BaseApiTest {
                 log.info("Equipment: {}", e.getName());
             }
 
+            SleepService.sleepFor(2);
+
             if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.BODY).isNull()) {
                 log.info("Equipment tests failed, BODY slot should not have an item but is non-null");
                 testsPassed = false;
@@ -58,32 +61,43 @@ public class EquipmentTest extends BaseApiTest {
                 log.info("Equipment tests failed, could not wield scimitar");
                 testsPassed = false;
             }
+            SleepService.sleepFor(2);
 
             if(!ctx.equipment().inInventory().nameContains("plate").first().wear()) {
                 log.info("Equipment tests failed, could not wield platebody");
                 testsPassed = false;
             }
+            SleepService.sleepFor(2);
 
             if(!ctx.equipment().inInventory().withId(1163).first().wear()) {
-                log.info("Equipment tests failed, could not wield platelegs");
+                log.info("Equipment tests failed, could not wear rune full helm");
                 testsPassed = false;
             }
-
-            Thread.sleep(RandomUtils.randomIntBetween(1200, 1500));
-
+            SleepService.sleepFor(2);
 
             if(!ctx.equipment().isWearing("Rune Platebody")) {
                 log.info("Equipment tests failed, isWearing returned false for Rune Platebody but platebody should be equipped.");
                 testsPassed = false;
             }
 
+            SleepService.sleepFor(2);
+
+            if(!ctx.equipment().inInventory().withName("Studded Body").first().wieldOrWear()) {
+                log.error("Failed to wield Studded Body");
+                testsPassed = false;
+            }
+
+            SleepService.sleepFor(2);
+
             if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.HEAD).remove()) {
                 log.info("Equipment tests failed, could not remove HEAD slot.");
                 testsPassed = false;
             }
 
-            if(ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.BODY).isNull()) {
-                log.info("Equipment tests failed, BODY slot is null but should be wearing rune platebody");
+            SleepService.sleepFor(2);
+
+            if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.BODY).remove()) {
+                log.info("Equipment tests failed, could not remove BODY slot.");
                 testsPassed = false;
             }
         } catch (Exception e) {
