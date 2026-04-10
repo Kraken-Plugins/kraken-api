@@ -5,7 +5,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.packet.entity.MousePackets;
-import com.kraken.api.core.packet.entity.SailingPackets;
 import com.kraken.api.query.InteractionManager;
 import com.kraken.api.service.ui.UIService;
 import lombok.AllArgsConstructor;
@@ -24,9 +23,6 @@ public class SailingService {
 
     @Inject
     private MousePackets mousePackets;
-
-    @Inject
-    private SailingPackets sailingPackets;
 
     @Inject
     private InteractionManager interactionManager;
@@ -57,7 +53,7 @@ public class SailingService {
     public boolean setDirection(Direction direction) {
         if(!ctx.isPacketsLoaded()) return false;
         mousePackets.queueClickPacket(1, 1);
-        sailingPackets.queueSetDirection(direction.getCode());
+        interactionManager.interact(direction.getCode());
         return true;
     }
 

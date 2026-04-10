@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.packet.entity.GameObjectPackets;
 import com.kraken.api.core.packet.entity.MousePackets;
 import com.kraken.api.core.packet.entity.NPCPackets;
 import com.kraken.api.core.packet.entity.WidgetPackets;
@@ -19,6 +18,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.RuneLite;
 import net.runelite.client.util.Text;
@@ -76,9 +76,6 @@ public class InteractionManager {
 
     @Inject
     private WidgetPackets widgetPackets;
-
-    @Inject
-    private GameObjectPackets gameObjectPackets;
 
     @Inject
     private Provider<Context> ctxProvider;
@@ -263,6 +260,25 @@ public class InteractionManager {
             }
 
             return new ResolvedMenuAction(option, player.getName() == null ? "" : player.getName());
+        });
+    }
+
+    private ResolvedMenuAction resolveMovementInteraction(Point canvasPoint) {
+        return ctxProvider.get().runOnClientThread(() -> {
+            if(canvasPoint == null) return null;
+
+            // TODO Target is sometimes <col=ffffff>{player name}<col=ff0000> if moving onto a tile with another player on it.
+            return new ResolvedMenuAction(
+                    new MenuOption(
+                            MenuAction.WALK,
+                            0,
+                            canvasPoint.getX(),
+                            canvasPoint.getY(),
+                            0,
+                            ctxProvider.get().getClient().getTopLevelWorldView().getId()
+                    ),
+                    ""
+            );
         });
     }
 
@@ -510,6 +526,71 @@ public class InteractionManager {
     }
 
     /**
+     * Performs an interaction with a specific point in the game world to enable movement
+     * to the location
+     *
+     * <p>This method determines the click location for the interaction, checks for the appropriate
+     * conditions such as whether packets are loaded, and resolves the necessary movement interaction.</p>
+     *
+     * @param point The {@link WorldPoint} representing the coordinates within the game world where
+     *              the interaction should occur.
+     */
+    public void interact(WorldPoint point) {
+        if(!ctxProvider.get().isPacketsLoaded()) return;
+        Point p = UIService.getClickbox(point);
+        LocalPoint lp = LocalPoint.fromWorld(ctxProvider.get().getClient().getTopLevelWorldView(), point);
+        if(lp == null) return;
+
+        // TODO This always moves to where the mouse last was on the canvas not the local/world point.
+        Point local = Perspective.localToCanvas(ctxProvider.get().getClient(), lp, ctxProvider.get().getClient().getTopLevelWorldView().getPlane());
+
+        // Pass the canvas point 'p' instead of the local point 'lp'
+        interact(local, "Walk here", resolveMovementInteraction(local));
+    }
+
+    /**
+     * Interacts with a specified {@code LocalPoint} in the game environment to move the player
+     *
+     * @param point the {@code LocalPoint} to interact with; represents a specific location in the game.
+     */
+    public void interact(LocalPoint point) {
+        if(!ctxProvider.get().isPacketsLoaded()) return;
+        Point local = Perspective.localToCanvas(ctxProvider.get().getClient(), point, ctxProvider.get().getClient().getTopLevelWorldView().getPlane());
+
+        // TODO This uses the last point my mouse was on the canvas?
+        interact(local, "Walk here", resolveMovementInteraction(local));
+    }
+
+    /**
+     * Interacts with a heading when sailing to change the direction of the sailboat.
+     *      * The full mapping can be seen here:
+     *      *  SOUTH(0),
+     *      *  SOUTH_SOUTH_WEST(1),
+     *      *  SOUTH_WEST(2),
+     *      *  WEST_SOUTH_WEST(3),
+     *      *  WEST(4),
+     *      *  WEST_NORTH_WEST(5),
+     *      *  NORTH_WEST(6),
+     *      *  NORTH_NORTH_WEST(7),
+     *      *  NORTH(8),
+     *      *  NORTH_NORTH_EAST(9),
+     *      *  NORTH_EAST(10),
+     *      *  EAST_NORTH_EAST(11),
+     *      *  EAST(12),
+     *      *  EAST_SOUTH_EAST(13),
+     *      *  SOUTH_EAST(14),
+     *      *  SOUTH_SOUTH_EAST(15);
+     * @param heading The direction vector to change the sailboat heading to.
+     */
+    public void interact(int heading) {
+        if(!ctxProvider.get().isPacketsLoaded()) return;
+
+        MenuOption option = new MenuOption(MenuAction.SET_HEADING, heading, 0, 0, 0, ctxProvider.get().getClient().getTopLevelWorldView().getId());
+        ResolvedMenuAction resolvedAction = new ResolvedMenuAction(option, "");
+        interact(ctxProvider.get().getClient().getMouseCanvasPosition(), "Set heading", resolvedAction);
+    }
+
+    /**
      * Interacts with an NPC using the specified action i.e. "Attack", "Talk-To", or "Examine".
      *
      * @param npc the NPC to interact with
@@ -520,7 +601,6 @@ public class InteractionManager {
         Point point = UIService.getClickbox(npc);
         interact(point, action, resolveNpcInteraction(npc, action));
     }
-
 
     /**
      * Interacts with a Player using the specified action i.e. "Attack", "Trade", or "Follow"
@@ -746,10 +826,47 @@ public class InteractionManager {
                 return new ResolvedMenuAction(option, target);
             });
 
-            mousePackets.queueClickPacket(pt.getX(), pt.getY());
             interact(pt, src.getTargetVerb(), resolvedAction);
-            mousePackets.queueClickPacket(npcPoint.getX(), npcPoint.getY());
             interact(npcPoint, src.getTargetVerb(), targetAction);
+        }
+    }
+
+
+    /**
+     * Uses a specified widget on a ground item (i.e. casting telekenetic grab on an item on the floor).
+     *
+     * @param widget the {@code Widget} to interact with. Its clickbox and target verb are used to execute the interaction.
+     * @param item the {@code GroundItem} to interact with. Its tile object location and related data are used
+     *             for resolving target actions and executing the interaction.
+     */
+    public void interact(Widget widget, GroundItem item) {
+        if (!ctxProvider.get().isPacketsLoaded()) return;
+        Point pt = UIService.getClickbox(widget);
+        Point itemPoint = UIService.getClickbox(item.getTileObject());
+
+        ResolvedMenuAction resolvedAction = resolveWidgetInteraction(widget, widget.getTargetVerb());
+        if(resolvedAction != null) {
+            // Resolve our own menu action because resolveWidgetInteraction doesn't support WIDGET_TARGET_ON_NPC (we know we are targeting an NPC in this)
+            ResolvedMenuAction targetAction = ctxProvider.get().runOnClientThread(() -> {
+                LocalPoint location = item.getTileObject().getLocalLocation();
+
+                Client client = ctxProvider.get().getClient();
+                MenuOption option = new MenuOption(
+                        MenuAction.WIDGET_TARGET_ON_GROUND_ITEM,
+                        item.getTileItem().getId(),
+                        location.getSceneX(),
+                        location.getSceneY(),
+                        -1,
+                        client.getTopLevelWorldView().getId()
+                );
+
+                String name = item.getName() == null ? "" : item.getName();
+                String target = resolvedAction.getTarget() + " -> " + name;
+                return new ResolvedMenuAction(option, target);
+            });
+
+            interact(pt, widget.getTargetVerb(), resolvedAction);
+            interact(itemPoint, widget.getTargetVerb(), targetAction);
         }
     }
 
@@ -799,9 +916,7 @@ public class InteractionManager {
                 return new ResolvedMenuAction(option, target);
             });
 
-            mousePackets.queueClickPacket(pt.getX(), pt.getY());
             interact(pt, src.getTargetVerb(), resolvedAction); // -> MenuAction=WIDGET_TARGET, ItemId=1925, id=0, Option=Use, Target=<col=ff9040>Bucket</col>
-            mousePackets.queueClickPacket(gameObjectPoint.getX(), gameObjectPoint.getY());
             interact(gameObjectPoint, src.getTargetVerb(), targetAction); // -> MenuAction=WIDGET_TARGET_ON_GAME_OBJECT, ItemId=-1, id=5125, Option=Use, Target=<col=ff9040>Bucket</col><col=ffffff> -> <col=ffff>Fountain
         }
     }
