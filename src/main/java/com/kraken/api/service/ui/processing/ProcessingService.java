@@ -3,7 +3,7 @@ package com.kraken.api.service.ui.processing;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.query.InteractionManager;
+import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.query.container.ContainerItem;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

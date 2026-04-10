@@ -47,11 +47,21 @@ public interface ApiTestConfig extends Config {
         return false;
     }
 
+    // =========== Widget Actions Section ================
+    @ConfigSection(
+            name = "Widget Actions",
+            description = "Tests for using widgets on various game entities. <br>" +
+                    "I.e. spell on npc, chisel on gemstone, bucket on fountain",
+            position = 98
+    )
+    String widgetActions = "Widget Actions";
+
     @ConfigItem(
             name = "Widget Target NPC",
             keyName = "widgetTargetOnNpc",
-            description = "Targets NPC with fire strick.",
-            position = 1
+            description = "Targets a Guard in Varrock with fire strike.",
+            position = 1,
+            section = widgetActions
     )
     default boolean widgetTargetOnNpc() {
         return false;
@@ -60,8 +70,9 @@ public interface ApiTestConfig extends Config {
     @ConfigItem(
             name = "Widget Target Game Object",
             keyName = "widgetTargetOnGameObject",
-            description = "Targets a Bucket to be used on a fountain.",
-            position = 2
+            description = "Targets an empty bucket to be used on a fountain in Varrock",
+            position = 2,
+            section = widgetActions
     )
     default boolean widgetTargetOnGameObject() {
         return false;
@@ -70,8 +81,10 @@ public interface ApiTestConfig extends Config {
     @ConfigItem(
             name = "Widget Target Widget",
             keyName = "widgetTargetOnWidget",
-            description = "Targets a chisel to be used on a sapphire.",
-            position = 3
+            description = "Targets a chisel to be used on a sapphire. <br>" +
+                    "Have a chisel and uncut sapphire in your inventory",
+            position = 3,
+            section = widgetActions
     )
     default boolean widgetTargetOnWidget() {
         return false;
@@ -81,13 +94,14 @@ public interface ApiTestConfig extends Config {
             name = "Widget Sub Action",
             keyName = "widgetSubAction",
             description = "Targets a sub action of the ring of dueling teleport.",
-            position = 4
+            position = 4,
+            section = widgetActions
     )
     default boolean widgetSubAction() {
         return false;
     }
 
-    // =========== Tests Section ================
+    // =========== Pathfinding Section ================
     @ConfigSection(
             name = "Pathfinding Tests",
             description = "Settings for enabling and testing pathfinding across the world",

@@ -198,6 +198,7 @@ public class ApiTestPlugin extends Plugin {
             context.players().local().logout();
         }
 
+        // TODO Move these to dedicated test classes
         if(key.equals("widgetTargetOnNpc") && config.widgetTargetOnNpc()) {
             NpcEntity guard = context.npcs().nameContains("Guard").nearest();
             if(guard == null) {
@@ -216,7 +217,7 @@ public class ApiTestPlugin extends Plugin {
                 return;
             }
 
-            GameObjectEntity gameObject = context.gameObjects().withId(5125).first();
+            GameObjectEntity gameObject = context.gameObjects().withId(5125).nearest();
             if (gameObject == null) {
                 log.error("GameObject test failed, could not find a fountain game object");
                 return;

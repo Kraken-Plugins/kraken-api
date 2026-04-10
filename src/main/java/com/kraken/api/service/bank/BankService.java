@@ -2,9 +2,9 @@ package com.kraken.api.service.bank;
 
 import com.google.inject.Provider;
 import com.kraken.api.Context;
+import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.core.packet.entity.WidgetPackets;
 import com.kraken.api.input.KeyboardService;
-import com.kraken.api.query.InteractionManager;
 import com.kraken.api.service.ui.UIService;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
@@ -171,7 +171,7 @@ public class BankService {
     public void setXAmount(int amount) {
         int withdrawMode = ctxProvider.get().getVarbitValue(VarbitID.BANK_QUANTITY_TYPE);
         WidgetPackets widgetPackets = ctxProvider.get().getService(WidgetPackets.class);
-        
+
         if(withdrawMode != 3) {
             interactionManager.interact(InterfaceID.Bankmain.QUANTITYX, -1, -1, 1);
         }

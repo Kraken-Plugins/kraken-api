@@ -3,14 +3,14 @@ package com.kraken.api;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Singleton;
+import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.core.interceptor.DoActionInterceptor;
+import com.kraken.api.core.interceptor.InterceptorBuilder;
+import com.kraken.api.core.interceptor.MouseHookInterceptor;
+import com.kraken.api.core.interceptor.PacketInterceptor;
 import com.kraken.api.core.packet.PacketMapper;
 import com.kraken.api.core.packet.PacketMethodLocator;
-import com.kraken.api.core.interceptor.MouseHookInterceptor;
-import com.kraken.api.core.interceptor.InterceptorBuilder;
-import com.kraken.api.core.interceptor.PacketInterceptor;
 import com.kraken.api.input.mouse.VirtualMouse;
-import com.kraken.api.query.InteractionManager;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;
 import com.kraken.api.query.container.bank.DepositBoxQuery;
@@ -36,8 +36,8 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 
-import java.util.Optional;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 @Slf4j
@@ -58,9 +58,6 @@ public class Context {
     private boolean packetsLoaded = false;
 
     @Getter
-    private final InteractionManager interactionManager;
-
-    @Getter
     private final TileService tileService;
 
     @Getter
@@ -69,26 +66,33 @@ public class Context {
     @Getter
     private final ItemManager itemManager;
 
+    @Getter
+    private final InteractionManager interactionManager;
+
     private final PacketInterceptor packetInterceptor;
     private final MouseHookInterceptor mouseHookInterceptor;
     private final DoActionInterceptor doActionInterceptor;
     private final Injector injector;
 
+    private Injector childInjector; // Contains guice bindings for InteractionManager
+
+
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
-                   final Injector injector, final InteractionManager interactionManager, final TileService tileService,
-                   final ItemManager itemManager, final BankService bankService, final PacketInterceptor packetInterceptor,
-                   final MouseHookInterceptor mouseHookInterceptor, final DoActionInterceptor doActionInterceptor, PacketMapper mapper) {
+                   final Injector injector, final TileService tileService, final ItemManager itemManager, final BankService bankService,
+                   final PacketInterceptor packetInterceptor, final MouseHookInterceptor mouseHookInterceptor, final DoActionInterceptor doActionInterceptor,
+                   final InteractionManager interactionManager,
+                   final PacketMapper mapper) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
         this.injector = injector;
         this.tileService = tileService;
-        this.interactionManager = interactionManager;
         this.itemManager = itemManager;
         this.packetInterceptor = packetInterceptor;
         this.mouseHookInterceptor = mouseHookInterceptor;
         this.doActionInterceptor = doActionInterceptor;
+        this.interactionManager = interactionManager;
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);

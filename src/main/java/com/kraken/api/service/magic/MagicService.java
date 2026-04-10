@@ -3,7 +3,7 @@ package com.kraken.api.service.magic;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.query.InteractionManager;
+import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.magic.rune.Rune;

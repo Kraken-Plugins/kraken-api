@@ -44,6 +44,17 @@ The following items must be present in your **Bank**:
 - **Magic Level**: High enough to cast Varrock Teleport (Level 25).
 - **Cooking Level**: Cooking level of 25 to cook salmon.
 
+
+## Widget Action Test Requirements
+
+Widget actions require that you have the following items in your inventory:
+- Empty bucket
+- Uncut sapphire
+- Chisel
+- Air, Mind, and Fire runes
+
+You must be near Varrock east bank to run these tests as it requires a nearby guard and fountain.
+
 ## Specific Test Requirements
 
 ### `ProcessingServiceTest`
