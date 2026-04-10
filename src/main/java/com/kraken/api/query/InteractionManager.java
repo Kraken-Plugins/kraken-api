@@ -258,25 +258,6 @@ public class InteractionManager {
         });
     }
 
-    private ResolvedMenuAction resolveMovementInteraction(Point canvasPoint) {
-        return ctxProvider.get().runOnClientThread(() -> {
-            if(canvasPoint == null) return null;
-
-            // TODO Target is sometimes <col=ffffff>{player name}<col=ff0000> if moving onto a tile with another player on it.
-            return new ResolvedMenuAction(
-                    new MenuOption(
-                            MenuAction.WALK,
-                            0,
-                            canvasPoint.getX(),
-                            canvasPoint.getY(),
-                            0,
-                            ctxProvider.get().getClient().getTopLevelWorldView().getId()
-                    ),
-                    ""
-            );
-        });
-    }
-
     private ResolvedMenuAction resolveTileObjectInteraction(TileObject object, String action) {
         Context ctx = ctxProvider.get();
         return ctx.runOnClientThread(() -> {
@@ -548,18 +529,6 @@ public class InteractionManager {
         ResolvedMenuAction resolvedAction = new ResolvedMenuAction(option, "");
         interact(ctxProvider.get().getClient().getMouseCanvasPosition(), "Set heading", resolvedAction);
     }
-
-//    2026-04-10 10:02:30 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=0, Param1=0, MenuAction=NPC_FIRST_OPTION, ItemId=-1, id=2436, Option=Talk-to, Target=<col=ffff00>Banker, itemOp=-1
-//2026-04-10 10:02:33 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=15138821, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
-//2026-04-10 10:02:37 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=2, Param1=14352385, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
-//2026-04-10 10:02:40 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=13959181, MenuAction=CC_OP, ItemId=-1, id=1, Option=Exit, Target=, itemOp=-1
-//2026-04-10 10:02:42 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=0, Param1=0, MenuAction=NPC_FIRST_OPTION, ItemId=-1, id=2436, Option=Talk-to, Target=<col=ffff00>Banker, itemOp=-1
-//2026-04-10 10:02:43 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=15138821, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
-//2026-04-10 10:02:46 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=5, Param1=14352385, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
-//2026-04-10 10:02:47 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=14221317, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
-//2026-04-10 10:02:48 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=15138821, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
-//2026-04-10 10:02:48 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=14221317, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
-//2026-04-10 10:02:49 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=15138821, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
 
     /**
      * Interacts with an NPC using the specified action i.e. "Attack", "Talk-To", or "Examine".
