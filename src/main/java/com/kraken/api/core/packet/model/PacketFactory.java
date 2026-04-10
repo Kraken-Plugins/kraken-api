@@ -182,7 +182,6 @@ public class PacketFactory {
     // Resume packets for dialogues with NPC's in the chatbox.
     // pause is for basic "CLick here to contine", count is when entering a quantity like: withdraw-X, obj is when
     // picking an object i.e. sailing mermaids or picking an item from a GE search.
-    public static PacketDefinition getResumePausebutton() { return getPacket("RESUME_PAUSEBUTTON"); }
     public static PacketDefinition getResumeCountDialog() { return getPacket("RESUME_COUNTDIALOG"); }
     public static PacketDefinition getResumeObjDialog() { return getPacket("RESUME_OBJDIALOG"); }
 

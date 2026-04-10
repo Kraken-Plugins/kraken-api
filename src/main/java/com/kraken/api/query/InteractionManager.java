@@ -688,7 +688,8 @@ public class InteractionManager {
 
 
     /**
-     * Interacts with a widget using the specific sub action.
+     * Interacts with a widget using the specific sub action. I.e. the sub action menu shown when hovering
+     * over the ring of dualing locations menu after a right click.
      * @param item The widget to interact with
      * @param menu The primary menu to select (e.g., "Rub")
      * @param action The sub-action to take (e.g., "Fortis Colosseum")

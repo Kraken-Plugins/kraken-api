@@ -3,7 +3,7 @@ package com.kraken.api.service.ui.processing;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.packet.entity.WidgetPackets;
+import com.kraken.api.query.InteractionManager;
 import com.kraken.api.query.container.ContainerItem;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,7 +25,7 @@ public class ProcessingService {
     private Context ctx;
 
     @Inject
-    private WidgetPackets widgetPackets;
+    private InteractionManager interactionManager;
 
     /**
      * Confirms the selection of one of the specified item IDs by resuming the appropriate widget
@@ -45,15 +45,20 @@ public class ProcessingService {
      * @return {@code true} if at least one of the provided {@code itemIds} matches the processable
      *         items and an interaction is successfully queued; {@code false} otherwise.
      */
-    public boolean process(int... itemIds) {
+    public boolean process(String action, int... itemIds) {
         List<ExtendedItem> items = getProcessableItems();
         for (ExtendedItem item : items) {
             if (ArrayUtils.contains(itemIds, item.getId())) {
-                ctx.runOnClientThread(() -> widgetPackets.queueResumePause(item.getSlot(), getAmount()));
+                Widget widget = ctx.getClient().getWidget(item.getSlot());
+                if(widget == null) {
+                    return false;
+                }
+                interactionManager.interact(widget, action);
                 return true;
             }
         }
 
+        log.warn("No processable items found with ids: {}", itemIds);
         return false;
     }
 
@@ -75,15 +80,20 @@ public class ProcessingService {
      * @return {@code true} if at least one of the provided {@code itemIds} matches the processable
      *         items and an interaction is successfully queued; {@code false} otherwise.
      */
-    public boolean process(ContainerItem containerItem) {
+    public boolean process(String action, ContainerItem containerItem) {
         List<ExtendedItem> items = getProcessableItems();
         for (ExtendedItem item : items) {
             if (containerItem.getId() == item.getId()) {
-                ctx.runOnClientThread(() -> widgetPackets.queueResumePause(item.getSlot(), getAmount()));
+                Widget widget = ctx.getClient().getWidget(item.getSlot());
+                if(widget == null) {
+                    return false;
+                }
+                interactionManager.interact(widget, action);
                 return true;
             }
         }
 
+        log.warn("No processable items found with ids: {}", containerItem.getId());
         return false;
     }
 
@@ -103,12 +113,16 @@ public class ProcessingService {
      * @return {@code true} if at least one of the provided {@code itemNames} matches the processable
      *         items and an interaction is successfully queued; {@code false} otherwise.
      */
-    public boolean process(String... itemNames) {
+    public boolean process(String action, String... itemNames) {
         List<ExtendedItem> items = getProcessableItems();
         for (ExtendedItem item : items) {
             for (String itemName : itemNames) {
                 if (itemName.equalsIgnoreCase(item.getName())) {
-                    ctx.runOnClientThread(() -> widgetPackets.queueResumePause(item.getSlot(), getAmount()));
+                    Widget widget = ctx.getClient().getWidget(item.getSlot());
+                    if(widget == null) {
+                        return false;
+                    }
+                    interactionManager.interact(widget, action);
                     return true;
                 }
             }
@@ -129,13 +143,18 @@ public class ProcessingService {
      * @param index The index to confirm in the interface. This value determines the child
      *              component of the base widget that the action will target.
      */
-    public void processByIndex(int index) {
+    public void processByIndex(String action, int index) {
         if(index > 16 || index < 0) {
            log.error("Index cannot be greater than 16 or less than 0, got: {}", index);
            return;
         }
 
-        ctx.runOnClientThread(() -> widgetPackets.queueResumePause(InterfaceID.Skillmulti.A + index, getAmount()));
+        Widget widget = ctx.getClient().getWidget(InterfaceID.Skillmulti.A + index);
+        if(widget == null) {
+            return;
+        }
+
+        interactionManager.interact(widget, action);
     }
 
     /**
