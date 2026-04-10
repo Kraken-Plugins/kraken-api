@@ -144,28 +144,4 @@ public class WidgetPackets {
     public void queueResumeObj(int value) {
         packetSenderProvider.get().sendPacket(PacketFactory.getResumeObjDialog(), value);
     }
-
-    /**
-     * Queues the RESUME_NAMEDIALOG packet, sent in response to a chat dialog
-     * asking the player to enter a name (e.g., setting a clan name).
-     * <p>
-     * Note: The packet data includes the length of the string plus one for the null terminator.
-     *
-     * @param name The string name entered by the player.
-     */
-    public void queueResumeName(String name) {
-        packetSenderProvider.get().sendPacket(PacketFactory.getResumeNameDialog(), name.length() + 1, name);
-    }
-
-    /**
-     * Queues the RESUME_STRINGDIALOG packet, sent in response to a chat dialog
-     * asking the player to enter a generic string (e.g., a search query).
-     * <p>
-     * Note: The packet data includes the length of the string plus one for the null terminator.
-     *
-     * @param string The string input entered by the player.
-     */
-    public void queueResumeString(String string) {
-        packetSenderProvider.get().sendPacket(PacketFactory.getResumeStringDialog(), string.length() + 1, string);
-    }
 }

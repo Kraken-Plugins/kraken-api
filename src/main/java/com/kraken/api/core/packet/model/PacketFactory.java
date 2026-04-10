@@ -180,11 +180,11 @@ public class PacketFactory {
     public static PacketDefinition getIfSubOp() { return getPacket("IF_SUBOP"); }
 
     // Resume packets for dialogues with NPC's in the chatbox.
+    // pause is for basic "CLick here to contine", count is when entering a quantity like: withdraw-X, obj is when
+    // picking an object i.e. sailing mermaids or picking an item from a GE search.
     public static PacketDefinition getResumePausebutton() { return getPacket("RESUME_PAUSEBUTTON"); }
     public static PacketDefinition getResumeCountDialog() { return getPacket("RESUME_COUNTDIALOG"); }
     public static PacketDefinition getResumeObjDialog() { return getPacket("RESUME_OBJDIALOG"); }
-    public static PacketDefinition getResumeNameDialog() { return getPacket("RESUME_NAMEDIALOG"); }
-    public static PacketDefinition getResumeStringDialog() { return getPacket("RESUME_STRINGDIALOG"); }
 
     // Movement and event packets
     public static PacketDefinition getMoveGameClick() { return getPacket("MOVE_GAMECLICK"); }
