@@ -4,11 +4,13 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.packet.entity.MousePackets;
-import com.kraken.api.query.InteractionManager;
+import com.kraken.api.core.packet.entity.MovementPackets;
 import com.kraken.api.service.tile.TileService;
+import com.kraken.api.service.ui.UIService;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.Point;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 
@@ -32,7 +34,7 @@ public class MovementService {
     private MousePackets mousePackets;
 
     @Inject
-    private InteractionManager interactionManager;
+    private MovementPackets movementPackets;
 
     /**
      * Moves the player to the specified {@literal WorldPoint}, handling instanced areas conversion when necessary.
@@ -79,7 +81,9 @@ public class MovementService {
             convertedPoint = point;
         }
 
-        interactionManager.interact(convertedPoint);
+        Point clickingPoint = UIService.getClickbox(convertedPoint);
+        mousePackets.queueClickPacket(clickingPoint.getX(), clickingPoint.getY());
+        movementPackets.queueMovement(convertedPoint);
     }
 
     /**
@@ -108,7 +112,9 @@ public class MovementService {
             converted = WorldPoint.fromLocal(ctx.getClient(), point);
         }
 
-        interactionManager.interact(converted);
+        Point clickingPoint = UIService.getClickbox(converted);
+        mousePackets.queueClickPacket(clickingPoint.getX(), clickingPoint.getY());
+        movementPackets.queueMovement(converted);
     }
 
     /**

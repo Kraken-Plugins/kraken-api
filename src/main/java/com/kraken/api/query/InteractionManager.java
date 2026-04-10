@@ -5,7 +5,6 @@ import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.packet.entity.MousePackets;
-import com.kraken.api.core.packet.entity.NPCPackets;
 import com.kraken.api.core.packet.entity.WidgetPackets;
 import com.kraken.api.core.packet.model.PacketFactory;
 import com.kraken.api.query.container.ContainerItem;
@@ -18,7 +17,6 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.RuneLite;
 import net.runelite.client.util.Text;
@@ -67,9 +65,6 @@ public class InteractionManager {
             MenuAction.GROUND_ITEM_FOURTH_OPTION,
             MenuAction.GROUND_ITEM_FIFTH_OPTION
     };
-
-    @Inject
-    private NPCPackets npcPackets;
 
     @Inject
     private MousePackets mousePackets;
@@ -510,7 +505,7 @@ public class InteractionManager {
 
         MenuOption option = resolvedAction.getOption();
         mousePackets.queueClickPacket(point.getX(), point.getY());
-        log.info("interact: param0 = {}, param1 = {}, menu action = {}, id = {}, itemId = {}, wv = {}, action = {}, target = {}, x = {}, y = {}", option.getParam0(), option.getParam1(), option.getType().name(), option.getIdentifier(), option.getItemId(), option.getWorldView(), action, resolvedAction.getTarget(), point.getX(), point.getY());
+        log.debug("doAction(param0={}, param1={}, MenuAction={}, identifier={}, itemId={}, wv={}, action={}, target={}, canvasX={}, canvasY={})", option.getParam0(), option.getParam1(), option.getType().name(), option.getIdentifier(), option.getItemId(), option.getWorldView(), action, resolvedAction.getTarget(), point.getX(), point.getY());
         invokeMenu(
                 option.getParam0(),
                 option.getParam1(),
@@ -523,42 +518,6 @@ public class InteractionManager {
                 point.getX(),
                 point.getY()
         );
-    }
-
-    /**
-     * Performs an interaction with a specific point in the game world to enable movement
-     * to the location
-     *
-     * <p>This method determines the click location for the interaction, checks for the appropriate
-     * conditions such as whether packets are loaded, and resolves the necessary movement interaction.</p>
-     *
-     * @param point The {@link WorldPoint} representing the coordinates within the game world where
-     *              the interaction should occur.
-     */
-    public void interact(WorldPoint point) {
-        if(!ctxProvider.get().isPacketsLoaded()) return;
-        Point p = UIService.getClickbox(point);
-        LocalPoint lp = LocalPoint.fromWorld(ctxProvider.get().getClient().getTopLevelWorldView(), point);
-        if(lp == null) return;
-
-        // TODO This always moves to where the mouse last was on the canvas not the local/world point.
-        Point local = Perspective.localToCanvas(ctxProvider.get().getClient(), lp, ctxProvider.get().getClient().getTopLevelWorldView().getPlane());
-
-        // Pass the canvas point 'p' instead of the local point 'lp'
-        interact(local, "Walk here", resolveMovementInteraction(local));
-    }
-
-    /**
-     * Interacts with a specified {@code LocalPoint} in the game environment to move the player
-     *
-     * @param point the {@code LocalPoint} to interact with; represents a specific location in the game.
-     */
-    public void interact(LocalPoint point) {
-        if(!ctxProvider.get().isPacketsLoaded()) return;
-        Point local = Perspective.localToCanvas(ctxProvider.get().getClient(), point, ctxProvider.get().getClient().getTopLevelWorldView().getPlane());
-
-        // TODO This uses the last point my mouse was on the canvas?
-        interact(local, "Walk here", resolveMovementInteraction(local));
     }
 
     /**
@@ -589,6 +548,18 @@ public class InteractionManager {
         ResolvedMenuAction resolvedAction = new ResolvedMenuAction(option, "");
         interact(ctxProvider.get().getClient().getMouseCanvasPosition(), "Set heading", resolvedAction);
     }
+
+//    2026-04-10 10:02:30 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=0, Param1=0, MenuAction=NPC_FIRST_OPTION, ItemId=-1, id=2436, Option=Talk-to, Target=<col=ffff00>Banker, itemOp=-1
+//2026-04-10 10:02:33 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=15138821, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
+//2026-04-10 10:02:37 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=2, Param1=14352385, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
+//2026-04-10 10:02:40 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=13959181, MenuAction=CC_OP, ItemId=-1, id=1, Option=Exit, Target=, itemOp=-1
+//2026-04-10 10:02:42 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=0, Param1=0, MenuAction=NPC_FIRST_OPTION, ItemId=-1, id=2436, Option=Talk-to, Target=<col=ffff00>Banker, itemOp=-1
+//2026-04-10 10:02:43 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=15138821, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
+//2026-04-10 10:02:46 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=5, Param1=14352385, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
+//2026-04-10 10:02:47 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=14221317, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
+//2026-04-10 10:02:48 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=15138821, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
+//2026-04-10 10:02:48 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=14221317, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
+//2026-04-10 10:02:49 EDT [Client] INFO  plugins.api.ApiTestPlugin - Evt: Param0=-1, Param1=15138821, MenuAction=WIDGET_CONTINUE, ItemId=-1, id=0, Option=Continue, Target=, itemOp=-1
 
     /**
      * Interacts with an NPC using the specified action i.e. "Attack", "Talk-To", or "Examine".
@@ -705,6 +676,47 @@ public class InteractionManager {
             interact(pt, action, resolvedAction);
         }
     }
+
+    /**
+     * Continues dialog with the provided option using the packed widget id.
+     * @param packedWidgetId The packed widget id of the widget containing the dynamic options.
+     * @param option The option to select i.e. 1 for the first option, 2 for the second option, etc... Passing -1 will continue the dialogue as normal.
+     */
+    public void interact(int packedWidgetId, int option) {
+       Widget widget = ctxProvider.get().getClient().getWidget(packedWidgetId);
+       if(widget == null) return;
+       interact(widget, option);
+    }
+
+    /**
+     * Handles continuing dialogue. The widget passed should be the parent widget for the dialogue containing all
+     * the dynamic options. When calling this method, the action is assumed to always be "Continue".
+     * @param widget The widget to interact with (parent widget containing all dialogue options)
+     * @param option The option to select i.e. 1 for the first option, 2 for the second option, etc... Passing -1 will continue
+     *               the conversation with the player/npc dialogue.
+     */
+    public void interact(Widget widget, int option) {
+        if(!ctxProvider.get().isPacketsLoaded()) return;
+        Point pt = UIService.getClickbox(widget);
+
+        if (widget == null) {
+            return;
+        }
+
+        // Action will be "Continue" even if you pick a different dialogue for talking to an NPC.
+        MenuOption opt = new MenuOption(
+                MenuAction.WIDGET_CONTINUE,
+                0,
+                option, // -1 for normal continue with player/npc dialogue or the dynamic child 1-5 etc... for selecting a specific chat option.
+                widget.getId(),
+                -1,
+                ctxProvider.get().getClient().getTopLevelWorldView().getId()
+        );
+
+        ResolvedMenuAction resolvedAction = new ResolvedMenuAction(opt, "");
+        interact(pt, "Continue", resolvedAction);
+    }
+
 
     /**
      * Interacts with a widget using the specific sub action.
