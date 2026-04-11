@@ -120,13 +120,31 @@ integrating the API into your plugins and build process.
 You can build the project with Gradle:
 
 ```bash
-./gradlew clean build shadowJar
+./gradlew clean build publishToMavenLocal shadowJar
+
+# Optionally you can set a specific version to build
+export VERSION=3.0.0-SNAPSHOT-LOCAL
+./gradlew clean build publishToMavenLocal shadowJar
+
+# Will be found here:
+# ~/.m2/repository/com/github/kraken/kraken-api/1.0.0-SNAPSHOT-LOCAL/kraken-api-1.0.0-SNAPSHOT-LOCAL.jar
 ```
 
-The output API `.jar` will be located in:
+The output API `.jar` can be found in your `~/.m2/repository/com/github/kraken/kraken-api` directory and the default version is `1.0.0`.
+Include the JAR file in your local plugins project with:
 
-```shell
-build/libs/kraken-api-1.0.0.jar
+```groovy
+repositories {
+  mavenLocal() // Ensure this is included to pull from the locally built API JAR
+  mavenCentral()
+  maven {
+    url = 'https://repo.runelite.net'
+  }
+}
+
+dependencies {
+    implementation group: 'com.github.kraken', name: 'kraken-api', version: '1.0.0' // or whichever version you built with when export VERSION=...
+}
 ```
 
 This will also build a fat jar that includes additional dependencies such as `org.benf.cfr` and the Byte Buddy Agent located in:
@@ -141,7 +159,7 @@ build/libs/kraken-api-1.0.0-all.jar
 
 ## Gradle Example
 
-To use the API jar file in your plugin project you will need to either:
+To use the published API jar file in your plugin project you will need to either:
 - `export GITHUB_ACTOR=<YOUR_GITHUB_USERNAME>; export GITHUB_TOKEN=<GITHUB_PAT`
 - or add the following to your `gradle.properties` file: `gpr.user=your-github-username gpr.key=your-personal-access-token`
 
@@ -260,7 +278,7 @@ that all submodules (shortest-path plugin) are cloned as well.
 1. Create a new branch from `master`
 2. Implement or update your plugin/feature for the API
 3. Add tests for new functionality
-4. Run `./gradlew clean build shadowJar` to verify that the API builds and tests pass
+4. Run `./gradlew clean build publishToMavenLocal shadowJar` to verify that the API builds and tests pass
 5. Commit your changes with a clear message `git commit -m "feat(api): Add feature X to Kraken API"`
 6. Open a Pull Request
 

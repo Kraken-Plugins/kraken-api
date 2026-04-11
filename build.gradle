@@ -43,7 +43,6 @@ tasks.register('runelite', JavaExec) {
 
 
 dependencies {
-
     // Dependencies included within RuneLite's bootstrap at runtime
     compileOnly("org.slf4j:slf4j-api:1.7.25")
     compileOnly("org.slf4j:slf4j-simple:1.7.25")

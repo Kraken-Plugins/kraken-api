@@ -1,7 +1,11 @@
 # Interaction
 
-The Kraken API interacts with the RuneLite game client purely through network packets. Network packets allow your client
-to communicate with Jagex's servers to process, validate, and persist what you are doing in the game.
+The Kraken API interacts with the RuneLite game client using reflection to call a method within the client called `doAction`. The `doAction` method is a 
+"choke point" in the client for a vast majority of menu action interactions for clicking: NPC's, GameObjects, Widgets, GroundItems, Interfaces (again widgets), and more. 
+
+Kraken still utilizes some network packets to directly communicate with Jagex's servers to process certain actions like movement, spoofed mouse clicks, and
+some niche dialogue operations. By leveraging `doAction` for the heavy lifting for ~85% of interactions and the network packets for the remaining ~15%, the Kraken API 
+takes significantly less time and effot to update when the game obfuscation changes. 
 
 Packets must be instantiated once within the client before they can be used. Instantiate packets by calling:
 
@@ -56,9 +60,9 @@ The packet system is designed to bypass the need for simulating mouse clicks and
 
 1.  **Packet Definitions (`PacketDefinition`)**: These define the structure of each packet type, including the packet's name, the data fields it contains, the methods used to write that data, and the associated `PacketType`.
 2.  **Packet Types (`PacketType`)**: An enumeration of the various packet types sent by the game client (e.g., `OPNPC` for NPC interactions, `OPLOC` for object interactions, `IF_BUTTON` for interface buttons). Each type knows the list of parameters it requires.
-3.  **Packet Definition Factory (`PacketDefFactory`)**: A factory class that creates and caches `PacketDefinition` instances for all supported packet types. It handles the mapping between high-level packet types and their specific implementations (e.g., `OPOBJ1` vs `OPOBJ2`).
+3.  **Packet Definition Factory (`PacketFactory`)**: A factory class that creates and caches `PacketDefinition` instances for all supported packet types. It handles the mapping between high-level packet types and their specific implementations (e.g., `OPOBJ1` vs `OPOBJ2`).
 4.  **Packet Client (`PacketClient`)**: The core component responsible for constructing and sending packets. It uses reflection to access internal game client methods and fields, ensuring that packets are formatted correctly and queued for transmission.
-5.  **Entity Packet Helpers (`com.kraken.api.core.packet.entity`)**: High-level utility classes (like `NPCPackets`, `WidgetPackets`) that simplify the process of sending packets for specific game entities. These classes are further abstracted by the Query and Service system defined in the [API docs](docs/API.md).
+5.  **Entity Packet Helpers (`com.kraken.api.core.packet.entity`)**: High-level utility classes (like `MovementPackets`, `WidgetPackets`) that simplify the process of sending packets for specific game entities. These classes are further abstracted by the Query and Service system defined in the [API docs](docs/API.md).
 
 ## How Packets are Sent
 
@@ -66,14 +70,14 @@ The process of sending a packet involves the following steps:
 
 1.  **Identify the Action**: The user (or a high-level API) determines the desired action (e.g., "Attack Goblin").
 2.  **Determine Packet Type**: The system identifies the appropriate `PacketType` for the action (e.g., `OPNPC` for attacking an NPC).
-3.  **Retrieve Definition**: The `PacketDefFactory` provides the `PacketDefinition` for the specific packet type and action index.
+3.  **Retrieve Definition**: The `PacketFactory` provides the `PacketDefinition` for the specific packet type and action index.
 4.  **Prepare Data**: The necessary data (e.g., NPC index, item ID, widget ID) is collected.
 5.  **Send Packet**: The `PacketClient` is invoked with the `PacketDefinition` and the data.
     *   It uses reflection to create a `PacketBufferNode`.
     *   It writes the data into the packet's buffer using the methods specified in the definition.
     *   It queues the packet to the client's `PacketWriter` to be sent to the server.
 
-## Key Components
+## Key Parts
 
 ### PacketClient
 
@@ -94,10 +98,18 @@ The `PacketType` enum categorizes the different kinds of interactions. Some comm
 
 ### Entity Packet Helpers
 
-To make interaction easier, the API provides helper classes for specific entities. For example, `NPCPackets` provides methods like:
-*   `queueNPCAction(int actionFieldNo, int npcIndex, boolean ctrlDown)`: Sends a raw action packet.
-*   `queueNPCAction(NPC npc, String... actionList)`: Finds the correct action index for a given action name (e.g., "Attack") and sends the packet.
-*   `queueWidgetOnNPC(NPC npc, Widget widget)`: Sends a packet to use an item/widget on an NPC.
+To make interaction easier, the API provides helper classes for specific entities. For example, `MovementPackets` provides methods like:
+*   `queueMovement(WorldPoint location)`: Finds the correct x and y coordinates and sends the packet to move your player.
+*   `queueResumeObj(int itemId)`: Sends a packet to select and object from a list (i.e. selecting an object to buy from the GE)
+
+
+## Interaction Manager
+
+A vast majority of actions happen via the `InteractionManager`. Typically, as a script developer, you will not need to interact with this class directly
+as the interactions themselves are abstracted by the Query and Service system defined in the [API docs](API.md).
+
+The `InteractionManager` exposes a set of overloaded `interact()` methods which use reflection to call `doAction` with 
+the appropriate parameters and menu actions under the hood.
 
 ## Example: Attacking an NPC
 

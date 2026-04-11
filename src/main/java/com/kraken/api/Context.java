@@ -79,7 +79,7 @@ public class Context {
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
         PacketFactory.init();
-        log.info("Game context initialized, loaded {} packet definitions", PacketFactory.getPackets().size());
+        log.info("Game context initialized successfully, loaded {} packet definitions", PacketFactory.getPackets().size());
     }
 
     /**
