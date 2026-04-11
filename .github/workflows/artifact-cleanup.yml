@@ -22,4 +22,4 @@ jobs:
         uses: c-hive/gha-remove-artifacts@v1
         with:
           age: '3 month'
-          skip-recent: 10
+          skip-recent: 20
