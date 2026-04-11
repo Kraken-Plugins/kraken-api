@@ -2,6 +2,7 @@ package com.kraken.api.query.npc;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.service.tile.TileService;
 import net.runelite.api.Actor;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
@@ -85,7 +86,7 @@ public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
      * @return A {@literal @}NpcQuery containing only the NPCs that are reachable.
      */
     public NpcQuery reachable() {
-        return filter(npc -> npc.raw() != null && ctx.getTileService().isTileReachable(npc.raw().getWorldLocation()));
+        return filter(npc -> npc.raw() != null && ctx.getService(TileService.class).isTileReachable(npc.raw().getWorldLocation()));
     }
 
     /**

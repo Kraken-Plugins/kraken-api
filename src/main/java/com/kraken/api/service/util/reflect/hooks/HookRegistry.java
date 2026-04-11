@@ -10,5 +10,4 @@ import lombok.Value;
 public class HookRegistry {
     LoginHooks login;
     MouseHooks mouse;
-    DoActionHooks doActionHooks;
 }

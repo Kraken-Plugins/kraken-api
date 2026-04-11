@@ -710,7 +710,7 @@ public class SceneOverlay extends Overlay {
             LocalPoint objLoc = entity.raw().getLocalLocation();
 
             int distance = playerLoc.distanceTo(objLoc) / Perspective.LOCAL_TILE_SIZE;
-            boolean isReachable = ctx.getTileService().isObjectReachable(entity.raw());
+            boolean isReachable = ctx.getService(TileService.class).isObjectReachable(entity.raw());
 
             String[] rawActions = entity.getObjectComposition().getActions();
             String actionString = "[]";
@@ -750,10 +750,10 @@ public class SceneOverlay extends Overlay {
         for (NpcEntity npcWrapper : nearbyNpcs) {
             NPC npc = npcWrapper.raw();
 
-            Color color = Color.WHITE;
+            Color color;
             String status = "Idle";
 
-            boolean isReachable = ctx.getTileService().isTileReachable(npc.getWorldLocation());
+            boolean isReachable = ctx.getService(TileService.class).isTileReachable(npc.getWorldLocation());
             boolean isDead = npc.isDead();
             Actor interacting = npc.getInteracting();
 
@@ -812,7 +812,7 @@ public class SceneOverlay extends Overlay {
             int gePrice = entity.raw().getGePrice() * qty;
             int haPrice = entity.raw().getHaPrice() * qty;
 
-            boolean isReachable = ctx.getTileService().isTileReachable(entity.raw().getLocation());
+            boolean isReachable = ctx.getService(TileService.class).isTileReachable(entity.raw().getLocation());
 
             // Format: Name (Qty) | GE: 100 | HA: 50
             StringBuilder sb = new StringBuilder();
