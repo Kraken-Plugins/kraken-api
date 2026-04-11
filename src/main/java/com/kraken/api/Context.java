@@ -1,14 +1,12 @@
 package com.kraken.api;
 
 import com.google.inject.Inject;
-import com.google.inject.Injector;
 import com.google.inject.Singleton;
 import com.kraken.api.core.interaction.InteractionManager;
-import com.kraken.api.core.interceptor.DoActionInterceptor;
 import com.kraken.api.core.interceptor.InterceptorBuilder;
-import com.kraken.api.core.interceptor.MouseHookInterceptor;
 import com.kraken.api.core.interceptor.PacketInterceptor;
 import com.kraken.api.core.packet.PacketMethodLocator;
+import com.kraken.api.core.packet.model.PacketFactory;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;
@@ -23,7 +21,6 @@ import com.kraken.api.query.player.PlayerQuery;
 import com.kraken.api.query.widget.WidgetQuery;
 import com.kraken.api.query.world.WorldQuery;
 import com.kraken.api.service.bank.BankService;
-import com.kraken.api.service.tile.TileService;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -31,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.EnumComposition;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
@@ -57,9 +55,6 @@ public class Context {
     private boolean packetsLoaded = false;
 
     @Getter
-    private final TileService tileService;
-
-    @Getter
     private final LocalPlayerEntity localPlayer;
 
     @Getter
@@ -69,28 +64,22 @@ public class Context {
     private final InteractionManager interactionManager;
 
     private final PacketInterceptor packetInterceptor;
-    private final MouseHookInterceptor mouseHookInterceptor;
-    private final DoActionInterceptor doActionInterceptor;
-    private final Injector injector;
 
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
-                   final Injector injector, final TileService tileService, final ItemManager itemManager, final BankService bankService,
-                   final PacketInterceptor packetInterceptor, final MouseHookInterceptor mouseHookInterceptor, final DoActionInterceptor doActionInterceptor,
+                   final ItemManager itemManager, final BankService bankService, final PacketInterceptor packetInterceptor,
                    final InteractionManager interactionManager) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
-        this.injector = injector;
-        this.tileService = tileService;
         this.itemManager = itemManager;
         this.packetInterceptor = packetInterceptor;
-        this.mouseHookInterceptor = mouseHookInterceptor;
-        this.doActionInterceptor = doActionInterceptor;
         this.interactionManager = interactionManager;
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
+        PacketFactory.init();
+        log.info("Game context initialized, loaded {} packet definitions", PacketFactory.getPackets().size());
     }
 
     /**
@@ -145,11 +134,6 @@ public class Context {
 //                mouseHookInterceptor::injectHook,
 //                "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
 //        );
-//
-//        initializeInterceptor(resolvedConfiguration.isDoActionInterceptor(),
-//                "do action interceptor",
-//                doActionInterceptor::injectHook,
-//                "Cannot hook doAction() method. This will not log parameters for menu action clicks.");
     }
 
 
@@ -297,7 +281,7 @@ public class Context {
      * @return The instance of the service.
      */
     public <T> T getService(Class<T> serviceClass) {
-        return injector.getInstance(serviceClass);
+        return RuneLite.getInjector().getInstance(serviceClass);
     }
 
     /**

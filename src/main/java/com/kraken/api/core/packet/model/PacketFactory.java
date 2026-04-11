@@ -35,48 +35,28 @@ public class PacketFactory {
     private static final String PACKETS_URL = "https://minio.kraken-plugins.com/kraken-bootstrap-static/packets.json";
     private static final String LOCAL_PACKETS_PATH = "/packets.json";
 
-    static {
-        if (!loadFromLocalResources()) {
-            log.info("Local packets.json not found or failed to load. Falling back to remote URL: {}", PACKETS_URL);
-            loadFromRemote();
-        } else {
-            log.debug("Successfully loaded packets.json from local resources.");
-        }
-    }
-
     /**
-     * Attempts to load packet definitions from a local JSON file located within the application's resources.
+     * Initializes the packet factory by loading packet definitions from local resources or a remote source.
      * <p>
-     * This method reads the JSON file specified by the {@literal LOCAL_PACKETS_PATH} constant, parses its contents,
-     * and updates the internal packet definition structures accordingly. If successful, it logs the completion
-     * and returns {@code true}. If the file is missing, unreadable, or an exception occurs during the operation,
-     * the method logs the issue and returns {@code false}.
+     * This method attempts to load a JSON file containing packet definitions from a predefined
+     * local path. If the local file is unavailable or an exception occurs while processing it,
+     * the method falls back to retrieving the packet definitions from a remote URL.
      * </p>
-     *
-     * <p>Key steps performed by this method:</p>
-     * <ul>
-     *   <li>Access the JSON file using the {@code getResourceAsStream} method.</li>
-     *   <li>Wrap the resource's {@code InputStream} in an {@code InputStreamReader} for parsing operations.</li>
-     *   <li>Parse the JSON content using the {@code parseJson} helper method to populate packet definitions.</li>
-     *   <li>Log any errors that occur and ensure all resources are safely closed using try-with-resources.</li>
-     * </ul>
-     *
-     * @return {@code true} if the packets were successfully loaded and parsed from local resources;
-     *         {@code false} if the file was not found or an error occurred during processing.
      */
-    private static boolean loadFromLocalResources() {
+    public static void init() {
         try (InputStream is = PacketFactory.class.getResourceAsStream(LOCAL_PACKETS_PATH)) {
             if (is == null) {
-                return false; // File not found in resources
+                log.info("Local packets.json not found or failed to load. Falling back to remote URL: {}", PACKETS_URL);
+                loadFromRemote();
+                return;
             }
             try (InputStreamReader reader = new InputStreamReader(is)) {
                 log.info("Loaded packets.json from local resources.");
                 parseJson(reader);
-                return true;
             }
         } catch (Exception e) {
-            log.warn("Exception while trying to load packets.json locally", e);
-            return false;
+            log.warn("Exception while trying to load packets.json locally, attempting remote load", e);
+            loadFromRemote();
         }
     }
 

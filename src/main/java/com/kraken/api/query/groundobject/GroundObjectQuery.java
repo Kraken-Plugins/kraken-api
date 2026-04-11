@@ -2,6 +2,7 @@ package com.kraken.api.query.groundobject;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.service.tile.TileService;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.Tile;
 import net.runelite.api.TileItem;
@@ -187,7 +188,7 @@ public class GroundObjectQuery extends AbstractQuery<GroundObjectEntity, GroundO
      * @return GroundObjectQuery
      */
     public GroundObjectQuery reachable() {
-        return filter(groundItem -> ctx.getTileService().isTileReachable(groundItem.raw().getLocation()));
+        return filter(groundItem -> ctx.getService(TileService.class).isTileReachable(groundItem.raw().getLocation()));
     }
 }
 

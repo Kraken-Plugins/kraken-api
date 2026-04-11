@@ -2,6 +2,7 @@ package com.kraken.api.query.gameobject;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.service.tile.TileService;
 import net.runelite.api.GameObject;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.Perspective;
@@ -165,7 +166,7 @@ public class GameObjectQuery extends AbstractQuery<GameObjectEntity, GameObjectQ
      * @return GroundObjectQuery
      */
     public GameObjectQuery reachable() {
-        return filter(gameObject -> gameObject.raw() != null && ctx.getTileService().isObjectReachable(gameObject.raw()));
+        return filter(gameObject -> gameObject.raw() != null && ctx.getService(TileService.class).isObjectReachable(gameObject.raw()));
     }
 
     /**
