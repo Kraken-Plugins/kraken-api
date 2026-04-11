@@ -56,7 +56,8 @@ public class GroundItemMenuActionResolver implements MenuActionResolver<GroundIt
 
             // The OSRS client hardcodes "Take" as the 3rd option (index 2).
             // It is rarely present in the actual ItemComposition ground actions array.
-            if (action.equalsIgnoreCase("Take")) {
+            // Bury is also supported since some newer objects (like Brutus's bones aren't "Takeable" and can be directly buried).
+            if (action.equalsIgnoreCase("Take") || action.equalsIgnoreCase("Bury")) {
                 return Optional.of(new ResolvedMenuAction(
                         new MenuOption(MenuAction.GROUND_ITEM_THIRD_OPTION, item.getTileItem().getId(),
                                 point.getSceneX(), point.getSceneY(), -1, worldView),
