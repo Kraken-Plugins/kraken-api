@@ -51,7 +51,7 @@ public class DoActionInvoker {
             return;
         }
 
-        int garbageValue = Integer.parseInt(PacketFactory.getPacketMetadata().getDoActionGarbageValue());
+        int garbageValue = PacketFactory.getPacketMetadata().getDoActionGarbageValue();
         Context ctx = ctxProvider.get();
 
         try {

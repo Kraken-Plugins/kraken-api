@@ -9,11 +9,6 @@ import com.kraken.api.core.script.breakhandler.BreakManager;
 import com.kraken.api.core.script.breakhandler.BreakProfile;
 import com.kraken.api.input.mouse.MouseRecorder;
 import com.kraken.api.overlay.MouseOverlay;
-import com.kraken.api.query.container.inventory.InventoryEntity;
-import com.kraken.api.query.gameobject.GameObjectEntity;
-import com.kraken.api.query.npc.NpcEntity;
-import com.kraken.api.service.magic.MagicService;
-import com.kraken.api.service.magic.spellbook.Standard;
 import com.kraken.api.service.map.WorldMapService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.ui.login.LoginService;
@@ -38,6 +33,10 @@ import net.runelite.client.util.ColorUtil;
 import plugins.api.overlay.InfoPanelOverlay;
 import plugins.api.overlay.SceneOverlay;
 import plugins.api.tests.input.MouseTest;
+import plugins.api.tests.interaction.WidgetSubActionTest;
+import plugins.api.tests.interaction.WidgetTargetGameObjectTest;
+import plugins.api.tests.interaction.WidgetTargetNpcTest;
+import plugins.api.tests.interaction.WidgetTargetWidgetTest;
 import plugins.api.tests.query.*;
 import plugins.api.tests.service.*;
 
@@ -131,9 +130,10 @@ public class ApiTestPlugin extends Plugin {
             InventoryTest inventoryQueryTest, BankInventoryTest bankInventoryQueryTest, GameObjectTest gameObjectQueryTest,
             NpcTest npcQueryTest, GroundObjectTest groundObjectQueryTest, PlayerTest playerQueryTest,
             WidgetTest widgetQueryTest, DepositBoxTest depositBoxQuery, SpellServiceTest spellServiceTest, MovementServiceTest movementServiceTest,
-            CameraServiceTest cameraServiceTest, PathfinderServiceTest pathfinderServiceTest, PathfinderServiceTest pathfinderTest, WorldQueryTest worldQueryTest,
+            CameraServiceTest cameraServiceTest, PathfinderServiceTest pathfinderServiceTest, WorldQueryTest worldQueryTest,
             TaskChainTest taskChainTest, MouseTest mouseTest, DialogueServiceTest dialogueServiceTest, ProcessingServiceTest processingServiceTest,
-            AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest
+            AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest, WidgetTargetNpcTest widgetTargetNpcTest,
+            WidgetTargetGameObjectTest widgetTargetGameObjectTest, WidgetTargetWidgetTest widgetTargetWidgetTest, WidgetSubActionTest widgetSubActionTest
     ) {
         registerTest("enablePrayer", "PrayerServiceTest", config::enablePrayerTests, prayerServiceTest::executeTest);
         registerTest("enableBankQuery", "BankQuery", config::enableBankQuery, bankQueryTest::executeTest);
@@ -159,6 +159,10 @@ public class ApiTestPlugin extends Plugin {
         registerTest("enableBankServiceTests", "BankService", config::enableBankServiceTests, bankServiceTest::executeTest);
         registerTest("enableDepositBoxService", "DepositBoxService", config::enableDepositBoxService, depositBoxServiceTest::executeTest);
         registerTest("enableDepositBoxQuery", "DepositBoxQuery", config::enableDepositBoxQuery, depositBoxQuery::executeTest);
+        registerTest("widgetTargetOnNpc", "WidgetNpcTargetTest", config::widgetTargetOnNpc, widgetTargetNpcTest::executeTest);
+        registerTest("widgetTargetOnGameObject", "WidgetGameObjectTargetTest", config::widgetTargetOnGameObject, widgetTargetGameObjectTest::executeTest);
+        registerTest("widgetTargetOnWidget", "WidgetWidgetTargetTest", config::widgetTargetOnWidget, widgetTargetWidgetTest::executeTest);
+        registerTest("widgetSubAction", "WidgetSubActionTargetTest", config::widgetSubAction, widgetSubActionTest::executeTest);
     }
 
     private void registerTest(String configKey, String testName, BooleanSupplier enabled, Supplier<java.util.concurrent.CompletableFuture<Boolean>> test) {
@@ -197,62 +201,7 @@ public class ApiTestPlugin extends Plugin {
             log.info("Logging out of the client...");
             context.players().local().logout();
         }
-
-        // TODO Move these to dedicated test classes
-        if(key.equals("widgetTargetOnNpc") && config.widgetTargetOnNpc()) {
-            NpcEntity guard = context.npcs().nameContains("Guard").nearest();
-            if(guard == null) {
-                log.error("Spell Service tests failed, could not find a guard");
-                return;
-            }
-
-            log.info("Casting fire strike on guard");
-            context.getService(MagicService.class).castOn(Standard.FIRE_STRIKE, guard.raw());
-        }
-
-        if(key.equals("widgetTargetOnGameObject") && config.widgetTargetOnGameObject()) {
-            InventoryEntity e = context.inventory().withName("Bucket").first();
-            if(e == null) {
-                log.error("Inventory test failed, could not find a bucket");
-                return;
-            }
-
-            GameObjectEntity gameObject = context.gameObjects().withId(5125).nearest();
-            if (gameObject == null) {
-                log.error("GameObject test failed, could not find a fountain game object");
-                return;
-            }
-
-            e.useOn(gameObject.raw());
-        }
-
-        if(key.equals("widgetTargetOnWidget") && config.widgetTargetOnWidget()) {
-            InventoryEntity chisel = context.inventory().withName("Chisel").first();
-            if(chisel == null) {
-                log.error("Inventory test failed, could not find a chisel");
-                return;
-            }
-
-            InventoryEntity gem = context.inventory().withId(1623).first();
-            if (gem == null) {
-                log.error("Widget test failed, could not find an uncut sapphire");
-                return;
-            }
-
-            chisel.useOn(gem.raw());
-        }
-
-        if(key.equals("widgetSubAction") && config.widgetSubAction()) {
-            InventoryEntity ringOfDueling = context.inventory().nameContains("Ring of").first();
-            if(ringOfDueling == null) {
-                log.error("Inventory test failed, could not find a Ring of dueling");
-                return;
-            }
-
-            context.getInteractionManager().interact(ringOfDueling.raw().getWidget(), "Rub", "Fortis Colosseum");
-        }
-
-
+        
         if(key.equalsIgnoreCase("pauseScript") && config.pauseScript()) {
             exampleScript.pause();
         } else {

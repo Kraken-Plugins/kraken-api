@@ -1,0 +1,6 @@
+//[kraken-api](../../../index.md)/[com.kraken.api.core.interceptor.model](../index.md)/[PacketSent](index.md)/[PacketSent](-packet-sent.md)
+
+# PacketSent
+
+[Kraken API]\
+constructor()

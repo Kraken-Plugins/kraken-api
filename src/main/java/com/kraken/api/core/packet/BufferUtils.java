@@ -148,9 +148,9 @@ public class BufferUtils {
         byte[] arr = getArray(bufferInstance);
 
         int offset = getOffset(bufferInstance);
-        int indexMultiplier = Integer.parseInt(PacketFactory.getPacketMetadata().getIndexMultiplier());
+        int indexMultiplier = PacketFactory.getPacketMetadata().getIndexMultiplier();
         // The offset multiplier is also an obfuscated value, often a large negative number.
-        int offsetMultiplier = (int) Long.parseLong(PacketFactory.getPacketMetadata().getOffsetMultiplier());
+        int offsetMultiplier = PacketFactory.getPacketMetadata().getOffsetMultiplier();
 
         // Calculate the real starting index in the byte array
         int realIndex = offset * indexMultiplier;
@@ -186,8 +186,8 @@ public class BufferUtils {
         byte[] arr = getArray(bufferInstance);
 
         int offset = getOffset(bufferInstance);
-        int indexMultiplier = Integer.parseInt(PacketFactory.getPacketMetadata().getIndexMultiplier());
-        int offsetMultiplier = (int) Long.parseLong(PacketFactory.getPacketMetadata().getOffsetMultiplier());
+        int indexMultiplier = PacketFactory.getPacketMetadata().getIndexMultiplier();
+        int offsetMultiplier = PacketFactory.getPacketMetadata().getOffsetMultiplier();
 
         // Advance offset and write the leading null byte
         offset += offsetMultiplier;
@@ -251,7 +251,7 @@ public class BufferUtils {
      * @return The next logical offset.
      */
     static public int nextIndex(int offset) {
-        offset += (int) Long.parseLong(PacketFactory.getPacketMetadata().getOffsetMultiplier());
+        offset += PacketFactory.getPacketMetadata().getOffsetMultiplier();
         return offset;
     }
 

@@ -44,7 +44,7 @@ public class PacketInterceptor {
      */
     public void injectHook() throws Exception {
         if(injected) {
-            log.info("Already injected, skipping");
+            log.debug("Already injected, skipping");
             return;
         }
 
