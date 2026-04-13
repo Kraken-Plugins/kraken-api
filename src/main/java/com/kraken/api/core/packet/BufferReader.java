@@ -48,8 +48,8 @@ public class BufferReader {
     public static Map<String, Object> decode(byte[] payload, List<PacketWrite> writes) {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        int indexMultiplier = Integer.parseInt(PacketFactory.getPacketMetadata().getIndexMultiplier());
-        int offsetMultiplier = (int) Long.parseLong(PacketFactory.getPacketMetadata().getOffsetMultiplier());
+        int indexMultiplier = PacketFactory.getPacketMetadata().getIndexMultiplier();
+        int offsetMultiplier = PacketFactory.getPacketMetadata().getOffsetMultiplier();
 
         // Offset starts at 0, identical to the write side.
         int offset = 0;

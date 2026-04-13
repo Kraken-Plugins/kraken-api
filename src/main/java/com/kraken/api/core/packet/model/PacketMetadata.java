@@ -11,85 +11,43 @@ import javax.inject.Singleton;
  */
 @Data
 @Singleton
-public class PacketMetadata {
-    private String mouseHookDllClassName = "client";
-    private String mouseHookDllMethodName;
+public final class PacketMetadata {
 
-    // Arg added to the creation of packets (same for all packets).
-    private String isaacCipherFieldName;
+    private final String mouseHookDllClassName = "client";
+    private final String mouseHookDllMethodName;
 
-    // The method which actually adds the packet to the outgoing queue to send it
-    // to OSRS servers
-    private String addNodeMethodName;
-    private String addNodeClassName;
-    private String addNodeGarbageValue;
+    private final String isaacCipherFieldName;
 
-    // The class containing all the specific packet definitions (these are used when creating a PacketBufferNode obj)
-    private String clientPacketClassName;
+    private final String addNodeMethodName;
+    private final String addNodeClassName;
+    private final Integer addNodeGarbageValue;
 
-    // The class and method which handles writing the packets
-    private String packetWriterClassName;
-    private String packetWriterFieldName;
+    private final String clientPacketClassName;
 
-    private String classContainingPacketBufferNodeName;
-    private String packetBufferNodeFactoryMethodName;
+    private final String packetWriterClassName;
+    private final String packetWriterFieldName;
 
-    // Handles writing into the PacketBufferNode object (add 128, >> 8, sub 128 methods etc...)
-    private String bufferClassName; // Class implementing RuneLites PacketBuffer
-    private String extendedBufferClassName; // bufferClassName extends this class (which is where the actual write methods are)
-    private String offsetMultiplier; // Used by the extendedBufferClassName as an obfuscation value to write into the buffer (needed for reflection)
-    private String indexMultiplier; // Same as above ^
-    private String bufferOffsetField;
-    private String bufferArrayField;
+    private final String classContainingPacketBufferNodeName;
+    private final String packetBufferNodeFactoryMethodName;
 
-    private String mouseHandlerLastPressedClass;
-    private String mouseHandlerLastPressedField;
-    private String mouseHandlerMultiplier;
-    private String clientMillisField;
-    private String clientMillisMultiplier; // TODO Find which method this exists in and fingerprint it
+    private final String bufferClassName;
+    private final String extendedBufferClassName;
+    private final Integer offsetMultiplier;
+    private final Integer indexMultiplier;
+    private final String bufferOffsetField;
+    private final String bufferArrayField;
 
-    // The class and method that contains a generic packet buffer (an object which can encapsulate
-    // any packet data)
-    private String packetBufferNodeClassName;
-    private String packetBufferFieldName;
-    private String packetBufferNodeGarbageValue;
+    private final String mouseHandlerLastPressedClass;
+    private final String mouseHandlerLastPressedField;
+    private final Long mouseHandlerMultiplier;
+    private final String clientMillisField;
+    private final Long clientMillisMultiplier;
 
-    // Handle Menu action clicks (game objects, NPCs, ground items, etc...) a lot of
-    // packets are mapped via this key class/method
-    private String doActionClassName;
-    private String doActionMethodName;
-    private String doActionGarbageValue;
+    private final String packetBufferNodeClassName;
+    private final String packetBufferFieldName;
+    private final Integer packetBufferNodeGarbageValue;
 
-    @Override
-    public String toString() {
-        return "PacketMetadata {\n" +
-                "  mouseHookDllMethodName='" + mouseHookDllMethodName + "',\n" +
-                "  isaacCipherFieldName='" + isaacCipherFieldName + "',\n" +
-                "  addNodeMethodName='" + addNodeMethodName + "',\n" +
-                "  addNodeClassName='" + addNodeClassName + "',\n" +
-                "  addNodeGarbageValue='" + addNodeGarbageValue + "',\n" +
-                "  clientPacketClassName='" + clientPacketClassName + "',\n" +
-                "  packetWriterClassName='" + packetWriterClassName + "',\n" +
-                "  packetWriterFieldName='" + packetWriterFieldName + "',\n" +
-                "  classContainingPacketBufferNodeName='" + classContainingPacketBufferNodeName + "',\n" +
-                "  packetBufferNodeFactoryMethodName='" + packetBufferNodeFactoryMethodName + "',\n" +
-                "  bufferClassName='" + bufferClassName + "',\n" +
-                "  extendedBufferClassName='" + extendedBufferClassName + "',\n" +
-                "  offsetMultiplier='" + offsetMultiplier + "',\n" +
-                "  indexMultiplier='" + indexMultiplier + "',\n" +
-                "  bufferOffsetField='" + bufferOffsetField + "',\n" +
-                "  bufferArrayField='" + bufferArrayField + "',\n" +
-                "  packetBufferNodeClassName='" + packetBufferNodeClassName + "',\n" +
-                "  packetBufferFieldName='" + packetBufferFieldName + "',\n" +
-                "  packetBufferNodeGarbageValue='" + packetBufferNodeGarbageValue + "',\n" +
-                "  doActionClassName='" + doActionClassName + "',\n" +
-                "  doActionMethodName='" + doActionMethodName + "'\n" +
-                "  doActionGarbageValue='" + doActionGarbageValue + "'\n" +
-                "  mouseHandlerLastPressedClass='" + mouseHandlerLastPressedClass + "'\n" +
-                "  mouseHandlerLastPressedField='" + mouseHandlerLastPressedField + "'\n" +
-                "  mouseHandlerMultiplier='" + mouseHandlerMultiplier + "'\n" +
-                "  clientMillisMultiplier='" + clientMillisMultiplier + "'\n" +
-                "  clientMillisField='" + clientMillisField + "'\n" +
-                "}";
-    }
+    private final String doActionClassName;
+    private final String doActionMethodName;
+    private final Integer doActionGarbageValue;
 }

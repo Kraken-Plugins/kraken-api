@@ -70,7 +70,7 @@ public class MousePackets {
     private long getClientLastMillis() {
         Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getClientMillisField());
         clientLastPressedTimeMillis.setAccessible(true);
-        long retValue = clientLastPressedTimeMillis.getLong(client) * Long.parseLong(PacketFactory.getPacketMetadata().getClientMillisMultiplier());
+        long retValue = clientLastPressedTimeMillis.getLong(client) * PacketFactory.getPacketMetadata().getClientMillisMultiplier();
         clientLastPressedTimeMillis.setAccessible(false);
         return retValue;
     }
@@ -80,7 +80,7 @@ public class MousePackets {
         Class<?> mouseHandler = client.getClass().getClassLoader().loadClass(PacketFactory.getPacketMetadata().getMouseHandlerLastPressedClass());
         Field mouseHandlerLastPressedTime = mouseHandler.getDeclaredField(PacketFactory.getPacketMetadata().getMouseHandlerLastPressedField());
         mouseHandlerLastPressedTime.setAccessible(true);
-        mouseHandlerLastPressedTime.setLong(null, time * MathUtils.modInverse(Long.parseLong(PacketFactory.getPacketMetadata().getMouseHandlerMultiplier())));
+        mouseHandlerLastPressedTime.setLong(null, time * MathUtils.modInverse(PacketFactory.getPacketMetadata().getMouseHandlerMultiplier()));
         mouseHandlerLastPressedTime.setAccessible(false);
     }
 
@@ -88,7 +88,7 @@ public class MousePackets {
     private void setClientLastMillis(long time) {
         Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getClientMillisField());
         clientLastPressedTimeMillis.setAccessible(true);
-        clientLastPressedTimeMillis.setLong(client, time * MathUtils.modInverse(Long.parseLong(PacketFactory.getPacketMetadata().getClientMillisMultiplier())));
+        clientLastPressedTimeMillis.setLong(client, time * MathUtils.modInverse(PacketFactory.getPacketMetadata().getClientMillisMultiplier()));
         clientLastPressedTimeMillis.setAccessible(false);
     }
 }
