@@ -162,7 +162,7 @@ public class InteractionManager {
         );
     }
 
-    // --- Sub-action overload ---
+    // --- Sub-action (i.e. games necklace, max cape, and ring of dueling sub menu teleports) ---
 
     public void interact(Widget item, String menu, String action) {
         if (!ctxProvider.get().isPacketsLoaded()) return;

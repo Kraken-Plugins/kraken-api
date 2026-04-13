@@ -27,8 +27,6 @@ public class DepositBoxTest extends BaseApiTest {
                 return false;
             }
 
-            // --- Query filter tests ---
-
             boolean notEmpty = !ctx.depositBox().isEmpty();
             testsPassed &= notEmpty;
             log.info("[{}] depositBox is not empty", notEmpty ? "PASS" : "FAIL");

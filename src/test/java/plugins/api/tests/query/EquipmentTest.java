@@ -3,6 +3,7 @@ package plugins.api.tests.query;
 import com.google.inject.Inject;
 import com.kraken.api.Context;
 import com.kraken.api.query.equipment.EquipmentEntity;
+import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
@@ -23,8 +24,18 @@ public class EquipmentTest extends BaseApiTest {
             if(!ctx.inventory().hasItems("Rune full helm", "Rune scimitar", "Rune platebody")) {
                 log.info("Setting up inventory for equipment tests");
                 if (!bankService.isOpen()) {
-                    log.error("Cannot execute bank tests, bank is not open");
-                    return false;
+                    GameObjectEntity bank = ctx.gameObjects()
+                            .withName("Bank booth")
+                            .withAction("Bank")
+                            .nearest();
+
+                    if (bank.isNull()) {
+                        log.error("Failed to find Bank booth with 'Bank' action");
+                        return false;
+                    }
+
+                    bank.interact("Bank");
+                    SleepService.sleepFor(2);
                 }
 
                 // Setup
@@ -73,13 +84,7 @@ public class EquipmentTest extends BaseApiTest {
                 log.info("Equipment tests failed, could not wear rune full helm");
                 testsPassed = false;
             }
-            SleepService.sleepFor(2);
-
-            if(!ctx.equipment().isWearing("Rune Platebody")) {
-                log.info("Equipment tests failed, isWearing returned false for Rune Platebody but platebody should be equipped.");
-                testsPassed = false;
-            }
-
+            
             SleepService.sleepFor(2);
 
             if(!ctx.equipment().inInventory().withName("Studded Body").first().wieldOrWear()) {

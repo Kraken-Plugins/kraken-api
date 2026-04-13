@@ -4,6 +4,7 @@ package plugins.api.tests.query;
 import com.google.inject.Inject;
 import com.kraken.api.Context;
 import com.kraken.api.query.container.bank.BankEntity;
+import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
@@ -21,9 +22,19 @@ public class BankTest extends BaseApiTest {
         boolean testsPassed = true;
 
         try {
-            if(!bankService.isOpen()) {
-                log.error("Cannot execute bank tests, bank is not open");
-                return false;
+            if (!bankService.isOpen()) {
+                GameObjectEntity bank = ctx.gameObjects()
+                        .withName("Bank booth")
+                        .withAction("Bank")
+                        .nearest();
+
+                if (bank.isNull()) {
+                    log.error("Failed to find Bank booth with 'Bank' action");
+                    return false;
+                }
+
+                bank.interact("Bank");
+                SleepService.sleepFor(2);
             }
 
             // Test for substring contains with platelegs, platebody, plateskirt etc...
