@@ -5,16 +5,7 @@ import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.core.packet.PacketClient;
 import com.kraken.api.core.packet.model.PacketFactory;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ItemComposition;
-import net.runelite.api.widgets.Widget;
-import net.runelite.client.util.Text;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * A high-level utility class for sending widget-related game packets.
@@ -29,75 +20,6 @@ public class WidgetPackets {
 
     @Inject
     private Provider<PacketClient> packetSenderProvider;
-
-    /**
-     * Queues a widget sub-action packet by identifying the specific sub-action
-     * and menu options associated with a given widget.
-     * <p>
-     * This method identifies the indices of both a sub-action (from item definitions)
-     * and a specific menu option (from the widget's actions). If matches for both
-     * the sub-action and menu option are found, it sends a low-level packet to
-     * perform the action.
-     * <p>
-     * Only executes if the widget and its associated item ID are valid, while the
-     * sub-actions and menu options must contain the desired action and menu option.
-     *
-     * @param widget The {@link Widget} instance on which the action is to be performed.
-     *               This is the target widget for the queued action.
-     * @param menu   A case-insensitive {@literal @<String>} representing the menu action
-     *               text to search for (e.g., "Use", "Examine").
-     * @param action A case-insensitive {@literal @<String>} representing the sub-action text
-     *               to search for (e.g., "Clean", "Equip").
-     */
-    @SneakyThrows
-    public void queueWidgetSubAction(Widget widget, String menu, String action) {
-        if (widget == null || widget.getItemId() == -1) {
-            return;
-        }
-
-        ItemComposition composition = packetSenderProvider.get().getClient().getItemDefinition(widget.getItemId());
-        String[][] subOps = composition.getSubops();
-        List<String> actions = Arrays.stream(widget.getActions()).collect(Collectors.toList());
-
-        int menuIndex = -1;
-        int actionIndex = -1;
-
-        if (subOps == null) {
-            return;
-        }
-
-        for (String[] subOp : subOps) {
-            if (actionIndex != -1) {
-                break;
-            }
-            if (subOp != null) {
-                for (int i = 0; i < subOp.length; i++) {
-                    String op = subOp[i];
-                    if (op != null && op.equalsIgnoreCase(action)) {
-                        actionIndex = i;
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (int i = 0; i < actions.size(); i++) {
-            String a = actions.get(i);
-            if (a != null && a.equalsIgnoreCase(menu)) {
-                menuIndex = i + 1;
-                break;
-            }
-        }
-
-        if (menuIndex == -1 || actionIndex == -1) {
-            String actionsString = actions.stream().filter(Objects::nonNull).map(Text::removeTags).collect(Collectors.joining(", "));
-            log.error("No valid sub-action found for: {}, Actions: [{}]", action, actionsString);
-            return;
-        }
-
-        packetSenderProvider.get()
-                .sendPacket(PacketFactory.getIfSubOp(), widget.getId(), widget.getIndex(), widget.getItemId(), menuIndex, actionIndex);
-    }
 
     /**
      * Queues the RESUME_COUNTDIALOG packet, sent in response to a numerical

@@ -156,9 +156,6 @@ public class PacketFactory {
         return def;
     }
 
-    // Interface/Widget packets
-    public static PacketDefinition getIfSubOp() { return getPacket("IF_SUBOP"); }
-
     // Resume packets for dialogues with NPC's in the chatbox.
     // pause is for basic "CLick here to contine", count is when entering a quantity like: withdraw-X, obj is when
     // picking an object i.e. sailing mermaids or picking an item from a GE search.
