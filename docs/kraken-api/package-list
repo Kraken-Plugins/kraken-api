@@ -112,7 +112,6 @@ $dokka.location:com.kraken.api.core.packet.entity/WidgetPackets///PointingToDecl
 $dokka.location:com.kraken.api.core.packet.entity/WidgetPackets/WidgetPackets/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.entity/-widget-packets/-widget-packets.md
 $dokka.location:com.kraken.api.core.packet.entity/WidgetPackets/queueResumeCount/#int/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.entity/-widget-packets/queue-resume-count.md
 $dokka.location:com.kraken.api.core.packet.entity/WidgetPackets/queueResumeObj/#int/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.entity/-widget-packets/queue-resume-obj.md
-$dokka.location:com.kraken.api.core.packet.entity/WidgetPackets/queueWidgetSubAction/#Widget#java.lang.String#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.entity/-widget-packets/queue-widget-sub-action.md
 $dokka.location:com.kraken.api.core.packet.model////PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/index.md
 $dokka.location:com.kraken.api.core.packet.model/BufferOperation.BufferOperationType.ADD///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.core.packet.model/-buffer-operation/-buffer-operation-type/-a-d-d/index.md
 $dokka.location:com.kraken.api.core.packet.model/BufferOperation.BufferOperationType.RAW///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.core.packet.model/-buffer-operation/-buffer-operation-type/-r-a-w/index.md
@@ -141,14 +140,12 @@ $dokka.location:com.kraken.api.core.packet.model/PacketDefinition/PacketDefiniti
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/PacketFactory/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/-packet-factory.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getEventMouseClick/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-event-mouse-click.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory/getIfSubOp/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-if-sub-op.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getMoveGameClick/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-move-game-click.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getResumeCountDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-resume-count-dialog.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getResumeObjDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-resume-obj-dialog.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/init/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/init.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMetadata///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMetadata/PacketMetadata/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/-packet-metadata.md
-$dokka.location:com.kraken.api.core.packet.model/PacketMetadata/toString/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/to-string.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMethods///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-methods/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMethods/PacketMethods/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-methods/-packet-methods.md
 $dokka.location:com.kraken.api.core.packet.model/PacketType.EVENT_MOUSE_CLICK///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.core.packet.model/-packet-type/-e-v-e-n-t_-m-o-u-s-e_-c-l-i-c-k/index.md
