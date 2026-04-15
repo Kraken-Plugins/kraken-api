@@ -28,6 +28,37 @@ out the [Vitalite](https://github.com/Tonic-Box/VitaLite/) client and project as
 
 Specifically credit to Vitalite's Dialogue, G.E., and World Map API's and inspiration on Kraken's `TaskChain` and `ReplayStrategy` for mouse movement!
 
+
+## Quick Start
+
+To get started with the API instantly:
+
+```shell
+git clone https://github.com/Kraken-Plugins/kraken-api
+cd ./kraken-api
+./gradlew build publishToMavenLocal
+```
+
+In the repository containing all your plugins `build.gradle` file: 
+
+```groovy
+
+repositories {
+    // Attempts local first for testing API jar
+    mavenLocal {
+        content {
+            includeGroup "com.github.kraken"
+        }
+    }
+  
+  // .. other repositories like RuneLite.net, etc...
+}
+
+dependencies {
+  compileOnly group: 'com.github.kraken', name:'kraken-api', version: '1.0.0'
+}
+```
+
 ## API Usage
 
 The following RuneLite "plugin" is purely for an example of the API's capabilities and isn't a full-fledged automation script.
@@ -309,6 +340,8 @@ The deployment is fully automated and consists of:
 ## 🤝 Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+If you'd like to see the work in our backlog, check out this [project board](https://github.com/orgs/Kraken-Plugins/projects/1/views/1).
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "clientVersion": "1.12.23",
   "reflectionHooks": {
-    "clientLogFieldName": "rn",
+    "clientLogFieldName": "lp",
     "mouseHookDllClassName": "client",
     "mouseHookDllMethodName": "zd",
     "isaacCipherFieldName": "az",
@@ -187,6 +187,31 @@
         }
       ],
       "type": "RESUME_OBJDIALOG"
+    },
+    "RESUME_STRINGDIALOG": {
+      "packetName": "RESUME_STRINGDIALOG",
+      "obfuscatedName": "ai",
+      "writes": [
+        {
+          "param": "length",
+          "methodName": "ma",
+          "operations": [
+            {
+              "type": "RAW"
+            }
+          ]
+        },
+        {
+          "param": "string",
+          "methodName": "ch",
+          "operations": [
+            {
+              "type": "STRING_CP1252_NULL_TERMINATED"
+            }
+          ]
+        }
+      ],
+      "type": "RESUME_STRINGDIALOG"
     }
   }
 }
