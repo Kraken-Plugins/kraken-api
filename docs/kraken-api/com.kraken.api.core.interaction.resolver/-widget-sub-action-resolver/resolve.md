@@ -5,7 +5,7 @@
 [Kraken API]\
 open fun [resolve](resolve.md)(widget: Widget, primaryMenu: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html), subActionName: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)): [Optional](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Optional.html)&lt;[ResolvedMenuAction](../../com.kraken.api.core.interaction.model/-resolved-menu-action/index.md)&gt;
 
-Resolves a widget sub-action menu interaction, i.e. the nested option menu like Max cape teleports, games necklace teleports, or fairy ring sub options.
+Resolves a widget sub-action menu interaction. For example, the nested option menu like Max/Skill cape teleports, games necklace teleports, or fairy ring sub options.
 
 #### Return
 

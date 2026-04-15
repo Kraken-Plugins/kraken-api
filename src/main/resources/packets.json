@@ -1,6 +1,7 @@
 {
   "clientVersion": "1.12.23",
   "reflectionHooks": {
+    "clientLogFieldName": "rn",
     "mouseHookDllClassName": "client",
     "mouseHookDllMethodName": "zd",
     "isaacCipherFieldName": "az",

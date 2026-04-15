@@ -33,6 +33,7 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 
+import java.lang.reflect.Field;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -79,6 +80,21 @@ public class Context {
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
         PacketFactory.init();
+
+        // RuneLite injects some logging into doAction when a menu action can't be found by the client but is still being
+        // invoked with coordinates where the menu action should appear. This simply mutes those verbose logs.
+        try {
+            Field loggerField = client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getClientLogFieldName());
+            loggerField.setAccessible(true);
+            Object loggerInstance = loggerField.get(null);
+
+            if (loggerInstance instanceof ch.qos.logback.classic.Logger) {
+                ((ch.qos.logback.classic.Logger) loggerInstance).setLevel(ch.qos.logback.classic.Level.ERROR);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            log.warn("Failed modify log level for RuneLite doAction method. You may encounter more verbose logging.", e);
+        }
+
         log.info("Game context initialized successfully, loaded {} packet definitions", PacketFactory.getPackets().size());
     }
 

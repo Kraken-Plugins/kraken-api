@@ -13,6 +13,7 @@ import javax.inject.Singleton;
 @Singleton
 public final class PacketMetadata {
 
+    private final String clientLogFieldName;
     private final String mouseHookDllClassName = "client";
     private final String mouseHookDllMethodName;
 
