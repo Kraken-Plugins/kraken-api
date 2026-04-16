@@ -16,12 +16,17 @@ public class HookLoader {
     private static HookRegistry registryCache = null;
 
     /**
-     * Initializes the packet factory by loading packet definitions from local resources or a remote source.
+     * Loads the {@code HookRegistry} from the predefined JSON resource file.
      * <p>
-     * This method attempts to load a JSON file containing packet definitions from a predefined
-     * local path. If the local file is unavailable or an exception occurs while processing it,
-     * the method falls back to retrieving the packet definitions from a remote URL.
-     * </p>
+     * If the {@code HookRegistry} has already been loaded and cached, this method
+     * returns the cached instance. Otherwise, it deserializes the resource file
+     * located at {@code /reflection_hooks.json} into a {@code HookRegistry} instance
+     * using a {@link Gson} object configured with a custom {@link HookRegistryDeserializer}.
+     * <p>
+     * In case of an error during the loading or deserialization process, {@code null} is returned, and
+     * an appropriate error message is logged.
+     *
+     * @return the loaded {@link HookRegistry} instance, or {@code null} if an error occurs
      */
     public static HookRegistry load() {
         if(registryCache != null) {

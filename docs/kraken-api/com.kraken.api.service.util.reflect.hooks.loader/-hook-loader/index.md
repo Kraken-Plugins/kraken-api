@@ -15,4 +15,4 @@ open class [HookLoader](index.md)
 
 | Name | Summary |
 |---|---|
-| [load](load.md) | [Kraken API]<br>open fun [load](load.md)(): [HookRegistry](../../com.kraken.api.service.util.reflect.hooks/-hook-registry/index.md) |
+| [load](load.md) | [Kraken API]<br>open fun [load](load.md)(): [HookRegistry](../../com.kraken.api.service.util.reflect.hooks/-hook-registry/index.md)<br>Initializes the packet factory by loading packet definitions from local resources or a remote source. |

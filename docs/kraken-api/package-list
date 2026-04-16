@@ -79,15 +79,13 @@ $dokka.location:com.kraken.api.core.interceptor.model/PacketSent/PacketSent/#/Po
 $dokka.location:com.kraken.api.core.interceptor////PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/index.md
 $dokka.location:com.kraken.api.core.interceptor/InterceptorBuilder///PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-interceptor-builder/index.md
 $dokka.location:com.kraken.api.core.interceptor/InterceptorBuilder/InterceptorBuilder/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-interceptor-builder/-interceptor-builder.md
-$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor.MouseHookAdvice///PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-advice/index.md
-$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor.MouseHookAdvice/MouseHookAdvice/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-advice/-mouse-hook-advice.md
-$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor.MouseHookAdvice/onEnter/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-advice/on-enter.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor///PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/index.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/MouseHookInterceptor/#Client/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-interceptor.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/client/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/client.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/hooks/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/hooks.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/injectHook/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/inject-hook.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/injected/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/injected.md
+$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/provideZero/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/provide-zero.md
 $dokka.location:com.kraken.api.core.interceptor/PacketInterceptor.PacketHookAdvice///PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-packet-interceptor/-packet-hook-advice/index.md
 $dokka.location:com.kraken.api.core.interceptor/PacketInterceptor.PacketHookAdvice/PacketHookAdvice/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-packet-interceptor/-packet-hook-advice/-packet-hook-advice.md
 $dokka.location:com.kraken.api.core.interceptor/PacketInterceptor.PacketHookAdvice/onEnter/#java.lang.Object/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-packet-interceptor/-packet-hook-advice/on-enter.md
@@ -143,6 +141,7 @@ $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getEventMouseClic
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getMoveGameClick/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-move-game-click.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getResumeCountDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-resume-count-dialog.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getResumeObjDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-resume-obj-dialog.md
+$dokka.location:com.kraken.api.core.packet.model/PacketFactory/getStringDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-string-dialog.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/init/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/init.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMetadata///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMetadata/PacketMetadata/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/-packet-metadata.md
@@ -2180,6 +2179,9 @@ $dokka.location:com.kraken.api.simulation/SimulationState/isQueuedMovementRun/#/
 $dokka.location:com.kraken.api.simulation/SimulationState/setNpcActive/#int#boolean/PointingToDeclaration/kraken-api/com.kraken.api.simulation/-simulation-state/set-npc-active.md
 $dokka.location:com.kraken.api.simulation/SimulationState/setNpcAttackCooldown/#int#int/PointingToDeclaration/kraken-api/com.kraken.api.simulation/-simulation-state/set-npc-attack-cooldown.md
 $dokka.location:com.kraken.api.util////PointingToDeclaration/kraken-api/com.kraken.api.util/index.md
+$dokka.location:com.kraken.api.util/JsonResourceUtils///PointingToDeclaration/kraken-api/com.kraken.api.util/-json-resource-utils/index.md
+$dokka.location:com.kraken.api.util/JsonResourceUtils/JsonResourceUtils/#/PointingToDeclaration/kraken-api/com.kraken.api.util/-json-resource-utils/-json-resource-utils.md
+$dokka.location:com.kraken.api.util/JsonResourceUtils/loadJsonResource/#java.lang.Class<?>#java.lang.String#Gson#java.lang.Class<T>/PointingToDeclaration/kraken-api/com.kraken.api.util/-json-resource-utils/load-json-resource.md
 $dokka.location:com.kraken.api.util/MathUtils///PointingToDeclaration/kraken-api/com.kraken.api.util/-math-utils/index.md
 $dokka.location:com.kraken.api.util/MathUtils/MathUtils/#/PointingToDeclaration/kraken-api/com.kraken.api.util/-math-utils/-math-utils.md
 $dokka.location:com.kraken.api.util/MathUtils/chebyshevDistance/#int#int#int#int/PointingToDeclaration/kraken-api/com.kraken.api.util/-math-utils/chebyshev-distance.md
@@ -2203,7 +2205,7 @@ $dokka.location:com.kraken.api.util/StringUtils/stripColTags/#java.lang.String/P
 $dokka.location:com.kraken.api.util/StringUtils/stripColTags/#java.lang.String[]/PointingToDeclaration/kraken-api/com.kraken.api.util/-string-utils/strip-col-tags.md
 $dokka.location:com.kraken.api////PointingToDeclaration/kraken-api/com.kraken.api/index.md
 $dokka.location:com.kraken.api/Context///PointingToDeclaration/kraken-api/com.kraken.api/-context/index.md
-$dokka.location:com.kraken.api/Context/Context/#Client#ClientThread#com.kraken.api.input.mouse.VirtualMouse#EventBus#ItemManager#com.kraken.api.service.bank.BankService#com.kraken.api.core.interceptor.PacketInterceptor#com.kraken.api.core.interaction.InteractionManager/PointingToDeclaration/kraken-api/com.kraken.api/-context/-context.md
+$dokka.location:com.kraken.api/Context/Context/#Client#ClientThread#com.kraken.api.input.mouse.VirtualMouse#EventBus#ItemManager#com.kraken.api.service.bank.BankService#com.kraken.api.core.interceptor.PacketInterceptor#com.kraken.api.core.interaction.InteractionManager#com.kraken.api.core.interceptor.MouseHookInterceptor/PointingToDeclaration/kraken-api/com.kraken.api/-context/-context.md
 $dokka.location:com.kraken.api/Context/bank/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/bank.md
 $dokka.location:com.kraken.api/Context/bankInventory/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/bank-inventory.md
 $dokka.location:com.kraken.api/Context/depositBox/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/deposit-box.md
@@ -2216,7 +2218,6 @@ $dokka.location:com.kraken.api/Context/getVarpValue/#int/PointingToDeclaration/
 $dokka.location:com.kraken.api/Context/getWidget/#int/PointingToDeclaration/kraken-api/com.kraken.api/-context/get-widget.md
 $dokka.location:com.kraken.api/Context/groundItems/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/ground-items.md
 $dokka.location:com.kraken.api/Context/initializeInterceptors/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/initialize-interceptors.md
-$dokka.location:com.kraken.api/Context/initializeInterceptors/#com.kraken.api.core.interceptor.InterceptorBuilder/PointingToDeclaration/kraken-api/com.kraken.api/-context/initialize-interceptors.md
 $dokka.location:com.kraken.api/Context/initializePackets/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/initialize-packets.md
 $dokka.location:com.kraken.api/Context/inventory/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/inventory.md
 $dokka.location:com.kraken.api/Context/npcs/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/npcs.md

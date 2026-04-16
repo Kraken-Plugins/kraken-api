@@ -9,7 +9,7 @@ open class [Context](index.md)
 
 | | |
 |---|---|
-| [Context](-context.md) | [Kraken API]<br>constructor(client: Client, clientThread: ClientThread, mouse: [VirtualMouse](../../com.kraken.api.input.mouse/-virtual-mouse/index.md), eventBus: EventBus, itemManager: ItemManager, bankService: [BankService](../../com.kraken.api.service.bank/-bank-service/index.md), packetInterceptor: [PacketInterceptor](../../com.kraken.api.core.interceptor/-packet-interceptor/index.md), interactionManager: [InteractionManager](../../com.kraken.api.core.interaction/-interaction-manager/index.md)) |
+| [Context](-context.md) | [Kraken API]<br>constructor(client: Client, clientThread: ClientThread, mouse: [VirtualMouse](../../com.kraken.api.input.mouse/-virtual-mouse/index.md), eventBus: EventBus, itemManager: ItemManager, bankService: [BankService](../../com.kraken.api.service.bank/-bank-service/index.md), packetInterceptor: [PacketInterceptor](../../com.kraken.api.core.interceptor/-packet-interceptor/index.md), interactionManager: [InteractionManager](../../com.kraken.api.core.interaction/-interaction-manager/index.md), mouseHookInterceptor: [MouseHookInterceptor](../../com.kraken.api.core.interceptor/-mouse-hook-interceptor/index.md)) |
 
 ## Functions
 
@@ -26,7 +26,7 @@ open class [Context](index.md)
 | [getVarpValue](get-varp-value.md) | [Kraken API]<br>open fun [getVarpValue](get-varp-value.md)(varp: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)<br>Returns a var player value from the RuneLite client. |
 | [getWidget](get-widget.md) | [Kraken API]<br>open fun [getWidget](get-widget.md)(widgetId: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): Widget<br>Retrieves a Widget from the RuneLite client. |
 | [groundItems](ground-items.md) | [Kraken API]<br>open fun [groundItems](ground-items.md)(): [GroundObjectQuery](../../com.kraken.api.query.groundobject/-ground-object-query/index.md)<br>Creates a new query builder for Ground Items. |
-| [initializeInterceptors](initialize-interceptors.md) | [Kraken API]<br>open fun [initializeInterceptors](initialize-interceptors.md)()<br>Initializes all supported runtime interceptors using the default configuration.<br>[Kraken API]<br>open fun [initializeInterceptors](initialize-interceptors.md)(configuration: [InterceptorBuilder](../../com.kraken.api.core.interceptor/-interceptor-builder/index.md))<br>Initializes the configured runtime interceptors. |
+| [initializeInterceptors](initialize-interceptors.md) | [Kraken API]<br>open fun [initializeInterceptors](initialize-interceptors.md)()<br>Initializes all supported runtime interceptors using the default configuration. |
 | [initializePackets](initialize-packets.md) | [Kraken API]<br>open fun [initializePackets](initialize-packets.md)()<br>Initializes packet queueing functionality by either loading the client packet sending method from the cached json file or running an analysis on the RuneLite injected client to determine the packet sending method. |
 | [inventory](inventory.md) | [Kraken API]<br>open fun [inventory](inventory.md)(): [InventoryQuery](../../com.kraken.api.query.container.inventory/-inventory-query/index.md)<br>Creates a new query builder for the standard Backpack Inventory. |
 | [npcs](npcs.md) | [Kraken API]<br>open fun [npcs](npcs.md)(): [NpcQuery](../../com.kraken.api.query.npc/-npc-query/index.md)<br>Creates a new query builder for NPCs. |

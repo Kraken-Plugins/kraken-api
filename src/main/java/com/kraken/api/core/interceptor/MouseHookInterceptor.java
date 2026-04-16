@@ -91,6 +91,7 @@ public class MouseHookInterceptor {
     /**
      * Delegate method injected by ByteBuddy.
      * Whenever the client tries to read 'llimc', it will call this instead.
+     * @return hardcoded 0 value.
      */
     public static int provideZero() {
         return 0;

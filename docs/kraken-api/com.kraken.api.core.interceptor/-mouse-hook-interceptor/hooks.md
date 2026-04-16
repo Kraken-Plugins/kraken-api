@@ -3,4 +3,4 @@
 # hooks
 
 [Kraken API]\
-val [hooks](hooks.md): [MouseHooks](../../com.kraken.api.service.util.reflect.hooks/-mouse-hooks/index.md)
+open var [hooks](hooks.md): [MouseHooks](../../com.kraken.api.service.util.reflect.hooks/-mouse-hooks/index.md)
