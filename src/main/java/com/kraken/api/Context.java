@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.core.interceptor.InterceptorBuilder;
+import com.kraken.api.core.interceptor.MouseHookInterceptor;
 import com.kraken.api.core.interceptor.PacketInterceptor;
 import com.kraken.api.core.packet.PacketMethodLocator;
 import com.kraken.api.core.packet.model.PacketFactory;
@@ -63,18 +64,19 @@ public class Context {
 
     @Getter
     private final InteractionManager interactionManager;
-
+    private final MouseHookInterceptor mouseHookInterceptor;
     private final PacketInterceptor packetInterceptor;
 
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
                    final ItemManager itemManager, final BankService bankService, final PacketInterceptor packetInterceptor,
-                   final InteractionManager interactionManager) {
+                   final InteractionManager interactionManager, final MouseHookInterceptor mouseHookInterceptor) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
         this.itemManager = itemManager;
         this.packetInterceptor = packetInterceptor;
+        this.mouseHookInterceptor = mouseHookInterceptor;
         this.interactionManager = interactionManager;
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
@@ -121,16 +123,7 @@ public class Context {
      * Initializes all supported runtime interceptors using the default configuration.
      */
     public void initializeInterceptors() {
-        initializeInterceptors(InterceptorBuilder.builder().build());
-    }
-
-    /**
-     * Initializes the configured runtime interceptors. Each interceptor injection is isolated so failures
-     * do not prevent plugin startup or other interceptor injections from continuing.
-     *
-     * @param configuration the interceptor configuration to apply.
-     */
-    public void initializeInterceptors(InterceptorBuilder configuration) {
+        InterceptorBuilder configuration = InterceptorBuilder.builder().build();
         InterceptorBuilder resolvedConfiguration = Objects.requireNonNullElse(
                 configuration,
                 InterceptorBuilder.builder().build()
@@ -143,15 +136,13 @@ public class Context {
                 "Subscriptions to onPacketSent within the EventBus will fail."
         );
 
-        // TODO Temporarily removing these interceptors since they have been causing instability (specifically mouse one)
-//        initializeInterceptor(
-//                resolvedConfiguration.isMouseHookInterceptor(),
-//                "mouse hook interceptor",
-//                mouseHookInterceptor::injectHook,
-//                "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
-//        );
+        initializeInterceptor(
+                resolvedConfiguration.isMouseHookInterceptor(),
+                "mouse hook interceptor",
+                mouseHookInterceptor::injectHook,
+                "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
+        );
     }
-
 
     /**
      * Wraps the RuneLite client's run script method scheduling the run on the client thread.

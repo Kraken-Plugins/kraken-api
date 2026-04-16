@@ -1,38 +1,50 @@
 package com.kraken.api.service.util.reflect.hooks.loader;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kraken.api.service.util.reflect.hooks.HookRegistry;
+import com.kraken.api.util.JsonResourceUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class HookLoader {
 
-    private static final String HOOKS_URL = "https://minio.kraken-plugins.com/kraken-bootstrap-static/reflection_hooks.json";
+    private static final String LOCAL_REFLECTION_HOOKS_PATH = "/reflection_hooks.json";
     private static HookRegistry registryCache = null;
 
+    /**
+     * Initializes the packet factory by loading packet definitions from local resources or a remote source.
+     * <p>
+     * This method attempts to load a JSON file containing packet definitions from a predefined
+     * local path. If the local file is unavailable or an exception occurs while processing it,
+     * the method falls back to retrieving the packet definitions from a remote URL.
+     * </p>
+     */
     public static HookRegistry load() {
-        if(registryCache != null) return registryCache;
-        Request request = new Request.Builder().url(HOOKS_URL).build();
-        com.google.gson.Gson gson = new GsonBuilder()
-                .registerTypeAdapter(HookRegistry.class, new HookRegistryDeserializer())
-                .create();
+        if(registryCache != null) {
+            return registryCache;
+        }
 
-        try (Response response = new OkHttpClient().newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
-                HookRegistry registry = gson.fromJson(response.body().charStream(), HookRegistry.class);
-                registryCache = registry;
-                return registry;
-            } else {
-                throw new RuntimeException("Failed to fetch hooks: HTTP " + response.code() + ", message: " + response.message());
-            }
+        try {
+            Gson gson = new GsonBuilder()
+                    .registerTypeAdapter(HookRegistry.class, new HookRegistryDeserializer())
+                    .create();
+
+            HookRegistry registry = JsonResourceUtils.loadJsonResource(
+                    HookLoader.class,
+                    LOCAL_REFLECTION_HOOKS_PATH,
+                    gson,
+                    HookRegistry.class
+            );
+            registryCache = registry;
+            log.info("Loaded reflection_hooks.json.");
+            return registry;
         } catch (Exception e) {
-            throw new RuntimeException("CRITICAL: Failed to download reflection hooks.", e);
+            log.error("Exception while trying to load reflection_hooks.json file: ", e);
+            return null;
         }
     }
 }
