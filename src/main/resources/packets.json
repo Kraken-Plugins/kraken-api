@@ -3,7 +3,7 @@
   "reflectionHooks": {
     "clientLogFieldName": "lp",
     "mouseHookDllClassName": "client",
-    "mouseHookDllMethodName": "zd",
+    "mouseHookDllMethodName": "ig",
     "isaacCipherFieldName": "az",
     "addNodeMethodName": "ae",
     "addNodeClassName": "client",

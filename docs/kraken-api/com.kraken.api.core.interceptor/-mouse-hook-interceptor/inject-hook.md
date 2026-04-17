@@ -5,4 +5,4 @@
 [Kraken API]\
 open fun [injectHook](inject-hook.md)()
 
-Redefines the obfuscated client mouse hook method so it returns immediately without executing the original implementation.
+Redefines the obfuscated client mouse hook method so that any read of the 'llimc' field returns 0, leaving the rest of the packet building logic intact.
