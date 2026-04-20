@@ -117,7 +117,7 @@ public class BufferUtils {
         int index = nextIndex(getOffset(bufferInstance));
         setOffset(bufferInstance, index);
 
-        index = index * Integer.parseInt(ObfuscatedNames.indexMultiplier) - 1;
+        index = index * PacketFactory.getPacketMetadata().getIndexMultiplier() - 1;
 
         switch (operation.getType()) {
             case SUBTRACT:

@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-15
+- Last updated: 2026-04-17
 - Scope: Kraken API main library (`com.kraken.api`) and the bundled `shortest-path` subproject
 
 ### Maintenance (agents and contributors)
@@ -82,6 +82,116 @@
   - Interceptors patch runtime behavior where needed, but they should stay localized and guarded.
 - **Execution**:
   - The same API supports direct plugin use, scripted automation, and the `shortest-path` plugin for movement/pathfinding support.
+
+## AI integration and plugin authoring
+
+This section is the working guide for AI systems and humans asking AI systems to generate, explain, or modify Kraken API plugin code.
+
+### Source of truth
+
+- For API mechanics and package layout, use this file first, then `docs/API.md`, `docs/INTERACTION.md`, `docs/SCRIPTING.md`, and `docs/TESTS.md`.
+- Working examples live under `src/test/java/plugins/api/`.
+- `docs/ai-integration.md` is a short redirect to this guide so we do not maintain two different AI-facing docs.
+
+### Standards for AI-generated changes
+
+- Prefer the smallest possible change that reuses existing helpers, services, and query/entity wrappers.
+- Do not invent new abstraction layers when a service or query already exists.
+- Keep behavior in the narrowest owning layer.
+- Preserve the naming and patterns already used in the surrounding package.
+- Add or update tests for any non-trivial behavior change.
+- Avoid touching generated files unless you are regenerating them from source.
+- State assumptions explicitly when the API or client behavior is ambiguous.
+
+### Mental model of the API
+
+- `Context` is the main entry point injected into plugins and scripts.
+- `query` is for dynamic entities in the world: NPCs, players, game objects, ground items, inventory, bank, equipment, widgets, and worlds.
+- `service` is for global or static systems: bank control, movement, prayer, magic, dialogue, camera, UI, GE, and related helpers.
+- Queries are fluent filters that end in selection with `first()`, `nearest()`, `take()`, `list()`, or similar terminal operations.
+- Entity wrappers expose actions such as `interact()`, `attack()`, `take()`, `withdraw()`, `depositOne()`, `wield()`, `wear()`, and `logout()`.
+- Thread-sensitive work is handled by `Context.runOnClientThread(...)`, so query and service use is safe from normal plugin callbacks.
+- All queryable entities support the `raw()` method which will return the underlying RuneLite API object for the corresponding entity. i.e. `ctx.npcs().first().raw()` will return RuneLite's `NPC` object.
+
+### Plugin authoring pattern
+
+- Declare a RuneLite plugin with `@PluginDescriptor`.
+- Inject `Context` with `@Inject`.
+- Use event callbacks such as `GameTick`, `GameStateChanged`, `ConfigChanged`, or menu events to drive behavior.
+- Use `Script` when the work is long-running or stateful automation rather than a single event handler.
+- Call `Context.initializePackets()` before using packet-driven interactions or hooks that depend on packet metadata.
+- Keep reusable automation behind services, `Task`, `AbstractTask`, or `Script` instead of embedding it in plugin event handlers.
+
+### Working examples
+
+1. Attack an NPC:
+
+```java
+@PluginDescriptor(name = "Example", description = "Example plugin")
+public class ExamplePlugin extends Plugin {
+    @Inject
+    private Context ctx;
+
+    @Subscribe
+    private void onGameTick(GameTick event) {
+        NpcEntity goblin = ctx.npcs().withName("Goblin").nearest();
+        if (goblin == null || goblin.isNull()) {
+            return;
+        }
+
+        goblin.interact("Attack");
+    }
+}
+```
+
+2. Withdraw from the bank:
+
+```java
+if (!ctx.bank().isOpen()) {
+    GameObjectEntity bankBooth = ctx.gameObjects().withName("Bank booth").nearest();
+    if (bankBooth != null) {
+        bankBooth.interact("Bank");
+    }
+}
+
+BankEntity lobsters = ctx.bank().withName("Lobster").first();
+if (lobsters != null) {
+    lobsters.withdraw(10);
+}
+```
+
+3. Use a service directly:
+
+```java
+MovementService movement = ctx.getService(MovementService.class);
+movement.moveTo(new WorldPoint(x, y, 0));
+```
+
+4. Pick up a ground item:
+
+```java
+GroundObjectEntity bones = ctx.groundItems().withName("Bones").within(5).nearest();
+if (bones != null) {
+    bones.take();
+}
+```
+
+### Common mapping rules for AI tools
+
+- Start from `ctx.<domain>()`, not from raw client objects, unless you need `raw()` for an explicit edge case.
+- Filter before you select: `withName`, `withId`, `nameContains`, `within`, `reachable`, `alive`, and similar query methods.
+- Use `.nearest()` or `.first()` only when the code needs a single target.
+- Use `bankInventory()` only while the bank interface is open, and you are depositing items from the inventory to the bank.
+- Use `bank()` only while the bank interface is open and you are withdrawing items from the bank into your inventory.
+- Use `inventory()` for ordinary inventory work and `depositBox()` for deposit box actions.
+- Prefer dedicated entity methods over generic `interact()` when a helper already exists.
+
+### How to explain the API to users
+
+- Tell users to think in terms of "find with a query" and "act with a service or entity method".
+- For dynamic targets, show a chained query example.
+- For global systems, show a service call or a dedicated query wrapper.
+- Point users to `src/test/java/plugins/api/` for runnable examples and `docs/API.md` for the full service/query breakdown.
 
 ## Packages and naming
 
@@ -235,6 +345,7 @@ Do not treat these as hand-edited sources.
 - `docs/SIMULATION.md` covers the simulation engine and snapshot-based planning helpers.
 - `docs/TESTS.md` documents the client-based test harness and environment requirements.
 - `docs/UPDATING.md` is the reference for packet and reflection updates after client revisions.
+- `docs/ai-integration.md` redirects here.
 
 ## CI/CD (GitHub Actions)
 

@@ -123,7 +123,16 @@ public class Context {
      * Initializes all supported runtime interceptors using the default configuration.
      */
     public void initializeInterceptors() {
-        InterceptorBuilder configuration = InterceptorBuilder.builder().build();
+        initializeInterceptors(InterceptorBuilder.builder().build());
+    }
+
+    /**
+     * Initializes the configured runtime interceptors. Each interceptor injection is isolated so failures
+     * do not prevent plugin startup or other interceptor injections from continuing.
+     *
+     * @param configuration the interceptor configuration to apply.
+     */
+    public void initializeInterceptors(InterceptorBuilder configuration) {
         InterceptorBuilder resolvedConfiguration = Objects.requireNonNullElse(
                 configuration,
                 InterceptorBuilder.builder().build()
@@ -143,6 +152,7 @@ public class Context {
                 "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
         );
     }
+
 
     /**
      * Wraps the RuneLite client's run script method scheduling the run on the client thread.
