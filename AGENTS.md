@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-17
+- Last updated: 2026-04-21
 - Scope: Kraken API main library (`com.kraken.api`) and the bundled `shortest-path` subproject
 
 ### Maintenance (agents and contributors)
@@ -324,6 +324,7 @@ Do not treat these as hand-edited sources.
 - Interaction infrastructure: `src/main/java/com/kraken/api/core/interaction/`
 - Query layer: `src/main/java/com/kraken/api/query/`
 - Service layer: `src/main/java/com/kraken/api/service/`
+- Global pathfinding service: `src/main/java/com/kraken/api/service/pathfinding/GlobalPathfinder.java`
 - Input layer: `src/main/java/com/kraken/api/input/`
 - Simulation layer: `src/main/java/com/kraken/api/simulation/`
 - Utility helpers: `src/main/java/com/kraken/api/util/`

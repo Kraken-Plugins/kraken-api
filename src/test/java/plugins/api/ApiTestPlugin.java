@@ -8,8 +8,10 @@ import com.kraken.api.core.script.breakhandler.BreakConditions;
 import com.kraken.api.core.script.breakhandler.BreakManager;
 import com.kraken.api.core.script.breakhandler.BreakProfile;
 import com.kraken.api.input.mouse.MouseRecorder;
+import com.kraken.api.overlay.GlobalPathfinderOverlay;
 import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.service.map.WorldMapService;
+import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.ui.login.LoginService;
 import lombok.Getter;
@@ -85,7 +87,13 @@ public class ApiTestPlugin extends Plugin {
     private MouseOverlay mouseOverlay;
 
     @Inject
+    private GlobalPathfinderOverlay globalPathfinderOverlay;
+
+    @Inject
     private LocalPathfinder pathfinder;
+
+    @Inject
+    private GlobalPathfinder globalPathfinder;
 
     @Inject
     private WorldMapService worldMapService;
@@ -131,6 +139,7 @@ public class ApiTestPlugin extends Plugin {
             NpcTest npcQueryTest, GroundObjectTest groundObjectQueryTest, PlayerTest playerQueryTest,
             WidgetTest widgetQueryTest, DepositBoxTest depositBoxQuery, SpellServiceTest spellServiceTest, MovementServiceTest movementServiceTest,
             CameraServiceTest cameraServiceTest, PathfinderServiceTest pathfinderServiceTest, WorldQueryTest worldQueryTest,
+            GlobalPathfinderTest globalPathfinderTest,
             TaskChainTest taskChainTest, MouseTest mouseTest, DialogueServiceTest dialogueServiceTest, ProcessingServiceTest processingServiceTest,
             AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest, WidgetTargetNpcTest widgetTargetNpcTest,
             WidgetTargetGameObjectTest widgetTargetGameObjectTest, WidgetTargetWidgetTest widgetTargetWidgetTest, WidgetSubActionTest widgetSubActionTest
@@ -149,6 +158,7 @@ public class ApiTestPlugin extends Plugin {
         registerTest("enableSpell", "MagicService", config::enableSpellTests, spellServiceTest::executeTest);
         registerTest("enableCamera", "CameraService", config::enableCameraTests, cameraServiceTest::executeTest);
         registerTest("enablePathfinder", "PathfinderService", config::enablePathfinder, pathfinderServiceTest::executeTest);
+        registerTest("enableGlobalPathfinder", "GlobalPathfinder", config::enableGlobalPathfinder, globalPathfinderTest::executeTest);
         registerTest("enableWorldQuery", "WorldQuery", config::enableWorldQuery, worldQueryTest::executeTest);
         registerTest("enableTaskChain", "TaskChain", config::enableTaskChain, taskChainTest::executeTest);
         registerTest("enableMouseTest", "VirtualMouse", config::enableMouseTest, mouseTest::executeTest);
@@ -216,13 +226,23 @@ public class ApiTestPlugin extends Plugin {
             mouseRecorder.stop();
         }
 
-      if (key.equalsIgnoreCase("showMouse")) {
+        if (key.equalsIgnoreCase("showMouse")) {
             if (config.showMouse()) {
                 overlayManager.add(mouseOverlay);
             } else {
                 overlayManager.remove(mouseOverlay);
             }
-        } if (key.equals("clearTests") && config.clearTests()) {
+        }
+
+        if (key.equalsIgnoreCase("showGlobalPathfinderOverlay")) {
+            if (config.showGlobalPathfinderOverlay()) {
+                overlayManager.add(globalPathfinderOverlay);
+            } else {
+                overlayManager.remove(globalPathfinderOverlay);
+            }
+        }
+
+        if (key.equals("clearTests") && config.clearTests()) {
             testResultManager.clearAllResults();
         } else {
             TestExecution execution = testExecutions.get(key);
@@ -248,6 +268,9 @@ public class ApiTestPlugin extends Plugin {
         overlayManager.add(sceneOverlay);
         if (config.showMouse()) {
             overlayManager.add(mouseOverlay);
+        }
+        if (config.showGlobalPathfinderOverlay()) {
+            overlayManager.add(globalPathfinderOverlay);
         }
 
         breakManager.initialize();
@@ -276,6 +299,8 @@ public class ApiTestPlugin extends Plugin {
         overlayManager.remove(infoPanelOverlay);
         overlayManager.remove(sceneOverlay);
         overlayManager.remove(mouseOverlay);
+        overlayManager.remove(globalPathfinderOverlay);
+        globalPathfinder.clearLastResult();
 
         // TODO Find out how you want to test this
 //        if (!breakManager.isOnBreak()) {

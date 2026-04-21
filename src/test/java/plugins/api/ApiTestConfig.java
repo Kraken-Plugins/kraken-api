@@ -136,6 +136,39 @@ public interface ApiTestConfig extends Config {
         return true;
     }
 
+    @ConfigItem(
+            name = "Global Pathfinder Target",
+            keyName = "globalPathfinderTarget",
+            description = "Target coordinates for the global pathfinder test in the format: x,y,z. Leave blank to use the selected tile.",
+            position = 4,
+            section = pathfinding
+    )
+    default String globalPathfinderTarget() {
+        return "";
+    }
+
+    @ConfigItem(
+            keyName = "enableGlobalPathfinder",
+            name = "Start Global Pathfinder",
+            description = "Run the global pathfinder service test using the shortest-path transport graph.",
+            section = pathfinding,
+            position = 5
+    )
+    default boolean enableGlobalPathfinder() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "showGlobalPathfinderOverlay",
+            name = "Show Global Path Overlay",
+            description = "Render the most recently computed global path and any transport hops on the scene and world map.",
+            section = pathfinding,
+            position = 6
+    )
+    default boolean showGlobalPathfinderOverlay() {
+        return false;
+    }
+
     // =========== Tests Section ================
     @ConfigSection(
             name = "Query Tests",

@@ -9,76 +9,87 @@ import lombok.ToString;
 @Builder(toBuilder = true)
 public class GlobalPathfinderConfig {
 
-    private final long calculationCutoffMillis;
-
-    @Builder.Default private final boolean avoidWilderness = false;
+    @Builder.Default
+    private final long calculationCutoffMillis = 3000L;
 
     @Builder.Default
-    private final boolean useAgilityShortcuts      = true;
+    private final int sparsePathWaypointDistance = 15;
 
     @Builder.Default
-    private final boolean useGrappleShortcuts      = true;
+    private final boolean avoidWilderness = false;
 
     @Builder.Default
-    private final boolean useBoats                 = true;
+    private final boolean includeBankPath = false;
 
     @Builder.Default
-    private final boolean useCanoes                = true;
+    private final int currencyThreshold = 100000;
 
     @Builder.Default
-    private final boolean useCharterShips          = true;
+    private final boolean useAgilityShortcuts = true;
 
     @Builder.Default
-    private final boolean useShips                 = true;
+    private final boolean useGrappleShortcuts = true;
 
     @Builder.Default
-    private final boolean useFairyRings            = true;
+    private final boolean useBoats = true;
 
     @Builder.Default
-    private final boolean useGnomeGliders          = true;
+    private final boolean useCanoes = true;
 
     @Builder.Default
-    private final boolean useHotAirBalloons        = true;
+    private final boolean useCharterShips = true;
 
     @Builder.Default
-    private final boolean useMagicCarpets          = true;
+    private final boolean useShips = true;
 
     @Builder.Default
-    private final boolean useMagicMushtrees        = true;
+    private final boolean useFairyRings = true;
 
     @Builder.Default
-    private final boolean useMinecarts             = true;
+    private final boolean useGnomeGliders = true;
 
     @Builder.Default
-    private final boolean useQuetzals              = true;
+    private final boolean useHotAirBalloons = true;
 
     @Builder.Default
-    private final boolean useSeasonalTransports    = true;
+    private final boolean useMagicCarpets = true;
 
     @Builder.Default
-    private final boolean useSpiritTrees           = true;
+    private final boolean useMagicMushtrees = true;
 
     @Builder.Default
-    private final boolean useTeleportationItems    = true;
+    private final boolean useMinecarts = true;
 
     @Builder.Default
-    private final boolean useTeleportationBoxes    = true;
+    private final boolean useQuetzals = true;
 
     @Builder.Default
-    private final boolean useTeleportationLevers   = true;
+    private final boolean useSeasonalTransports = true;
+
+    @Builder.Default
+    private final boolean useSpiritTrees = true;
+
+    @Builder.Default
+    private final boolean useTeleportationItems = true;
+
+    @Builder.Default
+    private final boolean useTeleportationBoxes = true;
+
+    @Builder.Default
+    private final boolean useTeleportationLevers = true;
 
     @Builder.Default
     private final boolean useTeleportationMinigames = true;
 
     @Builder.Default
-    private final boolean useTeleportationPortals  = true;
+    private final boolean useTeleportationPortals = true;
 
     @Builder.Default
     private final boolean useTeleportationPortalsPoh = true;
 
     @Builder.Default
-    private final boolean useTeleportationSpells   = true;
+    private final boolean useTeleportationSpells = true;
 
     @Builder.Default
-    private final boolean useWildernessObelisks    = true;
+    private final boolean useWildernessObelisks = true;
 }

@@ -72,3 +72,4 @@
 | [com.kraken.api.simulation.snapshot](kraken-api/com.kraken.api.simulation.snapshot/index.md) |
 | [com.kraken.api.simulation.tree](kraken-api/com.kraken.api.simulation.tree/index.md) |
 | [com.kraken.api.util](kraken-api/com.kraken.api.util/index.md) |
+| [shortestpath](kraken-api/shortestpath/index.md) |

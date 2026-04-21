@@ -5,6 +5,12 @@
 [Kraken API]\
 open fun [load](load.md)(): [HookRegistry](../../com.kraken.api.service.util.reflect.hooks/-hook-registry/index.md)
 
-Initializes the packet factory by loading packet definitions from local resources or a remote source. 
+Loads the `HookRegistry` from the predefined JSON resource file. 
 
- This method attempts to load a JSON file containing packet definitions from a predefined local path. If the local file is unavailable or an exception occurs while processing it, the method falls back to retrieving the packet definitions from a remote URL.
+ If the `HookRegistry` has already been loaded and cached, this method returns the cached instance. Otherwise, it deserializes the resource file located at `/reflection_hooks.json` into a `HookRegistry` instance using a Gson object configured with a custom [HookRegistryDeserializer](../-hook-registry-deserializer/index.md). 
+
+ In case of an error during the loading or deserialization process, `null` is returned, and an appropriate error message is logged.
+
+#### Return
+
+the loaded [HookRegistry](../../com.kraken.api.service.util.reflect.hooks/-hook-registry/index.md) instance, or `null` if an error occurs
