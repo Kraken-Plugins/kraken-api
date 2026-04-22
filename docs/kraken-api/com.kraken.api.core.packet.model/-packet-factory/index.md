@@ -22,4 +22,3 @@ A factory class for creating and managing [PacketDefinition](../-packet-definiti
 | [getResumeCountDialog](get-resume-count-dialog.md) | [Kraken API]<br>open fun [getResumeCountDialog](get-resume-count-dialog.md)(): [PacketDefinition](../-packet-definition/index.md) |
 | [getResumeObjDialog](get-resume-obj-dialog.md) | [Kraken API]<br>open fun [getResumeObjDialog](get-resume-obj-dialog.md)(): [PacketDefinition](../-packet-definition/index.md) |
 | [getStringDialog](get-string-dialog.md) | [Kraken API]<br>open fun [getStringDialog](get-string-dialog.md)(): [PacketDefinition](../-packet-definition/index.md) |
-| [init](init.md) | [Kraken API]<br>open fun [init](init.md)()<br>Initializes the packet factory by loading packet definitions from local resources or a remote source. |

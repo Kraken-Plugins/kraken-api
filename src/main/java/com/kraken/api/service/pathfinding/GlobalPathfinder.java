@@ -10,13 +10,13 @@ import net.runelite.api.Player;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InventoryID;
 import shortestpath.JewelleryBoxTier;
-import shortestpath.PrimitiveIntList;
 import shortestpath.ShortestPathConfig;
 import shortestpath.TeleportationItem;
 import shortestpath.WorldPointUtil;
 import shortestpath.pathfinder.CollisionMap;
 import shortestpath.pathfinder.Node;
 import shortestpath.pathfinder.PathfinderConfig;
+import shortestpath.pathfinder.PathStep;
 import shortestpath.pathfinder.TransportNode;
 import shortestpath.pathfinder.VisitedTiles;
 import shortestpath.pathfinder.WildernessChecker;
@@ -28,11 +28,9 @@ import javax.inject.Singleton;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -311,10 +309,10 @@ public class GlobalPathfinder {
         CollisionMap map = config.getMap();
         VisitedTiles visited = new VisitedTiles(map);
         Deque<Node> boundary = new ArrayDeque<>(4096);
-        Queue<Node> pending = new PriorityQueue<>(256, Comparator.comparingInt(node -> node.cost));
+        Queue<TransportNode> pending = new PriorityQueue<>(256);
         boolean targetInWilderness = WildernessChecker.isInWilderness(targets);
 
-        boundary.addFirst(new Node(start, null));
+        boundary.addFirst(new Node(start, null, 0));
 
         int bestDistance = Integer.MAX_VALUE;
         long bestHeuristic = Integer.MAX_VALUE;
@@ -328,9 +326,9 @@ public class GlobalPathfinder {
 
         while (!boundary.isEmpty() || !pending.isEmpty()) {
             Node node = boundary.peekFirst();
-            Node transportNode = pending.peek();
+            TransportNode transportNode = pending.peek();
 
-            if (transportNode != null && (node == null || transportNode.cost < node.cost)) {
+            if (transportNode != null && (node == null || transportNode.compareCost() < node.cost)) {
                 node = pending.poll();
             } else {
                 node = boundary.pollFirst();
@@ -340,39 +338,34 @@ public class GlobalPathfinder {
                 break;
             }
 
-            if (wildernessLevel > 0) {
-                boolean updateTeleports = false;
+            if (node.isTile() && wildernessLevel > 0) {
                 if (wildernessLevel > 30 && !WildernessChecker.isInLevel30Wilderness(node.packedPosition)) {
                     wildernessLevel = 30;
-                    updateTeleports = true;
                 }
                 if (wildernessLevel > 20 && !WildernessChecker.isInLevel20Wilderness(node.packedPosition)) {
                     wildernessLevel = 20;
-                    updateTeleports = true;
                 }
                 if (wildernessLevel > 0 && !WildernessChecker.isInWilderness(node.packedPosition)) {
                     wildernessLevel = 0;
-                    updateTeleports = true;
-                }
-                if (updateTeleports) {
-                    config.refreshTeleports(node.packedPosition, wildernessLevel);
                 }
             }
 
-            if (targets.contains(node.packedPosition)) {
+            if (node.isTile() && targets.contains(node.packedPosition)) {
                 bestLastNode = node;
                 complete = true;
                 break;
             }
 
-            for (int target : targets) {
-                int distance = WorldPointUtil.distanceBetween(node.packedPosition, target);
-                long heuristic = distance + (long) WorldPointUtil.distanceBetween(node.packedPosition, target, 2);
-                if (heuristic < bestHeuristic || (heuristic <= bestHeuristic && distance < bestDistance)) {
-                    bestLastNode = node;
-                    bestDistance = distance;
-                    bestHeuristic = heuristic;
-                    cutoffTimeMillis = System.currentTimeMillis() + cutoffDurationMillis;
+            if (node.isTile()) {
+                for (int target : targets) {
+                    int distance = WorldPointUtil.distanceBetween(node.packedPosition, target);
+                    long heuristic = distance + (long) WorldPointUtil.distanceBetween(node.packedPosition, target, 2);
+                    if (heuristic < bestHeuristic || (heuristic <= bestHeuristic && distance < bestDistance)) {
+                        bestLastNode = node;
+                        bestDistance = distance;
+                        bestHeuristic = heuristic;
+                        cutoffTimeMillis = System.currentTimeMillis() + cutoffDurationMillis;
+                    }
                 }
             }
 
@@ -380,14 +373,15 @@ public class GlobalPathfinder {
                 break;
             }
 
-            for (Node neighbor : map.getNeighbors(node, visited, config, wildernessLevel)) {
-                if (config.avoidWilderness(node.packedPosition, neighbor.packedPosition, targetInWilderness)) {
+            for (Node neighbor : map.getNeighbors(node, visited, config, wildernessLevel, targetInWilderness)) {
+                if (node.isTile() && neighbor.isTile()
+                        && config.avoidWilderness(node.packedPosition, neighbor.packedPosition, targetInWilderness)) {
                     continue;
                 }
 
-                visited.set(neighbor.packedPosition);
+                visited.set(neighbor);
                 if (neighbor instanceof TransportNode) {
-                    pending.add(neighbor);
+                    pending.add((TransportNode) neighbor);
                     transportsChecked++;
                 } else {
                     boundary.addLast(neighbor);
@@ -415,9 +409,9 @@ public class GlobalPathfinder {
             return PathResult.empty(config, source, destination);
         }
 
-        PrimitiveIntList packedPath = searchState.bestLastNode.getPath();
-        List<WorldPoint> densePath = unpackPath(packedPath);
-        List<TransportUsage> transports = findTransportUsages(packedPath, pathfinderConfig.getTransports());
+        List<PathStep> pathSteps = searchState.bestLastNode.getPathSteps();
+        List<WorldPoint> densePath = unpackPath(pathSteps);
+        List<TransportUsage> transports = findTransportUsages(pathSteps, pathfinderConfig);
         List<WorldPoint> sparsePath = toSparsePath(densePath, transports, config.getSparsePathWaypointDistance());
         boolean complete = searchState.complete
                 && !densePath.isEmpty()
@@ -437,16 +431,19 @@ public class GlobalPathfinder {
     }
 
     /** Matches route steps against transport edges so callers can see which hops were used. */
-    private List<TransportUsage> findTransportUsages(PrimitiveIntList packedPath, Map<Integer, Set<Transport>> transportsByOrigin) {
-        if (packedPath == null || packedPath.size() < 2) {
+    private List<TransportUsage> findTransportUsages(List<PathStep> pathSteps, PathfinderConfig pathfinderConfig) {
+        if (pathSteps == null || pathSteps.size() < 2) {
             return Collections.emptyList();
         }
 
         List<TransportUsage> transportUsages = new ArrayList<>();
-        for (int i = 1; i < packedPath.size(); i++) {
-            int origin = packedPath.get(i - 1);
-            int destination = packedPath.get(i);
-            Set<Transport> transports = transportsByOrigin.get(origin);
+        for (int i = 1; i < pathSteps.size(); i++) {
+            PathStep currentStep = pathSteps.get(i - 1);
+            PathStep nextStep = pathSteps.get(i);
+            int origin = currentStep.getPackedPosition();
+            int destination = nextStep.getPackedPosition();
+            boolean bankVisited = currentStep.isBankVisited() || nextStep.isBankVisited();
+            Set<Transport> transports = pathfinderConfig.getTransportsPacked(bankVisited).getOrDefault(origin, Set.of());
             if (transports == null || transports.isEmpty()) {
                 continue;
             }
@@ -474,14 +471,14 @@ public class GlobalPathfinder {
     }
 
     /** Unpacks the shortest-path packed coordinate list into world points. */
-    private List<WorldPoint> unpackPath(PrimitiveIntList packedPath) {
-        if (packedPath == null || packedPath.isEmpty()) {
+    private List<WorldPoint> unpackPath(List<PathStep> pathSteps) {
+        if (pathSteps == null || pathSteps.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<WorldPoint> path = new ArrayList<>(packedPath.size());
-        for (int i = 0; i < packedPath.size(); i++) {
-            path.add(WorldPointUtil.unpackWorldPoint(packedPath.get(i)));
+        List<WorldPoint> path = new ArrayList<>(pathSteps.size());
+        for (PathStep pathStep : pathSteps) {
+            path.add(WorldPointUtil.unpackWorldPoint(pathStep.getPackedPosition()));
         }
         return Collections.unmodifiableList(path);
     }
@@ -792,6 +789,16 @@ public class GlobalPathfinder {
         @Override
         public boolean usePohMountedItems() {
             return config.isUseTeleportationBoxes();
+        }
+
+        @Override
+        public void setBuiltTeleportationBoxes(String content) {
+            // GlobalPathfinder provides a transient adapter, not persisted plugin config storage.
+        }
+
+        @Override
+        public void setBuiltTeleportationPortalsPoh(String content) {
+            // GlobalPathfinder provides a transient adapter, not persisted plugin config storage.
         }
     }
 }
