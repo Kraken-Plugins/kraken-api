@@ -115,7 +115,7 @@ public interface ApiTestConfig extends Config {
      * @return Target coordinates in the format x,y,z. Leave blank to use a selected tile.
      */
     @ConfigItem(
-            name = "Pathfinder Test Target",
+            name = "Local Pathfinder Target",
             keyName = "pathfinderTestTarget",
             description = "Target coordinates for the pathfinder service test in the format: x,y,z.",
             position = 2,
@@ -127,13 +127,46 @@ public interface ApiTestConfig extends Config {
 
     @ConfigItem(
             keyName = "enablePathfinder",
-            name = "Start Pathfinder Tests",
+            name = "Start Local Pathfinder",
             description = "Enable pathfinder service tests",
             section = pathfinding,
             position = 3
     )
     default boolean enablePathfinder() {
         return true;
+    }
+
+    @ConfigItem(
+            name = "Global Pathfinder Target",
+            keyName = "globalPathfinderTarget",
+            description = "Target coordinates for the global pathfinder test in the format: x,y,z. Leave blank to use the selected tile.",
+            position = 4,
+            section = pathfinding
+    )
+    default String globalPathfinderTarget() {
+        return "";
+    }
+
+    @ConfigItem(
+            keyName = "enableGlobalPathfinder",
+            name = "Start Global Pathfinder",
+            description = "Run the global pathfinder service test using the shortest-path transport graph.",
+            section = pathfinding,
+            position = 5
+    )
+    default boolean enableGlobalPathfinder() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "showGlobalPathfinderOverlay",
+            name = "Show Global Path Overlay",
+            description = "Render the most recently computed global path and any transport hops on the scene and world map.",
+            section = pathfinding,
+            position = 6
+    )
+    default boolean showGlobalPathfinderOverlay() {
+        return false;
     }
 
     // =========== Tests Section ================
