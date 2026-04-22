@@ -255,7 +255,7 @@ public class TileService {
         if (targetPoint == null) return false;
 
         LocalPlayerEntity player = ctxProvider.get().players().local();
-        final WorldPoint playerLoc = player.raw().getWorldLocation();
+        final WorldPoint playerLoc = ctxProvider.get().runOnClientThread(() -> player.raw().getWorldLocation());
         if (playerLoc == null) return false;
 
         if (targetPoint.getPlane() != playerLoc.getPlane()) return false;
