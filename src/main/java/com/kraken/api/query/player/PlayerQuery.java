@@ -127,7 +127,7 @@ public class PlayerQuery extends AbstractQuery<PlayerEntity, PlayerQuery, Player
      */
     public PlayerEntity nearest() {
         return sorted(Comparator.comparingInt(p ->
-                p.raw().getLocalLocation().distanceTo(ctx.getClient().getLocalPlayer().getLocalLocation())
+                p.raw().getLocalLocation().distanceTo(ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer().getLocalLocation()))
         )).first();
     }
 

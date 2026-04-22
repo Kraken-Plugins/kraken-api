@@ -26,7 +26,7 @@ public class LocalPlayerEntity extends PlayerEntity {
     private final  ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
 
     public LocalPlayerEntity(Context ctx) {
-        super(ctx, ctx.getClient().getLocalPlayer());
+        super(ctx, ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer()));
     }
 
     private int antiVenomTime = -1;
@@ -340,7 +340,7 @@ public class LocalPlayerEntity extends PlayerEntity {
         }
 
         if (wildLevel.getText().contains("Deadman")) {
-            return new WildernessInfo(Integer.MAX_VALUE, ctx.getClient().getLocalPlayer().getCombatLevel());
+            return new WildernessInfo(Integer.MAX_VALUE, ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer().getCombatLevel()));
         }
 
         String widgetText = wildLevel.getText();
@@ -350,7 +350,7 @@ public class LocalPlayerEntity extends PlayerEntity {
 
         if (widgetText.equals("Level: --")) {
             Client client = ctx.getClient();
-            Player local = client.getLocalPlayer();
+            Player local = ctx.runOnClientThread(client::getLocalPlayer);
             WorldView worldView = client.getTopLevelWorldView();
             int y = WorldPoint.fromLocal(worldView, local.getLocalLocation().getX(), local.getLocalLocation().getY(), worldView.getPlane()).getY();
             return new WildernessInfo(2 + (y - 3528) / 8, ctx.getClient().getLocalPlayer().getCombatLevel());

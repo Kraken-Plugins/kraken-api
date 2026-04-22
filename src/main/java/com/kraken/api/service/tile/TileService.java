@@ -175,7 +175,7 @@ public class TileService {
      */
     private boolean[][] getReachableTilesMatrix() {
         Client client = ctxProvider.get().getClient();
-        Player localPlayer = client.getLocalPlayer();
+        Player localPlayer = ctxProvider.get().runOnClientThread(client::getLocalPlayer);
         if (localPlayer == null) return null;
 
         WorldView wv = client.getTopLevelWorldView();

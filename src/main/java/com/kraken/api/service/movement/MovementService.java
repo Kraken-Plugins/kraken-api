@@ -256,13 +256,13 @@ public class MovementService {
                 WorldPoint playerLoc = ctx.runOnClientThread(() -> client.getLocalPlayer().getWorldLocation());
                 int dist = playerLoc.distanceTo(step);
 
-                // (Distance * 600ms) is exact walking time. We multiply by 1.3 for path variance, plus 2000ms base buffer.
-                long timeoutDuration = (long) ((dist * 600 * 1.3) + 2000);
+                // (Distance * 600ms) is exact walking time. We multiply by 2.1 for path variance, plus 2000ms base buffer.
+                long timeoutDuration = (long) ((dist * 600 * 2.1) + 2000);
                 long timeout = System.currentTimeMillis() + timeoutDuration;
 
                 boolean reached = false;
                 while (System.currentTimeMillis() < timeout) {
-                    playerLoc = client.getLocalPlayer().getWorldLocation();
+                    playerLoc = ctx.runOnClientThread(() -> client.getLocalPlayer().getWorldLocation());
 
                     // Success condition: Distance <= 2
                     if (playerLoc.distanceTo(step) <= 2) {

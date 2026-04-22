@@ -963,7 +963,7 @@ public class LocalPathfinder {
      * @param color    The color to use for rendering the node.
      */
     private void renderMinimapPoint(Graphics2D graphics, WorldPoint point, Color color) {
-        WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
+        WorldPoint playerLocation = ctx.runOnClientThread(() -> client.getLocalPlayer().getWorldLocation());
         if (point.distanceTo(playerLocation) >= 16) {
             return;
         }
