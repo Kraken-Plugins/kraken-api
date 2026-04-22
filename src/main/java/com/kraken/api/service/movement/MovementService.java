@@ -253,7 +253,7 @@ public class MovementService {
 
                 // Walking = 1 tile/0.6s. Running = 2 tiles/0.6s.
                 // We assume walking speed (worst case) + 2 seconds buffer.
-                WorldPoint playerLoc = client.getLocalPlayer().getWorldLocation();
+                WorldPoint playerLoc = ctx.runOnClientThread(() -> client.getLocalPlayer().getWorldLocation());
                 int dist = playerLoc.distanceTo(step);
 
                 // (Distance * 600ms) is exact walking time. We multiply by 1.3 for path variance, plus 2000ms base buffer.
