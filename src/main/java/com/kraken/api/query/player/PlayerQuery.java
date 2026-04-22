@@ -49,7 +49,7 @@ public class PlayerQuery extends AbstractQuery<PlayerEntity, PlayerQuery, Player
      * @return PlayerQuery
      */
     public PlayerQuery at(WorldPoint location) {
-        return filter(p -> p.raw().getWorldLocation().equals(location));
+        return filter(p -> ctx.runOnClientThread(() -> p.raw().getWorldLocation().equals(location)));
     }
 
     /**

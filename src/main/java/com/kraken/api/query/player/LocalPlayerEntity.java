@@ -463,7 +463,7 @@ public class LocalPlayerEntity extends PlayerEntity {
      */
     public boolean isInArea(GameArea area) {
         if (area == null) return false;
-        return area.contains(raw().getWorldLocation());
+        return area.contains(ctx.runOnClientThread(() -> raw().getWorldLocation()));
     }
 
     /**
