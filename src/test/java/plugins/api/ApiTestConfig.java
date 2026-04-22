@@ -115,7 +115,7 @@ public interface ApiTestConfig extends Config {
      * @return Target coordinates in the format x,y,z. Leave blank to use a selected tile.
      */
     @ConfigItem(
-            name = "Pathfinder Test Target",
+            name = "Local Pathfinder Target",
             keyName = "pathfinderTestTarget",
             description = "Target coordinates for the pathfinder service test in the format: x,y,z.",
             position = 2,
@@ -127,7 +127,7 @@ public interface ApiTestConfig extends Config {
 
     @ConfigItem(
             keyName = "enablePathfinder",
-            name = "Start Pathfinder Tests",
+            name = "Start Local Pathfinder",
             description = "Enable pathfinder service tests",
             section = pathfinding,
             position = 3

@@ -42,7 +42,7 @@ import java.util.Set;
 @Singleton
 public class GlobalPathfinder {
     private static final GlobalPathfinderConfig DEFAULT_CONFIG = GlobalPathfinderConfig.builder().build();
-    private static final PathResult EMPTY_RESULT = PathResult.empty(DEFAULT_CONFIG);
+    private static final PathResult EMPTY_RESULT = PathResult.empty();
 
     @Inject
     private Context ctx;
@@ -582,8 +582,8 @@ public class GlobalPathfinder {
         }
 
         /** Creates an empty result with no route data. */
-        private static PathResult empty(GlobalPathfinderConfig config) {
-            return empty(config, null, null);
+        private static PathResult empty() {
+            return empty(DEFAULT_CONFIG, null, null);
         }
 
         /** Creates an empty result while preserving the caller's source and destination. */
