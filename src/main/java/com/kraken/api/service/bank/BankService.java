@@ -135,6 +135,22 @@ public class BankService {
     }
 
     /**
+     * Sets the withdraw mode to withdraw as notes instead of items.
+     * @return True if the withdraw mode is set to withdraw as notes instead of items, false otherwise.
+     */
+    public boolean setNoted() {
+        return setWithdrawMode(true);
+    }
+
+    /**
+     * Sets the withdraw mode to withdraw as items instead of notes.
+     * @return True if the withdraw mode was set to withdraw as items instead of notes, false if the withdraw mode was set to
+     */
+    public boolean setItem() {
+        return setWithdrawMode(false);
+    }
+
+    /**
      * Sets the withdrawal mode as either a note or item. If the withdrawal mode already matches the provided parameter no action will
      * be taken.
      * @param noted The boolean representing which withdraw mode to set. When set to false items will be withdrawn while true will withdraw
@@ -157,7 +173,7 @@ public class BankService {
 
             if (!hasAction) return false;
 
-            interactionManager.interact(toggleWidget, cleanedAction);
+            interactionManager.interact(toggleWidget, action);
             return true;
         }
         return false;

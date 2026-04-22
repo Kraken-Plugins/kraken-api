@@ -2164,69 +2164,6 @@ $dokka.location:com.kraken.api/Context/runOnClientThreadOptional/#java.util.conc
 $dokka.location:com.kraken.api/Context/runScript/#int/PointingToDeclaration/kraken-api/com.kraken.api/-context/run-script.md
 $dokka.location:com.kraken.api/Context/widgets/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/widgets.md
 $dokka.location:com.kraken.api/Context/worlds/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/worlds.md
-$dokka.location:shortestpath////PointingToDeclaration/kraken-api/shortestpath/index.md
-$dokka.location:shortestpath/ShortestPathConfig///PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/index.md
-$dokka.location:shortestpath/ShortestPathConfig/avoidWilderness/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/avoid-wilderness.md
-$dokka.location:shortestpath/ShortestPathConfig/calculationCutoff/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/calculation-cutoff.md
-$dokka.location:shortestpath/ShortestPathConfig/costAgilityShortcuts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-agility-shortcuts.md
-$dokka.location:shortestpath/ShortestPathConfig/costBoats/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-boats.md
-$dokka.location:shortestpath/ShortestPathConfig/costCanoes/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-canoes.md
-$dokka.location:shortestpath/ShortestPathConfig/costCharterShips/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-charter-ships.md
-$dokka.location:shortestpath/ShortestPathConfig/costConsumableTeleportationItems/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-consumable-teleportation-items.md
-$dokka.location:shortestpath/ShortestPathConfig/costFairyRings/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-fairy-rings.md
-$dokka.location:shortestpath/ShortestPathConfig/costGnomeGliders/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-gnome-gliders.md
-$dokka.location:shortestpath/ShortestPathConfig/costGrappleShortcuts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-grapple-shortcuts.md
-$dokka.location:shortestpath/ShortestPathConfig/costHotAirBalloons/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-hot-air-balloons.md
-$dokka.location:shortestpath/ShortestPathConfig/costMagicCarpets/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-magic-carpets.md
-$dokka.location:shortestpath/ShortestPathConfig/costMagicMushtrees/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-magic-mushtrees.md
-$dokka.location:shortestpath/ShortestPathConfig/costMinecarts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-minecarts.md
-$dokka.location:shortestpath/ShortestPathConfig/costNonConsumableTeleportationItems/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-non-consumable-teleportation-items.md
-$dokka.location:shortestpath/ShortestPathConfig/costQuetzals/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-quetzals.md
-$dokka.location:shortestpath/ShortestPathConfig/costSeasonalTransports/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-seasonal-transports.md
-$dokka.location:shortestpath/ShortestPathConfig/costShips/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-ships.md
-$dokka.location:shortestpath/ShortestPathConfig/costSpiritTrees/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-spirit-trees.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationBoxes/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-boxes.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationLevers/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-levers.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationMinigames/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-minigames.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationPortals/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-portals.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationSpells/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-spells.md
-$dokka.location:shortestpath/ShortestPathConfig/costWildernessObelisks/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-wilderness-obelisks.md
-$dokka.location:shortestpath/ShortestPathConfig/currencyThreshold/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/currency-threshold.md
-$dokka.location:shortestpath/ShortestPathConfig/includeBankPath/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/include-bank-path.md
-$dokka.location:shortestpath/ShortestPathConfig/pohJewelleryBoxTier/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/poh-jewellery-box-tier.md
-$dokka.location:shortestpath/ShortestPathConfig/useAgilityShortcuts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-agility-shortcuts.md
-$dokka.location:shortestpath/ShortestPathConfig/useBoats/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-boats.md
-$dokka.location:shortestpath/ShortestPathConfig/useCanoes/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-canoes.md
-$dokka.location:shortestpath/ShortestPathConfig/useCharterShips/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-charter-ships.md
-$dokka.location:shortestpath/ShortestPathConfig/useFairyRings/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-fairy-rings.md
-$dokka.location:shortestpath/ShortestPathConfig/useGnomeGliders/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-gnome-gliders.md
-$dokka.location:shortestpath/ShortestPathConfig/useGrappleShortcuts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-grapple-shortcuts.md
-$dokka.location:shortestpath/ShortestPathConfig/useHotAirBalloons/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-hot-air-balloons.md
-$dokka.location:shortestpath/ShortestPathConfig/useMagicCarpets/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-magic-carpets.md
-$dokka.location:shortestpath/ShortestPathConfig/useMagicMushtrees/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-magic-mushtrees.md
-$dokka.location:shortestpath/ShortestPathConfig/useMinecarts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-minecarts.md
-$dokka.location:shortestpath/ShortestPathConfig/usePoh/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh.md
-$dokka.location:shortestpath/ShortestPathConfig/usePohFairyRing/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh-fairy-ring.md
-$dokka.location:shortestpath/ShortestPathConfig/usePohMountedItems/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh-mounted-items.md
-$dokka.location:shortestpath/ShortestPathConfig/usePohObelisk/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh-obelisk.md
-$dokka.location:shortestpath/ShortestPathConfig/usePohSpiritTree/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh-spirit-tree.md
-$dokka.location:shortestpath/ShortestPathConfig/useQuetzals/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-quetzals.md
-$dokka.location:shortestpath/ShortestPathConfig/useSeasonalTransports/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-seasonal-transports.md
-$dokka.location:shortestpath/ShortestPathConfig/useShips/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-ships.md
-$dokka.location:shortestpath/ShortestPathConfig/useSpiritTrees/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-spirit-trees.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationItems/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-items.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationLevers/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-levers.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationMinigames/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-minigames.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationPortals/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-portals.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationPortalsPoh/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-portals-poh.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationSpells/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-spells.md
-$dokka.location:shortestpath/ShortestPathConfig/useWildernessObelisks/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-wilderness-obelisks.md
-$dokka.location:shortestpath/ShortestPathPlugin///PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/index.md
-$dokka.location:shortestpath/ShortestPathPlugin/isInsidePoh/#int#int/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/is-inside-poh.md
-$dokka.location:shortestpath/ShortestPathPlugin/override/#java.lang.String#JewelleryBoxTier/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/override.md
-$dokka.location:shortestpath/ShortestPathPlugin/override/#java.lang.String#TeleportationItem/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/override.md
-$dokka.location:shortestpath/ShortestPathPlugin/override/#java.lang.String#boolean/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/override.md
-$dokka.location:shortestpath/ShortestPathPlugin/override/#java.lang.String#int/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/override.md
 com.kraken.api
 com.kraken.api.core
 com.kraken.api.core.interaction
@@ -2293,5 +2230,4 @@ com.kraken.api.simulation.colosim.model
 com.kraken.api.simulation.snapshot
 com.kraken.api.simulation.tree
 com.kraken.api.util
-shortestpath
 

@@ -48,13 +48,14 @@ public class BankServiceTest extends BaseApiTest {
             return false;
         }
 
+        SleepService.sleepFor(5);
         log.info("Setting withdraw mode to: NOTED");
         if(!bankService.setWithdrawMode(true)) {
             log.error("Failed to set withdraw mode to: NOTED");
             return false;
         }
 
-        SleepService.sleepFor(3);
+        SleepService.sleepFor(5);
         log.info("Setting withdraw mode to: ITEM");
         if(!bankService.setWithdrawMode(false)) {
             log.error("Failed to set withdraw mode to: ITEM");
