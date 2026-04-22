@@ -81,7 +81,6 @@ public class Context {
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
-        PacketFactory.init();
 
         // RuneLite injects some logging into doAction when a menu action can't be found by the client but is still being
         // invoked with coordinates where the menu action should appear. This simply mutes those verbose logs.

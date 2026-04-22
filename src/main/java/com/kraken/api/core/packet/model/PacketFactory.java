@@ -37,7 +37,7 @@ public class PacketFactory {
      * the method falls back to retrieving the packet definitions from a remote URL.
      * </p>
      */
-    public static void init() {
+    static {
         try {
             MappedPackets mappedPackets = JsonResourceUtils.loadJsonResource(
                     PacketFactory.class,
@@ -58,6 +58,7 @@ public class PacketFactory {
         }
     }
 
+
     /**
      * Helper method to safely retrieve a packet and fail fast if the JSON is missing definitions.
      */
@@ -70,7 +71,7 @@ public class PacketFactory {
     }
 
     // Resume packets for dialogues with NPC's in the chatbox.
-    // pause is for basic "CLick here to contine", count is when entering a quantity like: withdraw-X, obj is when
+    // pause is for basic "CLick here to continue", count is when entering a quantity like: withdraw-X, obj is when
     // picking an object i.e. sailing mermaids or picking an item from a GE search.
     public static PacketDefinition getResumeCountDialog() { return getPacket("RESUME_COUNTDIALOG"); }
     public static PacketDefinition getResumeObjDialog() { return getPacket("RESUME_OBJDIALOG"); }
