@@ -142,7 +142,6 @@ $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getMoveGameClick/
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getResumeCountDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-resume-count-dialog.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getResumeObjDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-resume-obj-dialog.md
 $dokka.location:com.kraken.api.core.packet.model/PacketFactory/getStringDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-string-dialog.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory/init/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/init.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMetadata///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMetadata/PacketMetadata/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/-packet-metadata.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMethods///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-methods/index.md

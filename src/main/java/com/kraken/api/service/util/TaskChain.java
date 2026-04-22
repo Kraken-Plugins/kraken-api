@@ -89,7 +89,7 @@ public class TaskChain {
             int maxRefreshes = 20;
 
             for (int i = 0; i < maxRefreshes; i++) {
-                WorldPoint currentLoc = client.getLocalPlayer().getWorldLocation();
+                WorldPoint currentLoc = ctx.runOnClientThread(() -> client.getLocalPlayer().getWorldLocation());
 
                 // 1. Check completion condition (Are we there yet?)
                 if (currentLoc.distanceTo(target) <= 3) {
@@ -140,7 +140,7 @@ public class TaskChain {
             int maxRefreshes = 20;
 
             for (int i = 0; i < maxRefreshes; i++) {
-                WorldPoint currentLoc = client.getLocalPlayer().getWorldLocation();
+                WorldPoint currentLoc = ctx.runOnClientThread(() -> client.getLocalPlayer().getWorldLocation());
 
                 // 2. Calculate path to the area
                 List<WorldPoint> densePath = pathfinder.findApproximatePath(currentLoc, target, radius);
@@ -175,7 +175,7 @@ public class TaskChain {
             int maxRefreshes = 20;
 
             for (int i = 0; i < maxRefreshes; i++) {
-                WorldPoint currentLoc = client.getLocalPlayer().getWorldLocation();
+                WorldPoint currentLoc = ctx.runOnClientThread(() -> client.getLocalPlayer().getWorldLocation());
 
                 // 1. Check if we are inside the area (Goal reached)
                 if (area.contains(currentLoc)) {
