@@ -1,10 +1,8 @@
 package com.kraken.api.core.interceptor;
 
 import com.google.inject.Singleton;
-import com.kraken.api.service.util.reflect.hooks.HookRegistry;
-import com.kraken.api.service.util.reflect.hooks.MouseHooks;
-import com.kraken.api.service.util.reflect.hooks.loader.HookLoader;
-import com.kraken.api.service.util.reflect.hooks.model.MethodHook;
+import com.kraken.api.core.packet.PacketFactory;
+import com.kraken.api.core.packet.model.PacketMetadata;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.MemberSubstitution;
@@ -19,28 +17,17 @@ import javax.inject.Inject;
 public class MouseHookInterceptor {
 
     public final Client client;
-    public MouseHooks hooks;
+    private final PacketMetadata packetMetadata;
     public boolean injected = false;
 
     @Inject
     public MouseHookInterceptor(Client client) {
         this.client = client;
+        this.packetMetadata = PacketFactory.getPacketMetadata();
 
-        MouseHooks loadedHooks = null;
-        try {
-            HookRegistry registry = HookLoader.load();
-
-            if(registry == null) {
-                log.error("Failed to load mouse hook from registry. Cannot inject mouse hook DLL patch.");
-                return;
-            }
-
-            loadedHooks = registry.getMouse();
-        } catch (Exception e) {
-            log.error("Failed to load reflection hooks. Mouse hook patching will be unavailable.", e);
+        if (packetMetadata == null) {
+            log.error("Failed to load packet metadata. Mouse hook patching will be unavailable.");
         }
-
-        this.hooks = loadedHooks;
     }
 
     /**
@@ -53,14 +40,15 @@ public class MouseHookInterceptor {
             return;
         }
 
-        if (hooks == null || hooks.getMouseHook() == null) {
+        if (packetMetadata == null
+                || packetMetadata.getMouseHookDllClassName() == null
+                || packetMetadata.getMouseHookDllMethodName() == null) {
             log.warn("Mouse hook reflection mapping is unavailable, skipping injection");
             return;
         }
 
         try {
-            MethodHook mouseHook = hooks.getMouseHook();
-            Class<?> targetClass = resolveHookClass(mouseHook);
+            Class<?> targetClass = resolveHookClass(packetMetadata.getMouseHookDllClassName());
 
             new ByteBuddy()
                     .redefine(targetClass)
@@ -69,23 +57,25 @@ public class MouseHookInterceptor {
                             .field(ElementMatchers.named("llimc"))
                             .onRead()
                             .replaceWith(MouseHookInterceptor.class.getMethod("provideZero"))
-                            .on(ElementMatchers.named(mouseHook.getMethodName())))
+                            .on(ElementMatchers.named(packetMetadata.getMouseHookDllMethodName())))
                     .make()
                     .load(targetClass.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
 
             injected = true;
-            log.info("Mouse hook DLL load patched into {}.{}", mouseHook.getClassName(), mouseHook.getMethodName());
+            log.info("Mouse hook DLL load patched into {}.{}",
+                    packetMetadata.getMouseHookDllClassName(),
+                    packetMetadata.getMouseHookDllMethodName());
         } catch (Exception e) {
             log.error("Failed to patch mouse hook interception", e);
         }
     }
 
-    private Class<?> resolveHookClass(MethodHook mouseHook) throws ClassNotFoundException {
-        if (client.getClass().getName().equals(mouseHook.getClassName())) {
+    private Class<?> resolveHookClass(String className) throws ClassNotFoundException {
+        if (client.getClass().getName().equals(className)) {
             return client.getClass();
         }
 
-        return client.getClass().getClassLoader().loadClass(mouseHook.getClassName());
+        return client.getClass().getClassLoader().loadClass(className);
     }
 
     /**

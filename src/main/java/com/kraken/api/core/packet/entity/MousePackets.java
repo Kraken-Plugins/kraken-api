@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketFactory;
+import com.kraken.api.core.packet.PacketFactory;
 import com.kraken.api.util.MathUtils;
 import com.kraken.api.util.RandomUtils;
 import lombok.SneakyThrows;

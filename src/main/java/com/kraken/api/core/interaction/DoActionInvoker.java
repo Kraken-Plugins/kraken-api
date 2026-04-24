@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.packet.model.PacketFactory;
+import com.kraken.api.core.packet.PacketFactory;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 

@@ -2,7 +2,7 @@ package com.kraken.api.core.packet.entity;
 
 import com.google.inject.Provider;
 import com.kraken.api.core.packet.PacketClient;
-import com.kraken.api.core.packet.model.PacketFactory;
+import com.kraken.api.core.packet.PacketFactory;
 import net.runelite.api.Client;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;

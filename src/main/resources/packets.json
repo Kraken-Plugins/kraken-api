@@ -31,6 +31,23 @@
     "doActionMethodName": "ek",
     "doActionGarbageValue": -1948098697
   },
+  "loginHooks": {
+    "loginIndexGarbageValue": 1939367663,
+    "loginIndexMethodName": "bh",
+    "loginIndexClassName": "du",
+    "sessionFieldName": "ly",
+    "sessionClassName": "db",
+    "accountIdFieldName": "ls",
+    "accountIdClassName": "mw",
+    "displayNameFieldName": "cb",
+    "displayNameClassName": "bb",
+    "accountCheckFieldName": "dy",
+    "accountCheckClassName": "client",
+    "jagexValueFieldName": "ah",
+    "jagexValueClassName": "zw",
+    "legacyValueFieldName": "aq",
+    "legacyValueClassName": "zw"
+  },
   "packets": {
     "EVENT_MOUSE_CLICK": {
       "packetName": "EVENT_MOUSE_CLICK",

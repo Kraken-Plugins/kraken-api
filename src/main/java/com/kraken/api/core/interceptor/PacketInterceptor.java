@@ -2,7 +2,7 @@ package com.kraken.api.core.interceptor;
 
 import com.kraken.api.core.interceptor.model.EncodedPacket;
 import com.kraken.api.core.interceptor.model.PacketSent;
-import com.kraken.api.core.packet.model.PacketFactory;
+import com.kraken.api.core.packet.PacketFactory;
 import com.kraken.api.core.packet.model.PacketMetadata;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;

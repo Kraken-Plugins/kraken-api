@@ -1,7 +1,11 @@
-package com.kraken.api.core.packet.model;
+package com.kraken.api.core.packet;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.kraken.api.core.packet.model.LoginHooks;
+import com.kraken.api.core.packet.model.MappedPackets;
+import com.kraken.api.core.packet.model.PacketDefinition;
+import com.kraken.api.core.packet.model.PacketMetadata;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import com.kraken.api.util.JsonResourceUtils;
@@ -24,19 +28,14 @@ public class PacketFactory {
     private static PacketMetadata packetMetadata = null;
 
     @Getter
+    private static LoginHooks loginHooks = null;
+
+    @Getter
     private static String clientVersion = "";
 
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final String LOCAL_PACKETS_PATH = "/packets.json";
 
-    /**
-     * Initializes the packet factory by loading packet definitions from local resources or a remote source.
-     * <p>
-     * This method attempts to load a JSON file containing packet definitions from a predefined
-     * local path. If the local file is unavailable or an exception occurs while processing it,
-     * the method falls back to retrieving the packet definitions from a remote URL.
-     * </p>
-     */
     static {
         try {
             MappedPackets mappedPackets = JsonResourceUtils.loadJsonResource(
@@ -45,14 +44,15 @@ public class PacketFactory {
                     gson,
                     MappedPackets.class
             );
-            if (mappedPackets.getPackets() == null) {
-                throw new IllegalStateException("Parsed MappedPackets or its packet map was null.");
+            if (mappedPackets.getPackets() == null || mappedPackets.getLoginHooks() == null) {
+                throw new IllegalStateException("Parsed packets or login hooks was null.");
             }
 
             packets = mappedPackets.getPackets();
             packetMetadata = mappedPackets.getReflectionHooks();
             clientVersion = mappedPackets.getClientVersion();
-            log.info("Loaded packets.json from local resources.");
+            loginHooks = mappedPackets.getLoginHooks();
+            log.info("Loaded packets, reflection, and login hooks from local resources.");
         } catch (Exception e) {
             log.error("Exception while trying to load packets.json.", e);
         }

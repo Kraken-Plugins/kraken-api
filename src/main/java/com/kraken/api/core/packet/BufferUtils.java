@@ -1,7 +1,6 @@
 package com.kraken.api.core.packet;
 
 import com.kraken.api.core.packet.model.BufferOperation;
-import com.kraken.api.core.packet.model.PacketFactory;
 
 import java.lang.reflect.Field;
 

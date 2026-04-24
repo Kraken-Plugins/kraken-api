@@ -9,7 +9,7 @@ open class [LoginService](index.md)
 
 | | |
 |---|---|
-| [LoginService](-login-service.md) | [Kraken API]<br>constructor(reflectionService: [ReflectionService](../../com.kraken.api.service.util.reflect/-reflection-service/index.md), client: Client, clientThread: ClientThread) |
+| [LoginService](-login-service.md) | [Kraken API]<br>constructor(reflectionService: [ReflectionService](../../com.kraken.api.service.util/-reflection-service/index.md), client: Client, clientThread: ClientThread) |
 
 ## Functions
 

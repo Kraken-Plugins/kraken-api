@@ -46,8 +46,8 @@ the functionality for client analysis, obfuscated class names, and packet ops ar
 - Commit and open a PR to build and release a new version of the API
 
 ### Reflection
-Reflection hooks are used in several places within the API (like the `LoginService`) in order to map obfuscated game client
-classes, methods, and fields to known functionality within the game client. 
+Reflection hooks are used in several places within the API (like the `LoginService` and mouse hook interceptor) in order to map
+obfuscated game client classes, methods, and fields to known functionality within the game client.
 
 For example when logging into the game client,
 you must set the `loginIndex` field which is an integer determining the login flow for an account. To do this, 
@@ -55,38 +55,37 @@ we must maintain mappings between the obfuscated class and method names (`bz.aq`
 we can use reflection to invoke the right methods and set the right fields since RuneLite does not directly inject mixins
 for the client functionality. 
 
-These mappings are stored in the resources directory under `reflection_hooks.json`. This file must be updated for a new 
-client revision (when methods and classes are re-obfuscated). To update these hooks:
+These mappings are stored in `src/main/resources/packets.json`. Login-specific mappings live under the `loginHooks` object and
+shared reflection/interceptor mappings live under the `reflectionHooks` object. These sections must be updated for a new client
+revision (when methods and classes are re-obfuscated). To update these hooks:
 
 - Go to the [Vitalite Mappings json](https://github.com/Tonic-Box/VitaLite/blob/main/src/main/resources/com/tonic/injector/mappings.json) file (huge shoutout for the VitaLite devs to maintain and publish these mappings)
-- Check the following table for help finding the right mappings to update the hooks file
-- Update the `reflection_hooks.json` stored in the resources directory with the new obfuscated field, class, and method names
-- Open a PR and merge to publish the new reflection_hooks file to the server
+- Check the following table for help finding the right mappings to update in `packets.json`
+- Update the `loginHooks` and `reflectionHooks` objects in `packets.json` with the new obfuscated field, class, and method names
+- Open a PR and merge to publish the updated packet metadata
 
-| **Search Term**           | **JSON Mapping Key**    |
-|---------------------------|-------------------------|
-| `setLoginIndex`           | setLoginIndexMethodName |
-| `setLoginIndex`           | setLoginIndexClassName  |
-| `JX_SESSION_ID`           | jxSessionFieldName      |
-| `JX_SESSION_ID`           | jxSessionClassName      |
-| `JX_CHARACTER_ID`         | jxAccountIdFieldName    |
-| `JX_CHARACTER_ID`         | jxAccountIdClassName    |
-| `JX_DISPLAY_NAME`         | jxDisplayNameFieldName  |
-| `JX_DISPLAY_NAME`         | jxDisplayNameClassName  |
-| `accountTypeCheck`        | jxAccountCheckFieldName |
-| `accountTypeCheck`        | jxAccountCheckClassName |
-| `jagexType`               | jxJagexValueFieldName   |
-| `jagexType`               | jxJagexValueClassName   |
-| `legacyType`              | jxLegacyValueFieldName  |
-| `legacyType`              | jxLegacyValueClassName  |
-| `MouseHandler_idleCycles` | idleCyclesClassName     |
-| `MouseHandler_idleCycles` | idleCyclesFieldName     |
-| `mouseHookLoader`         | mouseHookClassName      |
-| `mouseHookLoader`         | mouseHookFieldName      |
+| **Search Term**           | **JSON Mapping Key**    | **Section**         |
+|---------------------------|-------------------------|---------------------|
+| `setLoginIndex`           | loginIndexMethodName    | `loginHooks`        |
+| `setLoginIndex`           | loginIndexClassName     | `loginHooks`        |
+| `JX_SESSION_ID`           | sessionFieldName        | `loginHooks`        |
+| `JX_SESSION_ID`           | sessionClassName        | `loginHooks`        |
+| `JX_CHARACTER_ID`         | accountIdFieldName      | `loginHooks`        |
+| `JX_CHARACTER_ID`         | accountIdClassName      | `loginHooks`        |
+| `JX_DISPLAY_NAME`         | displayNameFieldName    | `loginHooks`        |
+| `JX_DISPLAY_NAME`         | displayNameClassName    | `loginHooks`        |
+| `accountTypeCheck`        | accountCheckFieldName   | `loginHooks`        |
+| `accountTypeCheck`        | accountCheckClassName   | `loginHooks`        |
+| `jagexType`               | jagexValueFieldName     | `loginHooks`        |
+| `jagexType`               | jagexValueClassName     | `loginHooks`        |
+| `legacyType`              | legacyValueFieldName    | `loginHooks`        |
+| `legacyType`              | legacyValueClassName    | `loginHooks`        |
+| `mouseHookLoader`         | mouseHookDllClassName   | `reflectionHooks`   |
+| `mouseHookLoader`         | mouseHookDllMethodName  | `reflectionHooks`   |
 
 #### Login Index Garbage Value
 
-Finding this value is a little more complex. For the `setLoginIndexGarbageValue` you will need to get the `gamepack-{int}.jar` file by:
+Finding this value is a little more complex. For the `loginIndexGarbageValue` you will need to get the `gamepack-{int}.jar` file by:
 
 - Viewing the Jagex jav_config.ws at: https://oldschool.runescape.com/jav_config.ws
 - Copy the `initial_jar=gamepack-{int}.jar` field's value (should be gamepack-123.jar for example)
