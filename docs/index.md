@@ -62,14 +62,9 @@
 | [com.kraken.api.service.ui.tab](kraken-api/com.kraken.api.service.ui.tab/index.md) |
 | [com.kraken.api.service.util](kraken-api/com.kraken.api.service.util/index.md) |
 | [com.kraken.api.service.util.price](kraken-api/com.kraken.api.service.util.price/index.md) |
-| [com.kraken.api.service.util.reflect](kraken-api/com.kraken.api.service.util.reflect/index.md) |
-| [com.kraken.api.service.util.reflect.hooks](kraken-api/com.kraken.api.service.util.reflect.hooks/index.md) |
-| [com.kraken.api.service.util.reflect.hooks.loader](kraken-api/com.kraken.api.service.util.reflect.hooks.loader/index.md) |
-| [com.kraken.api.service.util.reflect.hooks.model](kraken-api/com.kraken.api.service.util.reflect.hooks.model/index.md) |
 | [com.kraken.api.simulation](kraken-api/com.kraken.api.simulation/index.md) |
 | [com.kraken.api.simulation.colosim](kraken-api/com.kraken.api.simulation.colosim/index.md) |
 | [com.kraken.api.simulation.colosim.model](kraken-api/com.kraken.api.simulation.colosim.model/index.md) |
 | [com.kraken.api.simulation.snapshot](kraken-api/com.kraken.api.simulation.snapshot/index.md) |
 | [com.kraken.api.simulation.tree](kraken-api/com.kraken.api.simulation.tree/index.md) |
 | [com.kraken.api.util](kraken-api/com.kraken.api.util/index.md) |
-| [shortestpath](kraken-api/shortestpath/index.md) |

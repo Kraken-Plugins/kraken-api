@@ -3,4 +3,4 @@
 # LoginService
 
 [Kraken API]\
-constructor(reflectionService: [ReflectionService](../../com.kraken.api.service.util.reflect/-reflection-service/index.md), client: Client, clientThread: ClientThread)
+constructor(reflectionService: [ReflectionService](../../com.kraken.api.service.util/-reflection-service/index.md), client: Client, clientThread: ClientThread)

@@ -16,7 +16,6 @@ open class [MouseHookInterceptor](index.md)
 | Name | Summary |
 |---|---|
 | [client](client.md) | [Kraken API]<br>val [client](client.md): Client |
-| [hooks](hooks.md) | [Kraken API]<br>open var [hooks](hooks.md): [MouseHooks](../../com.kraken.api.service.util.reflect.hooks/-mouse-hooks/index.md) |
 | [injected](injected.md) | [Kraken API]<br>open var [injected](injected.md): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html) |
 
 ## Functions

@@ -83,6 +83,7 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
     public boolean withdrawAllNoted() {
         return ctx.runOnClientThread(() -> {
             ctx.getService(BankService.class).setWithdrawMode(true);
+            SleepService.sleepFor(1);
             return interact("Withdraw-All");
         });
     }

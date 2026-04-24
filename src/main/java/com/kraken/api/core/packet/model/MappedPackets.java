@@ -1,5 +1,6 @@
 package com.kraken.api.core.packet.model;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -10,5 +11,6 @@ import java.util.Map;
 public class MappedPackets {
     private String clientVersion;
     private PacketMetadata reflectionHooks;
+    private LoginHooks loginHooks;
     private Map<String, PacketDefinition> packets;
 }

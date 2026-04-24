@@ -82,7 +82,6 @@ $dokka.location:com.kraken.api.core.interceptor/InterceptorBuilder/InterceptorBu
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor///PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/index.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/MouseHookInterceptor/#Client/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/-mouse-hook-interceptor.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/client/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/client.md
-$dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/hooks/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/hooks.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/injectHook/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/inject-hook.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/injected/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/injected.md
 $dokka.location:com.kraken.api.core.interceptor/MouseHookInterceptor/provideZero/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interceptor/-mouse-hook-interceptor/provide-zero.md
@@ -129,19 +128,14 @@ $dokka.location:com.kraken.api.core.packet.model/BufferOperation/rightShift/#int
 $dokka.location:com.kraken.api.core.packet.model/BufferOperation/stringCp1252NullCircumfixed/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-buffer-operation/string-cp1252-null-circumfixed.md
 $dokka.location:com.kraken.api.core.packet.model/BufferOperation/stringCp1252NullTerminated/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-buffer-operation/string-cp1252-null-terminated.md
 $dokka.location:com.kraken.api.core.packet.model/BufferOperation/subtract/#int/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-buffer-operation/subtract.md
+$dokka.location:com.kraken.api.core.packet.model/LoginHooks///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-login-hooks/index.md
+$dokka.location:com.kraken.api.core.packet.model/LoginHooks/LoginHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-login-hooks/-login-hooks.md
 $dokka.location:com.kraken.api.core.packet.model/MappedPackets///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-mapped-packets/index.md
 $dokka.location:com.kraken.api.core.packet.model/MappedPackets/MappedPackets/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-mapped-packets/-mapped-packets.md
 $dokka.location:com.kraken.api.core.packet.model/PacketCache///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-cache/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketCache/PacketCache/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-cache/-packet-cache.md
 $dokka.location:com.kraken.api.core.packet.model/PacketDefinition///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-definition/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketDefinition/PacketDefinition/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-definition/-packet-definition.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/index.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory/PacketFactory/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/-packet-factory.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory/getEventMouseClick/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-event-mouse-click.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory/getMoveGameClick/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-move-game-click.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory/getResumeCountDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-resume-count-dialog.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory/getResumeObjDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-resume-obj-dialog.md
-$dokka.location:com.kraken.api.core.packet.model/PacketFactory/getStringDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-factory/get-string-dialog.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMetadata///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMetadata/PacketMetadata/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/-packet-metadata.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMethods///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-methods/index.md
@@ -193,6 +187,13 @@ $dokka.location:com.kraken.api.core.packet/BufferUtils/writeStringCp1252NullTerm
 $dokka.location:com.kraken.api.core.packet/PacketClient///PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-client/index.md
 $dokka.location:com.kraken.api.core.packet/PacketClient/PacketClient/#Client/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-client/-packet-client.md
 $dokka.location:com.kraken.api.core.packet/PacketClient/sendPacket/#com.kraken.api.core.packet.model.PacketDefinition#java.lang.Object.../PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-client/send-packet.md
+$dokka.location:com.kraken.api.core.packet/PacketFactory///PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/index.md
+$dokka.location:com.kraken.api.core.packet/PacketFactory/PacketFactory/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/-packet-factory.md
+$dokka.location:com.kraken.api.core.packet/PacketFactory/getEventMouseClick/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/get-event-mouse-click.md
+$dokka.location:com.kraken.api.core.packet/PacketFactory/getMoveGameClick/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/get-move-game-click.md
+$dokka.location:com.kraken.api.core.packet/PacketFactory/getResumeCountDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/get-resume-count-dialog.md
+$dokka.location:com.kraken.api.core.packet/PacketFactory/getResumeObjDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/get-resume-obj-dialog.md
+$dokka.location:com.kraken.api.core.packet/PacketFactory/getStringDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/get-string-dialog.md
 $dokka.location:com.kraken.api.core.packet/PacketMethodLocator///PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-method-locator/index.md
 $dokka.location:com.kraken.api.core.packet/PacketMethodLocator/PacketMethodLocator/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-method-locator/-packet-method-locator.md
 $dokka.location:com.kraken.api.core.packet/PacketMethodLocator/initialize/#Client/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-method-locator/initialize.md
@@ -1004,6 +1005,8 @@ $dokka.location:com.kraken.api.service.bank/BankService/isClosed/#/PointingToDec
 $dokka.location:com.kraken.api.service.bank/BankService/isOpen/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/is-open.md
 $dokka.location:com.kraken.api.service.bank/BankService/isPinOpen/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/is-pin-open.md
 $dokka.location:com.kraken.api.service.bank/BankService/onScriptCallbackEvent/#ScriptCallbackEvent/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/on-script-callback-event.md
+$dokka.location:com.kraken.api.service.bank/BankService/setItem/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/set-item.md
+$dokka.location:com.kraken.api.service.bank/BankService/setNoted/#/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/set-noted.md
 $dokka.location:com.kraken.api.service.bank/BankService/setWithdrawMode/#boolean/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/set-withdraw-mode.md
 $dokka.location:com.kraken.api.service.bank/BankService/setXAmount/#int/PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-bank-service/set-x-amount.md
 $dokka.location:com.kraken.api.service.bank/DepositBoxService///PointingToDeclaration/kraken-api/com.kraken.api.service.bank/-deposit-box-service/index.md
@@ -1561,25 +1564,8 @@ $dokka.location:com.kraken.api.service.ui.login/AccountType.LEGACY///PointingToD
 $dokka.location:com.kraken.api.service.ui.login/AccountType///PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-account-type/index.md
 $dokka.location:com.kraken.api.service.ui.login/AccountType/valueOf/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-account-type/value-of.md
 $dokka.location:com.kraken.api.service.ui.login/AccountType/values/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-account-type/values.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks///PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/index.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/AuthHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/-auth-hooks.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxAccountCheckClassName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-account-check-class-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxAccountCheckFieldName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-account-check-field-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxAccountIdClassName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-account-id-class-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxAccountIdFieldName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-account-id-field-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxDisplayNameClassName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-display-name-class-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxDisplayNameFieldName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-display-name-field-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxJagexValueClassName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-jagex-value-class-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxJagexValueFieldName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-jagex-value-field-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxLegacyValueClassName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-legacy-value-class-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxLegacyValueFieldName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-legacy-value-field-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxSessionClassName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-session-class-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/jxSessionFieldName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/jx-session-field-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/setLoginIndexClassName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/set-login-index-class-name.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/setLoginIndexGarbageValue/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/set-login-index-garbage-value.md
-$dokka.location:com.kraken.api.service.ui.login/AuthHooks/setLoginIndexMethodName/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-auth-hooks/set-login-index-method-name.md
 $dokka.location:com.kraken.api.service.ui.login/LoginService///PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-login-service/index.md
-$dokka.location:com.kraken.api.service.ui.login/LoginService/LoginService/#com.kraken.api.service.util.reflect.ReflectionService#Client#ClientThread/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-login-service/-login-service.md
+$dokka.location:com.kraken.api.service.ui.login/LoginService/LoginService/#com.kraken.api.service.util.ReflectionService#Client#ClientThread/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-login-service/-login-service.md
 $dokka.location:com.kraken.api.service.ui.login/LoginService/loadProfileFromCredentials/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-login-service/load-profile-from-credentials.md
 $dokka.location:com.kraken.api.service.ui.login/LoginService/login/#/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-login-service/login.md
 $dokka.location:com.kraken.api.service.ui.login/LoginService/loginWithJagexAccount/#com.kraken.api.service.ui.login.Profile#boolean/PointingToDeclaration/kraken-api/com.kraken.api.service.ui.login/-login-service/login-with-jagex-account.md
@@ -1713,31 +1699,6 @@ $dokka.location:com.kraken.api.service.util.price/ItemPriceService/ItemPriceServ
 $dokka.location:com.kraken.api.service.util.price/ItemPriceService/getItemPrice/#int#java.lang.String#java.util.function.Consumer<com.kraken.api.service.util.price.ItemPrice>/PointingToDeclaration/kraken-api/com.kraken.api.service.util.price/-item-price-service/get-item-price.md
 $dokka.location:com.kraken.api.service.util.price/ItemPriceService/getItemPriceSync/#int#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.util.price/-item-price-service/get-item-price-sync.md
 $dokka.location:com.kraken.api.service.util.price/ItemPriceService/refreshAllPrices/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.service.util.price/-item-price-service/refresh-all-prices.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.loader////PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.loader/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.loader/HookLoader///PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.loader/-hook-loader/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.loader/HookLoader/HookLoader/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.loader/-hook-loader/-hook-loader.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.loader/HookLoader/load/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.loader/-hook-loader/load.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.loader/HookRegistryDeserializer///PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.loader/-hook-registry-deserializer/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.loader/HookRegistryDeserializer/HookRegistryDeserializer/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.loader/-hook-registry-deserializer/-hook-registry-deserializer.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.loader/HookRegistryDeserializer/deserialize/#JsonElement#java.lang.reflect.Type#JsonDeserializationContext/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.loader/-hook-registry-deserializer/deserialize.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.model////PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.model/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.model/FieldHook///PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.model/-field-hook/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.model/FieldHook/FieldHook/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.model/-field-hook/-field-hook.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.model/MethodHook///PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.model/-method-hook/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks.model/MethodHook/MethodHook/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks.model/-method-hook/-method-hook.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks////PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks/HookRegistry///PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks/-hook-registry/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks/HookRegistry/HookRegistry/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks/-hook-registry/-hook-registry.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks/LoginHooks///PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks/-login-hooks/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks/LoginHooks/LoginHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks/-login-hooks/-login-hooks.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks/MouseHooks///PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks/-mouse-hooks/index.md
-$dokka.location:com.kraken.api.service.util.reflect.hooks/MouseHooks/MouseHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect.hooks/-mouse-hooks/-mouse-hooks.md
-$dokka.location:com.kraken.api.service.util.reflect////PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect/index.md
-$dokka.location:com.kraken.api.service.util.reflect/ReflectionService///PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect/-reflection-service/index.md
-$dokka.location:com.kraken.api.service.util.reflect/ReflectionService/ReflectionService/#Client/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect/-reflection-service/-reflection-service.md
-$dokka.location:com.kraken.api.service.util.reflect/ReflectionService/getFieldValue/#com.kraken.api.service.util.reflect.hooks.model.FieldHook#java.lang.Object/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect/-reflection-service/get-field-value.md
-$dokka.location:com.kraken.api.service.util.reflect/ReflectionService/invoke/#com.kraken.api.service.util.reflect.hooks.model.MethodHook#java.lang.Object#java.lang.Object.../PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect/-reflection-service/invoke.md
-$dokka.location:com.kraken.api.service.util.reflect/ReflectionService/setFieldValue/#com.kraken.api.service.util.reflect.hooks.model.FieldHook#java.lang.Object#java.lang.Object/PointingToDeclaration/kraken-api/com.kraken.api.service.util.reflect/-reflection-service/set-field-value.md
 $dokka.location:com.kraken.api.service.util////PointingToDeclaration/kraken-api/com.kraken.api.service.util/index.md
 $dokka.location:com.kraken.api.service.util/RandomService///PointingToDeclaration/kraken-api/com.kraken.api.service.util/-random-service/index.md
 $dokka.location:com.kraken.api.service.util/RandomService/RandomService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-random-service/-random-service.md
@@ -1760,6 +1721,11 @@ $dokka.location:com.kraken.api.service.util/RandomService/truncatedGauss/#long#l
 $dokka.location:com.kraken.api.service.util/RandomService/wait/#double#double#com.kraken.api.service.util.RandomService.EWaitDir/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-random-service/wait.md
 $dokka.location:com.kraken.api.service.util/RandomService/wait/#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-random-service/wait.md
 $dokka.location:com.kraken.api.service.util/RandomService/waitEx/#double#double/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-random-service/wait-ex.md
+$dokka.location:com.kraken.api.service.util/ReflectionService///PointingToDeclaration/kraken-api/com.kraken.api.service.util/-reflection-service/index.md
+$dokka.location:com.kraken.api.service.util/ReflectionService/ReflectionService/#Client/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-reflection-service/-reflection-service.md
+$dokka.location:com.kraken.api.service.util/ReflectionService/getFieldValue/#java.lang.String#java.lang.String#java.lang.Object/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-reflection-service/get-field-value.md
+$dokka.location:com.kraken.api.service.util/ReflectionService/invoke/#java.lang.String#java.lang.String#java.lang.Integer#java.lang.Object#java.lang.Object.../PointingToDeclaration/kraken-api/com.kraken.api.service.util/-reflection-service/invoke.md
+$dokka.location:com.kraken.api.service.util/ReflectionService/setFieldValue/#java.lang.String#java.lang.String#java.lang.Object#java.lang.Object/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-reflection-service/set-field-value.md
 $dokka.location:com.kraken.api.service.util/SleepService///PointingToDeclaration/kraken-api/com.kraken.api.service.util/-sleep-service/index.md
 $dokka.location:com.kraken.api.service.util/SleepService/SleepService/#/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-sleep-service/-sleep-service.md
 $dokka.location:com.kraken.api.service.util/SleepService/sleep/#int#int/PointingToDeclaration/kraken-api/com.kraken.api.service.util/-sleep-service/sleep.md
@@ -2164,69 +2130,6 @@ $dokka.location:com.kraken.api/Context/runOnClientThreadOptional/#java.util.conc
 $dokka.location:com.kraken.api/Context/runScript/#int/PointingToDeclaration/kraken-api/com.kraken.api/-context/run-script.md
 $dokka.location:com.kraken.api/Context/widgets/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/widgets.md
 $dokka.location:com.kraken.api/Context/worlds/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/worlds.md
-$dokka.location:shortestpath////PointingToDeclaration/kraken-api/shortestpath/index.md
-$dokka.location:shortestpath/ShortestPathConfig///PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/index.md
-$dokka.location:shortestpath/ShortestPathConfig/avoidWilderness/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/avoid-wilderness.md
-$dokka.location:shortestpath/ShortestPathConfig/calculationCutoff/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/calculation-cutoff.md
-$dokka.location:shortestpath/ShortestPathConfig/costAgilityShortcuts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-agility-shortcuts.md
-$dokka.location:shortestpath/ShortestPathConfig/costBoats/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-boats.md
-$dokka.location:shortestpath/ShortestPathConfig/costCanoes/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-canoes.md
-$dokka.location:shortestpath/ShortestPathConfig/costCharterShips/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-charter-ships.md
-$dokka.location:shortestpath/ShortestPathConfig/costConsumableTeleportationItems/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-consumable-teleportation-items.md
-$dokka.location:shortestpath/ShortestPathConfig/costFairyRings/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-fairy-rings.md
-$dokka.location:shortestpath/ShortestPathConfig/costGnomeGliders/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-gnome-gliders.md
-$dokka.location:shortestpath/ShortestPathConfig/costGrappleShortcuts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-grapple-shortcuts.md
-$dokka.location:shortestpath/ShortestPathConfig/costHotAirBalloons/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-hot-air-balloons.md
-$dokka.location:shortestpath/ShortestPathConfig/costMagicCarpets/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-magic-carpets.md
-$dokka.location:shortestpath/ShortestPathConfig/costMagicMushtrees/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-magic-mushtrees.md
-$dokka.location:shortestpath/ShortestPathConfig/costMinecarts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-minecarts.md
-$dokka.location:shortestpath/ShortestPathConfig/costNonConsumableTeleportationItems/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-non-consumable-teleportation-items.md
-$dokka.location:shortestpath/ShortestPathConfig/costQuetzals/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-quetzals.md
-$dokka.location:shortestpath/ShortestPathConfig/costSeasonalTransports/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-seasonal-transports.md
-$dokka.location:shortestpath/ShortestPathConfig/costShips/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-ships.md
-$dokka.location:shortestpath/ShortestPathConfig/costSpiritTrees/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-spirit-trees.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationBoxes/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-boxes.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationLevers/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-levers.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationMinigames/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-minigames.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationPortals/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-portals.md
-$dokka.location:shortestpath/ShortestPathConfig/costTeleportationSpells/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-teleportation-spells.md
-$dokka.location:shortestpath/ShortestPathConfig/costWildernessObelisks/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/cost-wilderness-obelisks.md
-$dokka.location:shortestpath/ShortestPathConfig/currencyThreshold/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/currency-threshold.md
-$dokka.location:shortestpath/ShortestPathConfig/includeBankPath/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/include-bank-path.md
-$dokka.location:shortestpath/ShortestPathConfig/pohJewelleryBoxTier/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/poh-jewellery-box-tier.md
-$dokka.location:shortestpath/ShortestPathConfig/useAgilityShortcuts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-agility-shortcuts.md
-$dokka.location:shortestpath/ShortestPathConfig/useBoats/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-boats.md
-$dokka.location:shortestpath/ShortestPathConfig/useCanoes/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-canoes.md
-$dokka.location:shortestpath/ShortestPathConfig/useCharterShips/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-charter-ships.md
-$dokka.location:shortestpath/ShortestPathConfig/useFairyRings/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-fairy-rings.md
-$dokka.location:shortestpath/ShortestPathConfig/useGnomeGliders/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-gnome-gliders.md
-$dokka.location:shortestpath/ShortestPathConfig/useGrappleShortcuts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-grapple-shortcuts.md
-$dokka.location:shortestpath/ShortestPathConfig/useHotAirBalloons/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-hot-air-balloons.md
-$dokka.location:shortestpath/ShortestPathConfig/useMagicCarpets/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-magic-carpets.md
-$dokka.location:shortestpath/ShortestPathConfig/useMagicMushtrees/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-magic-mushtrees.md
-$dokka.location:shortestpath/ShortestPathConfig/useMinecarts/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-minecarts.md
-$dokka.location:shortestpath/ShortestPathConfig/usePoh/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh.md
-$dokka.location:shortestpath/ShortestPathConfig/usePohFairyRing/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh-fairy-ring.md
-$dokka.location:shortestpath/ShortestPathConfig/usePohMountedItems/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh-mounted-items.md
-$dokka.location:shortestpath/ShortestPathConfig/usePohObelisk/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh-obelisk.md
-$dokka.location:shortestpath/ShortestPathConfig/usePohSpiritTree/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-poh-spirit-tree.md
-$dokka.location:shortestpath/ShortestPathConfig/useQuetzals/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-quetzals.md
-$dokka.location:shortestpath/ShortestPathConfig/useSeasonalTransports/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-seasonal-transports.md
-$dokka.location:shortestpath/ShortestPathConfig/useShips/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-ships.md
-$dokka.location:shortestpath/ShortestPathConfig/useSpiritTrees/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-spirit-trees.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationItems/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-items.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationLevers/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-levers.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationMinigames/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-minigames.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationPortals/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-portals.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationPortalsPoh/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-portals-poh.md
-$dokka.location:shortestpath/ShortestPathConfig/useTeleportationSpells/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-teleportation-spells.md
-$dokka.location:shortestpath/ShortestPathConfig/useWildernessObelisks/#/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-config/use-wilderness-obelisks.md
-$dokka.location:shortestpath/ShortestPathPlugin///PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/index.md
-$dokka.location:shortestpath/ShortestPathPlugin/isInsidePoh/#int#int/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/is-inside-poh.md
-$dokka.location:shortestpath/ShortestPathPlugin/override/#java.lang.String#JewelleryBoxTier/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/override.md
-$dokka.location:shortestpath/ShortestPathPlugin/override/#java.lang.String#TeleportationItem/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/override.md
-$dokka.location:shortestpath/ShortestPathPlugin/override/#java.lang.String#boolean/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/override.md
-$dokka.location:shortestpath/ShortestPathPlugin/override/#java.lang.String#int/PointingToDeclaration/kraken-api/shortestpath/-shortest-path-plugin/override.md
 com.kraken.api
 com.kraken.api.core
 com.kraken.api.core.interaction
@@ -2283,15 +2186,10 @@ com.kraken.api.service.ui.processing
 com.kraken.api.service.ui.tab
 com.kraken.api.service.util
 com.kraken.api.service.util.price
-com.kraken.api.service.util.reflect
-com.kraken.api.service.util.reflect.hooks
-com.kraken.api.service.util.reflect.hooks.loader
-com.kraken.api.service.util.reflect.hooks.model
 com.kraken.api.simulation
 com.kraken.api.simulation.colosim
 com.kraken.api.simulation.colosim.model
 com.kraken.api.simulation.snapshot
 com.kraken.api.simulation.tree
 com.kraken.api.util
-shortestpath
 

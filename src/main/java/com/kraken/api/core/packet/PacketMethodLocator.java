@@ -3,7 +3,6 @@ package com.kraken.api.core.packet;
 import com.google.gson.Gson;
 import com.google.inject.Singleton;
 import com.kraken.api.core.packet.model.PacketCache;
-import com.kraken.api.core.packet.model.PacketFactory;
 import com.kraken.api.core.packet.model.PacketMethods;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

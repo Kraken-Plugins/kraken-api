@@ -14,6 +14,7 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -55,6 +56,27 @@ public class ItemPriceService {
         fetchSingleItemAsync(itemId, userAgent, callback);
     }
 
+    /**
+     * Retrieves the price information for a specific item synchronously.
+     *
+     * <p>This method first checks the local cache for the item's price. If the price
+     * is already cached, it retrieves the price from the cache. Otherwise, it performs
+     * a blocking network request to fetch the item's price from the API.</p>
+     *
+     * <p><strong>Note:</strong> This method may block the calling thread while performing
+     * the network request. It should not be called on the client thread or any other thread
+     * where blocking operations are not allowed.</p>
+     *
+     * @param itemId The unique identifier for the item whose price is to be retrieved.
+     *               This is typically the OSRS Item ID.
+     * @param userAgent A user agent string sent to the API to identify the application
+     *                  fetching the data. It should NOT be the default Java user agent or
+     *                  contain information about plugins or the client, as this is sent
+     *                  to the Wiki and may be inspected.
+     * @return An {@code ItemPrice} object containing the price details for the specified
+     *         item, or {@code null} if the item's price data is not available, the
+     *         network request fails, or an error occurs during response parsing.
+     */
     public ItemPrice getItemPriceSync(int itemId, String userAgent) {
         if (priceCache.containsKey(itemId)) {
             return priceCache.get(itemId);
@@ -83,7 +105,7 @@ public class ItemPriceService {
      */
 
     private ItemPrice fetchSingleItem(int itemId, String userAgent) {
-        HttpUrl url = HttpUrl.parse(API_BASE).newBuilder()
+        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(API_BASE)).newBuilder()
                 .addQueryParameter("id", String.valueOf(itemId))
                 .build();
 
@@ -109,7 +131,7 @@ public class ItemPriceService {
     }
 
     private void fetchSingleItemAsync(int itemId, String userAgent, Consumer<ItemPrice> callback) {
-        HttpUrl url = HttpUrl.parse(API_BASE).newBuilder()
+        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(API_BASE)).newBuilder()
                 .addQueryParameter("id", String.valueOf(itemId))
                 .build();
 
@@ -185,7 +207,6 @@ public class ItemPriceService {
         });
     }
 
-    // Helper to keep parseAndCache logic the same
     private void parseAndCache(String jsonString) {
         try {
             JsonObject root = gson.fromJson(jsonString, JsonObject.class);

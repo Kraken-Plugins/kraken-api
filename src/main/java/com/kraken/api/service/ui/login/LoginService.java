@@ -2,11 +2,9 @@ package com.kraken.api.service.ui.login;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.kraken.api.service.util.reflect.ReflectionService;
-import com.kraken.api.service.util.reflect.hooks.HookRegistry;
-import com.kraken.api.service.util.reflect.hooks.LoginHooks;
-import com.kraken.api.service.util.reflect.hooks.loader.HookLoader;
-import com.kraken.api.service.util.reflect.hooks.model.FieldHook;
+import com.kraken.api.core.packet.model.LoginHooks;
+import com.kraken.api.core.packet.PacketFactory;
+import com.kraken.api.service.util.ReflectionService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -22,7 +20,7 @@ import java.util.Properties;
 @Singleton
 public class LoginService {
 
-    private LoginHooks hooks;
+    private final LoginHooks hooks;
     private final ReflectionService reflectionService;
     private final Client client;
     private final ClientThread clientThread;
@@ -31,13 +29,12 @@ public class LoginService {
 
     @Inject
     public LoginService(ReflectionService reflectionService, Client client, ClientThread clientThread) {
-        try {
-            HookRegistry registry = HookLoader.load();
-            this.hooks = registry.getLogin();
-        } catch (Exception e) {
-            log.error("Failed to load reflection hooks. Reflection operations like login state injection will not work: ", e);
-            this.hooks = null;
+        this.hooks = PacketFactory.getLoginHooks();
+
+        if (this.hooks == null) {
+            log.error("Failed to load login hook metadata from packets.json. Login state injection will not work.");
         }
+
         this.reflectionService = reflectionService;
         this.client = client;
         this.clientThread = clientThread;
@@ -49,7 +46,13 @@ public class LoginService {
      */
     private void setLoginIndex(int index) {
         log.debug("Setting login index to {}", index);
-        reflectionService.invoke(hooks.getSetLoginIndex(), null, index);
+        reflectionService.invoke(
+                hooks.getLoginIndexClassName(),
+                hooks.getLoginIndexMethodName(),
+                hooks.getLoginIndexGarbageValue(),
+                null,
+                index
+        );
     }
 
     /**
@@ -132,6 +135,11 @@ public class LoginService {
      */
     private void applyLoginState(AccountType type, Profile profile, boolean doLogin) {
         clientThread.invokeLater(() -> {
+            if (hooks == null) {
+                log.error("Cannot apply login state - login hook metadata is unavailable");
+                return;
+            }
+
             if (client.getGameState() != GameState.LOGIN_SCREEN) {
                 log.warn("Cannot apply login state - not on login screen");
                 return;
@@ -158,14 +166,44 @@ public class LoginService {
 
             // Inject Jagex-specific fields (session, account ID, display name)
             if (type == AccountType.JAGEX) {
-                success &= setFieldSafely(hooks.getSession(), profile.getSessionId(), "session ID");
-                success &= setFieldSafely(hooks.getAccountId(), profile.getCharacterId(), "account ID");
-                success &= setFieldSafely(hooks.getDisplayName(), profile.getCharacterName(), "display name");
+                success &= setFieldSafely(
+                        hooks.getSessionClassName(),
+                        hooks.getSessionFieldName(),
+                        profile.getSessionId(),
+                        "session ID"
+                );
+                success &= setFieldSafely(
+                        hooks.getAccountIdClassName(),
+                        hooks.getAccountIdFieldName(),
+                        profile.getCharacterId(),
+                        "account ID"
+                );
+                success &= setFieldSafely(
+                        hooks.getDisplayNameClassName(),
+                        hooks.getDisplayNameFieldName(),
+                        profile.getCharacterName(),
+                        "display name"
+                );
             } else {
                 // For legacy accounts, clear these fields
-                success &= setFieldSafely(hooks.getSession(), null, "session ID");
-                success &= setFieldSafely(hooks.getAccountId(), null, "account ID");
-                success &= setFieldSafely(hooks.getDisplayName(), null, "display name");
+                success &= setFieldSafely(
+                        hooks.getSessionClassName(),
+                        hooks.getSessionFieldName(),
+                        null,
+                        "session ID"
+                );
+                success &= setFieldSafely(
+                        hooks.getAccountIdClassName(),
+                        hooks.getAccountIdFieldName(),
+                        null,
+                        "account ID"
+                );
+                success &= setFieldSafely(
+                        hooks.getDisplayNameClassName(),
+                        hooks.getDisplayNameFieldName(),
+                        null,
+                        "display name"
+                );
             }
 
             // Set the account type check field
@@ -186,9 +224,9 @@ public class LoginService {
      *
      * @return true if successful, false otherwise
      */
-    private boolean setFieldSafely(FieldHook hook, Object value, String fieldDescription) {
+    private boolean setFieldSafely(String className, String fieldName, Object value, String fieldDescription) {
         try {
-            reflectionService.setFieldValue(hook, null, value);
+            reflectionService.setFieldValue(className, fieldName, null, value);
             log.debug("Set {} successfully", fieldDescription);
             return true;
         } catch (Exception e) {
@@ -207,21 +245,28 @@ public class LoginService {
      */
     private boolean setAccountTypeCheck(AccountType type) {
         try {
-            // Determine which hook to read from based on account type
-            FieldHook sourceHook = (type == AccountType.JAGEX)
-                    ? hooks.getJagexAccountType()
-                    : hooks.getLegacyAccountType();
+            String sourceClassName = type == AccountType.JAGEX
+                    ? hooks.getJagexValueClassName()
+                    : hooks.getLegacyValueClassName();
+            String sourceFieldName = type == AccountType.JAGEX
+                    ? hooks.getJagexValueFieldName()
+                    : hooks.getLegacyValueFieldName();
 
             // Read the account type object from the static field
-            Object accountTypeObject = reflectionService.getFieldValue(sourceHook, null);
+            Object accountTypeObject = reflectionService.getFieldValue(sourceClassName, sourceFieldName, null);
 
             if (accountTypeObject == null) {
-                log.error("Failed to read account type object from {}", sourceHook);
+                log.error("Failed to read account type object from {}.{}", sourceClassName, sourceFieldName);
                 return false;
             }
 
             // Write it to the client's account check field
-            reflectionService.setFieldValue(hooks.getAccountCheck(), null, accountTypeObject);
+            reflectionService.setFieldValue(
+                    hooks.getAccountCheckClassName(),
+                    hooks.getAccountCheckFieldName(),
+                    null,
+                    accountTypeObject
+            );
             log.debug("Set account type check for {} account", type);
             return true;
 

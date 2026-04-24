@@ -7,7 +7,7 @@ import com.kraken.api.core.interceptor.InterceptorBuilder;
 import com.kraken.api.core.interceptor.MouseHookInterceptor;
 import com.kraken.api.core.interceptor.PacketInterceptor;
 import com.kraken.api.core.packet.PacketMethodLocator;
-import com.kraken.api.core.packet.model.PacketFactory;
+import com.kraken.api.core.packet.PacketFactory;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;

@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-21
+- Last updated: 2026-04-23
 - Scope: Kraken API main library (`com.kraken.api`) and the bundled `shortest-path` subproject
 
 ### Maintenance (agents and contributors)
@@ -78,7 +78,7 @@
   - `PacketFactory`, `PacketClient`, and the entity packet helpers build and send actions to the client.
   - `InteractionManager` and the resolver classes map high-level interactions to the right packet operations.
 - **Runtime hooks**:
-  - `reflection_hooks.json` and `ObfuscatedNames.java` keep obfuscated client lookups aligned with the current RuneLite/client revision.
+  - `packets.json` and `ObfuscatedNames.java` keep obfuscated client lookups aligned with the current RuneLite/client revision.
   - Interceptors patch runtime behavior where needed, but they should stay localized and guarded.
 - **Execution**:
   - The same API supports direct plugin use, scripted automation, and the `shortest-path` plugin for movement/pathfinding support.
@@ -328,7 +328,7 @@ Do not treat these as hand-edited sources.
 - Input layer: `src/main/java/com/kraken/api/input/`
 - Simulation layer: `src/main/java/com/kraken/api/simulation/`
 - Utility helpers: `src/main/java/com/kraken/api/util/`
-- Runtime mappings and packet definitions: `src/main/resources/{packets.json,reflection_hooks.json,map.dat}`
+- Runtime mappings and packet definitions: `src/main/resources/{packets.json,map.dat}`
 - API docs: `docs/API.md`, `docs/INTERACTION.md`, `docs/MOUSE.md`, `docs/SCRIPTING.md`, `docs/SIMULATION.md`, `docs/TESTS.md`, `docs/UPDATING.md`, `docs/UTILITIES.md`
 - Generated reference docs: `docs/kraken-api/`
 - Root test launcher: `src/test/java/PluginRunnerTest.java`
@@ -374,7 +374,7 @@ Do not treat these as hand-edited sources.
   3. Add or update tests under `src/test/java/plugins/api/tests/service/`.
 - **Update packet or reflection behavior**:
   1. Edit the packet or hook source.
-  2. Verify `packets.json`, `reflection_hooks.json`, and `ObfuscatedNames.java` still match the current client revision.
+  2. Verify `packets.json` and `ObfuscatedNames.java` still match the current client revision.
   3. Run the root build and launcher tests.
 - **Update scripting behavior**:
   1. Edit `core.script` classes and any dependent services.
@@ -404,7 +404,7 @@ Do not treat these as hand-edited sources.
 ## Troubleshooting and pitfalls
 
 - `Context.initializePackets()` must run before packet-based actions are expected to work.
-- If packet interactions fail after a RuneLite or client revision update, check `PacketMethodLocator`, `ObfuscatedNames.java`, `packets.json`, and `reflection_hooks.json` together.
+- If packet interactions fail after a RuneLite or client revision update, check `PacketMethodLocator`, `ObfuscatedNames.java`, and the `reflectionHooks` / `loginHooks` sections in `packets.json` together.
 - If `./gradlew runelite` launches but class reloading behavior is missing, verify the ByteBuddy agent installed successfully.
 - If docs look stale, rerun `./gradlew dokkaGfm`.
 - If `publishToMavenLocal` does not produce the expected artifact version, check the `VERSION` environment variable.
@@ -414,6 +414,6 @@ Do not treat these as hand-edited sources.
 
 - Gradle cannot resolve RuneLite classes: verify `https://repo.runelite.net` is reachable and that you are using the repo wrapper from the project root.
 - Packet sending fails immediately after a client revision change: update the mapping sources first, then rebuild and retest.
-- Runtime hooks behave inconsistently: make sure `reflection_hooks.json` matches the current client revision and that the client has been restarted after changes.
+- Runtime hooks behave inconsistently: make sure the `reflectionHooks` and `loginHooks` sections in `packets.json` match the current client revision and that the client has been restarted after changes.
 - RuneLite launcher starts but `PluginRunnerTest` logs a ByteBuddy agent error: the API can still launch, but class reloading and some runtime patches will be limited.
 - Generated docs changed unexpectedly: check whether a public signature change in `src/main/java` caused Dokka output updates.

@@ -51,7 +51,7 @@ public void startUp() {
 }
 ```
 
-When `.initializeInterceptors()` is called the interceptors will run patching the runtime classes defined in the `reflection_hooks.json` file, mutating the game client
+When `.initializeInterceptors()` is called the interceptors will run patching the runtime classes defined in `packets.json`, mutating the game client
 to enable the functionality you have requested.
 
 ## Packet System Overview

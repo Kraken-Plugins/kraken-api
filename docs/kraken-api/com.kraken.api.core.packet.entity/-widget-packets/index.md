@@ -5,7 +5,7 @@
 [Kraken API]\
 open class [WidgetPackets](index.md)
 
-A high-level utility class for sending widget-related game packets. This class abstracts the complexity of constructing and sending packets related to widget (interface) interactions, such as clicking buttons. It uses a [PacketClient](../../com.kraken.api.core.packet/-packet-client/index.md) provider to send the low-level packets, which are defined by the [PacketFactory](../../com.kraken.api.core.packet.model/-packet-factory/index.md).
+A high-level utility class for sending widget-related game packets. This class abstracts the complexity of constructing and sending packets related to widget (interface) interactions, such as clicking buttons. It uses a [PacketClient](../../com.kraken.api.core.packet/-packet-client/index.md) provider to send the low-level packets, which are defined by the [PacketFactory](../../com.kraken.api.core.packet/-packet-factory/index.md).
 
 ## Constructors
 

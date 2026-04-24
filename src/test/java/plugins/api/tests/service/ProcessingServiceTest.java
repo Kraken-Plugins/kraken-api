@@ -15,8 +15,6 @@ public class ProcessingServiceTest extends BaseApiTest {
 
     private static final WorldPoint BARBARIAN_VILLAGE = new WorldPoint(3104, 3430, 0);
     private static final int BARBARIAN_VILLAGE_FIRE = 43475;
-    private static final int COOK_WIDGET_ONE = 17694735;
-    private static final int COOK_WIDGET_TWO = 17694736;
 
     @Inject
     private ProcessingService processingService;
