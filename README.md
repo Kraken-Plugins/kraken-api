@@ -17,6 +17,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
+[![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/runewraith)
 
 ---
 
@@ -337,6 +338,14 @@ The deployment is fully automated and consists of:
 
 ---
 
+## Buy me a coffee
+
+If you enjoy the API and want to support the development of the project, please consider buying me a coffee!
+
+[![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/runewraith)
+
+---
+
 ## 🤝 Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
@@ -371,7 +380,7 @@ This project is licensed under the [GNU General Public License 3.0](LICENSE).
 * **Vitalite** - Vitalite for showing some incredible open source examples of dialogue, GE interactions, packets, mouse movement, and just working with the client in general
 * **VitaLite Mappings** - Huge shoutout for the VitaLite devs to maintain and publish these mappings for obfuscated classes and methods
 * **Microbot** — For clever ideas on client and plugin interaction using reflection.
-* **[Lucid](https://github.com/lucid-plugins/SideloadPlugins) & [Kotori](https://github.com/OreoCupcakes/kotori-plugins/blob/master/kotoriutils/src/main/java/com/theplug/kotori/kotoriutils/rlapi/table/TableComponent.java) plugins** — For their open source implementation on the Table UI element. 
+* **[Lucid](https://github.com/lucid-plugins/SideloadPlugins) & [Kotori](https://github.com/OreoCupcakes/kotori-plugins/blob/master/kotoriutils/src/main/java/com/theplug/kotori/kotoriutils/rlapi/table/TableComponent.java) plugins** — For their open source implementation on the Table UI element.
 
 [contributors-shield]: https://img.shields.io/github/contributors/cbartram/kraken-api.svg?style=for-the-badge
 [contributors-url]: https://github.com/cbartram/kraken-api/graphs/contributors
@@ -381,4 +390,5 @@ This project is licensed under the [GNU General Public License 3.0](LICENSE).
 [stars-url]: https://github.com/cbartram/kraken-api/stargazers
 [issues-shield]: https://img.shields.io/github/issues/cbartram/kraken-api.svg?style=for-the-badge
 [issues-url]: https://github.com/cbartram/kraken-api/issues
+[coffee-url]: https://ko-fi.com/runewraith
 
