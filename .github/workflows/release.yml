@@ -110,13 +110,9 @@ jobs:
       - name: Upload JAR to MinIO
         run: |
           PLAIN_JAR=$(find build/libs -name "kraken-api-${VERSION}.jar" ! -name "*-all.jar")
-          FAT_JAR=$(find build/libs -name "kraken-api-${VERSION}-all.jar")
 
-          echo "Uploading plain jar: $PLAIN_JAR"
+          echo "Uploading shaded jar: $PLAIN_JAR"
           mc cp "$PLAIN_JAR" s3/kraken-bootstrap-static/api/kraken-api-${VERSION}.jar
-
-          echo "Uploading fat jar: $FAT_JAR"
-          mc cp "$FAT_JAR" s3/kraken-bootstrap-static/api/kraken-api-${VERSION}-all.jar
 
       - name: Sync Packets
         run: |
