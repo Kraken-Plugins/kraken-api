@@ -53,9 +53,9 @@ dependencies {
 
     // Dependencies included at runtime by Kraken client bootstrap net.bytebuddy.* dependencies
     // are excluded from the fat jar to reduce the file size.
-    implementation("org.benf:cfr:0.152") // 2.0 mb
-    implementation("net.bytebuddy:byte-buddy:1.18.4") // 9.4 mb
-    implementation("net.bytebuddy:byte-buddy-agent:1.18.4") // 0.2 mb
+    implementation("org.benf:cfr:0.152")
+    implementation("net.bytebuddy:byte-buddy:1.18.4")
+    implementation("net.bytebuddy:byte-buddy-agent:1.18.4")
 
     // Git submodule
     implementation 'shortestpath:shortest-path:1.0.0'
@@ -78,7 +78,7 @@ dependencies {
 shadowJar {
     archiveBaseName = 'kraken-api'
     archiveVersion = projectVersion
-    archiveClassifier = 'all'
+    archiveClassifier = '' // Purposefully leave this as none the only jar produced is the shaded jar.
 
     // Merge shortest-path jar contents directly since it's a file dep, not a module
     dependsOn buildShortestPath
@@ -95,7 +95,6 @@ shadowJar {
 
     dependencies {
         exclude(dependency('net.runelite:client:.*'))
-        exclude(dependency("net.bytebuddy:byte-buddy:.*"))
     }
 }
 
@@ -123,6 +122,7 @@ java {
 jar {
     archiveBaseName = 'kraken-api'
     archiveVersion = projectVersion
+    archiveClassifier = 'unshaded'
 }
 
 dokkaGfm {

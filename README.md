@@ -179,15 +179,11 @@ dependencies {
 }
 ```
 
-This will also build a fat jar that includes additional dependencies such as `org.benf.cfr` and the Byte Buddy Agent located in:
+This will also build a fat jar that includes additional dependencies such as `org.benf.cfr` and ByteBuddy located in:
 
 ```shell
 build/libs/kraken-api-1.0.0-all.jar
 ```
-
-> :warning: Note: The fat jar does NOT include the `net.bytebuddy.byte-buddy` dependency as it doubles the size of the output jar 
-> and space is limited on GitHub packages. Your plugin side-loading process MUST provide the bytebuddy dependency at runtime for
-> functionality in the `com.kraken.api.core.interceptor` package to work. i.e. Patching the Mouse Hook DLL & Packet interception logic
 
 ## Gradle Example
 
@@ -246,10 +242,6 @@ dependencies {
     // ... other dependencies
 }
 ```
-
-> :warning: Note: The fat jar does NOT include the `net.bytebuddy.byte-buddy` dependency as it doubles the size of the output jar
-> and space is limited on GitHub packages. Your plugin side-loading process MUST provide the bytebuddy dependency at runtime for
-> functionality in the `com.kraken.api.core.interceptor` package to work. i.e. Patching the Mouse Hook DLL & Packet interception logic
 
 ## API Design & Methodology
 
