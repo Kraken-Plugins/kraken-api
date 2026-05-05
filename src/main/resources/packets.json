@@ -188,7 +188,7 @@
     },
     "RESUME_STRINGDIALOG": {
       "packetName": "RESUME_STRINGDIALOG",
-      "obfuscatedName": "bz",
+      "obfuscatedName": "cd",
       "writes": [
         {
           "param": "length",
