@@ -126,6 +126,24 @@ public abstract class BaseApiTest {
     }
 
     /**
+     * Verifies that the provided value is {@literal null}. If the value is not {@literal null}, logs
+     * an error with the specified message and returns {@literal false}.
+     *
+     * <p>This method serves as a helper for assertion-like checks in test scenarios to ensure
+     * that a value is {@literal null} when expected.</p>
+     *
+     * @param value the value to check for {@literal null}. If the value is {@literal null}, the method
+     *              returns {@literal true}. If it is not, an error message is logged.
+     * @param message the message to log in the event the assertion fails (i.e., if the value is not
+     *                {@literal null}).
+     *
+     * @return {@literal true} if the value is {@literal null}, {@literal false} otherwise.
+     */
+    protected boolean assertNull(Object value, String message) {
+        return assertThat(value == null, message + " (was null)");
+    }
+
+    /**
      * Helper method to check if a value is not null
      * @param value the value to check
      * @param message the message to log if value is null

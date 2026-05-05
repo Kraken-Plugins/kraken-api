@@ -41,6 +41,9 @@ public class InventoryTest extends BaseApiTest {
             ctx.bank().withName("Lobster").first().withdraw(5);
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
 
+            assertTrue(ctx.inventory().inSlot(0).getName().equals("Swordfish"), "Swordfish is in slot 0");
+            assertTrue(ctx.inventory().inSlot(5).getName().equals("Lobster"), "Lobster is in slot 5");
+            assertNull(ctx.inventory().inSlot(27), "Nothing in slot 27");
 
             testsPassed &= ctx.inventory().food().count() > 0;
             testsPassed &= !ctx.inventory().isEmpty();

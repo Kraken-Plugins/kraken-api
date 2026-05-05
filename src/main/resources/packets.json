@@ -1,64 +1,79 @@
 {
-  "clientVersion": "1.12.23",
+  "clientVersion": "1.12.26",
   "reflectionHooks": {
-    "clientLogFieldName": "lp",
     "mouseHookDllClassName": "client",
-    "mouseHookDllMethodName": "ig",
-    "isaacCipherFieldName": "az",
-    "addNodeMethodName": "ae",
+    "mouseHookDllMethodName": "ss",
+    "clientLogFieldName": "bo",
+    "isaacCipherFieldName": "av",
+    "addNodeMethodName": "az",
     "addNodeClassName": "client",
-    "addNodeGarbageValue": -10,
-    "clientPacketClassName": "iq",
-    "packetWriterClassName": "di",
-    "packetWriterFieldName": "ay",
-    "classContainingPacketBufferNodeName": "hk",
-    "packetBufferNodeFactoryMethodName": "ah",
-    "bufferClassName": "wg",
-    "extendedBufferClassName": "wj",
-    "offsetMultiplier": 1044177923,
-    "indexMultiplier": -288102741,
-    "bufferOffsetField": "as",
-    "bufferArrayField": "am",
-    "mouseHandlerLastPressedClass": "sj",
-    "mouseHandlerLastPressedField": "ab",
-    "mouseHandlerMultiplier": 2959047111086142593,
-    "clientMillisField": "gb",
-    "clientMillisMultiplier": 2332694692091611995,
-    "packetBufferNodeClassName": "jg",
-    "packetBufferFieldName": "ai",
-    "packetBufferNodeGarbageValue": -46,
-    "doActionClassName": "ox",
-    "doActionMethodName": "ek",
-    "doActionGarbageValue": -1948098697
+    "addNodeGarbageValue": -2039989469,
+    "clientPacketClassName": "jb",
+    "packetWriterClassName": "df",
+    "packetWriterFieldName": "aq",
+    "classContainingPacketBufferNodeName": "gi",
+    "packetBufferNodeFactoryMethodName": "ak",
+    "bufferClassName": "xj",
+    "extendedBufferClassName": "xi",
+    "offsetMultiplier": 228932457,
+    "indexMultiplier": -661977895,
+    "bufferOffsetField": "au",
+    "bufferArrayField": "al",
+    "mouseHandlerLastPressedClass": "tj",
+    "mouseHandlerLastPressedField": "af",
+    "mouseHandlerMultiplier": 3767455460529623151,
+    "clientMillisField": "gx",
+    "clientMillisMultiplier": -6682804461438542089,
+    "packetBufferNodeClassName": "jm",
+    "packetBufferFieldName": "ay",
+    "packetBufferNodeGarbageValue": 0,
+    "doActionClassName": "qd",
+    "doActionMethodName": "fa",
+    "doActionGarbageValue": 910500823
   },
   "loginHooks": {
-    "loginIndexGarbageValue": 1939367663,
-    "loginIndexMethodName": "bh",
-    "loginIndexClassName": "du",
-    "sessionFieldName": "ly",
-    "sessionClassName": "db",
-    "accountIdFieldName": "ls",
-    "accountIdClassName": "mw",
-    "displayNameFieldName": "cb",
-    "displayNameClassName": "bb",
-    "accountCheckFieldName": "dy",
+    "loginIndexGarbageValue": -88,
+    "loginIndexMethodName": "ac",
+    "loginIndexClassName": "jz",
+    "sessionFieldName": "lp",
+    "sessionClassName": "ay",
+    "accountIdFieldName": "ll",
+    "accountIdClassName": "cq",
+    "displayNameFieldName": "ct",
+    "displayNameClassName": "bn",
+    "accountCheckFieldName": "dm",
     "accountCheckClassName": "client",
-    "jagexValueFieldName": "ah",
-    "jagexValueClassName": "zw",
-    "legacyValueFieldName": "aq",
-    "legacyValueClassName": "zw"
+    "jagexValueFieldName": "ag",
+    "jagexValueClassName": "aao",
+    "legacyValueFieldName": "ak",
+    "legacyValueClassName": "aao"
   },
   "packets": {
     "EVENT_MOUSE_CLICK": {
       "packetName": "EVENT_MOUSE_CLICK",
-      "obfuscatedName": "aw",
+      "obfuscatedName": "ds",
       "writes": [
         {
-          "param": "mouseX",
-          "methodName": "eu",
+          "param": "mouseY",
+          "methodName": "ed",
           "operations": [
             {
-              "type": "RAW"
+              "type": "RIGHT_SHIFT",
+              "operand": 8
+            },
+            {
+              "type": "ADD",
+              "operand": 128
+            }
+          ]
+        },
+        {
+          "param": "mouseX",
+          "methodName": "ko",
+          "operations": [
+            {
+              "type": "ADD",
+              "operand": 128
             },
             {
               "type": "RIGHT_SHIFT",
@@ -68,30 +83,16 @@
         },
         {
           "param": "0",
-          "methodName": "dn",
+          "methodName": "dq",
           "operations": [
             {
-              "type": "SUBTRACT",
-              "operand": 0
+              "type": "RAW"
             }
           ]
         },
         {
           "param": "mouseInfo",
-          "methodName": "eu",
-          "operations": [
-            {
-              "type": "RAW"
-            },
-            {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
-            }
-          ]
-        },
-        {
-          "param": "mouseY",
-          "methodName": "bm",
+          "methodName": "bw",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -107,12 +108,38 @@
     },
     "MOVE_GAMECLICK": {
       "packetName": "MOVE_GAMECLICK",
-      "obfuscatedName": "aa",
+      "obfuscatedName": "eo",
       "writes": [
         {
           "param": "5",
-          "methodName": "ma",
+          "methodName": "dq",
           "operations": [
+            {
+              "type": "RAW"
+            }
+          ]
+        },
+        {
+          "param": "worldPointY",
+          "methodName": "eb",
+          "operations": [
+            {
+              "type": "RAW"
+            },
+            {
+              "type": "RIGHT_SHIFT",
+              "operand": 8
+            }
+          ]
+        },
+        {
+          "param": "worldPointX",
+          "methodName": "bw",
+          "operations": [
+            {
+              "type": "RIGHT_SHIFT",
+              "operand": 8
+            },
             {
               "type": "RAW"
             }
@@ -120,37 +147,11 @@
         },
         {
           "param": "ctrlDown",
-          "methodName": "ma",
+          "methodName": "di",
           "operations": [
             {
-              "type": "RAW"
-            }
-          ]
-        },
-        {
-          "param": "worldPointX",
-          "methodName": "of",
-          "operations": [
-            {
-              "type": "ADD",
-              "operand": 128
-            },
-            {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
-            }
-          ]
-        },
-        {
-          "param": "worldPointY",
-          "methodName": "eu",
-          "operations": [
-            {
-              "type": "RAW"
-            },
-            {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
+              "type": "SUBTRACT",
+              "operand": 0
             }
           ]
         }
@@ -159,11 +160,11 @@
     },
     "RESUME_COUNTDIALOG": {
       "packetName": "RESUME_COUNTDIALOG",
-      "obfuscatedName": "bj",
+      "obfuscatedName": "do",
       "writes": [
         {
           "param": "var0",
-          "methodName": "ck",
+          "methodName": "az",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -185,13 +186,38 @@
       ],
       "type": "RESUME_COUNTDIALOG"
     },
+    "RESUME_STRINGDIALOG": {
+      "packetName": "RESUME_STRINGDIALOG",
+      "obfuscatedName": "bz",
+      "writes": [
+        {
+          "param": "length",
+          "methodName": "dq",
+          "operations": [
+            {
+              "type": "RAW"
+            }
+          ]
+        },
+        {
+          "param": "string",
+          "methodName": "cc",
+          "operations": [
+            {
+              "type": "STRING_CP1252_NULL_TERMINATED"
+            }
+          ]
+        }
+      ],
+      "type": "RESUME_STRINGDIALOG"
+    },
     "RESUME_OBJDIALOG": {
       "packetName": "RESUME_OBJDIALOG",
-      "obfuscatedName": "ck",
+      "obfuscatedName": "ex",
       "writes": [
         {
           "param": "var0",
-          "methodName": "bm",
+          "methodName": "bw",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -204,31 +230,6 @@
         }
       ],
       "type": "RESUME_OBJDIALOG"
-    },
-    "RESUME_STRINGDIALOG": {
-      "packetName": "RESUME_STRINGDIALOG",
-      "obfuscatedName": "ai",
-      "writes": [
-        {
-          "param": "length",
-          "methodName": "ma",
-          "operations": [
-            {
-              "type": "RAW"
-            }
-          ]
-        },
-        {
-          "param": "string",
-          "methodName": "ch",
-          "operations": [
-            {
-              "type": "STRING_CP1252_NULL_TERMINATED"
-            }
-          ]
-        }
-      ],
-      "type": "RESUME_STRINGDIALOG"
     }
   }
 }
