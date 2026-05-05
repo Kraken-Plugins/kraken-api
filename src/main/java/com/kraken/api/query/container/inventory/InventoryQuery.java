@@ -57,6 +57,24 @@ public class InventoryQuery extends AbstractQuery<InventoryEntity, InventoryQuer
         };
     }
 
+    /**
+     * Returns the inventory entity object given its inventory slot.
+     * @param slotId The slot to retrieve an item from (0-27).
+     * @return The inventory entity object given its inventory slot or null if no item is in the slot.
+     */
+    public InventoryEntity inSlot(int slotId) {
+        if(slotId < 0 || slotId > 27) {
+            throw new IllegalArgumentException("Invalid slotId must be between 0 and 27. Received: " + slotId);
+        }
+
+        InventoryQuery items = filter(i -> i.raw().getSlot() == slotId);
+        if(items == null || items.isEmpty()) {
+            return null;
+        }
+
+        return items.first();
+    }
+
      /**
      * Returns true when the inventory contains a specific item, found by its item id.
      * @param id The id of the item to search for
