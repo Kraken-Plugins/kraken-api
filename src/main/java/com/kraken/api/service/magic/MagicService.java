@@ -1,11 +1,14 @@
 package com.kraken.api.service.magic;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.widget.WidgetEntity;
+import com.kraken.api.service.magic.rune.ElementalStaff;
+import com.kraken.api.service.magic.rune.ElementalTome;
 import com.kraken.api.service.magic.rune.Rune;
 import com.kraken.api.service.magic.rune.RunePouch;
 import com.kraken.api.service.magic.spellbook.Spellbook;
@@ -15,8 +18,10 @@ import net.runelite.api.NPC;
 import net.runelite.api.Skill;
 import net.runelite.api.widgets.Widget;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,7 +34,7 @@ public class MagicService {
     @Inject
     private InteractionManager interactionManager;
 
-    private static final List<Integer> SPELLS_REQUIRING_PRAYER = List.of(
+    private static final Set<Integer> SPELLS_REQUIRING_PRAYER = ImmutableSet.of(
             14287032,
             14287033,
             14287034,
@@ -234,24 +239,34 @@ public class MagicService {
      * @return Mapping of {@link Rune} objects to the quantity available.
      */
     public Map<Rune, Integer> getRunes() {
-        Map<Rune, Integer> runes = RunePouch.getBaseRunePouchContents();
+        Map<Rune, Integer> runes = new HashMap<>(RunePouch.getBaseRunePouchContents());
+
+        runes.putAll(ElementalStaff.getRunes());
+        runes.putAll(ElementalTome.getRunes());
+
+        // Safe addition function: caps at Integer.MAX_VALUE to prevent overflow
+        BiFunction<Integer, Integer, Integer> safeAdd = (a, b) -> {
+            if (a == Integer.MAX_VALUE || b == Integer.MAX_VALUE) return Integer.MAX_VALUE;
+            long sum = (long) a + (long) b;
+            return sum >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) sum;
+        };
+
         for(ContainerItem item : ctx.inventory().toRuneLite().collect(Collectors.toList())) {
             Rune rune = Rune.byItemId(item.getId());
             if(rune != null) {
-                // If the rune is a combo rune add all base runes to the combined runes because it functions as any of the base runes.
+                // If the rune is a combo rune add all base runes to the combined runes
                 if(rune.isComboRune()) {
                     for(Rune baseRune : rune.getBaseRunes()) {
-                        runes.merge(baseRune, item.getQuantity(), Integer::sum);
+                        runes.merge(baseRune, item.getQuantity(), safeAdd);
                     }
                 }
 
-                runes.merge(rune, item.getQuantity(), Integer::sum);
+                runes.merge(rune, item.getQuantity(), safeAdd);
             }
         }
 
         return runes;
     }
-
     /**
      * Checks if the player has the required runes to cast a given spell.
      * <p>
