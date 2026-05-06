@@ -57,12 +57,9 @@ public enum ElementalStaff {
      * <p>This method iterates through all {@code ElementalStaff} enum values and
      * matches the given ID against the {@code itemId} field of each staff. If a match
      * is found, the corresponding {@code ElementalStaff} is returned.</p>
-     *
-     * <ul>
-     * <li>If the provided ID matches the {@code itemId} of an {@code ElementalStaff},
-     * the corresponding staff is returned.</li>
-     * <li>If no match is found, the method returns {@code null}.</li>
-     * </ul*/
+     * @param id The id of the {@code ElementalStaff} to match.
+     * @return The {@code ElementalStaff} corresponding to the provided item ID,
+     */
     public static ElementalStaff forId(int id) {
         for(ElementalStaff staff : ElementalStaff.values()) {
             if (staff.getItemId() == id) {
