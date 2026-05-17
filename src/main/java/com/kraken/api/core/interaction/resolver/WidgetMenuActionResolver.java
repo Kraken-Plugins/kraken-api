@@ -19,6 +19,20 @@ import java.util.Optional;
 @Singleton
 public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {
 
+    private static final int EQUIPMENT_GROUP_ID = 387;
+    private static final int EQUIPMENT_HEAD_CHILD_ID = 15;
+    private static final int EQUIPMENT_CAPE_CHILD_ID = 16;
+    private static final int EQUIPMENT_AMULET_CHILD_ID = 17;
+    private static final int EQUIPMENT_WEAPON_CHILD_ID = 18;
+    private static final int EQUIPMENT_BODY_CHILD_ID = 19;
+    private static final int EQUIPMENT_SHIELD_CHILD_ID = 20;
+    private static final int EQUIPMENT_LEGS_CHILD_ID = 21;
+    private static final int EQUIPMENT_GLOVES_CHILD_ID = 22;
+    private static final int EQUIPMENT_BOOTS_CHILD_ID = 23;
+    private static final int EQUIPMENT_RING_CHILD_ID = 24;
+    private static final int EQUIPMENT_AMMO_CHILD_ID = 25;
+    private static final int EQUIPMENT_REMOVE_OP = 1;
+
     @Inject
     private Provider<Context> ctxProvider;
 
@@ -37,7 +51,7 @@ public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {
 
             Optional<MenuOption> option = resolveOption(client, widget, action, worldView);
             if (option.isEmpty()) {
-                log.info("Failed to resolve widget interaction: id={}, action={}", widget.getId(), action);
+                log.info("Failed to resolve widget interaction: id={}, action={}, available actions={}", widget.getId(), action, widget.getActions());
                 return Optional.empty();
             }
 
@@ -79,6 +93,11 @@ public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {
             return widgetAction;
         }
 
+        if (action.equalsIgnoreCase("remove") && isEquipmentSlotWidget(widget)) {
+            return Optional.of(new MenuOption(MenuAction.CC_OP, EQUIPMENT_REMOVE_OP,
+                    widget.getIndex(), widget.getId(), widget.getItemId(), worldView));
+        }
+
         // Fall back to WIDGET_CONTINUE if the click mask permits it
         if ((widget.getClickMask() & 0x1) != 0) {
             return Optional.of(new MenuOption(MenuAction.WIDGET_CONTINUE, 0,
@@ -86,5 +105,29 @@ public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {
         }
 
         return Optional.empty();
+    }
+
+    private boolean isEquipmentSlotWidget(Widget widget) {
+        if ((widget.getId() >>> 16) != EQUIPMENT_GROUP_ID) {
+            return false;
+        }
+
+        int childId = widget.getId() & 0xFFFF;
+        switch (childId) {
+            case EQUIPMENT_HEAD_CHILD_ID:
+            case EQUIPMENT_CAPE_CHILD_ID:
+            case EQUIPMENT_AMULET_CHILD_ID:
+            case EQUIPMENT_WEAPON_CHILD_ID:
+            case EQUIPMENT_BODY_CHILD_ID:
+            case EQUIPMENT_SHIELD_CHILD_ID:
+            case EQUIPMENT_LEGS_CHILD_ID:
+            case EQUIPMENT_GLOVES_CHILD_ID:
+            case EQUIPMENT_BOOTS_CHILD_ID:
+            case EQUIPMENT_RING_CHILD_ID:
+            case EQUIPMENT_AMMO_CHILD_ID:
+                return true;
+            default:
+                return false;
+        }
     }
 }

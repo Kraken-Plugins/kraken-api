@@ -50,7 +50,9 @@ public class EquipmentTest extends BaseApiTest {
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
                 ctx.bank().withName("Rune full helm").first().withdraw(1);
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-                ctx.bank().withName("Studded body").first().withdraw(1);
+                ctx.bank().withName("Green d'hide body").first().withdraw(1);
+
+                ctx.bank().nameContains("Team-29").first().withdraw(1);
                 bankService.close();
                 Thread.sleep(RandomUtils.randomIntBetween(1200, 1600));
             } else {
@@ -62,6 +64,8 @@ public class EquipmentTest extends BaseApiTest {
             }
 
             SleepService.sleepFor(2);
+
+            ctx.equipment().nameContains("Team-29").first().wear();
 
             if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.BODY).isNull()) {
                 log.info("Equipment tests failed, BODY slot should not have an item but is non-null");
@@ -87,7 +91,7 @@ public class EquipmentTest extends BaseApiTest {
             
             SleepService.sleepFor(2);
 
-            if(!ctx.equipment().inInventory().withName("Studded Body").first().wieldOrWear()) {
+            if(!ctx.equipment().inInventory().withName("Green d'hide body").first().wieldOrWear()) {
                 log.error("Failed to wield Studded Body");
                 testsPassed = false;
             }
@@ -96,6 +100,13 @@ public class EquipmentTest extends BaseApiTest {
 
             if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.HEAD).remove()) {
                 log.info("Equipment tests failed, could not remove HEAD slot.");
+                testsPassed = false;
+            }
+
+            SleepService.sleepFor(2);
+
+            if(!ctx.equipment().inSlot(EquipmentInventorySlot.CAPE).remove()) {
+                log.info("Equipment tests failed, could not remove CAPE slot.");
                 testsPassed = false;
             }
 
