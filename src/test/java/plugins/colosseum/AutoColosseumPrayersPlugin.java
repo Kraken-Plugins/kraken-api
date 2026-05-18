@@ -14,6 +14,7 @@ import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.NpcDespawned;
+import net.runelite.api.events.ProjectileMoved;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -251,29 +252,67 @@ public class AutoColosseumPrayersPlugin extends Plugin {
             return;
         }
 
-        TrackedMobState state = trackedMobStates.get(npc.getIndex());
-        if (state == null || npc.getAnimation() == -1) {
+        if (npc.getAnimation() == -1) {
             return;
         }
 
         Player localPlayer = client.getLocalPlayer();
-        if (localPlayer == null || npc.getInteracting() != localPlayer) {
+        if (localPlayer == null) {
             return;
         }
 
-        if (!hasLineOfSightToPlayer(npc, mob, localPlayer, collectColosseumNpcs())) {
+        Map<Integer, NPC> colosseumNpcs = collectColosseumNpcs();
+        boolean hasLineOfSight = hasLineOfSightToPlayer(npc, mob, localPlayer, colosseumNpcs);
+        if (!hasLineOfSight && npc.getInteracting() != localPlayer) {
             return;
         }
 
-        if (state.getLastAttackAnimationTick() == currentTick) {
+        TrackedMobState state = trackedMobStates.computeIfAbsent(
+                npc.getIndex(),
+                key -> new TrackedMobState(key, mob)
+        );
+        if (state.getLastObservedAttackTick() == currentTick) {
             return;
         }
 
-        int animation = npc.getAnimation();
-        state.setKnownAttackAnimation(animation);
-        state.setSynced(true);
-        state.setNextAttackTick(currentTick + Math.max(1, mob.getAttackSpeed()));
-        state.setLastAttackAnimationTick(currentTick);
+        observeStandardAttack(state, mob, currentTick);
+    }
+
+    @Subscribe
+    private void onProjectileMoved(ProjectileMoved event) {
+        if (!isRuntimeEnabled()) {
+            return;
+        }
+
+        Projectile projectile = event.getProjectile();
+        if (projectile == null || !(projectile.getSourceActor() instanceof NPC)) {
+            return;
+        }
+
+        Player localPlayer = client.getLocalPlayer();
+        if (localPlayer == null || projectile.getTargetActor() != localPlayer) {
+            return;
+        }
+
+        NPC npc = (NPC) projectile.getSourceActor();
+        Mob mob = Mob.fromNpc(npc);
+        if (mob == null || mob.isManticore()) {
+            return;
+        }
+
+        TrackedMobState state = trackedMobStates.computeIfAbsent(
+                npc.getIndex(),
+                key -> new TrackedMobState(key, mob)
+        );
+
+        if (state.getLastProjectileId() == projectile.getId()
+                && state.getLastProjectileStartCycle() == projectile.getStartCycle()) {
+            return;
+        }
+
+        state.setLastProjectileId(projectile.getId());
+        state.setLastProjectileStartCycle(projectile.getStartCycle());
+        observeStandardAttack(state, mob, client.getTickCount());
     }
 
     @Subscribe
@@ -487,7 +526,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     private void addStandardQueueEntries(TrackedMobState state, int lookahead, int currentTick) {
         Mob mob = state.getMob();
-        if (!state.isSynced() || mob.getPrayer() == null) {
+        if (!state.isSynced() || state.isTentativeAttackSchedule() || mob.getPrayer() == null) {
             return;
         }
 
@@ -940,9 +979,17 @@ public class AutoColosseumPrayersPlugin extends Plugin {
         }
 
         // Player manually handles the first hit after gaining LoS.
-        // Queue the follow-up cycle immediately so there is no free second hit.
-        state.setSynced(true);
+        // Treat the follow-up as tentative until an attack animation or projectile confirms the cycle.
+        state.setTentativeAttackSchedule(true);
+        state.setSynced(false);
         state.setNextAttackTick(currentTick + Math.max(1, state.getMob().getAttackSpeed()));
+    }
+
+    private void observeStandardAttack(TrackedMobState state, Mob mob, int currentTick) {
+        state.setTentativeAttackSchedule(false);
+        state.setSynced(true);
+        state.setNextAttackTick(currentTick + Math.max(1, mob.getAttackSpeed()));
+        state.setLastObservedAttackTick(currentTick);
     }
 
     private void onLineOfSightLost(TrackedMobState state, int currentTick) {
@@ -968,6 +1015,7 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     private void clearQueuedPrediction(TrackedMobState state) {
         state.setSynced(false);
+        state.setTentativeAttackSchedule(false);
         state.setNextAttackTick(-1);
         state.setLastQueuedTick(-1);
 

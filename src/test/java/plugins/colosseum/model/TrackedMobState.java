@@ -17,8 +17,10 @@ public class TrackedMobState {
 
     private boolean synced;
     private int nextAttackTick = -1;
-    private Integer knownAttackAnimation;
-    private int lastAttackAnimationTick = -1;
+    private boolean tentativeAttackSchedule;
+    private int lastObservedAttackTick = -1;
+    private int lastProjectileId = -1;
+    private int lastProjectileStartCycle = -1;
 
     private int firstVolleyTick = -1;
     private boolean firstVolleyAuto;
