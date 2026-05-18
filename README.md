@@ -8,7 +8,7 @@
 <h3 align="center">Kraken API</h3>
 
   <p align="center">
-   An extended RuneLite API for creating plugins that support client interactions.
+   An API for building extended RuneLite plugins.
     <br />
 </div>
 
@@ -23,12 +23,9 @@
 
 # Getting Started
 
-Kraken API is designed to extend the RuneLite API with additional client interaction utilities for writing automation-based plugins that are fully compatible with RuneLite.
-This API uses network packets to perform "click" interactions within the game client and is based on mappings defined by the [EthanVann API](https://github.com/Septharoth/EthanVannPlugins/tree/master). It's also worth shouting
-out the [Vitalite](https://github.com/Tonic-Box/VitaLite/) client and project as their open source expertise of the game client helped make some of the Kraken API possible!
-
-Specifically credit to Vitalite's Dialogue, G.E., and World Map API's and inspiration on Kraken's `TaskChain` and `ReplayStrategy` for mouse movement!
-
+Kraken API is designed to extend the RuneLite API with additional client interaction utilities for writing RuneLite plugins with extended functionality.
+This API is not meant for "botting", reverse engineering, automation or rule-breaking purposes, and any material provided by this API or its documentation is purely for 
+educational purposes only.
 
 ## Quick Start
 
@@ -62,7 +59,7 @@ dependencies {
 
 ## API Usage
 
-The following RuneLite "plugin" is purely for an example of the API's capabilities and isn't a full-fledged automation script.
+The following RuneLite "plugin" is purely for an example of the API's capabilities:
 
 ```java
 @PluginDescriptor(
