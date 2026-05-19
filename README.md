@@ -34,6 +34,7 @@ To get started with the API instantly:
 ```shell
 git clone https://github.com/Kraken-Plugins/kraken-api
 cd ./kraken-api
+
 ./gradlew build publishToMavenLocal
 ```
 
