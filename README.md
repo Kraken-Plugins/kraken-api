@@ -27,6 +27,8 @@ Kraken API is designed to extend the RuneLite API with additional client interac
 This API is not meant for "botting", reverse engineering, automation or rule-breaking purposes, and any material provided by this API or its documentation is purely for 
 educational purposes only.
 
+Use at your own risk. The developers are not responsible for any consequences resulting from the use of this software.
+
 ## Quick Start
 
 To get started with the API instantly:
@@ -185,7 +187,7 @@ build/libs/kraken-api-1.0.0-all.jar
 
 ## Gradle Example
 
-To use the published API jar file in your plugin project you will need to either:
+To use the published API jar file in your plugin project, you will need to either:
 - `export GITHUB_ACTOR=<YOUR_GITHUB_USERNAME>; export GITHUB_TOKEN=<GITHUB_PAT`
 - or add the following to your `gradle.properties` file: `gpr.user=your-github-username gpr.key=your-personal-access-token`
 
