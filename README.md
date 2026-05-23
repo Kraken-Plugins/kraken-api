@@ -355,7 +355,8 @@ CI will automatically bump the patch version on each merge to master i.e. `1.1.4
 a minor or major version then update the `version.txt` file in the root of the repository with the new version you
 want to use as a base.
 
-For example, moving from: `1.3.5` -> `1.4.0` the `version.txt` should be `1.4.0`.
+For example, moving from: `1.3.5` -> `1.4.0` the `version.txt` should be `1.4.0`. The next automatic build will use `1.4.1` then `1.4.2` etc...
+until `version.txt` is updated to `1.5.0` or `2.0.0`.
 
 ---
 
@@ -368,9 +369,9 @@ This project is licensed under the [GNU General Public License 3.0](LICENSE).
 ## 🙏 Acknowledgments
 
 * **RuneLite** — For API's to work with and view in game data for Old School RuneScape
-* **Packet Utils** - [Plugin](https://github.com/Ethan-Vann/PacketUtils) from Ethan Vann providing access to complex packet sending functionality which was used to develop the `core.packet` package of the API
-* **Vitalite** - Vitalite for showing some incredible open source examples of dialogue, GE interactions, packets, mouse movement, and just working with the client in general
-* **VitaLite Mappings** - Huge shoutout for the VitaLite devs to maintain and publish these mappings for obfuscated classes and methods
+* **Packet Utils** – [Plugin](https://github.com/Ethan-Vann/PacketUtils) from Ethan Vann providing access to complex packet sending functionality which was used to develop the `core.packet` package of the API
+* **Vitalite** – Vitalite for showing some incredible open source examples of dialogue, GE interactions, packets, mouse movement, and just working with the client in general
+* **VitaLite Mappings** – Huge shoutout for the VitaLite devs to maintain and publish these mappings for obfuscated classes and methods
 * **Microbot** — For clever ideas on client and plugin interaction using reflection.
 * **[Lucid](https://github.com/lucid-plugins/SideloadPlugins) & [Kotori](https://github.com/OreoCupcakes/kotori-plugins/blob/master/kotoriutils/src/main/java/com/theplug/kotori/kotoriutils/rlapi/table/TableComponent.java) plugins** — For their open source implementation on the Table UI element.
 
