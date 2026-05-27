@@ -2,8 +2,8 @@
   "clientVersion": "1.12.26",
   "reflectionHooks": {
     "mouseHookDllClassName": "client",
-    "mouseHookDllMethodName": "afw",
-    "clientLogFieldName": "hy",
+    "mouseHookDllMethodName": "ik",
+    "clientLogFieldName": "ii",
     "isaacCipherFieldName": "av",
     "addNodeMethodName": "az",
     "addNodeClassName": "client",
