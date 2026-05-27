@@ -17,18 +17,18 @@ public class TrackedMobState {
 
     private boolean synced;
     private int nextAttackTick = -1;
-    private Integer knownAttackAnimation;
-    private int lastAttackAnimationTick = -1;
+    private boolean tentativeAttackSchedule;
+    private int lastObservedAttackTick = -1;
+    private int lastProjectileId = -1;
+    private int lastProjectileStartCycle = -1;
 
-    private boolean charging;
-    private int chargeStartTick = -1;
     private int firstVolleyTick = -1;
     private boolean firstVolleyAuto;
-    private boolean chargeInterrupted;
     private ManticoreAttackStyle firstManticoreStyle;
     private int lastManticoreSpotAnim = -1;
     private boolean sawManticoreIdleInLineOfSight;
     private boolean manticorePrayerResponsibility;
+    private boolean manualManticoreVolleyPending;
     private int activeVolleyTick = -1;
     private int nextVolleyTick = -1;
     private int lastQueuedTick = -1;

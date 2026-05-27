@@ -15,9 +15,9 @@ import plugins.colosseum.model.PrayerQueueEntry;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public class AutoColosseumPrayerQueueOverlay extends Overlay {
     private static final int BOX_WIDTH = 20;
@@ -55,7 +55,7 @@ public class AutoColosseumPrayerQueueOverlay extends Overlay {
 
         int currentTick = client.getTickCount();
         int lookahead = Math.max(1, config.prayerTabLookaheadTicks());
-        Set<String> rendered = new HashSet<>();
+        Map<String, Integer> renderedCounts = new LinkedHashMap<>();
 
         for (PrayerQueueEntry queueEntry : queueEntries) {
             int tick = queueEntry.getTick() - currentTick;
@@ -64,17 +64,23 @@ public class AutoColosseumPrayerQueueOverlay extends Overlay {
             }
 
             String key = queueEntry.getPrayer().name() + ":" + tick;
-            if (!rendered.add(key)) {
-                continue;
-            }
+            renderedCounts.put(key, renderedCounts.getOrDefault(key, 0) + 1);
+        }
 
-            renderDescendingBoxes(graphics2D, queueEntry.getPrayer(), tick);
+        for (Map.Entry<String, Integer> entry : renderedCounts.entrySet()) {
+            String[] keyParts = entry.getKey().split(":");
+            renderDescendingBoxes(
+                    graphics2D,
+                    Prayer.valueOf(keyParts[0]),
+                    Integer.parseInt(keyParts[1]),
+                    entry.getValue()
+            );
         }
 
         return null;
     }
 
-    private void renderDescendingBoxes(final Graphics2D graphics2D, final Prayer prayer, final int tick) {
+    private void renderDescendingBoxes(final Graphics2D graphics2D, final Prayer prayer, final int tick, final int count) {
         final Color color = colorForTick(tick);
         final Widget prayerWidget = widgetForPrayer(client, prayer);
 
@@ -93,6 +99,9 @@ public class AutoColosseumPrayerQueueOverlay extends Overlay {
         boxRectangle.translate(baseX, baseY);
 
         renderFilledPolygon(graphics2D, boxRectangle, color);
+        if (count > 1) {
+            renderCount(graphics2D, boxRectangle, count);
+        }
     }
 
     private Widget widgetForPrayer(Client client, Prayer prayer) {
@@ -123,5 +132,15 @@ public class AutoColosseumPrayerQueueOverlay extends Overlay {
         graphics.draw(poly);
         graphics.fill(poly);
         graphics.setStroke(originalStroke);
+    }
+
+    private void renderCount(Graphics2D graphics, Rectangle boxRectangle, int count) {
+        String text = String.valueOf(count);
+        FontMetrics metrics = graphics.getFontMetrics();
+        int x = boxRectangle.x + (boxRectangle.width - metrics.stringWidth(text)) / 2;
+        int y = boxRectangle.y + ((boxRectangle.height - metrics.getHeight()) / 2) + metrics.getAscent();
+
+        graphics.setColor(Color.WHITE);
+        graphics.drawString(text, x, y);
     }
 }

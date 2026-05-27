@@ -77,11 +77,17 @@ public class AutoColosseumPrayersOverlay extends OverlayPanel {
                     continue;
                 }
 
+                boolean suppressed = selectedPrayerForTick(entry.getTick(), queueEntries) != entry.getPrayer();
+                String rightText = entry.getMob().name() + (suppressed ? " blocked" : "");
+                Color rightColor = suppressed
+                        ? Color.ORANGE
+                        : entry.isJaguarPriority() ? Color.RED : Color.LIGHT_GRAY;
+
                 panelComponent.getChildren().add(
                         LineComponent.builder()
                                 .left("+" + ticksAway + " " + shortPrayerName(entry.getPrayer()))
-                                .right(entry.getMob().name())
-                                .rightColor(entry.isJaguarPriority() ? Color.RED : Color.LIGHT_GRAY)
+                                .right(rightText)
+                                .rightColor(rightColor)
                                 .build()
                 );
                 rows++;
@@ -181,5 +187,27 @@ public class AutoColosseumPrayersOverlay extends OverlayPanel {
             return "Melee";
         }
         return prayer.name();
+    }
+
+    private Prayer selectedPrayerForTick(int tick, List<PrayerQueueEntry> queueEntries) {
+        Prayer selectedPrayer = null;
+        int highestMaxHit = Integer.MIN_VALUE;
+
+        for (PrayerQueueEntry queueEntry : queueEntries) {
+            if (queueEntry.getTick() != tick) {
+                continue;
+            }
+
+            if (queueEntry.isJaguarPriority()) {
+                return Prayer.PROTECT_FROM_MELEE;
+            }
+
+            if (queueEntry.getMaxHit() > highestMaxHit) {
+                highestMaxHit = queueEntry.getMaxHit();
+                selectedPrayer = queueEntry.getPrayer();
+            }
+        }
+
+        return selectedPrayer;
     }
 }

@@ -176,6 +176,24 @@ if (bones != null) {
 }
 ```
 
+5. Equip an item from the inventory:
+
+```java
+!ctx.equipment().inInventory().withName("Green d'hide body").first().wieldOrWear();
+```
+
+6. Activate special attack 
+
+```java
+ public void toggleSpecialAttack(int energyRequired) {
+        int currentSpecEnergy = client.getVarpValue(300) / 10;
+        if (currentSpecEnergy >= energyRequired && !(client.getVarpValue(301) == 1)) {
+            int delay = RandomService.between(300, 600);
+            ctx.players().local().toggleSpecialAttack(energyRequired, delay);
+        }
+}
+```
+
 ### Common mapping rules for AI tools
 
 - Start from `ctx.<domain>()`, not from raw client objects, unless you need `raw()` for an explicit edge case.

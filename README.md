@@ -8,7 +8,7 @@
 <h3 align="center">Kraken API</h3>
 
   <p align="center">
-   An extended RuneLite API for creating plugins that support client interactions.
+   An API for building extended RuneLite plugins.
     <br />
 </div>
 
@@ -23,12 +23,11 @@
 
 # Getting Started
 
-Kraken API is designed to extend the RuneLite API with additional client interaction utilities for writing automation-based plugins that are fully compatible with RuneLite.
-This API uses network packets to perform "click" interactions within the game client and is based on mappings defined by the [EthanVann API](https://github.com/Septharoth/EthanVannPlugins/tree/master). It's also worth shouting
-out the [Vitalite](https://github.com/Tonic-Box/VitaLite/) client and project as their open source expertise of the game client helped make some of the Kraken API possible!
+Kraken API is designed to extend the RuneLite API with additional client interaction utilities for writing RuneLite plugins with extended functionality.
+This API is not meant for "botting", reverse engineering, automation or rule-breaking purposes, and any material provided by this API or its documentation is purely for 
+educational purposes only.
 
-Specifically credit to Vitalite's Dialogue, G.E., and World Map API's and inspiration on Kraken's `TaskChain` and `ReplayStrategy` for mouse movement!
-
+Use at your own risk. The developers are not responsible for any consequences resulting from the use of this software.
 
 ## Quick Start
 
@@ -37,6 +36,7 @@ To get started with the API instantly:
 ```shell
 git clone https://github.com/Kraken-Plugins/kraken-api
 cd ./kraken-api
+
 ./gradlew build publishToMavenLocal
 ```
 
@@ -62,7 +62,7 @@ dependencies {
 
 ## API Usage
 
-The following RuneLite "plugin" is purely for an example of the API's capabilities and isn't a full-fledged automation script.
+The following RuneLite "plugin" is purely for an example of the API's capabilities:
 
 ```java
 @PluginDescriptor(
@@ -187,7 +187,7 @@ build/libs/kraken-api-1.0.0-all.jar
 
 ## Gradle Example
 
-To use the published API jar file in your plugin project you will need to either:
+To use the published API jar file in your plugin project, you will need to either:
 - `export GITHUB_ACTOR=<YOUR_GITHUB_USERNAME>; export GITHUB_TOKEN=<GITHUB_PAT`
 - or add the following to your `gradle.properties` file: `gpr.user=your-github-username gpr.key=your-personal-access-token`
 
@@ -355,7 +355,8 @@ CI will automatically bump the patch version on each merge to master i.e. `1.1.4
 a minor or major version then update the `version.txt` file in the root of the repository with the new version you
 want to use as a base.
 
-For example, moving from: `1.3.5` -> `1.4.0` the `version.txt` should be `1.4.0`.
+For example, moving from: `1.3.5` -> `1.4.0` the `version.txt` should be `1.4.0`. The next automatic build will use `1.4.1` then `1.4.2` etc...
+until `version.txt` is updated to `1.5.0` or `2.0.0`.
 
 ---
 
@@ -368,9 +369,9 @@ This project is licensed under the [GNU General Public License 3.0](LICENSE).
 ## 🙏 Acknowledgments
 
 * **RuneLite** — For API's to work with and view in game data for Old School RuneScape
-* **Packet Utils** - [Plugin](https://github.com/Ethan-Vann/PacketUtils) from Ethan Vann providing access to complex packet sending functionality which was used to develop the `core.packet` package of the API
-* **Vitalite** - Vitalite for showing some incredible open source examples of dialogue, GE interactions, packets, mouse movement, and just working with the client in general
-* **VitaLite Mappings** - Huge shoutout for the VitaLite devs to maintain and publish these mappings for obfuscated classes and methods
+* **Packet Utils** – [Plugin](https://github.com/Ethan-Vann/PacketUtils) from Ethan Vann providing access to complex packet sending functionality which was used to develop the `core.packet` package of the API
+* **Vitalite** – Vitalite for showing some incredible open source examples of dialogue, GE interactions, packets, mouse movement, and just working with the client in general
+* **VitaLite Mappings** – Huge shoutout for the VitaLite devs to maintain and publish these mappings for obfuscated classes and methods
 * **Microbot** — For clever ideas on client and plugin interaction using reflection.
 * **[Lucid](https://github.com/lucid-plugins/SideloadPlugins) & [Kotori](https://github.com/OreoCupcakes/kotori-plugins/blob/master/kotoriutils/src/main/java/com/theplug/kotori/kotoriutils/rlapi/table/TableComponent.java) plugins** — For their open source implementation on the Table UI element.
 
