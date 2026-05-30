@@ -312,7 +312,7 @@ public class GlobalPathfinder {
         Queue<TransportNode> pending = new PriorityQueue<>(256);
         boolean targetInWilderness = WildernessChecker.isInWilderness(targets);
 
-        boundary.addFirst(new Node(start, null, 0));
+        boundary.addFirst(new Node(start, null, 0, false));
 
         int bestDistance = Integer.MAX_VALUE;
         long bestHeuristic = Integer.MAX_VALUE;
