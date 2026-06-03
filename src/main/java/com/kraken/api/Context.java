@@ -3,11 +3,13 @@ package com.kraken.api;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.interaction.InteractionManager;
+import com.kraken.api.core.interceptor.CallStackInterceptor;
 import com.kraken.api.core.interceptor.InterceptorBuilder;
 import com.kraken.api.core.interceptor.MouseHookInterceptor;
 import com.kraken.api.core.interceptor.PacketInterceptor;
-import com.kraken.api.core.packet.PacketMethodLocator;
 import com.kraken.api.core.packet.PacketFactory;
+import com.kraken.api.core.packet.PacketMethodLocator;
+import com.kraken.api.core.packet.model.PacketMetadata;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;
@@ -35,6 +37,7 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -66,17 +69,19 @@ public class Context {
     private final InteractionManager interactionManager;
     private final MouseHookInterceptor mouseHookInterceptor;
     private final PacketInterceptor packetInterceptor;
+    private final CallStackInterceptor callStackInterceptor;
 
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
                    final ItemManager itemManager, final BankService bankService, final PacketInterceptor packetInterceptor,
-                   final InteractionManager interactionManager, final MouseHookInterceptor mouseHookInterceptor) {
+                   final InteractionManager interactionManager, final MouseHookInterceptor mouseHookInterceptor, final CallStackInterceptor callStackInterceptor) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
         this.itemManager = itemManager;
         this.packetInterceptor = packetInterceptor;
         this.mouseHookInterceptor = mouseHookInterceptor;
+        this.callStackInterceptor = callStackInterceptor;
         this.interactionManager = interactionManager;
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
@@ -150,6 +155,31 @@ public class Context {
                 mouseHookInterceptor::injectHook,
                 "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
         );
+
+        initializeInterceptor(
+                resolvedConfiguration.isCallStackInterceptor(),
+                "call stack interceptor",
+                callStackInterceptor::injectHook,
+                "The call stack could not be patched. Login data sent may contain a callstack that can identify the client."
+        );
+
+        // Verify that the call stack is returning the clean version
+        try {
+            PacketMetadata metadata = PacketFactory.getPacketMetadata();
+            Class<?> clientClass = Class.forName(metadata.getCallStackClassName());
+            Method method = clientClass.getDeclaredMethod(metadata.getCallStackMethodName(), long.class);
+
+            method.setAccessible(true);
+            Object result = method.invoke(null, 0L);
+
+            log.info("Call Stack Validation:\n{}", result);
+        } catch (ClassNotFoundException e) {
+            log.error("Failed to verify call stack, no such class {}: ", PacketFactory.getPacketMetadata().getCallStackClassName(), e);
+        } catch (NoSuchMethodException e) {
+            log.error("Failed to verify call stack, no such method: ", e);
+        } catch (Exception e) {
+           log.error("Failed to verify call stack: ", e);
+        }
     }
 
 

@@ -18,4 +18,7 @@ public class InterceptorBuilder {
 
     @Builder.Default
     private final boolean doActionInterceptor = true;
+
+    @Builder.Default
+    private final boolean callStackInterceptor = true;
 }
