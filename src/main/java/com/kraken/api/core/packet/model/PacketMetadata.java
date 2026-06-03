@@ -17,6 +17,10 @@ public final class PacketMetadata {
     private final String mouseHookDllClassName = "client";
     private final String mouseHookDllMethodName;
 
+    private final String callStackClassName = "client";
+    private final String callStackMethodName;
+    private final String cleanCallStackValue;
+
     private final String isaacCipherFieldName;
 
     private final String addNodeMethodName;

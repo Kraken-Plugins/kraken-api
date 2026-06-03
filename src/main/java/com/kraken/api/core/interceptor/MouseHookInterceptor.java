@@ -14,7 +14,7 @@ import javax.inject.Inject;
 
 @Slf4j
 @Singleton
-public class MouseHookInterceptor {
+public class MouseHookInterceptor implements Interceptor {
 
     public final Client client;
     private final PacketMetadata packetMetadata;
@@ -62,7 +62,7 @@ public class MouseHookInterceptor {
                     .load(targetClass.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
 
             injected = true;
-            log.info("Mouse hook DLL load patched into {}.{}",
+            log.info("Mouse hook DLL load hooked into {}.{}",
                     packetMetadata.getMouseHookDllClassName(),
                     packetMetadata.getMouseHookDllMethodName());
         } catch (Exception e) {

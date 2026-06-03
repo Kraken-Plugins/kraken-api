@@ -21,7 +21,7 @@ import java.util.List;
 
 @Slf4j
 @Singleton
-public class PacketInterceptor {
+public class PacketInterceptor implements Interceptor {
     public static final EventBus eventBus = RuneLite.getInjector().getInstance(EventBus.class);
     public static PacketInterceptor instance;
     public boolean injected = false;
@@ -39,10 +39,9 @@ public class PacketInterceptor {
      * Modifies the bytecode of the "addNode" method within the client at runtime to invoke
      * the {@link PacketHookAdvice} class whenever the method is called. This will publish
      * the {@link PacketSent} event to the eventbus which can be {@link net.runelite.client.eventbus.Subscribe}
-     * to within plugins who need access to low level packets.
-     * @throws Exception Throws an Illegal state exception if the hook is not able to be injected.
+     * to within plugins who need access to low-level packets.
      */
-    public void injectHook() throws Exception {
+    public void injectHook() {
         if(injected) {
             log.debug("Already injected, skipping");
             return;
@@ -54,18 +53,22 @@ public class PacketInterceptor {
         }
         PacketMetadata metadata = PacketFactory.getPacketMetadata();
 
-        Class<?> packetWriterClass = client.getClass()
-                .getClassLoader()
-                .loadClass(metadata.getPacketWriterClassName());
+        try {
+            Class<?> packetWriterClass = client.getClass()
+                    .getClassLoader()
+                    .loadClass(metadata.getPacketWriterClassName());
 
-        new ByteBuddy()
-                .redefine(packetWriterClass)
-                .visit(Advice.to(PacketHookAdvice.class).on(ElementMatchers.named(metadata.getAddNodeMethodName())))
-                .make()
-                .load(packetWriterClass.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+            new ByteBuddy()
+                    .redefine(packetWriterClass)
+                    .visit(Advice.to(PacketHookAdvice.class).on(ElementMatchers.named(metadata.getAddNodeMethodName())))
+                    .make()
+                    .load(packetWriterClass.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
 
-        injected = true;
-        log.info("Packet interception (addNode) hooked into: {}.{}", metadata.getPacketWriterClassName(), metadata.getAddNodeMethodName());
+            injected = true;
+            log.info("Packet interceptor hooked into: {}.{}", metadata.getPacketWriterClassName(), metadata.getAddNodeMethodName());
+        } catch (ClassNotFoundException e) {
+            log.error("Could not find class: {}, ", metadata.getPacketWriterClassName(), e);
+        }
     }
 
     /**
