@@ -1,5 +1,4 @@
 import lombok.extern.slf4j.Slf4j;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 import net.runelite.client.plugins.Plugin;
@@ -11,13 +10,6 @@ public class PluginRunnerTest {
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
-        try {
-            ByteBuddyAgent.install();
-            log.info("ByteBuddy agent installed successfully");
-        } catch (Exception e) {
-            log.error("Failed to install ByteBuddy agent — class reloading will not work", e);
-        }
-
         String[] passArgs = args;
 
         if (args.length > 0) {

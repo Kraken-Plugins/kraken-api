@@ -11,8 +11,6 @@
 | [com.kraken.api.core.interaction](kraken-api/com.kraken.api.core.interaction/index.md) |
 | [com.kraken.api.core.interaction.model](kraken-api/com.kraken.api.core.interaction.model/index.md) |
 | [com.kraken.api.core.interaction.resolver](kraken-api/com.kraken.api.core.interaction.resolver/index.md) |
-| [com.kraken.api.core.interceptor](kraken-api/com.kraken.api.core.interceptor/index.md) |
-| [com.kraken.api.core.interceptor.model](kraken-api/com.kraken.api.core.interceptor.model/index.md) |
 | [com.kraken.api.core.packet](kraken-api/com.kraken.api.core.packet/index.md) |
 | [com.kraken.api.core.packet.entity](kraken-api/com.kraken.api.core.packet.entity/index.md) |
 | [com.kraken.api.core.packet.model](kraken-api/com.kraken.api.core.packet.model/index.md) |

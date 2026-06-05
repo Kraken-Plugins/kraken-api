@@ -3,7 +3,7 @@
 # PacketInterceptor
 
 [Kraken API]\
-open class [PacketInterceptor](index.md)
+open class [PacketInterceptor](index.md) : [Interceptor](../-interceptor/index.md)
 
 ## Constructors
 

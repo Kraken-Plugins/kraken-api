@@ -43,7 +43,10 @@ tasks.register('runelite', JavaExec) {
 
 
 dependencies {
-    // Dependencies included within RuneLite's bootstrap at runtime
+    // NOTE: These dependencies are REQUIRED for the Kraken API to run. There are specifically omitted from Kraken's API's Jar file for 2
+    // key reasons:
+    // 1. RuneLite provides guice, guava, gson in its runtime dependencies already so packaging them with Kraken can introduce different version and create dependency issues and introduces bloat
+    // 2. Its a design choice to let users inject dependencies into RuneLite's classloader how the they sees fit. Kraken's API makes a choice to not impose how users choose to load required dependencies
     compileOnly("org.slf4j:slf4j-api:1.7.25")
     compileOnly("org.slf4j:slf4j-simple:1.7.25")
     compileOnly("com.google.code.gson:gson:2.8.5")
@@ -51,13 +54,11 @@ dependencies {
     compileOnly("com.google.inject:guice:4.2.2")
     compileOnly("net.runelite:client:${runeLiteVersion}")
 
-    // Dependencies included at runtime by Kraken client bootstrap net.bytebuddy.* dependencies
-    // are excluded from the fat jar to reduce the file size.
+    // This is the only dependency required by Kraken API that is not natively provided by RuneLite
+    // its included in the jar for simplicity. Providing this dependency outside of Krakens API can result in double loading and dependency issues.
     implementation("org.benf:cfr:0.152")
-    implementation("net.bytebuddy:byte-buddy:1.18.4")
-    implementation("net.bytebuddy:byte-buddy-agent:1.18.4")
 
-    // Git submodule
+    // Git submodule which is required for global pathfinding
     implementation 'shortestpath:shortest-path:1.0.0'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'

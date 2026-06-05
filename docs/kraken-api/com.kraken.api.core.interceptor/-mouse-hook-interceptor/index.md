@@ -3,7 +3,7 @@
 # MouseHookInterceptor
 
 [Kraken API]\
-open class [MouseHookInterceptor](index.md)
+open class [MouseHookInterceptor](index.md) : [Interceptor](../-interceptor/index.md)
 
 ## Constructors
 
