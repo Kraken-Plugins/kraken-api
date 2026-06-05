@@ -1,4 +1,4 @@
-package com.kraken.api.core.packet.model;
+package com.kraken.api.core.hooks;
 
 import lombok.Value;
 

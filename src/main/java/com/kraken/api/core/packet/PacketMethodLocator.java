@@ -2,6 +2,7 @@ package com.kraken.api.core.packet;
 
 import com.google.gson.Gson;
 import com.google.inject.Singleton;
+import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.model.PacketCache;
 import com.kraken.api.core.packet.model.PacketMethods;
 import lombok.AccessLevel;
@@ -141,7 +142,7 @@ public class PacketMethodLocator {
         for (Method method : addNodeClass.getDeclaredMethods()) {
             if (method.getName().equals(methodName) &&
                     method.getParameterCount() > 0 &&
-                    method.getParameterTypes()[0].getSimpleName().equals(PacketFactory.getPacketMetadata().getPacketWriterClassName())) {
+                    method.getParameterTypes()[0].getSimpleName().equals(HooksLoader.getReflectionHooks().getPacketWriterClassName())) {
 
                 packetMethods = new PacketMethods(method, false);
                 log.info("Loaded addNode config from cache: Method={}", method);
@@ -159,8 +160,8 @@ public class PacketMethodLocator {
      */
     @SneakyThrows
     private static void analyzeClient(Client client, String runeliteVersion) {
-        String doActionClassName = PacketFactory.getPacketMetadata().getDoActionClassName();
-        String doActionMethodName = PacketFactory.getPacketMetadata().getDoActionMethodName();
+        String doActionClassName = HooksLoader.getReflectionHooks().getDoActionClassName();
+        String doActionMethodName = HooksLoader.getReflectionHooks().getDoActionMethodName();
 
         if (!Files.exists(WORKING_DIRECTORY)) {
             Files.createDirectories(WORKING_DIRECTORY);
@@ -195,7 +196,7 @@ public class PacketMethodLocator {
 
             for (Method method : addNodeClass.getDeclaredMethods()) {
                 // if ae == packet writer class name we found the add node method
-                if (method.getName().equals(methodName) && method.getParameterCount() > 0 && method.getParameterTypes().length != 0 && method.getParameterTypes()[0].getSimpleName().equals(PacketFactory.getPacketMetadata().getPacketWriterClassName())) {
+                if (method.getName().equals(methodName) && method.getParameterCount() > 0 && method.getParameterTypes().length != 0 && method.getParameterTypes()[0].getSimpleName().equals(HooksLoader.getReflectionHooks().getPacketWriterClassName())) {
                     addNodeMethod = method;
                     break;
                 }

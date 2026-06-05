@@ -1,5 +1,6 @@
 package com.kraken.api.core.packet;
 
+import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.model.BufferOperation;
 
 import java.lang.reflect.Field;
@@ -20,7 +21,7 @@ public class BufferUtils {
      */
     public static void setOffset(Object bufferInstance, int offset) {
         try {
-            Field offsetField = bufferInstance.getClass().getField(PacketFactory.getPacketMetadata().getBufferOffsetField());
+            Field offsetField = bufferInstance.getClass().getField(HooksLoader.getReflectionHooks().getBufferOffsetField());
             offsetField.setAccessible(true);
             offsetField.setInt(bufferInstance, offset);
             offsetField.setAccessible(false);
@@ -37,7 +38,7 @@ public class BufferUtils {
      */
     public static int getOffset(Object bufferInstance) {
         try {
-            Field offsetField = bufferInstance.getClass().getField(PacketFactory.getPacketMetadata().getBufferOffsetField());
+            Field offsetField = bufferInstance.getClass().getField(HooksLoader.getReflectionHooks().getBufferOffsetField());
             offsetField.setAccessible(true);
             int offset = offsetField.getInt(bufferInstance); // Get the current value
             offsetField.setAccessible(false);
@@ -56,7 +57,7 @@ public class BufferUtils {
      */
     public static void setArray(Object bufferInstance, byte[] array) {
         try {
-            Field arrayField = bufferInstance.getClass().getField(PacketFactory.getPacketMetadata().getBufferArrayField());
+            Field arrayField = bufferInstance.getClass().getField(HooksLoader.getReflectionHooks().getBufferArrayField());
             arrayField.setAccessible(true);
             arrayField.set(bufferInstance, array);
             arrayField.setAccessible(false);
@@ -73,7 +74,7 @@ public class BufferUtils {
      */
     public static byte[] getArray(Object bufferInstance) {
         try {
-            Field arrayField = bufferInstance.getClass().getField(PacketFactory.getPacketMetadata().getBufferArrayField());
+            Field arrayField = bufferInstance.getClass().getField(HooksLoader.getReflectionHooks().getBufferArrayField());
             arrayField.setAccessible(true);
             byte[] array = (byte[]) arrayField.get(bufferInstance);
             arrayField.setAccessible(false);
@@ -116,7 +117,7 @@ public class BufferUtils {
         int index = nextIndex(getOffset(bufferInstance));
         setOffset(bufferInstance, index);
 
-        index = index * PacketFactory.getPacketMetadata().getIndexMultiplier() - 1;
+        index = index * HooksLoader.getReflectionHooks().getIndexMultiplier() - 1;
 
         switch (operation.getType()) {
             case SUBTRACT:
@@ -147,9 +148,9 @@ public class BufferUtils {
         byte[] arr = getArray(bufferInstance);
 
         int offset = getOffset(bufferInstance);
-        int indexMultiplier = PacketFactory.getPacketMetadata().getIndexMultiplier();
+        int indexMultiplier = HooksLoader.getReflectionHooks().getIndexMultiplier();
         // The offset multiplier is also an obfuscated value, often a large negative number.
-        int offsetMultiplier = PacketFactory.getPacketMetadata().getOffsetMultiplier();
+        int offsetMultiplier = HooksLoader.getReflectionHooks().getOffsetMultiplier();
 
         // Calculate the real starting index in the byte array
         int realIndex = offset * indexMultiplier;
@@ -185,8 +186,8 @@ public class BufferUtils {
         byte[] arr = getArray(bufferInstance);
 
         int offset = getOffset(bufferInstance);
-        int indexMultiplier = PacketFactory.getPacketMetadata().getIndexMultiplier();
-        int offsetMultiplier = PacketFactory.getPacketMetadata().getOffsetMultiplier();
+        int indexMultiplier = HooksLoader.getReflectionHooks().getIndexMultiplier();
+        int offsetMultiplier = HooksLoader.getReflectionHooks().getOffsetMultiplier();
 
         // Advance offset and write the leading null byte
         offset += offsetMultiplier;
@@ -250,7 +251,7 @@ public class BufferUtils {
      * @return The next logical offset.
      */
     static public int nextIndex(int offset) {
-        offset += PacketFactory.getPacketMetadata().getOffsetMultiplier();
+        offset += HooksLoader.getReflectionHooks().getOffsetMultiplier();
         return offset;
     }
 

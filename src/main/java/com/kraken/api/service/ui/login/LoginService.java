@@ -2,8 +2,8 @@ package com.kraken.api.service.ui.login;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.kraken.api.core.packet.model.LoginHooks;
-import com.kraken.api.core.packet.PacketFactory;
+import com.kraken.api.core.hooks.HooksLoader;
+import com.kraken.api.core.hooks.LoginHooks;
 import com.kraken.api.service.util.ReflectionService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -29,10 +29,10 @@ public class LoginService {
 
     @Inject
     public LoginService(ReflectionService reflectionService, Client client, ClientThread clientThread) {
-        this.hooks = PacketFactory.getLoginHooks();
+        this.hooks = HooksLoader.getLoginHooks();
 
         if (this.hooks == null) {
-            log.error("Failed to load login hook metadata from packets.json. Login state injection will not work.");
+            log.error("Failed to load login hook metadata from hooks.json. Login state injection will not work.");
         }
 
         this.reflectionService = reflectionService;

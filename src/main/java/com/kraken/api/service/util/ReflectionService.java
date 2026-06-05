@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * This service maintains a cache of reflected fields and methods to improve performance
  * for repeated accesses. It supports accessing obfuscated members via the
- * class and member names mapped in {@code packets.json}.
+ * class and member names mapped in {@code hooks.json}.
  */
 @Slf4j
 @Singleton

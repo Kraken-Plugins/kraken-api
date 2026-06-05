@@ -3,6 +3,7 @@ package com.kraken.api.core.packet.entity;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
+import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.PacketClient;
 import com.kraken.api.core.packet.PacketFactory;
 import com.kraken.api.util.MathUtils;
@@ -68,27 +69,27 @@ public class MousePackets {
 
     @SneakyThrows
     private long getClientLastMillis() {
-        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getClientMillisField());
+        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getClientMillisField());
         clientLastPressedTimeMillis.setAccessible(true);
-        long retValue = clientLastPressedTimeMillis.getLong(client) * PacketFactory.getPacketMetadata().getClientMillisMultiplier();
+        long retValue = clientLastPressedTimeMillis.getLong(client) * HooksLoader.getReflectionHooks().getClientMillisMultiplier();
         clientLastPressedTimeMillis.setAccessible(false);
         return retValue;
     }
 
     @SneakyThrows
     private void setMouseHandlerLastMillis(long time) {
-        Class<?> mouseHandler = client.getClass().getClassLoader().loadClass(PacketFactory.getPacketMetadata().getMouseHandlerLastPressedClass());
-        Field mouseHandlerLastPressedTime = mouseHandler.getDeclaredField(PacketFactory.getPacketMetadata().getMouseHandlerLastPressedField());
+        Class<?> mouseHandler = client.getClass().getClassLoader().loadClass(HooksLoader.getReflectionHooks().getMouseHandlerLastPressedClass());
+        Field mouseHandlerLastPressedTime = mouseHandler.getDeclaredField(HooksLoader.getReflectionHooks().getMouseHandlerLastPressedField());
         mouseHandlerLastPressedTime.setAccessible(true);
-        mouseHandlerLastPressedTime.setLong(null, time * MathUtils.modInverse(PacketFactory.getPacketMetadata().getMouseHandlerMultiplier()));
+        mouseHandlerLastPressedTime.setLong(null, time * MathUtils.modInverse(HooksLoader.getReflectionHooks().getMouseHandlerMultiplier()));
         mouseHandlerLastPressedTime.setAccessible(false);
     }
 
     @SneakyThrows
     private void setClientLastMillis(long time) {
-        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getClientMillisField());
+        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getClientMillisField());
         clientLastPressedTimeMillis.setAccessible(true);
-        clientLastPressedTimeMillis.setLong(client, time * MathUtils.modInverse(PacketFactory.getPacketMetadata().getClientMillisMultiplier()));
+        clientLastPressedTimeMillis.setLong(client, time * MathUtils.modInverse(HooksLoader.getReflectionHooks().getClientMillisMultiplier()));
         clientLastPressedTimeMillis.setAccessible(false);
     }
 }

@@ -1,13 +1,6 @@
 {
-  "clientVersion": "1.12.28",
   "reflectionHooks": {
-    "mouseHookDllClassName": "client",
-    "mouseHookDllMethodName": "ik",
-    "callStackClassName": "client",
-    "callStackMethodName": "yq",
-    "cleanCallStackValue": "\"client4122yq\\n\" +\n\"client19537qj\\n\" +\n\"nrc.RuneLite297start\\n\" +\n\"nrc.RuneLite274main\\n\" +\n\"nrl.ReflectionLa+64lambda$launc+\\n\" +\n\"jl.ThreadUnknown +\";",
     "isaacCipherFieldName": "av",
-    "clientLogFieldName": "us",
     "addNodeMethodName": "az",
     "addNodeClassName": "client",
     "addNodeGarbageValue": -2039989469,
@@ -33,6 +26,14 @@
     "doActionClassName": "qd",
     "doActionMethodName": "fa",
     "doActionGarbageValue": 910500823
+  },
+  "securityHooks": {
+    "mouseHookDllClassName": "client",
+    "mouseHookDllMethodName": "ik",
+    "callStackClassName": "client",
+    "callStackMethodName": "yq",
+    "cleanCallStackValue": "\"client4122yq\\n\" +\n\"client19537qj\\n\" +\n\"nrc.RuneLite297start\\n\" +\n\"nrc.RuneLite274main\\n\" +\n\"nrl.ReflectionLa+64lambda$launc+\\n\" +\n\"jl.ThreadUnknown +\";",
+    "clientLogFieldName": "us"
   },
   "loginHooks": {
     "loginIndexGarbageValue": -88,
