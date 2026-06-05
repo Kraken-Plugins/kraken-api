@@ -2,8 +2,8 @@ package com.kraken.api;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.interaction.InteractionManager;
-import com.kraken.api.core.packet.PacketFactory;
 import com.kraken.api.core.packet.PacketMethodLocator;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
@@ -76,7 +76,7 @@ public class Context {
         // RuneLite injects some logging into doAction when a menu action can't be found by the client but is still being
         // invoked with coordinates where the menu action should appear. This simply mutes those verbose logs.
         try {
-            Field loggerField = client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getClientLogFieldName());
+            Field loggerField = client.getClass().getDeclaredField(HooksLoader.getSecurityHooks().getClientLogFieldName());
             loggerField.setAccessible(true);
             Object loggerInstance = loggerField.get(null);
 
@@ -87,7 +87,7 @@ public class Context {
             log.warn("Failed modify log level for RuneLite doAction method. You may encounter more verbose logging.", e);
         }
 
-        log.info("Game context initialized successfully, loaded {} packet definitions", PacketFactory.getPackets().size());
+        log.info("Game context initialized successfully, loaded {} packet definitions", HooksLoader.getPackets().size());
     }
 
     /**

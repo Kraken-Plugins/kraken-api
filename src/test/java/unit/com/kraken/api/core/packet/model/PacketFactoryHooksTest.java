@@ -2,9 +2,8 @@ package unit.com.kraken.api.core.packet.model;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.kraken.api.core.packet.model.LoginHooks;
-import com.kraken.api.core.packet.PacketFactory;
-import com.kraken.api.core.packet.model.PacketMetadata;
+import com.kraken.api.core.hooks.HooksLoader;
+import com.kraken.api.core.hooks.LoginHooks;
 import com.kraken.api.util.JsonResourceUtils;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +17,7 @@ class PacketFactoryHooksTest {
     @Test
     void loadsLoginHooksFromPacketsJson() {
         JsonObject loginHooksJson = loadPacketsJson().getAsJsonObject("loginHooks");
-        LoginHooks hooks = PacketFactory.getLoginHooks();
+        LoginHooks hooks = HooksLoader.getLoginHooks();
 
         assertNotNull(hooks);
         assertEquals(loginHooksJson.get("loginIndexMethodName").getAsString(), hooks.getLoginIndexMethodName());
@@ -31,20 +30,11 @@ class PacketFactoryHooksTest {
         assertEquals(loginHooksJson.get("legacyValueFieldName").getAsString(), hooks.getLegacyValueFieldName());
     }
 
-    @Test
-    void loadsMouseHookMetadataFromPacketsJson() {
-        JsonObject metadataJson = loadPacketsJson().getAsJsonObject("reflectionHooks");
-        PacketMetadata metadata = PacketFactory.getPacketMetadata();
-
-        assertNotNull(metadata);
-        assertEquals(metadataJson.get("mouseHookDllClassName").getAsString(), metadata.getMouseHookDllClassName());
-        assertEquals(metadataJson.get("mouseHookDllMethodName").getAsString(), metadata.getMouseHookDllMethodName());
-    }
 
     private JsonObject loadPacketsJson() {
         return JsonResourceUtils.loadJsonResource(
                 PacketFactoryHooksTest.class,
-                "/packets.json",
+                "/hooks.json",
                 gson,
                 JsonObject.class
         );

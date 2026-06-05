@@ -1,4 +1,4 @@
-package com.kraken.api.core.packet.model;
+package com.kraken.api.core.hooks;
 
 import lombok.Data;
 
@@ -11,16 +11,7 @@ import javax.inject.Singleton;
  */
 @Data
 @Singleton
-public final class PacketMetadata {
-
-    private final String clientLogFieldName;
-    private final String mouseHookDllClassName = "client";
-    private final String mouseHookDllMethodName;
-
-    private final String callStackClassName = "client";
-    private final String callStackMethodName;
-    private final String cleanCallStackValue;
-
+public final class ReflectionHooks {
     private final String isaacCipherFieldName;
 
     private final String addNodeMethodName;

@@ -1,5 +1,6 @@
 package com.kraken.api.core.packet;
 
+import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.model.BufferOperation;
 import com.kraken.api.core.packet.model.PacketWrite;
 
@@ -32,7 +33,7 @@ import java.util.Map;
  * </ul>
  *
  * <p>The {@code indexMultiplier} and {@code offsetMultiplier} are the same obfuscated
- * constants used by {@link BufferUtils} and are loaded from PacketFactory.getPacketMetadata.
+ * constants used by {@link BufferUtils} and are loaded from PacketFactory.getReflectionHooks.
  */
 public class BufferReader {
 
@@ -47,8 +48,8 @@ public class BufferReader {
     public static Map<String, Object> decode(byte[] payload, List<PacketWrite> writes) {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        int indexMultiplier = PacketFactory.getPacketMetadata().getIndexMultiplier();
-        int offsetMultiplier = PacketFactory.getPacketMetadata().getOffsetMultiplier();
+        int indexMultiplier = HooksLoader.getReflectionHooks().getIndexMultiplier();
+        int offsetMultiplier = HooksLoader.getReflectionHooks().getOffsetMultiplier();
 
         // Offset starts at 0, identical to the write side.
         int offset = 0;

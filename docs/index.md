@@ -8,6 +8,7 @@
 |---|
 | [com.kraken.api](kraken-api/com.kraken.api/index.md) |
 | [com.kraken.api.core](kraken-api/com.kraken.api.core/index.md) |
+| [com.kraken.api.core.hooks](kraken-api/com.kraken.api.core.hooks/index.md) |
 | [com.kraken.api.core.interaction](kraken-api/com.kraken.api.core.interaction/index.md) |
 | [com.kraken.api.core.interaction.model](kraken-api/com.kraken.api.core.interaction.model/index.md) |
 | [com.kraken.api.core.interaction.resolver](kraken-api/com.kraken.api.core.interaction.resolver/index.md) |

@@ -1,5 +1,16 @@
 $dokka.format:gfm-v1
 $dokka.linkExtension:md
+$dokka.location:com.kraken.api.core.hooks////PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/index.md
+$dokka.location:com.kraken.api.core.hooks/GameHooks///PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-game-hooks/index.md
+$dokka.location:com.kraken.api.core.hooks/GameHooks/GameHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-game-hooks/-game-hooks.md
+$dokka.location:com.kraken.api.core.hooks/HooksLoader///PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-hooks-loader/index.md
+$dokka.location:com.kraken.api.core.hooks/HooksLoader/HooksLoader/#/PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-hooks-loader/-hooks-loader.md
+$dokka.location:com.kraken.api.core.hooks/LoginHooks///PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-login-hooks/index.md
+$dokka.location:com.kraken.api.core.hooks/LoginHooks/LoginHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-login-hooks/-login-hooks.md
+$dokka.location:com.kraken.api.core.hooks/ReflectionHooks///PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-reflection-hooks/index.md
+$dokka.location:com.kraken.api.core.hooks/ReflectionHooks/ReflectionHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-reflection-hooks/-reflection-hooks.md
+$dokka.location:com.kraken.api.core.hooks/SecurityHooks///PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-security-hooks/index.md
+$dokka.location:com.kraken.api.core.hooks/SecurityHooks/SecurityHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.core.hooks/-security-hooks/-security-hooks.md
 $dokka.location:com.kraken.api.core.interaction.model////PointingToDeclaration/kraken-api/com.kraken.api.core.interaction.model/index.md
 $dokka.location:com.kraken.api.core.interaction.model/MenuOption///PointingToDeclaration/kraken-api/com.kraken.api.core.interaction.model/-menu-option/index.md
 $dokka.location:com.kraken.api.core.interaction.model/MenuOption/MenuOption/#/PointingToDeclaration/kraken-api/com.kraken.api.core.interaction.model/-menu-option/-menu-option.md
@@ -103,16 +114,10 @@ $dokka.location:com.kraken.api.core.packet.model/BufferOperation/rightShift/#int
 $dokka.location:com.kraken.api.core.packet.model/BufferOperation/stringCp1252NullCircumfixed/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-buffer-operation/string-cp1252-null-circumfixed.md
 $dokka.location:com.kraken.api.core.packet.model/BufferOperation/stringCp1252NullTerminated/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-buffer-operation/string-cp1252-null-terminated.md
 $dokka.location:com.kraken.api.core.packet.model/BufferOperation/subtract/#int/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-buffer-operation/subtract.md
-$dokka.location:com.kraken.api.core.packet.model/LoginHooks///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-login-hooks/index.md
-$dokka.location:com.kraken.api.core.packet.model/LoginHooks/LoginHooks/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-login-hooks/-login-hooks.md
-$dokka.location:com.kraken.api.core.packet.model/MappedPackets///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-mapped-packets/index.md
-$dokka.location:com.kraken.api.core.packet.model/MappedPackets/MappedPackets/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-mapped-packets/-mapped-packets.md
 $dokka.location:com.kraken.api.core.packet.model/PacketCache///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-cache/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketCache/PacketCache/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-cache/-packet-cache.md
 $dokka.location:com.kraken.api.core.packet.model/PacketDefinition///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-definition/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketDefinition/PacketDefinition/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-definition/-packet-definition.md
-$dokka.location:com.kraken.api.core.packet.model/PacketMetadata///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/index.md
-$dokka.location:com.kraken.api.core.packet.model/PacketMetadata/PacketMetadata/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-metadata/-packet-metadata.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMethods///PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-methods/index.md
 $dokka.location:com.kraken.api.core.packet.model/PacketMethods/PacketMethods/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet.model/-packet-methods/-packet-methods.md
 $dokka.location:com.kraken.api.core.packet.model/PacketType.EVENT_MOUSE_CLICK///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}kraken-api/com.kraken.api.core.packet.model/-packet-type/-e-v-e-n-t_-m-o-u-s-e_-c-l-i-c-k/index.md
@@ -2145,6 +2150,7 @@ $dokka.location:com.kraken.api/Context/widgets/#/PointingToDeclaration/kraken-a
 $dokka.location:com.kraken.api/Context/worlds/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/worlds.md
 com.kraken.api
 com.kraken.api.core
+com.kraken.api.core.hooks
 com.kraken.api.core.interaction
 com.kraken.api.core.interaction.model
 com.kraken.api.core.interaction.resolver

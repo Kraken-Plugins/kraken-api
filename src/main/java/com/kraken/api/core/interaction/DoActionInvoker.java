@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.packet.PacketFactory;
+import com.kraken.api.core.hooks.HooksLoader;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 
@@ -51,7 +51,7 @@ public class DoActionInvoker {
             return;
         }
 
-        int garbageValue = PacketFactory.getPacketMetadata().getDoActionGarbageValue();
+        int garbageValue = HooksLoader.getReflectionHooks().getDoActionGarbageValue();
         Context ctx = ctxProvider.get();
 
         try {
@@ -73,8 +73,8 @@ public class DoActionInvoker {
             if (doActionMethod != null) return;  // double-checked locking
             try {
                 Client client = ctxProvider.get().getClient();
-                String className  = PacketFactory.getPacketMetadata().getDoActionClassName();
-                String methodName = PacketFactory.getPacketMetadata().getDoActionMethodName();
+                String className  = HooksLoader.getReflectionHooks().getDoActionClassName();
+                String methodName = HooksLoader.getReflectionHooks().getDoActionMethodName();
                 Class<?> clazz = client.getClass().getClassLoader().loadClass(className);
 
                 doActionMethod = Arrays.stream(clazz.getDeclaredMethods())

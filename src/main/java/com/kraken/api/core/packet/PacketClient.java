@@ -1,6 +1,10 @@
 package com.kraken.api.core.packet;
 
-import com.kraken.api.core.packet.model.*;
+import com.kraken.api.core.hooks.HooksLoader;
+import com.kraken.api.core.packet.model.BufferOperation;
+import com.kraken.api.core.packet.model.PacketDefinition;
+import com.kraken.api.core.packet.model.PacketMethods;
+import com.kraken.api.core.packet.model.PacketWrite;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -76,7 +80,7 @@ public class PacketClient {
         // Invoke the getPacketBufferNode method to create a new packet node instance.
         // This method is obfuscated and may require a "garbage value" of a specific type.
         getPacketBufferNode.setAccessible(true);
-        long garbageValue = Math.abs(PacketFactory.getPacketMetadata().getPacketBufferNodeGarbageValue());
+        long garbageValue = Math.abs(HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue());
 
         try {
             Field packetField = fetchPacketField(def.getObfuscatedName());
@@ -89,11 +93,11 @@ public class PacketClient {
 
             // The method signature for getPacketBufferNode changes based on the obfuscated garbage value.
             if (garbageValue < 256) {
-                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, PacketFactory.getPacketMetadata().getPacketBufferNodeGarbageValue().byteValue());
+                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue().byteValue());
             } else if (garbageValue < 32768) {
-                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, PacketFactory.getPacketMetadata().getPacketBufferNodeGarbageValue().shortValue());
+                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue().shortValue());
             } else if (garbageValue < Integer.MAX_VALUE) {
-                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, PacketFactory.getPacketMetadata().getPacketBufferNodeGarbageValue());
+                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue());
             }
         } catch (IllegalAccessException | InvocationTargetException e) {
             log.error("Failed to invoke getPacketBufferNode: ", e);
@@ -110,7 +114,7 @@ public class PacketClient {
         // Get the raw 'buffer' object from the 'packetBufferNode' to write data into.
         Object buffer;
         try {
-            Field bufferField = packetBufferNode.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getPacketBufferFieldName());
+            Field bufferField = packetBufferNode.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getPacketBufferFieldName());
             bufferField.setAccessible(true);
             buffer = bufferField.get(packetBufferNode);
             bufferField.setAccessible(false);
@@ -183,21 +187,21 @@ public class PacketClient {
             if (methods.isUsingClientAddNode()) {
                 // Path 1: The 'addNode' method is a member of the PacketWriter class itself.
                 Method addNode = null;
-                long garbageValue = Math.abs(PacketFactory.getPacketMetadata().getAddNodeGarbageValue());
+                long garbageValue = Math.abs(HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
 
                 // Find the correct obfuscated method signature based on the garbage value type.
                 if (garbageValue < 256) {
-                    addNode = packetWriter.getClass().getDeclaredMethod(PacketFactory.getPacketMetadata().getAddNodeMethodName(), packetBufferNode.getClass(), byte.class);
+                    addNode = packetWriter.getClass().getDeclaredMethod(HooksLoader.getReflectionHooks().getAddNodeMethodName(), packetBufferNode.getClass(), byte.class);
                     addNode.setAccessible(true);
-                    addNode.invoke(packetWriter, packetBufferNode, PacketFactory.getPacketMetadata().getAddNodeGarbageValue().byteValue());
+                    addNode.invoke(packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue().byteValue());
                 } else if (garbageValue < 32768) {
-                    addNode = packetWriter.getClass().getDeclaredMethod(PacketFactory.getPacketMetadata().getAddNodeMethodName(), packetBufferNode.getClass(), short.class);
+                    addNode = packetWriter.getClass().getDeclaredMethod(HooksLoader.getReflectionHooks().getAddNodeMethodName(), packetBufferNode.getClass(), short.class);
                     addNode.setAccessible(true);
-                    addNode.invoke(packetWriter, packetBufferNode, PacketFactory.getPacketMetadata().getAddNodeGarbageValue().shortValue());
+                    addNode.invoke(packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue().shortValue());
                 } else if (garbageValue < Integer.MAX_VALUE) {
-                    addNode = packetWriter.getClass().getDeclaredMethod(PacketFactory.getPacketMetadata().getAddNodeMethodName(), packetBufferNode.getClass(), int.class);
+                    addNode = packetWriter.getClass().getDeclaredMethod(HooksLoader.getReflectionHooks().getAddNodeMethodName(), packetBufferNode.getClass(), int.class);
                     addNode.setAccessible(true);
-                    addNode.invoke(packetWriter, packetBufferNode, PacketFactory.getPacketMetadata().getAddNodeGarbageValue());
+                    addNode.invoke(packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
                 }
 
                 if (addNode != null) {
@@ -213,13 +217,13 @@ public class PacketClient {
                     addNode.invoke(null, packetWriter, packetBufferNode);
                 } else {
                     // Method signature is: addNode(packetWriter, packetBufferNode, garbageValue)
-                    long garbageValue = Math.abs(PacketFactory.getPacketMetadata().getAddNodeGarbageValue().longValue());
+                    long garbageValue = Math.abs(HooksLoader.getReflectionHooks().getAddNodeGarbageValue().longValue());
                     if (garbageValue < 256) {
-                        addNode.invoke(null, packetWriter, packetBufferNode, PacketFactory.getPacketMetadata().getAddNodeGarbageValue().byteValue());
+                        addNode.invoke(null, packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue().byteValue());
                     } else if (garbageValue < 32768) {
-                        addNode.invoke(null, packetWriter, packetBufferNode, PacketFactory.getPacketMetadata().getAddNodeGarbageValue().shortValue());
+                        addNode.invoke(null, packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue().shortValue());
                     } else if (garbageValue < Integer.MAX_VALUE) {
-                        addNode.invoke(null, packetWriter, packetBufferNode, PacketFactory.getPacketMetadata().getAddNodeGarbageValue());
+                        addNode.invoke(null, packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
                     }
                 }
                 addNode.setAccessible(false);
@@ -252,12 +256,12 @@ public class PacketClient {
      */
     private Method getGetPacketBufferNode() {
         try {
-            Class<?> packetBufferNodeAccessorClass = loadGameClientClass(PacketFactory.getPacketMetadata().getClassContainingPacketBufferNodeName());
+            Class<?> packetBufferNodeAccessorClass = loadGameClientClass(HooksLoader.getReflectionHooks().getClassContainingPacketBufferNodeName());
             if (packetBufferNodeAccessorClass == null) {
                 return null;
             }
 
-            Class<?> packetBufferNodeClass = loadGameClientClass(PacketFactory.getPacketMetadata().getPacketBufferNodeClassName());
+            Class<?> packetBufferNodeClass = loadGameClientClass(HooksLoader.getReflectionHooks().getPacketBufferNodeClassName());
             if (packetBufferNodeClass == null) {
                 return null;
             }
@@ -280,7 +284,7 @@ public class PacketClient {
      * @return The {@code ClientPacket} class, or null if not found.
      */
     private Class<?> getClientPacketClass() {
-        return loadGameClientClass(PacketFactory.getPacketMetadata().getClientPacketClassName());
+        return loadGameClientClass(HooksLoader.getReflectionHooks().getClientPacketClassName());
     }
 
     /**
@@ -290,9 +294,9 @@ public class PacketClient {
      */
     private Field getPacketWriterField() {
         try {
-            return client.getClass().getDeclaredField(PacketFactory.getPacketMetadata().getPacketWriterFieldName());
+            return client.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getPacketWriterFieldName());
         } catch (NoSuchFieldException e) {
-            log.error("Failed to get field: {}", PacketFactory.getPacketMetadata().getPacketWriterFieldName(), e);
+            log.error("Failed to get field: {}", HooksLoader.getReflectionHooks().getPacketWriterFieldName(), e);
         }
         return null;
     }
@@ -318,7 +322,7 @@ public class PacketClient {
             }
 
             Class<?> packetWriterClass = packetWriter.getClass();
-            Field isaacField = packetWriterClass.getDeclaredField(PacketFactory.getPacketMetadata().getIsaacCipherFieldName());
+            Field isaacField = packetWriterClass.getDeclaredField(HooksLoader.getReflectionHooks().getIsaacCipherFieldName());
             isaacField.setAccessible(true);
             Object isaacObject = isaacField.get(packetWriter); // Get instance field
             isaacField.setAccessible(false);

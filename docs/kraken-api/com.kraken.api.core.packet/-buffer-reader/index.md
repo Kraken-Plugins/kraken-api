@@ -24,7 +24,7 @@ Reading back is the mirror image:
 - Invert the obfuscation to recover the byte's bit contribution.
 - OR all bit contributions for the same field together to get the original value.
 
-The `indexMultiplier` and `offsetMultiplier` are the same obfuscated constants used by [BufferUtils](../-buffer-utils/index.md) and are loaded from PacketFactory.getPacketMetadata.
+The `indexMultiplier` and `offsetMultiplier` are the same obfuscated constants used by [BufferUtils](../-buffer-utils/index.md) and are loaded from PacketFactory.getReflectionHooks.
 
 ## Constructors
 
