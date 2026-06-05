@@ -116,8 +116,8 @@ jobs:
 
       - name: Sync Packets
         run: |
-          echo "Uploading packets.json to MinIO..."
-          mc cp src/main/resources/packets.json s3/kraken-bootstrap-static/packets.json
+          echo "Uploading Hooks file to MinIO..."
+          mc cp src/main/resources/hooks.json s3/kraken-bootstrap-static/hooks.json
 
       - name: Publish to GitHub Packages
         run: |

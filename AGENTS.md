@@ -78,7 +78,7 @@
   - `PacketFactory`, `PacketClient`, and the entity packet helpers build and send actions to the client.
   - `InteractionManager` and the resolver classes map high-level interactions to the right packet operations.
 - **Runtime hooks**:
-  - `packets.json` and `ObfuscatedNames.java` keep obfuscated client lookups aligned with the current RuneLite/client revision.
+  - `hooks.json` and `ObfuscatedNames.java` keep obfuscated client lookups aligned with the current RuneLite/client revision.
   - Interceptors patch runtime behavior where needed, but they should stay localized and guarded.
 - **Execution**:
   - The same API supports direct plugin use, scripted automation, and the `shortest-path` plugin for movement/pathfinding support.
