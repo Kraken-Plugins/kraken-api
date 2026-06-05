@@ -3,13 +3,8 @@ package com.kraken.api;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.interaction.InteractionManager;
-import com.kraken.api.core.interceptor.CallStackInterceptor;
-import com.kraken.api.core.interceptor.InterceptorBuilder;
-import com.kraken.api.core.interceptor.MouseHookInterceptor;
-import com.kraken.api.core.interceptor.PacketInterceptor;
 import com.kraken.api.core.packet.PacketFactory;
 import com.kraken.api.core.packet.PacketMethodLocator;
-import com.kraken.api.core.packet.model.PacketMetadata;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;
@@ -37,8 +32,6 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.*;
 
@@ -67,21 +60,14 @@ public class Context {
 
     @Getter
     private final InteractionManager interactionManager;
-    private final MouseHookInterceptor mouseHookInterceptor;
-    private final PacketInterceptor packetInterceptor;
-    private final CallStackInterceptor callStackInterceptor;
 
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
-                   final ItemManager itemManager, final BankService bankService, final PacketInterceptor packetInterceptor,
-                   final InteractionManager interactionManager, final MouseHookInterceptor mouseHookInterceptor, final CallStackInterceptor callStackInterceptor) {
+                   final ItemManager itemManager, final BankService bankService, final InteractionManager interactionManager) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
         this.itemManager = itemManager;
-        this.packetInterceptor = packetInterceptor;
-        this.mouseHookInterceptor = mouseHookInterceptor;
-        this.callStackInterceptor = callStackInterceptor;
         this.interactionManager = interactionManager;
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
@@ -122,66 +108,6 @@ public class Context {
             log.error("failed to enable packet sending functionality with exception: {}", e.getMessage());
         }
     }
-
-    /**
-     * Initializes all supported runtime interceptors using the default configuration.
-     */
-    public void initializeInterceptors() {
-        initializeInterceptors(InterceptorBuilder.builder().build());
-    }
-
-    /**
-     * Initializes the configured runtime interceptors. Each interceptor injection is isolated so failures
-     * do not prevent plugin startup or other interceptor injections from continuing.
-     *
-     * @param configuration the interceptor configuration to apply.
-     */
-    public void initializeInterceptors(InterceptorBuilder configuration) {
-        InterceptorBuilder resolvedConfiguration = Objects.requireNonNullElse(
-                configuration,
-                InterceptorBuilder.builder().build()
-        );
-
-        initializeInterceptor(
-                resolvedConfiguration.isPacketInterceptor(),
-                "packet interceptor",
-                packetInterceptor::injectHook,
-                "Subscriptions to onPacketSent within the EventBus will fail."
-        );
-
-        initializeInterceptor(
-                resolvedConfiguration.isMouseHookInterceptor(),
-                "mouse hook interceptor",
-                mouseHookInterceptor::injectHook,
-                "Manual clicks will still send the injected mouse flag. Packet functionality will set flag to 0 (not injected)."
-        );
-
-        initializeInterceptor(
-                resolvedConfiguration.isCallStackInterceptor(),
-                "call stack interceptor",
-                callStackInterceptor::injectHook,
-                "The call stack could not be patched. Login data sent may contain a callstack that can identify the client."
-        );
-
-        // Verify that the call stack is returning the clean version
-        try {
-            PacketMetadata metadata = PacketFactory.getPacketMetadata();
-            Class<?> clientClass = Class.forName(metadata.getCallStackClassName());
-            Method method = clientClass.getDeclaredMethod(metadata.getCallStackMethodName(), long.class);
-
-            method.setAccessible(true);
-            Object result = method.invoke(null, 0L);
-
-            log.info("Call Stack Validation:\n{}", result);
-        } catch (ClassNotFoundException e) {
-            log.error("Failed to verify call stack, no such class {}: ", PacketFactory.getPacketMetadata().getCallStackClassName(), e);
-        } catch (NoSuchMethodException e) {
-            log.error("Failed to verify call stack, no such method: ", e);
-        } catch (Exception e) {
-           log.error("Failed to verify call stack: ", e);
-        }
-    }
-
 
     /**
      * Wraps the RuneLite client's run script method scheduling the run on the client thread.
@@ -453,24 +379,5 @@ public class Context {
      */
     public WorldQuery worlds() {
         return new WorldQuery(this);
-    }
-
-    private void initializeInterceptor(boolean enabled, String interceptorName, InterceptorInitializer initializer,
-                                       String failureMessage) {
-        if (!enabled) {
-            log.info("{} disabled in configuration, skipping injection", interceptorName);
-            return;
-        }
-
-        try {
-            initializer.initialize();
-        } catch (Throwable t) {
-            log.error("Failed to inject {}. {}", interceptorName, failureMessage, t);
-        }
-    }
-
-    @FunctionalInterface
-    private interface InterceptorInitializer {
-        void initialize() throws Exception;
     }
 }

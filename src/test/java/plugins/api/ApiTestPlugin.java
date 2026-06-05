@@ -259,7 +259,6 @@ public class ApiTestPlugin extends Plugin {
     @Override
     protected void startUp() {
         context.initializePackets();
-        context.initializeInterceptors();
 
         exampleScript.start();
 
