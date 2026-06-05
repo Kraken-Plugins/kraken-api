@@ -32,7 +32,7 @@
     "mouseHookDllMethodName": "ik",
     "callStackClassName": "client",
     "callStackMethodName": "yq",
-    "cleanCallStackValue": "\"client4122yq\\n\" +\n\"client19537qj\\n\" +\n\"nrc.RuneLite297start\\n\" +\n\"nrc.RuneLite274main\\n\" +\n\"nrl.ReflectionLa+64lambda$launc+\\n\" +\n\"jl.ThreadUnknown +\";",
+    "cleanCallStackValue": "client4122yq\nclient19537qj\nnrc.RuneLite297start\nnrc.RuneLite274main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
     "clientLogFieldName": "us"
   },
   "loginHooks": {
