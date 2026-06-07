@@ -33,7 +33,9 @@
     "callStackClassName": "client",
     "callStackMethodName": "yq",
     "cleanCallStackValue": "client4122yq\nclient19537qj\nnrc.RuneLite297start\nnrc.RuneLite274main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
-    "clientLogFieldName": "us"
+    "clientLogFieldName": "us",
+    "platformInfoClassName": "vu",
+    "platformInfoMethodName": "ak"
   },
   "loginHooks": {
     "loginIndexGarbageValue": -88,

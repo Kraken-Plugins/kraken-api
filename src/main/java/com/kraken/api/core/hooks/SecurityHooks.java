@@ -10,5 +10,7 @@ public class SecurityHooks {
     String callStackClassName = "client";
     String callStackMethodName;
     String cleanCallStackValue;
+    String platformInfoClassName;
+    String platformInfoMethodName;
 }
 
