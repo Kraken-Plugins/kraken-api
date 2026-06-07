@@ -12,5 +12,7 @@ public class SecurityHooks {
     String cleanCallStackValue;
     String platformInfoClassName;
     String platformInfoMethodName;
+    String callStackField;
+    String agentField;
 }
 
