@@ -35,7 +35,9 @@
     "cleanCallStackValue": "client4122yq\nclient19537qj\nnrc.RuneLite297start\nnrc.RuneLite274main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
     "clientLogFieldName": "us",
     "platformInfoClassName": "vu",
-    "platformInfoMethodName": "ak"
+    "platformInfoMethodName": "ak",
+    "agentField": "cw",
+    "callStackField": "cg"
   },
   "loginHooks": {
     "loginIndexGarbageValue": -88,
