@@ -157,6 +157,7 @@ public class PacketMethodLocator {
     /**
      * Performs the full analysis by downloading, extracting, decompiling,
      * and parsing the client code.
+     * TODO we have a hooks file which maps out the add node method. We shouldn't have to decompile, regex search, and map ourselves at runtime.
      */
     @SneakyThrows
     private static void analyzeClient(Client client, String runeliteVersion) {
