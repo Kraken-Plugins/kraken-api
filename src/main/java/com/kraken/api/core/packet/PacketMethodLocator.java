@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Singleton
+@Deprecated(since="3.1.2", forRemoval = true)
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PacketMethodLocator {
 
