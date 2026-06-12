@@ -130,7 +130,6 @@ public class SimulationPlugin extends Plugin {
 
     @Override
     protected void startUp() {
-        context.initializePackets();
         syncOverlayState();
         clearTransientState();
     }

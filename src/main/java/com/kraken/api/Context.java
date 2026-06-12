@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.interaction.InteractionManager;
-import com.kraken.api.core.packet.PacketMethodLocator;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;
@@ -98,16 +97,16 @@ public class Context {
      * This is required to be called before packets can actually be sent i.e. its necessary to know the packet
      * method in the client before calling it with reflection.
      */
-    public void initializePackets() {
-        if (packetsLoaded) return;
-
-        try {
-            PacketMethodLocator.initialize(client);
-            packetsLoaded = true;
-        } catch (Exception e) {
-            log.error("failed to enable packet sending functionality with exception: {}", e.getMessage());
-        }
-    }
+//    public void initializePackets() {
+//        if (packetsLoaded) return;
+//
+//        try {
+//            PacketMethodLocator.initialize(client);
+//            packetsLoaded = true;
+//        } catch (Exception e) {
+//            log.error("failed to enable packet sending functionality with exception: {}", e.getMessage());
+//        }
+//    }
 
     /**
      * Wraps the RuneLite client's run script method scheduling the run on the client thread.

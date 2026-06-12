@@ -145,7 +145,6 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     @Override
     protected void startUp() {
-        ctx.initializePackets();
         runtimeEnabled = config.startEnabled();
         oneTickFlickEnabled = false;
         keyManager.registerKeyListener(toggleHotkeyListener);
@@ -215,10 +214,6 @@ public class AutoColosseumPrayersPlugin extends Plugin {
 
     @Subscribe
     private void onGameStateChanged(GameStateChanged event) {
-        if (event.getGameState() == GameState.LOGGED_IN && !ctx.isPacketsLoaded()) {
-            ctx.initializePackets();
-        }
-
         if (event.getGameState() != GameState.LOGGED_IN) {
             clearTrackingState();
             lastTickTime = 0L;
@@ -319,10 +314,6 @@ public class AutoColosseumPrayersPlugin extends Plugin {
     private void onGameTick(GameTick event) {
         int currentTick = client.getTickCount();
         lastTickTime = System.currentTimeMillis();
-
-        if (!ctx.isPacketsLoaded()) {
-            ctx.initializePackets();
-        }
 
         if (!isRuntimeEnabled()) {
             activeTargetPrayer = null;
