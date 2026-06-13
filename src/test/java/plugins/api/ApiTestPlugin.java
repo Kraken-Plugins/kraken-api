@@ -258,8 +258,6 @@ public class ApiTestPlugin extends Plugin {
 
     @Override
     protected void startUp() {
-        context.initializePackets();
-
         exampleScript.start();
 
         overlayManager.add(overlay);

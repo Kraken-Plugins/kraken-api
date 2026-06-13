@@ -3,10 +3,8 @@ package com.kraken.api.core.packet;
 import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.model.BufferOperation;
 import com.kraken.api.core.packet.model.PacketDefinition;
-import com.kraken.api.core.packet.model.PacketMethods;
 import com.kraken.api.core.packet.model.PacketWrite;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 
@@ -22,8 +20,8 @@ import java.util.Map;
 
 /**
  * {@code PacketClient} is an instance-based RuneLite client packet sending utility which uses reflection to
- * construct and send low level packets directly to the game servers. Generally you should not use this class directly
- * as it functions at a low level when sending packets.
+ * construct and send low-level packets directly to the game servers. Generally, you should not need to use this class directly
+ * within your plugins as it functions at a lower level to construct and sending packets.
  * <p>
  * Instead, it's recommended to use the higher level API's like {@code MousePackets}, {@code WidgetPackets}, or {@code NpcPackets} for
  * sending game packets to the server based on your specific entity interaction needs (clicking interfaces, NPC's, GameObjects, etc...
@@ -32,30 +30,24 @@ import java.util.Map;
 @Singleton
 public class PacketClient {
 
-    private final PacketMethods methods;
-
     @Getter
     private final Client client;
 
+    private final boolean isUsingClientAddNode;
+
     /**
      * Creates a new PacketSender. This constructor initializes packet queueing functionality by either loading the client packet
-     * sending method from the cached json file or running an analysis on the RuneLite injected client
+     * sending method from the cached JSON file or running an analysis on the RuneLite injected client
      * to determine the packet sending method.
      *
      * @param client The RuneLite Client instance.
      */
     @Inject
-    @SneakyThrows
     public PacketClient(Client client) {
-        this.methods = PacketMethodLocator.packetMethods;
         this.client = client;
-
-        if (this.methods == null) {
-            // This is a hard failure because without the packet methods, no packets can be sent.
-            // PacketMethodLocator.initializePackets() must be called before this class is injected.
-            throw new RuntimeException("Packet queuing method could not be determined. Make sure you initialize packets with context.initializePackets()" +
-                    "before constructing this class.");
-        }
+        // Some revs the packet add node method will be like client.aq.az() client.packetWriter.addNode() but other times
+        // it may be on a static helper class like ap.aq.az() helper.packetWriter.addNode()
+        this.isUsingClientAddNode = HooksLoader.getReflectionHooks().getAddNodeClassName().equalsIgnoreCase("client");
     }
 
     /**
@@ -175,17 +167,30 @@ public class PacketClient {
     }
 
     /**
-     * Queues the completed {@code PacketBufferNode} to the client's {@code PacketWriter}.
-     * This method handles two different ways the client might queue packets, determined
-     * by the analysis from
+     * Queues a fully constructed {@code PacketBufferNode} to the client's {@code PacketWriter} for network dispatch.
+     * <p>
+     * Due to the client's dynamic obfuscation patterns across different revisions, the underlying
+     * packet-queueing method manifests in one of two distinct structural paths:
+     * <ul>
+     * <li><b>Path 1 (Instance Method):</b> The method exists directly on the {@code PacketWriter} class.
+     * It takes the buffer as an argument (e.g., {@code client.packetWriter.addNode(buffer)}).</li>
+     * <li><b>Path 2 (Static Utility):</b> The method is detached into an unrelated static utility class.
+     * Because it lacks instance context, it strictly requires the {@code PacketWriter} to be passed
+     * in as its first argument (e.g., {@code RandomClass.addNode(packetWriter, buffer)}).</li>
+     * </ul>
+     * <p>
+     * This method acts as a unified wrapper, abstracting away this instability. It seamlessly executes
+     * the correct reflection call—including the dynamic resolution of anti-reversing dummy "garbage values"
+     * (byte, short, or int)—based on the current revision's hooks.
      *
-     * @param packetWriter     The client's PacketWriter instance.
-     * @param packetBufferNode The fully constructed packet to be sent.
+     * @param packetWriter     The client's {@code PacketWriter} instance responsible for handling network I/O.
+     * @param packetBufferNode The fully constructed packet node containing the payload to be sent.
      */
     private void addNode(Object packetWriter, Object packetBufferNode) {
         try {
-            if (methods.isUsingClientAddNode()) {
-                // Path 1: The 'addNode' method is a member of the PacketWriter class itself.
+            // Path 1: The 'addNode' method is a member of the PacketWriter class itself and is accessed
+            // via a static field from the client class like: client.aq.az() client.packetWriter.addNode()
+            if (isUsingClientAddNode) {
                 Method addNode = null;
                 long garbageValue = Math.abs(HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
 
@@ -208,8 +213,14 @@ public class PacketClient {
                     addNode.setAccessible(false);
                 }
             } else {
-                // Path 2: The 'addNode' method is a static utility method found elsewhere.
-                Method addNode = methods.getAddNodeMethod();
+                // Path 2: The 'addNode' method is a static utility method found elsewhere. This means we must find the method
+                // specifically because it won't exist on the packetWriter class. It will also accept packetwriter AND packetBuffer as arguments.
+                Method addNode = getAddNodeMethod();
+                if(addNode == null) {
+                    log.error("Failed to locate addNode method: {} in class {}: ", HooksLoader.getReflectionHooks().getAddNodeMethodName(), HooksLoader.getReflectionHooks().getAddNodeClassName());
+                    return;
+                }
+
                 addNode.setAccessible(true);
 
                 if (addNode.getParameterCount() == 2) {
@@ -231,6 +242,43 @@ public class PacketClient {
         } catch (Exception e) {
             log.error("Failed during addNode packet queueing: ", e);
         }
+    }
+
+    /**
+     * Resolves the reflection {@code Method} for the static utility variant of {@code addNode}.
+     * <p>
+     * This lookup is exclusively used when the packet-queueing logic is detached from the
+     * {@code PacketWriter} class (Path 2). To locate the correct obfuscated method, this scans
+     * the target utility class for a method that matches the injected hook name and explicitly
+     * declares the {@code PacketWriter} class as its first parameter.
+     * * @return The static {@code addNode} {@link Method}, or {@code null} if the method cannot be found
+     * or the target class fails to load.
+     */
+    private Method getAddNodeMethod() {
+        Method addNodeMethod = null;
+        try {
+            Class<?> addNodeClass = client.getClass().getClassLoader().loadClass(HooksLoader.getReflectionHooks().getAddNodeClassName());
+
+            for (Method method : addNodeClass.getDeclaredMethods()) {
+
+                // Identify the static utility variant of addNode (Path 2).
+                // Because this method is detached from the PacketWriter class, it cannot access the
+                // writer implicitly. Therefore, its signature MUST explicitly accept the PacketWriter
+                // as its first argument (e.g., `ab.az(packetWriter, buffer)` instead of
+                // `packetWriter.az(buffer)`). We filter the class methods based on this requirement.
+                if (method.getName().equals(HooksLoader.getReflectionHooks().getAddNodeMethodName())
+                        && method.getParameterCount() > 0
+                        && method.getParameterTypes().length != 0
+                        && method.getParameterTypes()[0].getSimpleName().equals(HooksLoader.getReflectionHooks().getPacketWriterClassName())) {
+                    addNodeMethod = method;
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            log.error("Failed to locate addNode method: {} in class {}: ", HooksLoader.getReflectionHooks().getAddNodeMethodName(), HooksLoader.getReflectionHooks().getAddNodeClassName(), e);
+        }
+
+        return addNodeMethod;
     }
 
     /**

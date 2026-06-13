@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.interaction.InteractionManager;
-import com.kraken.api.core.packet.PacketMethodLocator;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;
@@ -88,25 +87,6 @@ public class Context {
         }
 
         log.info("Game context initialized successfully, loaded {} packet definitions", HooksLoader.getPackets().size());
-    }
-
-    /**
-     * Initializes packet queueing functionality by either loading the client packet
-     * sending method from the cached json file or running an analysis on the RuneLite injected client
-     * to determine the packet sending method.
-     * <p>
-     * This is required to be called before packets can actually be sent i.e. its necessary to know the packet
-     * method in the client before calling it with reflection.
-     */
-    public void initializePackets() {
-        if (packetsLoaded) return;
-
-        try {
-            PacketMethodLocator.initialize(client);
-            packetsLoaded = true;
-        } catch (Exception e) {
-            log.error("failed to enable packet sending functionality with exception: {}", e.getMessage());
-        }
     }
 
     /**
