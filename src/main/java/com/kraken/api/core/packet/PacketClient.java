@@ -20,8 +20,8 @@ import java.util.Map;
 
 /**
  * {@code PacketClient} is an instance-based RuneLite client packet sending utility which uses reflection to
- * construct and send low level packets directly to the game servers. Generally you should not use this class directly
- * as it functions at a low level when sending packets.
+ * construct and send low-level packets directly to the game servers. Generally, you should not need to use this class directly
+ * within your plugins as it functions at a lower level to construct and sending packets.
  * <p>
  * Instead, it's recommended to use the higher level API's like {@code MousePackets}, {@code WidgetPackets}, or {@code NpcPackets} for
  * sending game packets to the server based on your specific entity interaction needs (clicking interfaces, NPC's, GameObjects, etc...
@@ -37,7 +37,7 @@ public class PacketClient {
 
     /**
      * Creates a new PacketSender. This constructor initializes packet queueing functionality by either loading the client packet
-     * sending method from the cached json file or running an analysis on the RuneLite injected client
+     * sending method from the cached JSON file or running an analysis on the RuneLite injected client
      * to determine the packet sending method.
      *
      * @param client The RuneLite Client instance.

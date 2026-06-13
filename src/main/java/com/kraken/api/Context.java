@@ -90,25 +90,6 @@ public class Context {
     }
 
     /**
-     * Initializes packet queueing functionality by either loading the client packet
-     * sending method from the cached json file or running an analysis on the RuneLite injected client
-     * to determine the packet sending method.
-     * <p>
-     * This is required to be called before packets can actually be sent i.e. its necessary to know the packet
-     * method in the client before calling it with reflection.
-     */
-//    public void initializePackets() {
-//        if (packetsLoaded) return;
-//
-//        try {
-//            PacketMethodLocator.initialize(client);
-//            packetsLoaded = true;
-//        } catch (Exception e) {
-//            log.error("failed to enable packet sending functionality with exception: {}", e.getMessage());
-//        }
-//    }
-
-    /**
      * Wraps the RuneLite client's run script method scheduling the run on the client thread.
      * This is a convenience method for {@code ctx.runOnClientThread(() -> ctx.getClient().runScript(...));}
      * @param id The CS2 script id to run.
