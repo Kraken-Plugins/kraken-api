@@ -4,6 +4,11 @@
 # Log file
 *.log
 
+.idea
+*.iml
+.env
+.DS_STORE
+
 .gradle-user
 .gradle-user/*
 
