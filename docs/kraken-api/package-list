@@ -174,10 +174,6 @@ $dokka.location:com.kraken.api.core.packet/PacketFactory/getMoveGameClick/#/Poin
 $dokka.location:com.kraken.api.core.packet/PacketFactory/getResumeCountDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/get-resume-count-dialog.md
 $dokka.location:com.kraken.api.core.packet/PacketFactory/getResumeObjDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/get-resume-obj-dialog.md
 $dokka.location:com.kraken.api.core.packet/PacketFactory/getStringDialog/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-factory/get-string-dialog.md
-$dokka.location:com.kraken.api.core.packet/PacketMethodLocator///PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-method-locator/index.md
-$dokka.location:com.kraken.api.core.packet/PacketMethodLocator/PacketMethodLocator/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-method-locator/-packet-method-locator.md
-$dokka.location:com.kraken.api.core.packet/PacketMethodLocator/initialize/#Client/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-method-locator/initialize.md
-$dokka.location:com.kraken.api.core.packet/PacketMethodLocator/packetMethods/#/PointingToDeclaration/kraken-api/com.kraken.api.core.packet/-packet-method-locator/packet-methods.md
 $dokka.location:com.kraken.api.core.script.breakhandler////PointingToDeclaration/kraken-api/com.kraken.api.core.script.breakhandler/index.md
 $dokka.location:com.kraken.api.core.script.breakhandler/BreakCondition///PointingToDeclaration/kraken-api/com.kraken.api.core.script.breakhandler/-break-condition/index.md
 $dokka.location:com.kraken.api.core.script.breakhandler/BreakCondition/getDescription/#/PointingToDeclaration/kraken-api/com.kraken.api.core.script.breakhandler/-break-condition/get-description.md
@@ -2138,7 +2134,6 @@ $dokka.location:com.kraken.api/Context/getVarbitValue/#int/PointingToDeclaration
 $dokka.location:com.kraken.api/Context/getVarpValue/#int/PointingToDeclaration/kraken-api/com.kraken.api/-context/get-varp-value.md
 $dokka.location:com.kraken.api/Context/getWidget/#int/PointingToDeclaration/kraken-api/com.kraken.api/-context/get-widget.md
 $dokka.location:com.kraken.api/Context/groundItems/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/ground-items.md
-$dokka.location:com.kraken.api/Context/initializePackets/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/initialize-packets.md
 $dokka.location:com.kraken.api/Context/inventory/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/inventory.md
 $dokka.location:com.kraken.api/Context/npcs/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/npcs.md
 $dokka.location:com.kraken.api/Context/players/#/PointingToDeclaration/kraken-api/com.kraken.api/-context/players.md

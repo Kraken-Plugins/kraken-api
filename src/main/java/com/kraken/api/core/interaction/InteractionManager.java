@@ -304,7 +304,6 @@ public class InteractionManager {
 
     /**
      * Interacts with a widget by resolving its context and dispatching the specified interaction.
-     * <p>
      * This method performs the following tasks:
      * <ul>
      *   <li>Ensures that packets are loaded before proceeding.</li>
@@ -314,7 +313,6 @@ public class InteractionManager {
      * </ul>
      * If the widget cannot be resolved or the action name cannot be determined, appropriate warnings
      * will be logged.
-     * </p>
      *
      * @param widgetId    the unique identifier of the widget to be interacted with.
      *                    This corresponds to the parent widget in the user interface.
