@@ -226,7 +226,6 @@ public class LocalPlayerEntity extends PlayerEntity {
      *              the weapon equip before it can toggle on spec. Otherwise, the game would see you toggle on spec for nothing, then spec weapon gets equipped with spec disabled.
      */
     public void toggleSpecialAttack(int energyRequired, int delay) {
-        if(!ctx.isPacketsLoaded()) return;
         int currentSpecEnergy = ctx.getVarpValue(300) / 10;
         if (currentSpecEnergy >= energyRequired && !isSpecEnabled()) {
             executor.schedule(() -> {
@@ -241,7 +240,6 @@ public class LocalPlayerEntity extends PlayerEntity {
      * {activateRun} and {deactivateRun} if a specific state is required.
      */
     public void toggleRun() {
-        if(!ctx.isPacketsLoaded()) return;
         executor.schedule(() -> {
             Widget w = ctx.runOnClientThread(() -> ctx.getClient().getWidget(10485788));
             ctx.getInteractionManager().interact(w, "Toggle Run");
@@ -264,7 +262,7 @@ public class LocalPlayerEntity extends PlayerEntity {
     }
 
     /**
-     * Returns true when a players run is enabled and false otherwise.
+     * Returns true when a player's run is enabled and false otherwise.
      * @return boolean
      */
     public boolean isRunEnabled() {

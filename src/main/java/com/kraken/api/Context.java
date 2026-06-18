@@ -48,10 +48,6 @@ public class Context {
     @Getter
     private final ClientThread clientThread;
 
-    // TODO Rm in future update this is unecessary
-    @Getter
-    private boolean packetsLoaded;
-
     @Getter
     private final LocalPlayerEntity localPlayer;
 
@@ -70,7 +66,6 @@ public class Context {
         this.itemManager = itemManager;
         this.interactionManager = interactionManager;
         this.localPlayer = new LocalPlayerEntity(this);
-        this.packetsLoaded = true;
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
 

@@ -51,7 +51,6 @@ public class SailingService {
      *         {@literal false} if the necessary game packets were not loaded.
      */
     public boolean setDirection(Direction direction) {
-        if(!ctx.isPacketsLoaded()) return false;
         mousePackets.queueClickPacket(1, 1);
         interactionManager.interact(direction.getCode());
         return true;

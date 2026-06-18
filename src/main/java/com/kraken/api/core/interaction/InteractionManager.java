@@ -47,10 +47,7 @@ public class InteractionManager {
     @Getter
     private WidgetPackets widgetPackets;
 
-
     private <T> void interact(T entity, Class<T> type, String action, Point point) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
-
         registry.getResolver(type)
                 .flatMap(r -> r.resolve(entity, action))
                 .ifPresentOrElse(
@@ -60,38 +57,82 @@ public class InteractionManager {
                 );
     }
 
+    /**
+     * Interacts with an NPC using a specified action.
+     *
+     * @param npc    The NPC to interact with.
+     * @param action The action to perform (e.g., "Attack", "Pickpocket").
+     */
     public void interact(NPC npc, String action) {
         interact(npc, NPC.class, action, UIService.getClickbox(npc));
     }
 
+    /**
+     * Interacts with another player using a specified action.
+     *
+     * @param player The player to interact with.
+     * @param action The action to perform (e.g., "Trade", "Follow").
+     */
     public void interact(Player player, String action) {
         interact(player, Player.class, action, UIService.getClickbox(player));
     }
 
+    /**
+     * Interacts with a game object using a specified action.
+     *
+     * @param object The TileObject (game object) to interact with.
+     * @param action The action to perform (e.g., "Chop down", "Mine").
+     */
     public void interact(TileObject object, String action) {
         interact(object, TileObject.class, action, UIService.getClickbox(object));
     }
 
+    /**
+     * Picks up a ground item. Defaults to the "Take" action.
+     *
+     * @param item The ground item to pick up.
+     */
     public void interact(GroundItem item) {
         interact(item, "Take");
     }
 
+    /**
+     * Interacts with a ground item using a specified action.
+     *
+     * @param item   The ground item to interact with.
+     * @param action The action to perform (e.g., "Take", "Cast").
+     */
     public void interact(GroundItem item, String action) {
         interact(item, GroundItem.class, action, UIService.getClickbox(item.getTileObject()));
     }
 
+    /**
+     * Interacts with a UI widget using a specified action.
+     *
+     * @param widget The widget to interact with.
+     * @param action The action to perform.
+     */
     public void interact(Widget widget, String action) {
         interact(widget, Widget.class, action, UIService.getClickbox(widget));
     }
 
+    /**
+     * Interacts with an item inside the bank interface.
+     *
+     * @param item   The bank item widget to interact with.
+     * @param action The action to perform (e.g., "Withdraw-1", "Withdraw-All").
+     */
     public void interact(BankItemWidget item, String action) {
         interact(item, BankItemWidget.class, action, UIService.getClickbox(item));
     }
 
-    // --- ContainerItem overloads ---
-
+    /**
+     * Interacts with an item within a container (such as the player's inventory).
+     *
+     * @param item   The container item to interact with.
+     * @param action The action to perform (e.g., "Drop", "Wield").
+     */
     public void interact(ContainerItem item, String action) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
         ctxProvider.get().runOnClientThread(() -> {
             if (item == null) return;
             Widget w = item.getWidget();
@@ -100,8 +141,14 @@ public class InteractionManager {
         });
     }
 
+    /**
+     * Attempts to interact with a container item by trying a sequence of actions.
+     * Dispatches the first action that successfully resolves.
+     *
+     * @param item    The container item to interact with.
+     * @param actions An array of actions to attempt, in order of priority.
+     */
     public void interact(ContainerItem item, String... actions) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
         ctxProvider.get().runOnClientThread(() -> {
             if (item == null) return;
             Widget w = item.getWidget();
@@ -125,17 +172,26 @@ public class InteractionManager {
                     Arrays.toString(actions), item.getName());
         });
     }
-
-    // --- Dialogue overloads ---
-
+    
+    /**
+     * Handles dialogue progression or selection using a widget's packed ID.
+     *
+     * @param packedWidgetId The packed ID of the dialogue widget.
+     * @param option         The dialogue option to select (-1 for continue, 1-5 for choices).
+     */
     public void interact(int packedWidgetId, int option) {
         Widget widget = ctxProvider.get().getClient().getWidget(packedWidgetId);
         if (widget == null) return;
         interact(widget, option);
     }
 
+    /**
+     * Handles dialogue progression or selection using a specific widget.
+     *
+     * @param widget The dialogue widget.
+     * @param option The dialogue option to select (-1 for continue, 1-5 for choices).
+     */
     public void interact(Widget widget, int option) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
         if (widget == null) return;
 
         Point pt = UIService.getClickbox(widget);
@@ -148,11 +204,12 @@ public class InteractionManager {
         dispatcher.dispatch(pt, "Continue", new ResolvedMenuAction(opt, ""));
     }
 
-    // --- Heading overload ---
-
+    /**
+     * Sets the player's heading/camera direction.
+     *
+     * @param heading The heading value to set.
+     */
     public void interact(int heading) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
-
         int worldView = ctxProvider.get().getClient().getTopLevelWorldView().getId();
         MenuOption option = new MenuOption(MenuAction.SET_HEADING, heading, 0, 0, 0, worldView);
         dispatcher.dispatch(
@@ -162,10 +219,14 @@ public class InteractionManager {
         );
     }
 
-    // --- Sub-action (i.e. games necklace, max cape, and ring of dueling sub menu teleports) ---
-
+    /**
+     * Performs a nested or sub-action on a widget, such as right-click equipment teleports.
+     *
+     * @param item   The widget item to interact with.
+     * @param menu   The parent menu name (e.g., "Rub").
+     * @param action The specific sub-action to perform (e.g., "Grand Exchange").
+     */
     public void interact(Widget item, String menu, String action) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
         Point pt = UIService.getClickbox(item);
 
         subActionResolver.resolve(item, menu, action)
@@ -176,11 +237,15 @@ public class InteractionManager {
                 );
     }
 
-    // --- Widget → Widget (e.g. High Alch, chisel on gem) ---
 
+    /**
+     * Uses one widget on another widget (e.g., casting High Alchemy on an inventory item,
+     * or using a chisel on a gem).
+     *
+     * @param src  The source widget (the item or spell being used).
+     * @param dest The destination widget (the item being targeted).
+     */
     public void interact(Widget src, Widget dest) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
-
         Point srcPoint  = UIService.getClickbox(src);
         Point destPoint = UIService.getClickbox(dest);
 
@@ -200,11 +265,13 @@ public class InteractionManager {
                 });
     }
 
-    // --- Widget → TileObject (e.g. Bucket on Fountain) ---
-
+    /**
+     * Uses a widget on a game object (e.g., using a bucket on a fountain or a spell on an object).
+     *
+     * @param src  The source widget (the item or spell).
+     * @param dest The destination TileObject in the game world.
+     */
     public void interact(Widget src, TileObject dest) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
-
         Point srcPoint  = UIService.getClickbox(src);
         Point destPoint = UIService.getClickbox(dest);
 
@@ -215,7 +282,7 @@ public class InteractionManager {
 
                     // Build WIDGET_TARGET_ON_GAME_OBJECT directly — the generic TileObject
                     // resolver would not see isWidgetSelected() == true in time, so we
-                    // construct it explicitly to mirror the original behaviour.
+                    // construct it explicitly to mirror the original behavior.
                     ctxProvider.get().runOnClientThread(() -> {
                         Client client = ctxProvider.get().getClient();
                         int worldView = client.getTopLevelWorldView().getId();
@@ -243,11 +310,14 @@ public class InteractionManager {
                 });
     }
 
-    // --- Widget → NPC (e.g. Crumble Undead on Vorkath Spawn) ---
-
+    /**
+     * Uses a widget on an NPC (e.g., casting Crumble Undead on a Vorkath spawn,
+     * or using an item on an NPC).
+     *
+     * @param src  The source widget (the item or spell).
+     * @param dest The destination NPC.
+     */
     public void interact(Widget src, NPC dest) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
-
         Point srcPoint  = UIService.getClickbox(src);
         Point destPoint = UIService.getClickbox(dest);
 
@@ -271,11 +341,14 @@ public class InteractionManager {
                 });
     }
 
-    // --- Widget → GroundItem (e.g. Telekinetic Grab) ---
 
+    /**
+     * Uses a widget on a ground item (e.g., casting Telekinetic Grab on dropped loot).
+     *
+     * @param src  The source widget (the spell or item).
+     * @param dest The destination ground item.
+     */
     public void interact(Widget src, GroundItem dest) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
-
         Point srcPoint  = UIService.getClickbox(src);
         Point destPoint = UIService.getClickbox(dest.getTileObject());
 
@@ -324,8 +397,6 @@ public class InteractionManager {
      *                    This determines the type of interaction executed (e.g., click, examine).
      */
     public void interact(int widgetId, int childId, int itemId, int action) {
-        if (!ctxProvider.get().isPacketsLoaded()) return;
-
         Context ctx = ctxProvider.get();
         Widget widget = ctx.getWidget(widgetId);
         if (widget == null) {
