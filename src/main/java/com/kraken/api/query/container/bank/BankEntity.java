@@ -110,8 +110,6 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
      * @return true if the withdrawal was successful and false otherwise
      */
     public boolean withdraw(int amount, boolean noted) {
-        if (!ctx.isPacketsLoaded()) return false;
-
         BankItemWidget raw = raw();
 
         if (amount == 1) return setModeAndInteract(noted, "Withdraw-1");

@@ -69,7 +69,6 @@ public class MagicService {
      *         missing runes, or insufficient Prayer points for certain CastableSpell.</p>
      */
     public boolean canCast(CastableSpell spell) {
-        if (!ctx.isPacketsLoaded()) return false;
         if (spell == null) return false;
 
         if (Spellbook.getCurrentSpellbook() != spell.getSpellbook()) {
