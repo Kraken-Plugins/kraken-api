@@ -4,14 +4,11 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.interaction.InteractionManager;
-import com.kraken.api.service.ui.UIService;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Point;
 import net.runelite.api.Prayer;
 import net.runelite.api.Skill;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarbitID;
-import net.runelite.api.widgets.Widget;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,8 +84,6 @@ public class PrayerService {
             return false;
         }
 
-        Widget widget = ctx.getWidget(prayerExtended.getIndex());
-        Point point = UIService.getClickbox(widget);
         interactionManager.interact(prayerExtended.getIndex(), -1, -1, 1);
         return true;
     }
