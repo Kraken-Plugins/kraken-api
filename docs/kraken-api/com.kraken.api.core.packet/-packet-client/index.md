@@ -5,7 +5,7 @@
 [Kraken API]\
 open class [PacketClient](index.md)
 
-`PacketClient` is an instance-based RuneLite client packet sending utility which uses reflection to construct and send low level packets directly to the game servers. Generally you should not use this class directly as it functions at a low level when sending packets. 
+`PacketClient` is an instance-based RuneLite client packet sending utility which uses reflection to construct and send low-level packets directly to the game servers. Generally, you should not need to use this class directly within your plugins as it functions at a lower level to construct and sending packets. 
 
  Instead, it's recommended to use the higher level API's like `MousePackets`, `WidgetPackets`, or `NpcPackets` for sending game packets to the server based on your specific entity interaction needs (clicking interfaces, NPC's, GameObjects, etc...
 

@@ -5,7 +5,7 @@
 [Kraken API]\
 constructor(client: Client)
 
-Creates a new PacketSender. This constructor initializes packet queueing functionality by either loading the client packet sending method from the cached json file or running an analysis on the RuneLite injected client to determine the packet sending method.
+Creates a new PacketSender. This constructor initializes packet queueing functionality by either loading the client packet sending method from the cached JSON file or running an analysis on the RuneLite injected client to determine the packet sending method.
 
 #### Parameters
 
