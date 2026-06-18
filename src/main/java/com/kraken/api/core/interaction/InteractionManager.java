@@ -302,8 +302,29 @@ public class InteractionManager {
                 });
     }
 
-    // --- Raw widget interaction by action index ---
-
+    /**
+     * Interacts with a widget by resolving its context and dispatching the specified interaction.
+     * <p>
+     * This method performs the following tasks:
+     * <ul>
+     *   <li>Ensures that packets are loaded before proceeding.</li>
+     *   <li>Resolves the widget using the provided {@code widgetId}.</li>
+     *   <li>Determines the display name for the action based on the specified {@code action} index.</li>
+     *   <li>Dispatches the interaction to the game's input system.</li>
+     * </ul>
+     * If the widget cannot be resolved or the action name cannot be determined, appropriate warnings
+     * will be logged.
+     * </p>
+     *
+     * @param widgetId    the unique identifier of the widget to be interacted with.
+     *                    This corresponds to the parent widget in the user interface.
+     * @param childId     the identifier of the child element within the widget being targeted.
+     *                    If no child element is specified, this is typically {@code -1}.
+     * @param itemId      the identifier of a specific item within the widget, if applicable.
+     *                    If not targeting an item, this is typically {@code -1}.
+     * @param action      the zero-based index of the action to be performed from the widget's action list.
+     *                    This determines the type of interaction executed (e.g., click, examine).
+     */
     public void interact(int widgetId, int childId, int itemId, int action) {
         if (!ctxProvider.get().isPacketsLoaded()) return;
 
