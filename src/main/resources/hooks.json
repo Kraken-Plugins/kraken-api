@@ -37,6 +37,8 @@
     "accountIdClassName": "lo",
     "accountCheckFieldName": "da",
     "accountCheckClassName": "client",
+    "displayNameFieldName": "cl",
+    "displayNameClassName": "bx",
     "jagexValueFieldName": "af",
     "jagexValueClassName": "zd",
     "legacyValueFieldName": "ag",
