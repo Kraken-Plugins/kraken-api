@@ -5,7 +5,7 @@
 [Kraken API]\
 open fun [depositAll](deposit-all.md)(): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)
 
-Deposit all items in the players inventory into the bank.
+Deposit all items in the player's inventory into the bank.
 
 #### Return
 
