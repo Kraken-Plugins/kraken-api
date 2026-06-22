@@ -97,7 +97,7 @@ public class ReflectionService {
         }
     }
 
-    private Field getField(String className, String fieldName) throws Exception {
+    private Field getField(String className, String fieldName) {
         FieldLookup lookup = new FieldLookup(className, fieldName);
         return fieldCache.computeIfAbsent(lookup, key -> {
             try {

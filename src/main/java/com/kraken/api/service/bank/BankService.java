@@ -35,7 +35,7 @@ import static net.runelite.api.gameval.VarbitID.BANK_WITHDRAWNOTES;
 @Slf4j
 @Singleton
 public class BankService {
-    private static final int WITHDRAW_ITEM_NOT_MODE_WIDGET = 786451;
+    private static final int WITHDRAW_ITEM_NOTE_MODE_WIDGET = 786457;
 
     @Inject
     private Provider<Context> ctxProvider;
@@ -163,7 +163,7 @@ public class BankService {
 
         if (currentMode == targetMode) return true;
 
-        Widget toggleWidget = client.getWidget(WITHDRAW_ITEM_NOT_MODE_WIDGET);
+        Widget toggleWidget = client.getWidget(WITHDRAW_ITEM_NOTE_MODE_WIDGET);
 
         if (toggleWidget != null) {
             String action = noted ? "Enable <col=ff9040>Notes" : "Disable <col=ff9040>Notes";
@@ -223,7 +223,7 @@ public class BankService {
     }
 
     /**
-     * Deposit all items in the players inventory into the bank.
+     * Deposit all items in the player's inventory into the bank.
      * @return True if the deposit was successful and false otherwise
      */
     public boolean depositAll() {
@@ -231,10 +231,10 @@ public class BankService {
             if(ctxProvider.get().inventory().isEmpty()) return true;
             if (!isOpen()) return false;
 
-            Widget widget = client.getWidget(786473);
+            Widget widget = client.getWidget(786479);
             if (widget == null) return false;
 
-            ctxProvider.get().widgets().withId(786473).first().interact("Deposit inventory");
+            ctxProvider.get().widgets().withId(786479).first().interact("Deposit inventory");
             return true;
         });
     }
@@ -247,10 +247,10 @@ public class BankService {
         return ctxProvider.get().runOnClientThread(() -> {
             if (!isOpen()) return false;
 
-            Widget widget = client.getWidget(786475);
+            Widget widget = client.getWidget(786481);
             if (widget == null) return false;
 
-            ctxProvider.get().widgets().withId(786475).first().interact("Deposit worn items");
+            ctxProvider.get().widgets().withId(786481).first().interact("Deposit worn items");
             return true;
         });
     }
@@ -264,10 +264,10 @@ public class BankService {
         return ctxProvider.get().runOnClientThread(() -> {
             if (!isOpen()) return false;
 
-            Widget widget = client.getWidget(786471);
+            Widget widget = client.getWidget(786477);
             if (widget == null) return false;
 
-            ctxProvider.get().widgets().withId(786471).first().interact("Empty containers");
+            ctxProvider.get().widgets().withId(786477).first().interact("Empty containers");
             return true;
         });
     }
