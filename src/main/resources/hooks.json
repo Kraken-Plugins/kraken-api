@@ -54,7 +54,9 @@
     "platformInfoClassName": "vs",
     "platformInfoMethodName": "gz",
     "agentField": "cs",
-    "callStackField": "cf"
+    "callStackField": "cf",
+    "isPlatformInfoMethodStatic": true,
+    "platformInfoMethodArgCount": 3
   },
   "packets": {
     "EVENT_MOUSE_CLICK": {

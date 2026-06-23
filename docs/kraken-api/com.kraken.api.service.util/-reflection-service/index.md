@@ -7,7 +7,7 @@ open class [ReflectionService](index.md)
 
 Service for handling reflection operations, including field access and method invocation. 
 
- This service maintains a cache of reflected fields and methods to improve performance for repeated accesses. It supports accessing obfuscated members via the class and member names mapped in `hooks-238.json`.
+ This service maintains a cache of reflected fields and methods to improve performance for repeated accesses. It supports accessing obfuscated members via the class and member names mapped in `hooks.json`.
 
 ## Constructors
 
