@@ -14,5 +14,7 @@ public class SecurityHooks {
     String platformInfoMethodName;
     String callStackField;
     String agentField;
+    boolean isPlatformInfoMethodStatic;
+    int platformInfoMethodArgCount;
 }
 
