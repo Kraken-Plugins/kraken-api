@@ -40,6 +40,15 @@ public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
     }
 
     /**
+     * Filters for NPCs whose animation ids match the specified id.
+     * @param animationId The id of the animation to match
+     * @return NpcQuery
+     */
+    public NpcQuery withAnimation(int animationId) {
+        return filter(npc -> npc.raw().getAnimation() == animationId);
+    }
+
+    /**
      * Filters and returns an {@code NpcQuery} containing NPCs located at the specified world point.
      * <p>
      * This method applies a filter to include only NPCs whose world location matches the given {@code location}.
