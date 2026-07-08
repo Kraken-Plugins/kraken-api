@@ -35,10 +35,10 @@
     "sessionClassName": "et",
     "accountIdFieldName": "lx",
     "accountIdClassName": "lo",
-    "accountCheckFieldName": "da",
-    "accountCheckClassName": "client",
     "displayNameFieldName": "cl",
     "displayNameClassName": "bx",
+    "accountCheckFieldName": "da",
+    "accountCheckClassName": "client",
     "jagexValueFieldName": "af",
     "jagexValueClassName": "zd",
     "legacyValueFieldName": "ag",
@@ -47,16 +47,16 @@
   "securityHooks": {
     "mouseHookDllClassName": "client",
     "mouseHookDllMethodName": "ip",
-    "clientLogFieldName": "cn",
+    "clientLogFieldName": "br",
     "callStackClassName": "client",
-    "callStackMethodName": "jf",
-    "cleanCallStackValue": "client42062jf\nclient27145ml\nnrc.RuneLite297start\nnrc.RuneLite274main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
+    "callStackMethodName": "qa",
+    "cleanCallStackValue": "client36898qa\nclient24273wt\nnrc.RuneLite297start\nnrc.RuneLite274main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
     "platformInfoClassName": "vs",
-    "platformInfoMethodName": "gz",
-    "agentField": "cs",
-    "callStackField": "cf",
-    "isPlatformInfoMethodStatic": true,
-    "platformInfoMethodArgCount": 3
+    "platformInfoMethodName": "ag",
+    "agentField": "ct",
+    "callStackField": "cx",
+    "isPlatformInfoMethodStatic": false,
+    "platformInfoMethodArgCount": 2
   },
   "packets": {
     "EVENT_MOUSE_CLICK": {

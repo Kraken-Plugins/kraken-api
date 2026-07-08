@@ -833,6 +833,7 @@ $dokka.location:com.kraken.api.query.npc/NpcQuery/nearestTo/#WorldPoint/Pointing
 $dokka.location:com.kraken.api.query.npc/NpcQuery/reachable/#/PointingToDeclaration/kraken-api/com.kraken.api.query.npc/-npc-query/reachable.md
 $dokka.location:com.kraken.api.query.npc/NpcQuery/sortByDistance/#/PointingToDeclaration/kraken-api/com.kraken.api.query.npc/-npc-query/sort-by-distance.md
 $dokka.location:com.kraken.api.query.npc/NpcQuery/withAction/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.query.npc/-npc-query/with-action.md
+$dokka.location:com.kraken.api.query.npc/NpcQuery/withAnimation/#int/PointingToDeclaration/kraken-api/com.kraken.api.query.npc/-npc-query/with-animation.md
 $dokka.location:com.kraken.api.query.npc/NpcQuery/withIds/#java.util.List<java.lang.Integer>/PointingToDeclaration/kraken-api/com.kraken.api.query.npc/-npc-query/with-ids.md
 $dokka.location:com.kraken.api.query.npc/NpcQuery/within/#int/PointingToDeclaration/kraken-api/com.kraken.api.query.npc/-npc-query/within.md
 $dokka.location:com.kraken.api.query.npc/NpcQuery/withinArea/#WorldPoint#WorldPoint/PointingToDeclaration/kraken-api/com.kraken.api.query.npc/-npc-query/within-area.md
