@@ -22,16 +22,6 @@ repositories {
     mavenLocal()
 }
 
-tasks.register('buildShortestPath', Exec) {
-    group = 'build'
-    workingDir 'shortest-path'
-    def gradlew = System.getProperty('os.name').toLowerCase().contains('windows')
-            ? 'gradlew.bat' : './gradlew'
-    commandLine gradlew, 'jar', '--no-daemon'
-    inputs.dir('shortest-path/src')
-    outputs.dir('shortest-path/build/libs')
-}
-
 tasks.register('runelite', JavaExec) {
     group = 'application'
     description = 'Runs the API Test with assertions enabled'
@@ -58,8 +48,7 @@ dependencies {
     // its included in the jar for simplicity. Providing this dependency outside of Krakens API can result in double loading and dependency issues.
     implementation("org.benf:cfr:0.152")
 
-    // Git submodule which is required for global pathfinding
-    implementation 'shortestpath:shortest-path:1.0.0'
+    implementation 'com.github.Kraken-Plugins:shortest-path:11d64616eb'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
@@ -80,19 +69,6 @@ shadowJar {
     archiveBaseName = 'kraken-api'
     archiveVersion = projectVersion
     archiveClassifier = '' // Purposefully leave this as none the only jar produced is the shaded jar.
-
-    // Merge shortest-path jar contents directly since it's a file dep, not a module
-    dependsOn buildShortestPath
-
-    from {
-        fileTree('shortest-path/build/libs')
-                .matching {
-                    include 'shortest-path-*.jar'
-                    exclude '**/*-sources.jar', '**/*-javadoc.jar'
-                }
-                .files
-                .collect { zipTree(it) }
-    }
 
     dependencies {
         exclude(dependency('net.runelite:client:.*'))
@@ -190,5 +166,4 @@ publishing {
     }
 }
 
-compileJava.dependsOn buildShortestPath
 build.dependsOn dokkaGfm, shadowJar
