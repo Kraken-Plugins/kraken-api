@@ -75,6 +75,22 @@ public class WorldEntity extends AbstractEntity<World> {
     }
 
     /**
+     * Returns true if the account is a member and false otherwise
+     * @return True if the account is a member and false otherwise
+     */
+    public boolean isMember() {
+        return membershipDaysRemaining() > 0;
+    }
+
+    /**
+     * Returns the number of days of membership the account has left.
+     * @return int membership duration in days.
+     */
+    public int membershipDaysRemaining() {
+        return ctx.getVarpValue(1780); // Membership varp value is 1780
+    }
+
+    /**
      * Attempts to perform a world hop for the current {@code WorldEntity}.
      * <p>
      * This method interacts with the RuneLite client to hop to the target world associated
