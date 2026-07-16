@@ -50,7 +50,7 @@
     "clientLogFieldName": "br",
     "callStackClassName": "client",
     "callStackMethodName": "qa",
-    "cleanCallStackValue": "client36898qa\nclient24273wt\nnrc.RuneLite297start\nnrc.RuneLite274main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
+    "cleanCallStackValue": "client36898qa\nclient24273wt\nnrc.RuneLite287start\nnrc.RuneLite264main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
     "platformInfoClassName": "vs",
     "platformInfoMethodName": "ag",
     "agentField": "ct",
