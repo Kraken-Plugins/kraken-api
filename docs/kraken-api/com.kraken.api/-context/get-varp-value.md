@@ -5,7 +5,7 @@
 [Kraken API]\
 open fun [getVarpValue](get-varp-value.md)(varp: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)
 
-Returns a var player value from the RuneLite client. This method is thread-safe and runs on the client thread to retrieve the value.
+Returns a var player value from the RuneLite client. These are values that the server controls. The client can pre-emptively update these values for the next server tick but will not be able to coerce the server into reconciling to a specific state. I.e. Client cannot change these values permanently. This method is thread-safe and runs on the client thread to retrieve the value.
 
 #### Return
 

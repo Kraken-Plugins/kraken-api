@@ -928,6 +928,8 @@ $dokka.location:com.kraken.api.query.world/WorldEntity/getId/#/PointingToDeclara
 $dokka.location:com.kraken.api.query.world/WorldEntity/getName/#/PointingToDeclaration/kraken-api/com.kraken.api.query.world/-world-entity/get-name.md
 $dokka.location:com.kraken.api.query.world/WorldEntity/hop/#/PointingToDeclaration/kraken-api/com.kraken.api.query.world/-world-entity/hop.md
 $dokka.location:com.kraken.api.query.world/WorldEntity/interact/#java.lang.String/PointingToDeclaration/kraken-api/com.kraken.api.query.world/-world-entity/interact.md
+$dokka.location:com.kraken.api.query.world/WorldEntity/isMember/#/PointingToDeclaration/kraken-api/com.kraken.api.query.world/-world-entity/is-member.md
+$dokka.location:com.kraken.api.query.world/WorldEntity/membershipDaysRemaining/#/PointingToDeclaration/kraken-api/com.kraken.api.query.world/-world-entity/membership-days-remaining.md
 $dokka.location:com.kraken.api.query.world/WorldQuery///PointingToDeclaration/kraken-api/com.kraken.api.query.world/-world-query/index.md
 $dokka.location:com.kraken.api.query.world/WorldQuery/WorldQuery/#com.kraken.api.Context/PointingToDeclaration/kraken-api/com.kraken.api.query.world/-world-query/-world-query.md
 $dokka.location:com.kraken.api.query.world/WorldQuery/freeToPlay/#/PointingToDeclaration/kraken-api/com.kraken.api.query.world/-world-query/free-to-play.md
