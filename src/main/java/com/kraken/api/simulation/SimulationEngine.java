@@ -21,6 +21,7 @@ import java.util.Set;
 
 /**
  * Core simulation engine for snapshot-driven tree generation.
+ * TODO Fable may be able to re-architect this
  */
 public final class SimulationEngine {
     private static final int BLOCKED_MOVEMENT_MASK = CollisionDataFlag.BLOCK_MOVEMENT_FULL | CollisionDataFlag.BLOCK_MOVEMENT_OBJECT;
