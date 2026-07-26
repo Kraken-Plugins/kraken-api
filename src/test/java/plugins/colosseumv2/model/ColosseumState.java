@@ -5,8 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import net.runelite.api.Client;
-import plugins.colosseum.model.Modifier;
-import plugins.colosseum.model.spawns.WaveSpawns;
+import plugins.colosseumv2.model.spawns.WaveSpawns;
 
 import java.util.List;
 
@@ -14,6 +13,8 @@ import java.util.List;
 @EqualsAndHashCode
 @ToString
 public class ColosseumState {
+
+    public static final ColosseumState DEFAULT = new ColosseumState(false, false, 1, false, -1, List.of());
 
     @Getter
     private final boolean inLobby;

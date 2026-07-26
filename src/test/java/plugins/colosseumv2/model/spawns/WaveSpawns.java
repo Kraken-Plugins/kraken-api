@@ -5,8 +5,8 @@ import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
 import net.runelite.api.Client;
-import plugins.colosseum.model.ColosseumState;
-import plugins.colosseum.model.Modifier;
+import plugins.colosseumv2.model.ColosseumState;
+import plugins.colosseumv2.model.Modifier;
 
 import java.util.List;
 
