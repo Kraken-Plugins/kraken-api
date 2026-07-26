@@ -1,10 +1,11 @@
-package plugins.colosseum.model;
+package plugins.colosseumv2.model;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import net.runelite.api.Client;
+import plugins.colosseum.model.Modifier;
 import plugins.colosseum.model.spawns.WaveSpawns;
 
 import java.util.List;

@@ -1,16 +1,11 @@
-package plugins.colosseum;
+package plugins.colosseumv2;
 
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.ConfigSection;
-import net.runelite.client.config.ModifierlessKeybind;
-import net.runelite.client.config.Range;
+import net.runelite.client.config.*;
 
 import java.awt.event.KeyEvent;
 
-@ConfigGroup("autocoloprayers")
-public interface AutoColosseumPrayersConfig extends Config {
+@ConfigGroup("autocoloprayersv2")
+public interface AutoColosseumPrayersV2Config extends Config {
 
     @ConfigItem(
             keyName = "licenseKey",
@@ -405,3 +400,4 @@ public interface AutoColosseumPrayersConfig extends Config {
         return false;
     }
 }
+

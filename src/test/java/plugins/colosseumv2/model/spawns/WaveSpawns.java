@@ -1,4 +1,4 @@
-package plugins.colosseum.model.spawns;
+package plugins.colosseumv2.model.spawns;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -27,7 +27,7 @@ public class WaveSpawns {
         int wave = next ? state.getWaveNumber() + 1 : state.getWaveNumber();
         List<Modifier> modifiers = state.getModifiers();
 
-        WaveSpawnsBuilder builder = WaveSpawns.builder();
+        WaveSpawns.WaveSpawnsBuilder builder = WaveSpawns.builder();
 
         // modifier-only spawns
         if (modifiers.contains(Modifier.BEES)) {

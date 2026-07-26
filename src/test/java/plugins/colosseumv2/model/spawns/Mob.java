@@ -1,4 +1,4 @@
-package plugins.colosseum.model.spawns;
+package plugins.colosseumv2.model.spawns;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
