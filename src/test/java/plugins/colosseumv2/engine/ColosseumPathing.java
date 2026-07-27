@@ -1,5 +1,8 @@
 package plugins.colosseumv2.engine;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,10 +19,8 @@ import java.util.List;
  *   NPC on a pillar corner is correctly predicted as stuck (the other half of the fix).</li>
  * </ul>
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ColosseumPathing {
-
-    private ColosseumPathing() {
-    }
 
     /**
      * Axis-aligned overlap test between two southwest-anchored square footprints.

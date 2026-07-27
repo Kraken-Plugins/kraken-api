@@ -7,20 +7,10 @@ import com.kraken.api.Context;
 import com.kraken.api.service.prayer.PrayerService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.api.NPC;
-import net.runelite.api.NPCComposition;
-import net.runelite.api.Player;
-import net.runelite.api.Prayer;
-import net.runelite.api.WorldView;
+import net.runelite.api.*;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.ActorDeath;
-import net.runelite.api.events.AnimationChanged;
-import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.NpcDespawned;
-import net.runelite.api.events.ScriptPreFired;
+import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.input.KeyManager;
@@ -28,11 +18,7 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.HotkeyListener;
-import plugins.colosseumv2.engine.EngineConfig;
-import plugins.colosseumv2.engine.NpcSnapshot;
-import plugins.colosseumv2.engine.PrayerDecision;
-import plugins.colosseumv2.engine.PrayerEngine;
-import plugins.colosseumv2.engine.TickInput;
+import plugins.colosseumv2.engine.*;
 import plugins.colosseumv2.model.ColosseumState;
 import plugins.colosseumv2.model.ColosseumStateChanged;
 import plugins.colosseumv2.model.spawns.Mob;
@@ -265,12 +251,17 @@ public class AutoColosseumPrayersV2Plugin extends Plugin {
         int baseY = worldView.getBaseY();
         WorldPoint playerLocation = player.getWorldLocation();
 
+        LocalPoint lp = client.getLocalPlayer().getLocalLocation();
+        int region = lp == null ? -1 : WorldPoint.fromLocalInstance(client, lp).getRegionID();
+
+        boolean inColosseum = client.getTopLevelWorldView().isInstance() && region == ColosseumConstants.REGION_COLOSSEUM;
+
         TickInput.TickInputBuilder input = TickInput.builder()
                 .tick(client.getTickCount())
                 .playerX(playerLocation.getX() - baseX)
                 .playerY(playerLocation.getY() - baseY)
                 .collisionMap(SceneCollisionMap.capture(client))
-                .inColosseum(true)
+                .inColosseum(inColosseum)
                 .waveNumber(state.getWaveNumber())
                 .waveStarted(state.isWaveStarted())
                 .waveStartTick(state.getWaveStartTick())

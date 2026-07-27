@@ -118,7 +118,7 @@ public class PrayerEngine {
         }
 
         for (TrackedNpc npc : tracked.values()) {
-            maintainSchedules(npc, byIndex.get(npc.getIndex()), tick);
+            maintainSchedules(npc, tick);
         }
 
         for (TrackedNpc npc : tracked.values()) {
@@ -308,7 +308,7 @@ public class PrayerEngine {
     // Schedule maintenance
     // =====================
 
-    private void maintainSchedules(TrackedNpc npc, NpcSnapshot snapshot, int tick) {
+    private void maintainSchedules(TrackedNpc npc, int tick) {
         Mob mob = npc.getMob();
         if (mob == null) {
             return;
@@ -349,7 +349,6 @@ public class PrayerEngine {
     // =====================
     // Forward simulation (pathing predictions)
     // =====================
-
     private Map<Integer, ColosseumPathing.Forecast> runForwardSimulation(TickInput in, EngineConfig cfg, boolean stopOnLos) {
         boolean needed = cfg.isPrayJaguarOnPath() || cfg.isDebugPaths();
         if (!needed || in.getCollisionMap() == null) {
