@@ -1,5 +1,7 @@
 package unit.plugins.colosseumv2;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import plugins.colosseumv2.engine.EngineConfig;
 import plugins.colosseumv2.engine.GridCollisionMap;
 import plugins.colosseumv2.engine.NpcSnapshot;
@@ -9,6 +11,7 @@ import plugins.colosseumv2.engine.TickInput;
  * Shared builders for {@code PrayerEngine} unit tests. Coordinates are plain scene coordinates
  * on an open 64x64 grid unless a test blocks tiles itself.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class EngineTestSupport {
 
     static final int SHAMAN_ID = 12811;
@@ -21,9 +24,6 @@ final class EngineTestSupport {
     static final int ANIM_JAVELIN = 10892;
     static final int ANIM_JAGUAR = 10847;
     static final int ANIM_MANTICORE_THROW = 10869;
-
-    private EngineTestSupport() {
-    }
 
     static GridCollisionMap openMap() {
         return new GridCollisionMap(64, 64);
