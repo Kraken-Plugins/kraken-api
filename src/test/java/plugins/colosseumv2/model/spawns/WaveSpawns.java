@@ -1,12 +1,12 @@
-package plugins.colosseum.model.spawns;
+package plugins.colosseumv2.model.spawns;
 
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
 import net.runelite.api.Client;
-import plugins.colosseum.model.ColosseumState;
-import plugins.colosseum.model.Modifier;
+import plugins.colosseumv2.model.ColosseumState;
+import plugins.colosseumv2.model.Modifier;
 
 import java.util.List;
 
@@ -27,7 +27,7 @@ public class WaveSpawns {
         int wave = next ? state.getWaveNumber() + 1 : state.getWaveNumber();
         List<Modifier> modifiers = state.getModifiers();
 
-        WaveSpawnsBuilder builder = WaveSpawns.builder();
+        WaveSpawns.WaveSpawnsBuilder builder = WaveSpawns.builder();
 
         // modifier-only spawns
         if (modifiers.contains(Modifier.BEES)) {

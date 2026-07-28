@@ -1,16 +1,11 @@
-package plugins.colosseum;
+package plugins.colosseumv2;
 
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.ConfigSection;
-import net.runelite.client.config.ModifierlessKeybind;
-import net.runelite.client.config.Range;
+import net.runelite.client.config.*;
 
 import java.awt.event.KeyEvent;
 
-@ConfigGroup("autocoloprayers")
-public interface AutoColosseumPrayersConfig extends Config {
+@ConfigGroup("autocoloprayersv2")
+public interface AutoColosseumPrayersV2Config extends Config {
 
     @ConfigItem(
             keyName = "licenseKey",
@@ -111,6 +106,42 @@ public interface AutoColosseumPrayersConfig extends Config {
     )
     default boolean enableWavePrePray() {
         return true;
+    }
+
+    /**
+     * How long the generic wave pre-prayer is held after a wave starts, unless a real attack
+     * is observed first.
+     *
+     * @return Pre-pray window length in ticks.
+     */
+    @Range(min = 1, max = 30)
+    @ConfigItem(
+            keyName = "prePrayWindowTicks",
+            name = "Pre-Pray Window Ticks",
+            description = "Ticks after wave start to hold the generic pre-prayer if no attack has been seen.",
+            section = prayerSection,
+            position = 6
+    )
+    default int prePrayWindowTicks() {
+        return 12;
+    }
+
+    /**
+     * Turns the plugin-activated protection prayer off when nothing is queued for the next
+     * tick. Only prayers activated by the plugin are deactivated, never manually activated
+     * ones. One-tick flick mode always deactivates when idle regardless of this setting.
+     *
+     * @return {@code true} to deactivate the plugin's prayer between predicted attacks.
+     */
+    @ConfigItem(
+            keyName = "deactivateOnIdle",
+            name = "Deactivate When Idle",
+            description = "Turn the plugin's protection prayer off between predicted attacks to save prayer points.",
+            section = prayerSection,
+            position = 7
+    )
+    default boolean deactivateOnIdle() {
+        return false;
     }
 
     // ===========================
@@ -405,3 +436,4 @@ public interface AutoColosseumPrayersConfig extends Config {
         return false;
     }
 }
+

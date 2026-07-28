@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Mutable branchable state used while expanding the simulation tree.
+ * Mutable branch able state used while expanding the simulation tree.
  */
 public final class SimulationState {
     @Getter

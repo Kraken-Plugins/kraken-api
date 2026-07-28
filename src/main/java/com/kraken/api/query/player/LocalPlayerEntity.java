@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class LocalPlayerEntity extends PlayerEntity {
     private static final int VENOM_VALUE_CUTOFF = -38;
     private static final int VENOM_THRESHOLD = 1000000;
+    private static final int WIDGET_SPECIAL_ATTACK_ORB = 10485796;
 
     private final  ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
 
@@ -229,7 +230,7 @@ public class LocalPlayerEntity extends PlayerEntity {
         int currentSpecEnergy = ctx.getVarpValue(300) / 10;
         if (currentSpecEnergy >= energyRequired && !isSpecEnabled()) {
             executor.schedule(() -> {
-                Widget w = ctx.runOnClientThread(() -> ctx.getClient().getWidget(10485796));
+                Widget w = ctx.runOnClientThread(() -> ctx.getClient().getWidget(WIDGET_SPECIAL_ATTACK_ORB));
                 ctx.getInteractionManager().interact(w, "Use");
             }, delay, TimeUnit.MILLISECONDS);
         }

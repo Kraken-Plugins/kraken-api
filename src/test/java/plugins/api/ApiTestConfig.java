@@ -8,13 +8,34 @@ import java.awt.*;
 
 @ConfigGroup("testapi")
 public interface ApiTestConfig extends Config {
+
+    @ConfigSection(
+            name = "General",
+            description = "General options for configuring tests.",
+            position = -1000
+    )
+    String general = "general";
+
     @ConfigItem(
             name = "Clear Tests",
             keyName = "clearTests",
-            description = "clear the execution of the configured tests.",
-            position = -999
+            description = "clear the execution of the configured tests. <br>" +
+                    "This produces a clean slate for running or re-running tests.",
+            position = -999,
+            section = general
     )
     default boolean clearTests() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "showDebugInfo",
+            name = "Show Debug Info",
+            description = "Display additional debug information in overlays and within the logs.",
+            section = general,
+            position = -6
+    )
+    default boolean showDebugInfo() {
         return false;
     }
 
@@ -22,17 +43,26 @@ public interface ApiTestConfig extends Config {
             name = "Pause Script",
             keyName = "pauseScript",
             description = "Pauses the example script loop which runs in the background.",
-            position = -5
+            position = -5,
+            section = general
     )
     default boolean pauseScript() {
         return false;
     }
 
+    @ConfigSection(
+            name = "Game State",
+            description = "Tests for game state actions like logging in and out",
+            position = -1
+    )
+    String gameState = "Game State";
+
     @ConfigItem(
             name = "Login",
             keyName = "login",
             description = "Logs into the client using the preloaded jagex account.",
-            position = -2
+            position = -2,
+            section = gameState
     )
     default boolean login() {
         return false;
@@ -41,7 +71,8 @@ public interface ApiTestConfig extends Config {
     @ConfigItem(
             name = "Logout",
             keyName = "logout",
-            description = "Logs out of the client."
+            description = "Logs out of the client.",
+            section = gameState
     )
     default boolean logout() {
         return false;
@@ -98,6 +129,17 @@ public interface ApiTestConfig extends Config {
             section = widgetActions
     )
     default boolean widgetSubAction() {
+        return false;
+    }
+
+    @ConfigItem(
+            name = "Widget Action",
+            keyName = "widgetAction",
+            description = "Uses a standard cc op widget action (clicking on spec orb).",
+            position = 5,
+            section = widgetActions
+    )
+    default boolean widgetAction() {
         return false;
     }
 
@@ -477,7 +519,7 @@ public interface ApiTestConfig extends Config {
 
 
     // ==============================================
-    // ========== GENERAL OVERLAY SETTINGS ==========
+    // ========== OVERLAY SETTINGS ==========
     // ==============================================
     @ConfigSection(
             name = "Overlay Settings",
@@ -608,17 +650,6 @@ public interface ApiTestConfig extends Config {
             section = overlaySettings
     )
     default boolean showMouse() {
-        return false;
-    }
-
-    @ConfigItem(
-            keyName = "showDebugInfo",
-            name = "Show Debug Info",
-            description = "Display additional debug information in overlays",
-            section = overlaySettings,
-            position = 13
-    )
-    default boolean showDebugInfo() {
         return false;
     }
 

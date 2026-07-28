@@ -35,10 +35,7 @@ import net.runelite.client.util.ColorUtil;
 import plugins.api.overlay.InfoPanelOverlay;
 import plugins.api.overlay.SceneOverlay;
 import plugins.api.tests.input.MouseTest;
-import plugins.api.tests.interaction.WidgetSubActionTest;
-import plugins.api.tests.interaction.WidgetTargetGameObjectTest;
-import plugins.api.tests.interaction.WidgetTargetNpcTest;
-import plugins.api.tests.interaction.WidgetTargetWidgetTest;
+import plugins.api.tests.interaction.*;
 import plugins.api.tests.query.*;
 import plugins.api.tests.service.*;
 
@@ -142,7 +139,8 @@ public class ApiTestPlugin extends Plugin {
             GlobalPathfinderTest globalPathfinderTest,
             TaskChainTest taskChainTest, MouseTest mouseTest, DialogueServiceTest dialogueServiceTest, ProcessingServiceTest processingServiceTest,
             AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest, WidgetTargetNpcTest widgetTargetNpcTest,
-            WidgetTargetGameObjectTest widgetTargetGameObjectTest, WidgetTargetWidgetTest widgetTargetWidgetTest, WidgetSubActionTest widgetSubActionTest
+            WidgetTargetGameObjectTest widgetTargetGameObjectTest, WidgetTargetWidgetTest widgetTargetWidgetTest, WidgetSubActionTest widgetSubActionTest,
+            WidgetActionTest widgetActionTest
     ) {
         registerTest("enablePrayer", "PrayerServiceTest", config::enablePrayerTests, prayerServiceTest::executeTest);
         registerTest("enableBankQuery", "BankQuery", config::enableBankQuery, bankQueryTest::executeTest);
@@ -173,6 +171,7 @@ public class ApiTestPlugin extends Plugin {
         registerTest("widgetTargetOnGameObject", "WidgetGameObjectTargetTest", config::widgetTargetOnGameObject, widgetTargetGameObjectTest::executeTest);
         registerTest("widgetTargetOnWidget", "WidgetWidgetTargetTest", config::widgetTargetOnWidget, widgetTargetWidgetTest::executeTest);
         registerTest("widgetSubAction", "WidgetSubActionTargetTest", config::widgetSubAction, widgetSubActionTest::executeTest);
+        registerTest("widgetAction", "WidgetActionTest", config::widgetAction, widgetActionTest::executeTest);
     }
 
     private void registerTest(String configKey, String testName, BooleanSupplier enabled, Supplier<java.util.concurrent.CompletableFuture<Boolean>> test) {

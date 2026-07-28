@@ -54,34 +54,9 @@
 - `Context` wires together:
   - query accessors for players, NPCs, objects, inventory, equipment, widgets, worlds, bank, and deposit box
   - high-level services for bank, dialogue, movement, camera, prayer, magic, UI, grand exchange, map, and utility behavior
-  - packet initialization via `PacketMethodLocator`
   - runtime hooks and interceptors for packet/mouse behavior
   - client-thread helpers so callers do not need to manage RuneLite thread rules manually
 - `Script` is the main long-running automation primitive. It handles lifecycle, game-tick execution, pause/resume, and break management.
-- `shortest-path` is a separate included build that provides the pathfinding plugin and transport/pathing data used by the API.
-
-## End-to-end flow
-
-- **Plugin / Script**:
-  - A RuneLite plugin injects `Context`, services, overlays, or a `Script`.
-  - `Script.start()` registers the script on the event bus and begins tick-driven execution.
-- **Context**:
-  - `Context` exposes the query/service facade, client-thread execution helpers, and packet/interceptor setup.
-  - `Context.initializePackets()` must run before packet sending features are used.
-- **Query layer**:
-  - `AbstractQuery` derivatives discover and filter dynamic entities such as NPCs, players, objects, widgets, inventory, equipment, bank, and worlds.
-  - Wrapped entities expose `raw()` to reach the underlying RuneLite object when needed.
-- **Service layer**:
-  - Services handle static or global game systems such as bank, prayer, dialogue, camera, movement, magic, UI, and map/path utilities.
-- **Packet / interaction layer**:
-  - `PacketMethodLocator` resolves the obfuscated client packet-sending method.
-  - `PacketFactory`, `PacketClient`, and the entity packet helpers build and send actions to the client.
-  - `InteractionManager` and the resolver classes map high-level interactions to the right packet operations.
-- **Runtime hooks**:
-  - `hooks.json` and `ObfuscatedNames.java` keep obfuscated client lookups aligned with the current RuneLite/client revision.
-  - Interceptors patch runtime behavior where needed, but they should stay localized and guarded.
-- **Execution**:
-  - The same API supports direct plugin use, scripted automation, and the `shortest-path` plugin for movement/pathfinding support.
 
 ## AI integration and plugin authoring
 
@@ -122,78 +97,6 @@ This section is the working guide for AI systems and humans asking AI systems to
 - Call `Context.initializePackets()` before using packet-driven interactions or hooks that depend on packet metadata.
 - Keep reusable automation behind services, `Task`, `AbstractTask`, or `Script` instead of embedding it in plugin event handlers.
 
-### Working examples
-
-1. Attack an NPC:
-
-```java
-@PluginDescriptor(name = "Example", description = "Example plugin")
-public class ExamplePlugin extends Plugin {
-    @Inject
-    private Context ctx;
-
-    @Subscribe
-    private void onGameTick(GameTick event) {
-        NpcEntity goblin = ctx.npcs().withName("Goblin").nearest();
-        if (goblin == null || goblin.isNull()) {
-            return;
-        }
-
-        goblin.interact("Attack");
-    }
-}
-```
-
-2. Withdraw from the bank:
-
-```java
-if (!ctx.bank().isOpen()) {
-    GameObjectEntity bankBooth = ctx.gameObjects().withName("Bank booth").nearest();
-    if (bankBooth != null) {
-        bankBooth.interact("Bank");
-    }
-}
-
-BankEntity lobsters = ctx.bank().withName("Lobster").first();
-if (lobsters != null) {
-    lobsters.withdraw(10);
-}
-```
-
-3. Use a service directly:
-
-```java
-MovementService movement = ctx.getService(MovementService.class);
-movement.moveTo(new WorldPoint(x, y, 0));
-```
-
-4. Pick up a ground item:
-
-```java
-GroundObjectEntity bones = ctx.groundItems().withName("Bones").within(5).nearest();
-if (bones != null) {
-    bones.take();
-}
-```
-
-5. Equip an item from the inventory:
-
-```java
-!ctx.equipment().inInventory().withName("Green d'hide body").first().wieldOrWear();
-```
-
-6. Activate special attack 
-
-```java
- public void toggleSpecialAttack(int energyRequired) {
-        int currentSpecEnergy = client.getVarpValue(300) / 10;
-        if (currentSpecEnergy >= energyRequired && !(client.getVarpValue(301) == 1)) {
-            int delay = RandomService.between(300, 600);
-            ctx.players().local().toggleSpecialAttack(energyRequired, delay);
-        }
-}
-```
-
 ### Common mapping rules for AI tools
 
 - Start from `ctx.<domain>()`, not from raw client objects, unless you need `raw()` for an explicit edge case.
@@ -203,13 +106,6 @@ if (bones != null) {
 - Use `bank()` only while the bank interface is open and you are withdrawing items from the bank into your inventory.
 - Use `inventory()` for ordinary inventory work and `depositBox()` for deposit box actions.
 - Prefer dedicated entity methods over generic `interact()` when a helper already exists.
-
-### How to explain the API to users
-
-- Tell users to think in terms of "find with a query" and "act with a service or entity method".
-- For dynamic targets, show a chained query example.
-- For global systems, show a service call or a dedicated query wrapper.
-- Point users to `src/test/java/plugins/api/` for runnable examples and `docs/API.md` for the full service/query breakdown.
 
 ## Packages and naming
 
@@ -244,13 +140,6 @@ if (bones != null) {
 VERSION=1.0.0-SNAPSHOT-local ./gradlew clean build shadowJar
 ```
 
-### Required CLI tools
-
-- Java 11 JDK
-- Git
-- Gradle wrapper is included, so no system Gradle install is required
-- RuneLite runtime dependencies are resolved from `https://repo.runelite.net`
-
 ## Local testing
 
 - Root library tests:
@@ -265,38 +154,16 @@ VERSION=1.0.0-SNAPSHOT-local ./gradlew clean build shadowJar
 ./gradlew clean build shadowJar
 ```
 
-- Shortest-path subproject tests:
-
-```bash
-cd shortest-path
-./gradlew test
-```
-
-- Shortest-path coverage report:
-
-```bash
-cd shortest-path
-./gradlew jacocoTestReport
-```
-
 Notes:
 
 - `src/test/java/PluginRunnerTest.java` is the entry point for launching RuneLite with an API test plugin loaded.
 - Many API behaviors only make sense inside a RuneLite client, so test results from plain unit tests are only part of the verification story.
-- The `shortest-path` project has its own test suite and heap settings, so run it from that subdirectory when debugging its failures.
 
 ## Local execution
 
 - Run the root API test plugin:
 
 ```bash
-./gradlew runelite
-```
-
-- Run the `shortest-path` plugin:
-
-```bash
-cd shortest-path
 ./gradlew runelite
 ```
 
@@ -317,7 +184,7 @@ Notes:
 
 - `./gradlew build` also regenerates the docs because the build depends on `dokkaGfm`.
 
-### 🚫 NEVER EDIT DIRECTLY (Generated files)
+### NEVER EDIT DIRECTLY (Generated files)
 
 The following files or directories are generated or derived; edit their sources and regenerate them instead:
 
@@ -327,33 +194,8 @@ The following files or directories are generated or derived; edit their sources 
 - `build/**`
   - Source: Gradle build outputs
   - Generate: `./gradlew build`, `./gradlew shadowJar`, or `./gradlew test`
-- `shortest-path/build/**`
-  - Source: `shortest-path/src/main/java/**`, `shortest-path/src/test/java/**`, and the subproject build
-  - Generate: `cd shortest-path && ./gradlew build`
 
 Do not treat these as hand-edited sources.
-
-## Key paths and files
-
-- Main API entry point: `src/main/java/com/kraken/api/Context.java`
-- Script base classes: `src/main/java/com/kraken/api/core/script/`
-- Packet layer: `src/main/java/com/kraken/api/core/packet/`
-- Packet entity helpers: `src/main/java/com/kraken/api/core/packet/entity/`
-- Interaction infrastructure: `src/main/java/com/kraken/api/core/interaction/`
-- Query layer: `src/main/java/com/kraken/api/query/`
-- Service layer: `src/main/java/com/kraken/api/service/`
-- Global pathfinding service: `src/main/java/com/kraken/api/service/pathfinding/GlobalPathfinder.java`
-- Input layer: `src/main/java/com/kraken/api/input/`
-- Simulation layer: `src/main/java/com/kraken/api/simulation/`
-- Utility helpers: `src/main/java/com/kraken/api/util/`
-- Runtime mappings and packet definitions: `src/main/resources/{packets.json,map.dat}`
-- API docs: `docs/API.md`, `docs/INTERACTION.md`, `docs/MOUSE.md`, `docs/SCRIPTING.md`, `docs/SIMULATION.md`, `docs/TESTS.md`, `docs/UPDATING.md`, `docs/UTILITIES.md`
-- Generated reference docs: `docs/kraken-api/`
-- Root test launcher: `src/test/java/PluginRunnerTest.java`
-- Root API tests and examples: `src/test/java/plugins/api/`
-- Simulation and plugin examples: `src/test/java/plugins/`
-- Shortest-path plugin and tests: `shortest-path/src/main/java/`, `shortest-path/src/test/java/`
-- GitHub workflows: `.github/workflows/`
 
 ## Documentation
 
@@ -380,40 +222,6 @@ Do not treat these as hand-edited sources.
 - Keep package boundaries clean and avoid moving unrelated logic across layers.
 - Use Lombok where the surrounding code already uses it, but do not add it just to avoid straightforward boilerplate in a small patch.
 
-## Common agent workflows
-
-- **Add or modify a query**:
-  1. Update the relevant `query` package class and its entity wrapper if needed.
-  2. Reuse existing `AbstractQuery` helpers before adding new filters or collection logic.
-  3. Add or update tests under `src/test/java/plugins/api/tests/query/`.
-- **Add or modify a service**:
-  1. Update the service in `service/`.
-  2. Keep packet or interaction details behind the service boundary.
-  3. Add or update tests under `src/test/java/plugins/api/tests/service/`.
-- **Update packet or reflection behavior**:
-  1. Edit the packet or hook source.
-  2. Verify `packets.json` and `ObfuscatedNames.java` still match the current client revision.
-  3. Run the root build and launcher tests.
-- **Update scripting behavior**:
-  1. Edit `core.script` classes and any dependent services.
-  2. Keep `Script` lifecycle changes explicit and covered by tests where practical.
-- **Update shortest-path behavior**:
-  1. Make changes in `shortest-path/`.
-  2. Run the subproject tests and the RuneLite launcher if the plugin behavior changed.
-
-## Quick reference
-
-### Essential commands
-
-- Build and test the root library: `./gradlew clean build`
-- Run unit tests only: `./gradlew test`
-- Build the shaded jar: `./gradlew shadowJar`
-- Publish to local Maven: `./gradlew publishToMavenLocal`
-- Run the RuneLite test launcher: `./gradlew runelite`
-- Generate Dokka docs: `./gradlew dokkaGfm`
-- Test the shortest-path subproject: `cd shortest-path && ./gradlew test`
-- Run the shortest-path plugin: `cd shortest-path && ./gradlew runelite`
-
 ### Key environment variables
 
 - `VERSION=...`: Overrides the published artifact version for local and CI builds
@@ -426,12 +234,3 @@ Do not treat these as hand-edited sources.
 - If `./gradlew runelite` launches but class reloading behavior is missing, verify the ByteBuddy agent installed successfully.
 - If docs look stale, rerun `./gradlew dokkaGfm`.
 - If `publishToMavenLocal` does not produce the expected artifact version, check the `VERSION` environment variable.
-- If the `shortest-path` tests OOM or run slowly, run them from the subproject directory so its own heap settings apply.
-
-### Common error patterns and quick fixes
-
-- Gradle cannot resolve RuneLite classes: verify `https://repo.runelite.net` is reachable and that you are using the repo wrapper from the project root.
-- Packet sending fails immediately after a client revision change: update the mapping sources first, then rebuild and retest.
-- Runtime hooks behave inconsistently: make sure the `reflectionHooks` and `loginHooks` sections in `packets.json` match the current client revision and that the client has been restarted after changes.
-- RuneLite launcher starts but `PluginRunnerTest` logs a ByteBuddy agent error: the API can still launch, but class reloading and some runtime patches will be limited.
-- Generated docs changed unexpectedly: check whether a public signature change in `src/main/java` caused Dokka output updates.

@@ -72,7 +72,8 @@ public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {
         }
 
         // Match against the widget's target verb (e.g. "Use", "Cast")
-        if (ActionResolver.matches(action, widget.getTargetVerb()) || action.equalsIgnoreCase("Use")) {
+        boolean targetable = widget.getTargetVerb() != null && !Text.sanitize(widget.getTargetVerb()).isBlank();
+        if (targetable && (ActionResolver.matches(action, widget.getTargetVerb()) || action.equalsIgnoreCase("Use"))) {
             return Optional.of(new MenuOption(MenuAction.WIDGET_TARGET, 0,
                     widget.getIndex(), widget.getId(), widget.getItemId(), worldView));
         }

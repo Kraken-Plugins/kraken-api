@@ -1,4 +1,4 @@
-package plugins.colosseum.model;
+package plugins.colosseumv2.model;
 
 import lombok.Value;
 
