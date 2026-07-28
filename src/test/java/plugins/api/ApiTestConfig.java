@@ -101,6 +101,17 @@ public interface ApiTestConfig extends Config {
         return false;
     }
 
+    @ConfigItem(
+            name = "Widget Action",
+            keyName = "widgetAction",
+            description = "Uses a standard cc op widget action (clicking on spec orb).",
+            position = 5,
+            section = widgetActions
+    )
+    default boolean widgetAction() {
+        return false;
+    }
+
     // =========== Pathfinding Section ================
     @ConfigSection(
             name = "Pathfinding Tests",
