@@ -15,14 +15,18 @@ public class WidgetActionTest extends BaseApiTest {
     protected boolean runTest(Context ctx) throws Exception {
         Widget w = ctx.runOnClientThread(() -> ctx.getClient().getWidget(WIDGET_SPECIAL_ATTACK_ORB));
 
-        if(w == null || w.isHidden()) return false;
+        if(w == null) return false;
 
         // Spec should be disabled at the start
-        if(ctx.players().local().isSpecEnabled()) return false;
+        if(ctx.players().local().isSpecEnabled()) {
+            log.info("Spec is already enabled, run this test with spec disabled.");
+            return false;
+        }
 
-        ctx.getInteractionManager().interact(w, "Use");
+        ctx.runOnClientThread(() -> ctx.getInteractionManager().interact(w, "Use"));
         Thread.sleep(600);
 
+        log.info("Is spec enabled: {}", ctx.players().local().isSpecEnabled());
         return ctx.players().local().isSpecEnabled();
     }
 
