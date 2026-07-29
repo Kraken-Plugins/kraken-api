@@ -24,11 +24,11 @@ public class ColosseumInfoOverlay extends OverlayPanel {
     private static final Color WARN = new Color(255, 90, 80);
     private static final Color OK = new Color(120, 230, 120);
 
-    private final ColosseumPlannerPlugin plugin;
-    private final ColosseumPlannerConfig config;
+    private final AutoColosseumPlugin plugin;
+    private final AutoColosseumConfig config;
 
     @Inject
-    public ColosseumInfoOverlay(ColosseumPlannerPlugin plugin, ColosseumPlannerConfig config) {
+    public ColosseumInfoOverlay(AutoColosseumPlugin plugin, AutoColosseumConfig config) {
         this.plugin = plugin;
         this.config = config;
         setPosition(OverlayPosition.TOP_LEFT);

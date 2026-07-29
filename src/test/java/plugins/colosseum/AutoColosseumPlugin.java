@@ -56,12 +56,12 @@ import java.util.Map;
         description = "Real-time decision search for the Fortis Colosseum with debug visualization.",
         tags = {"kraken", "colosseum", "simulation", "planner"}
 )
-public class ColosseumPlannerPlugin extends Plugin {
+public class AutoColosseumPlugin extends Plugin {
     @Inject
     private OverlayManager overlayManager;
 
     @Inject
-    private ColosseumPlannerConfig config;
+    private AutoColosseumConfig config;
 
     @Inject
     private ColosseumSceneOverlay sceneOverlay;
@@ -104,8 +104,8 @@ public class ColosseumPlannerPlugin extends Plugin {
     private final int[][] weaponIdsBySet = new int[3][];
 
     @Provides
-    ColosseumPlannerConfig provideConfig(ConfigManager configManager) {
-        return configManager.getConfig(ColosseumPlannerConfig.class);
+    AutoColosseumConfig provideConfig(ConfigManager configManager) {
+        return configManager.getConfig(AutoColosseumConfig.class);
     }
 
     @Override

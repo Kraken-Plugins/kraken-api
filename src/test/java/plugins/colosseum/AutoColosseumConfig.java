@@ -9,7 +9,7 @@ import net.runelite.client.config.Range;
 import javax.swing.JButton;
 
 @ConfigGroup("krakenColosseum")
-public interface ColosseumPlannerConfig extends Config {
+public interface AutoColosseumConfig extends Config {
     @ConfigItem(
             keyName = "enabled",
             name = "Enable planner",

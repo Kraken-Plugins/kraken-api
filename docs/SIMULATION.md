@@ -277,7 +277,7 @@ executor.execute(decision, loadout);                  // pray -> eat -> gear -> 
 
 `ColoDecision` also carries visualization data: candidate tiles with scores, the predicted
 player path, predicted end-of-horizon HP/worst-case floor, and a human-readable reasoning
-string. See `src/test/java/plugins/colosseum/ColosseumPlannerPlugin.java` for the full
+string. See `../src/test/java/plugins/colosseum/AutoColosseumPlugin.java` for the full
 debug plugin with scene + info overlays.
 
 ## Live tracking notes

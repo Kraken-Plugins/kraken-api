@@ -32,11 +32,11 @@ import java.util.Map;
  */
 public class ColosseumSceneOverlay extends Overlay {
     private final Client client;
-    private final ColosseumPlannerPlugin plugin;
-    private final ColosseumPlannerConfig config;
+    private final AutoColosseumPlugin plugin;
+    private final AutoColosseumConfig config;
 
     @Inject
-    public ColosseumSceneOverlay(Client client, ColosseumPlannerPlugin plugin, ColosseumPlannerConfig config) {
+    public ColosseumSceneOverlay(Client client, AutoColosseumPlugin plugin, AutoColosseumConfig config) {
         this.client = client;
         this.plugin = plugin;
         this.config = config;
