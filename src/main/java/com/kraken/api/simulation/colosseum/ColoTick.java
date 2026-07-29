@@ -1058,27 +1058,32 @@ public final class ColoTick {
         return (int) (hit & HIT_LAND_MASK);
     }
 
-    /** @param hit packed hit. @return worst-case damage. */
+    /** @param hit packed hit. @return worst-case damage.
+     *             @return  maxHitDamage */
     public static int hitMaxDamage(long hit) {
         return (int) ((hit >> HIT_DMG_SHIFT) & 0xFF);
     }
 
-    /** @param hit packed hit. @return expected damage. */
+    /** @param hit packed hit. @return expected damage.
+     * @return hitExpectedDamage  */
     public static int hitExpectedDamage(long hit) {
         return (int) ((hit >> HIT_EXPECTED_SHIFT) & 0xFF);
     }
 
-    /** @param hit packed hit. @return style code. */
+    /** @param hit packed hit. @return style code.
+     *             @return hitStyle */
     public static int hitStyle(long hit) {
         return (int) ((hit >> HIT_STYLE_SHIFT) & 3);
     }
 
-    /** @param hit packed hit. @return source (or target, for player hits) npc slot. */
+    /** @param hit packed hit. @return source (or target, for player hits) npc slot.
+     *             @return hitSlot */
     public static int hitSlot(long hit) {
         return (int) ((hit >> HIT_SLOT_SHIFT) & 63);
     }
 
-    /** @param hit packed hit. @return true when the hit targets an NPC rather than the player. */
+    /** @param hit packed hit. @return true when the hit targets an NPC rather than the player.
+     *             @return hitTargetsNpc */
     public static boolean hitTargetsNpc(long hit) {
         return (hit & HIT_TARGET_NPC) != 0;
     }

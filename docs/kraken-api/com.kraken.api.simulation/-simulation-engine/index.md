@@ -5,7 +5,7 @@
 [Kraken API]\
 class [SimulationEngine](index.md)
 
-Core simulation engine for snapshot-driven tree generation.
+Core simulation engine for snapshot-driven tree generation. TODO Fable may be able to re-architect this
 
 ## Constructors
 

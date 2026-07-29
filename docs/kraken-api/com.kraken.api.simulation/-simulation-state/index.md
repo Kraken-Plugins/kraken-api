@@ -5,7 +5,7 @@
 [Kraken API]\
 class [SimulationState](index.md)
 
-Mutable branchable state used while expanding the simulation tree.
+Mutable branch able state used while expanding the simulation tree.
 
 ## Properties
 

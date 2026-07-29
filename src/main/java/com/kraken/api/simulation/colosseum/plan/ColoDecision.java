@@ -137,7 +137,7 @@ public final class ColoDecision {
     /**
      * @return true when this decision issues a NEW attack click this tick. When the player
      * is already attacking the plan's target, combat continues on its own and no click is
-     * needed - {@link #getAttackNpcRuneliteIndex()} still names the plan's target for
+     * needed - getAttackNpcRuneliteIndex() still names the plan's target for
      * display purposes.
      */
     public boolean hasAttack() {

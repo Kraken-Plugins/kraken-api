@@ -13,4 +13,4 @@
 | [SimulationMovementMode](-simulation-movement-mode/index.md) | [Kraken API]<br>enum [SimulationMovementMode](-simulation-movement-mode/index.md)<br>Strategy for generating movement destinations during tree expansion. |
 | [SimulationNpcProfile](-simulation-npc-profile/index.md) | [Kraken API]<br>class [SimulationNpcProfile](-simulation-npc-profile/index.md)<br>NPC combat and movement profile used while simulating each NPC id. |
 | [SimulationScenario](-simulation-scenario/index.md) | [Kraken API]<br>class [SimulationScenario](-simulation-scenario/index.md)<br>Input bundle for simulation tree generation. |
-| [SimulationState](-simulation-state/index.md) | [Kraken API]<br>class [SimulationState](-simulation-state/index.md)<br>Mutable branchable state used while expanding the simulation tree. |
+| [SimulationState](-simulation-state/index.md) | [Kraken API]<br>class [SimulationState](-simulation-state/index.md)<br>Mutable branch able state used while expanding the simulation tree. |

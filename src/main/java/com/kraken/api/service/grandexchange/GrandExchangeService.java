@@ -113,6 +113,7 @@ public class GrandExchangeService {
     /**
      * Queues a sell offer in the first free Grand Exchange slot. When the amount specified is -1 then all of that item
      * will be sold as part of the offer.
+     * @param slot The Grand Exchange Slot to use for the transaction
      * @param itemId The item id of the item to sell.
      * @param amount The amount to sell. Use -1 to sell all available.
      * @param price The price per item.
@@ -159,6 +160,7 @@ public class GrandExchangeService {
     /**
      * Queues a buy offer in the grand exchange for a given item, the amount of the item to purchase, and a specific
      * price point. Negative amounts are not supported.
+     * @param slot The Grand Exchange Slot to use for the transaction
      * @param itemId The id of the item to purchase
      * @param amount The amount of the item to purchase
      * @param price The price the item should be purchased at
@@ -195,6 +197,18 @@ public class GrandExchangeService {
     public GrandExchangeSlot queueBuyOrder(InventoryEntity item, int amount, int price) {
         GrandExchangeSlot slot = getFirstFreeSlot();
         return queueBuyOrder(slot, item.getId(), amount, price);
+    }
+
+    /**
+     * Queues a buy offer for all of a specific item in the first free Grand Exchange slot.
+     * @param itemId The item id to purchase
+     * @param amount The amount of the item to purchase
+     * @param price The price the item should be purchased at
+     * @return The GrandExchangeSlot object for the GE Slot that was used to queue the buy order or null if no slot is free/error occurs.
+     */
+    public GrandExchangeSlot queueBuyOrder(int itemId, int amount, int price) {
+        GrandExchangeSlot slot = getFirstFreeSlot();
+        return queueBuyOrder(slot, itemId, amount, price);
     }
 
     /**
