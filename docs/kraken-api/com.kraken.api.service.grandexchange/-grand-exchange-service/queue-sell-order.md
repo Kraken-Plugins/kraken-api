@@ -22,7 +22,7 @@ Kraken API
 | price | The price per item. |
 
 [Kraken API]\
-open fun [queueSellOrder](queue-sell-order.md)(itemId: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), amount: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), price: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): [GrandExchangeSlot](../-grand-exchange-slot/index.md)
+open fun [queueSellOrder](queue-sell-order.md)(slot: [GrandExchangeSlot](../-grand-exchange-slot/index.md), itemId: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), amount: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), price: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): [GrandExchangeSlot](../-grand-exchange-slot/index.md)
 
 Queues a sell offer in the first free Grand Exchange slot. When the amount specified is -1 then all of that item will be sold as part of the offer.
 
@@ -36,6 +36,7 @@ Kraken API
 
 | | |
 |---|---|
+| slot | The Grand Exchange Slot to use for the transaction |
 | itemId | The item id of the item to sell. |
 | amount | The amount to sell. Use -1 to sell all available. |
 | price | The price per item. |

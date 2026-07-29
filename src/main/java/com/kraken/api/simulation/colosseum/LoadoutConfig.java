@@ -11,16 +11,16 @@ import lombok.Getter;
  *
  * <p>Expected damage values are deliberately simple averages (accuracy x mean hit) because
  * the planner optimises expected outcomes; exact damage rolls are unknowable one tick ahead.
- * Callers should tune {@link GearSet#getExpectedDamageByType()} to their actual gear.</p>
+ * Callers should tune GearSet#getExpectedDamageByType() to their actual gear.</p>
  */
 @Getter
 @Builder(toBuilder = true)
 public final class LoadoutConfig {
-    /** Index of the melee gear set in {@link #getGearSets()} for the default loadout. */
+    /** Index of the melee gear set in getGearSets() for the default loadout. */
     public static final int SET_MELEE = 0;
-    /** Index of the ranged gear set in {@link #getGearSets()} for the default loadout. */
+    /** Index of the ranged gear set in getGearSets() for the default loadout. */
     public static final int SET_RANGED = 1;
-    /** Index of the magic gear set in {@link #getGearSets()} for the default loadout. */
+    /** Index of the magic gear set in getGearSets() for the default loadout. */
     public static final int SET_MAGIC = 2;
 
     /**

@@ -160,54 +160,64 @@ public final class PlayerCommand {
         return cmd | SPEC_BIT;
     }
 
-    /** @param cmd command. @return packed move destination or {@link ColoCoords#NONE}. */
+    /** @param cmd command. @return packed move destination or {@link ColoCoords#NONE}.
+     *  @return moveTarget        */
     public static short moveTarget(long cmd) {
         int raw = (int) (cmd & MOVE_MASK);
         return raw == 0xFFF ? ColoCoords.NONE : (short) raw;
     }
 
-    /** @param cmd command. @return true when the movement click is a run click. */
+    /** @param cmd command. @return true when the movement click is a run click.
+     *             @return run */
     public static boolean run(long cmd) {
         return (cmd & RUN_BIT) != 0;
     }
 
-    /** @param cmd command. @return true when movement should stop. */
+    /** @param cmd command. @return true when movement should stop.
+     * @return stop */
     public static boolean stop(long cmd) {
         return (cmd & STOP_BIT) != 0;
     }
 
-    /** @param cmd command. @return OVERHEAD_* code. */
+    /** @param cmd command. @return OVERHEAD_* code.
+     *             @return overhead */
     public static int overhead(long cmd) {
         return (int) ((cmd >> OVERHEAD_SHIFT) & 7);
     }
 
-    /** @param cmd command. @return gear set index, or -1 to keep the current set. */
+    /** @param cmd command. @return gear set index, or -1 to keep the current set.
+     *             @return gearSet */
     public static int gearSet(long cmd) {
         int raw = (int) ((cmd >> GEAR_SHIFT) & 7);
         return raw == 0 ? -1 : raw - 1;
     }
 
-    /** @param cmd command. @return true when eating primary food. */
+    /** @param cmd command. @return true when eating primary food.
+     * @return eatFood */
     public static boolean eatFood(long cmd) {
         return (cmd & EAT_FOOD_BIT) != 0;
     }
 
-    /** @param cmd command. @return true when eating combo food. */
+    /** @param cmd command. @return true when eating combo food.
+     *             @return  eatCombo */
     public static boolean eatCombo(long cmd) {
         return (cmd & EAT_COMBO_BIT) != 0;
     }
 
-    /** @param cmd command. @return true when sipping a brew dose. */
+    /** @param cmd command. @return true when sipping a brew dose.
+     *             @return sipBrew*/
     public static boolean sipBrew(long cmd) {
         return (cmd & SIP_BREW_BIT) != 0;
     }
 
-    /** @param cmd command. @return true when sipping a restore dose. */
+    /** @param cmd command. @return true when sipping a restore dose.
+     * @return sipRestore */
     public static boolean sipRestore(long cmd) {
         return (cmd & SIP_RESTORE_BIT) != 0;
     }
 
-    /** @param cmd command. @return true when the special attack flag is set. */
+    /** @param cmd command. @return true when the special attack flag is set.
+     *             @return useSpec */
     public static boolean useSpec(long cmd) {
         return (cmd & SPEC_BIT) != 0;
     }
