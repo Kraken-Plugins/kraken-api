@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-04-23
+- Last updated: 2026-07-28
 - Scope: Kraken API main library (`com.kraken.api`) and the bundled `shortest-path` subproject
 
 ### Maintenance (agents and contributors)
@@ -117,6 +117,8 @@ This section is the working guide for AI systems and humans asking AI systems to
   - `input` for mouse and keyboard handling
   - `overlay` for reusable RuneLite overlays
   - `simulation` for decision-making, snapshotting, and combat/path evaluation
+    - `simulation.colosseum` is the Fortis Colosseum real-time engine (bit-packed tick
+      simulation, budgeted planner, live capture/executor); see `docs/SIMULATION.md`
   - `util` for shared math, random, string, and helper utilities
 - Naming expectations:
   - Keep service names specific to the domain they own, for example `BankService`, `PrayerService`, `MovementService`.
@@ -226,6 +228,13 @@ Do not treat these as hand-edited sources.
 
 - `VERSION=...`: Overrides the published artifact version for local and CI builds
 - `GITHUB_ACTOR` / `GITHUB_TOKEN`: Used by publishing tasks that target GitHub Packages
+
+## Known issues
+
+- `src/test/java/unit/plugins/colosseumv2/**` tests reference the colosseumv2 plugin
+  removed in commit `88a8b028` and no longer compile; they are excluded from the test
+  source set in `build.gradle`. Delete the orphaned tests or restore the plugin, then
+  remove the exclude.
 
 ## Troubleshooting and pitfalls
 

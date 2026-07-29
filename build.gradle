@@ -83,6 +83,11 @@ sourceSets {
     test {
         java {
             srcDirs = ['src/test/java', 'tests/sim']
+            // The colosseumv2 plugin sources were removed from the public API
+            // (commit 88a8b028) but their unit tests remain and no longer compile.
+            // Excluded so the test suite can build; delete the orphaned tests or
+            // restore the plugin and remove this exclude.
+            exclude 'unit/plugins/colosseumv2/**'
         }
     }
 }

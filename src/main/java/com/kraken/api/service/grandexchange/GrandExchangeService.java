@@ -106,7 +106,8 @@ public class GrandExchangeService {
      * @return The GrandExchangeSlot object for the GE slot that was used to queue the sell order, or null if no slot is free or an error occurs.
      */
     public GrandExchangeSlot queueSellOrder(InventoryEntity item, int amount, int price) {
-        return queueSellOrder(item.getId(), amount, price);
+        GrandExchangeSlot slot = getFirstFreeSlot();
+        return queueSellOrder(slot, item.getId(), amount, price);
     }
 
     /**
@@ -117,8 +118,7 @@ public class GrandExchangeService {
      * @param price The price per item.
      * @return The GrandExchangeSlot object for the GE slot that was used to queue the sell order, or null if no slot is free or an error occurs.
      */
-    public GrandExchangeSlot queueSellOrder(int itemId, int amount, int price) {
-        GrandExchangeSlot slot = getFirstFreeSlot();
+    public GrandExchangeSlot queueSellOrder(GrandExchangeSlot slot, int itemId, int amount, int price) {
         if(slot == null) return null;
         ctx.runOnClientThread(() -> {
             InventoryEntity item = ctx.inventory().withId(itemId).first();
@@ -152,7 +152,8 @@ public class GrandExchangeService {
      * @return The GrandExchangeSlot object for the GE slot that was used to queue the sell order, or null if no slot is free or an error occurs.
      */
     public GrandExchangeSlot queueSellOrder(int itemId, int price) {
-        return queueSellOrder(itemId, -1, price);
+        GrandExchangeSlot slot = getFirstFreeSlot();
+        return queueSellOrder(slot, itemId, -1, price);
     }
 
     /**
@@ -163,8 +164,7 @@ public class GrandExchangeService {
      * @param price The price the item should be purchased at
      * @return The GrandExchangeSlot object for the GE slot that was used to queue the buy order, or null if no slot is free or an error occurs.
      */
-    public GrandExchangeSlot queueBuyOrder(int itemId, int amount, int price) {
-        GrandExchangeSlot slot = getFirstFreeSlot();
+    public GrandExchangeSlot queueBuyOrder(GrandExchangeSlot slot, int itemId, int amount, int price) {
         if(slot == null) return null;
 
         if(amount <= 0) {
@@ -193,7 +193,8 @@ public class GrandExchangeService {
      * @return The GrandExchangeSlot object for the GE slot that was used to queue the buy order, or null if no slot is free or an error occurs.
      */
     public GrandExchangeSlot queueBuyOrder(InventoryEntity item, int amount, int price) {
-        return queueBuyOrder(item.getId(), amount, price);
+        GrandExchangeSlot slot = getFirstFreeSlot();
+        return queueBuyOrder(slot, item.getId(), amount, price);
     }
 
     /**
