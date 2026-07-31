@@ -1,0 +1,22 @@
+//[kraken-api](../../../index.md)/[com.kraken.api.simulation.colosseum](../index.md)/[ColoLos](index.md)
+
+# ColoLos
+
+[Kraken API]\
+class [ColoLos](index.md)
+
+Line-of-sight and melee reachability for the colosseum grid. 
+
+Implements the OSRS scene raycast (the same fixed-point Bresenham used by the client and by the community colosseum wave simulator) against the grid's line-of-sight bitmask. For a multi-tile NPC the ray is cast between the target tile and the footprint tile closest to the target, which is the behaviour the community simulator validated against the live arena.
+
+Melee (range 1) never uses the raycast: it requires orthogonal adjacency to the attacker's bounding box, so a melee NPC can never attack diagonally.
+
+## Functions
+
+| Name | Summary |
+|---|---|
+| [footprintHasLosTo](footprint-has-los-to.md) | [Kraken API]<br>open fun [footprintHasLosTo](footprint-has-los-to.md)(grid: [ColoGrid](../-colo-grid/index.md), anchor: [Short](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-short/index.html), size: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), range: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), target: [Short](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-short/index.html)): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)<br>Checks whether an attacker footprint has line of sight (and range) to a single-tile target. |
+| [isMeleeAdjacent](is-melee-adjacent.md) | [Kraken API]<br>open fun [isMeleeAdjacent](is-melee-adjacent.md)(anchorX: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), anchorY: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), size: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), targetX: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), targetY: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)<br>Bounding-box melee adjacency: the target must be orthogonally adjacent to the footprint edge, never diagonal. |
+| [overlaps](overlaps.md) | [Kraken API]<br>open fun [overlaps](overlaps.md)(anchorX: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), anchorY: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), size: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), tileX: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), tileY: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)<br>Square footprint overlap test (south-west anchored, second footprint is 1x1). |
+| [tileHasLosToFootprint](tile-has-los-to-footprint.md) | [Kraken API]<br>open fun [tileHasLosToFootprint](tile-has-los-to-footprint.md)(grid: [ColoGrid](../-colo-grid/index.md), from: [Short](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-short/index.html), range: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), targetAnchor: [Short](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-short/index.html), targetSize: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)<br>Checks whether a single-tile attacker (the player) can hit an NPC footprint. |
+| [tileToTile](tile-to-tile.md) | [Kraken API]<br>open fun [tileToTile](tile-to-tile.md)(grid: [ColoGrid](../-colo-grid/index.md), x0: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), y0: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), x1: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), y1: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html)): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-boolean/index.html)<br>Raycast between two tiles. |
