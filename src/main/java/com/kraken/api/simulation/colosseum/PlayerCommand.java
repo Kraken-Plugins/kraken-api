@@ -1,5 +1,8 @@
 package com.kraken.api.simulation.colosseum;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
  * One tick's worth of player intent, bit-packed into a single {@code long} so search nodes
  * can branch over thousands of commands with zero allocation.
@@ -23,6 +26,7 @@ package com.kraken.api.simulation.colosseum;
  * bits 25-30 attack target: 0 keep, 63 clear, otherwise npc slot + 1
  * </pre>
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PlayerCommand {
     /** The empty command: keep doing whatever the previous ticks set up. */
     public static final long NONE = 0xFFFL;
@@ -50,9 +54,6 @@ public final class PlayerCommand {
     private static final long SPEC_BIT = 1L << 24;
     private static final int ATTACK_SHIFT = 25;
     private static final int ATTACK_CLEAR = 63;
-
-    private PlayerCommand() {
-    }
 
     /**
      * @param dest packed local destination.

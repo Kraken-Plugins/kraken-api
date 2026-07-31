@@ -1,5 +1,8 @@
 package com.kraken.api.simulation.colosseum;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
  * Bit-packing helpers for arena-local tile coordinates.
  *
@@ -8,6 +11,7 @@ package com.kraken.api.simulation.colosseum;
  * position is packed as {@code x | (y << 6)} into the low 12 bits of a short, which keeps
  * simulation state copies down to primitive array copies with no object churn.</p>
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ColoCoords {
     /** Sentinel packed position meaning "none". */
     public static final short NONE = -1;
@@ -16,9 +20,6 @@ public final class ColoCoords {
     public static final int MAX_DIMENSION = 64;
 
     private static final int AXIS_MASK = 0x3F;
-
-    private ColoCoords() {
-    }
 
     /**
      * Packs local coordinates into a short.
