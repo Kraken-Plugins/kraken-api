@@ -1,12 +1,6 @@
 package plugins.colosseum;
 
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.ConfigSection;
-import net.runelite.client.config.Range;
-
-import javax.swing.JButton;
+import net.runelite.client.config.*;
 
 @ConfigGroup("krakenColosseum")
 public interface AutoColosseumConfig extends Config {
@@ -88,8 +82,8 @@ public interface AutoColosseumConfig extends Config {
             position = 21,
             section = gearSection
     )
-    default JButton copyWeaponButton() {
-        return new JButton("Copy Weapon");
+    default boolean copyWeaponButton() {
+        return false;
     }
 
     @ConfigItem(
@@ -99,8 +93,8 @@ public interface AutoColosseumConfig extends Config {
             position = 22,
             section = gearSection
     )
-    default JButton copyGearButton() {
-        return new JButton("Copy Gear");
+    default boolean copyGearButton() {
+        return false;
     }
 
     @ConfigItem(
