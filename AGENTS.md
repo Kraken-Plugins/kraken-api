@@ -8,12 +8,12 @@
 ### Document metadata
 
 - Last updated: 2026-07-28
-- Scope: Kraken API main library (`com.kraken.api`) and the bundled `shortest-path` subproject
+- Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
 
 - If you change commands, file paths, Gradle tasks, environment variables, generated docs, or workflows in this repo, update this guide in the relevant sections.
-- When you add or change generated files, update the `🚫 NEVER EDIT DIRECTLY (Generated files)` section with sources and regeneration commands.
+- When you add or change generated files, update the `NEVER EDIT DIRECTLY (Generated files)` section with sources and regeneration commands.
 - If you change packet mappings, reflection hooks, or client-version-sensitive code, update the packet/reflection maintenance notes and any affected docs under `docs/`.
 - If you come across new common errors or fixes, extend `Common error patterns and quick fixes`.
 - Always bump the `Last updated` date above when you make substantive changes.
@@ -94,8 +94,6 @@ This section is the working guide for AI systems and humans asking AI systems to
 - Inject `Context` with `@Inject`.
 - Use event callbacks such as `GameTick`, `GameStateChanged`, `ConfigChanged`, or menu events to drive behavior.
 - Use `Script` when the work is long-running or stateful automation rather than a single event handler.
-- Call `Context.initializePackets()` before using packet-driven interactions or hooks that depend on packet metadata.
-- Keep reusable automation behind services, `Task`, `AbstractTask`, or `Script` instead of embedding it in plugin event handlers.
 
 ### Common mapping rules for AI tools
 
@@ -129,73 +127,15 @@ This section is the working guide for AI systems and humans asking AI systems to
 
 - Use Java 11. The Gradle toolchain is configured for Java 11.
 - Use the Gradle wrapper from the repo root.
-- Typical bootstrap:
-
-```bash
-./gradlew clean build
-./gradlew publishToMavenLocal
-```
-
-- Use `VERSION` if you need a local artifact version override:
-
-```bash
-VERSION=1.0.0-SNAPSHOT-local ./gradlew clean build shadowJar
-```
-
-## Local testing
-
-- Root library tests:
-
-```bash
-./gradlew test
-```
-
-- Full root verification, including docs generation and shaded jar build:
-
-```bash
-./gradlew clean build shadowJar
-```
-
-Notes:
-
-- `src/test/java/PluginRunnerTest.java` is the entry point for launching RuneLite with an API test plugin loaded.
-- Many API behaviors only make sense inside a RuneLite client, so test results from plain unit tests are only part of the verification story.
-
-## Local execution
-
-- Run the root API test plugin:
-
-```bash
-./gradlew runelite
-```
-
-Notes:
-
-- `PluginRunnerTest` installs the ByteBuddy agent before launching RuneLite so class reloading can work when available.
-- If the launcher cannot install the agent, the client can still start, but reloading and some hook-based behavior will be degraded.
-- If you need a different test plugin, run `PluginRunnerTest` from the IDE or adjust the Gradle task in `build.gradle` rather than layering extra `--args` on the existing task.
-
-## Regenerate docs and derived outputs
-
-- Kraken API reference docs are generated from `src/main/java` with Dokka and written to `docs/kraken-api/`.
-- Run the root build or the Dokka task after API surface changes:
-
-```bash
-./gradlew dokkaGfm
-```
-
-- `./gradlew build` also regenerates the docs because the build depends on `dokkaGfm`.
 
 ### NEVER EDIT DIRECTLY (Generated files)
 
 The following files or directories are generated or derived; edit their sources and regenerate them instead:
 
-- `docs/kraken-api/**`
+  - `docs/kraken-api/**`
   - Source: `src/main/java/com/kraken/api/**`
-  - Generate: `./gradlew dokkaGfm` or `./gradlew build`
-- `build/**`
+  - `build/**`
   - Source: Gradle build outputs
-  - Generate: `./gradlew build`, `./gradlew shadowJar`, or `./gradlew test`
 
 Do not treat these as hand-edited sources.
 
@@ -210,13 +150,6 @@ Do not treat these as hand-edited sources.
 - `docs/UPDATING.md` is the reference for packet and reflection updates after client revisions.
 - `docs/ai-integration.md` redirects here.
 
-## CI/CD (GitHub Actions)
-
-- Workflows live under `.github/workflows/`.
-- The build workflow uses JDK 11, the Gradle wrapper, recursive submodules, and runs `./gradlew clean build shadowJar`.
-- Release workflows publish the library artifact and should be treated as version-sensitive.
-- If you change build inputs, generated docs, or release outputs, verify the workflow still matches the repo layout.
-
 ## Code style and formatting
 
 - Follow the existing Java style in the surrounding package.
@@ -228,18 +161,3 @@ Do not treat these as hand-edited sources.
 
 - `VERSION=...`: Overrides the published artifact version for local and CI builds
 - `GITHUB_ACTOR` / `GITHUB_TOKEN`: Used by publishing tasks that target GitHub Packages
-
-## Known issues
-
-- `src/test/java/unit/plugins/colosseumv2/**` tests reference the colosseumv2 plugin
-  removed in commit `88a8b028` and no longer compile; they are excluded from the test
-  source set in `build.gradle`. Delete the orphaned tests or restore the plugin, then
-  remove the exclude.
-
-## Troubleshooting and pitfalls
-
-- `Context.initializePackets()` must run before packet-based actions are expected to work.
-- If packet interactions fail after a RuneLite or client revision update, check `PacketMethodLocator`, `ObfuscatedNames.java`, and the `reflectionHooks` / `loginHooks` sections in `packets.json` together.
-- If `./gradlew runelite` launches but class reloading behavior is missing, verify the ByteBuddy agent installed successfully.
-- If docs look stale, rerun `./gradlew dokkaGfm`.
-- If `publishToMavenLocal` does not produce the expected artifact version, check the `VERSION` environment variable.
