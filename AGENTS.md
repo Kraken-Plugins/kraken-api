@@ -114,9 +114,10 @@ This section is the working guide for AI systems and humans asking AI systems to
   - `service` for higher-level game actions and system helpers
   - `input` for mouse and keyboard handling
   - `overlay` for reusable RuneLite overlays
-  - `simulation` for decision-making, snapshotting, and combat/path evaluation
-    - `simulation.colosseum` is the Fortis Colosseum real-time engine (bit-packed tick
-      simulation, budgeted planner, live capture/executor); see `docs/SIMULATION.md`
+  - `simulation` for the Java port of the community Colosseum line-of-sight simulator
+    (`simulation.colosim`); the Fortis Colosseum real-time engine (bit-packed tick
+    simulation, budgeted planner, live capture/executor) lives in the test source set
+    under `plugins.colosseum.simulation` - see `docs/SIMULATION.md`
   - `util` for shared math, random, string, and helper utilities
 - Naming expectations:
   - Keep service names specific to the domain they own, for example `BankService`, `PrayerService`, `MovementService`.
@@ -145,7 +146,8 @@ Do not treat these as hand-edited sources.
 - `docs/INTERACTION.md` covers packet-based interaction and runtime hook behavior.
 - `docs/MOUSE.md` covers mouse movement strategies.
 - `docs/SCRIPTING.md` covers `Script`, `Task`, and break management.
-- `docs/SIMULATION.md` covers the simulation engine and snapshot-based planning helpers.
+- `docs/SIMULATION.md` is the simulation overview; deep dives live in `docs/simulation/`
+  (tick engine, planner, live plugin).
 - `docs/TESTS.md` documents the client-based test harness and environment requirements.
 - `docs/UPDATING.md` is the reference for packet and reflection updates after client revisions.
 - `docs/ai-integration.md` redirects here.
