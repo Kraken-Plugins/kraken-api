@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosseum;
+package plugins.colosseum.simulation;
 
 import net.runelite.api.CollisionDataFlag;
 import net.runelite.api.coords.WorldPoint;

@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosseum;
+package plugins.colosseum.simulation;
 
 /**
  * Reusable working memory for the tick engine and planner: BFS queues, distance fields and

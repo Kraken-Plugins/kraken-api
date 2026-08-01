@@ -1,6 +1,6 @@
-package com.kraken.api.simulation.colosseum.plan;
+package plugins.colosseum.simulation.plan;
 
-import com.kraken.api.simulation.colosseum.ColoState;
+import plugins.colosseum.simulation.ColoState;
 import lombok.Builder;
 import lombok.Getter;
 

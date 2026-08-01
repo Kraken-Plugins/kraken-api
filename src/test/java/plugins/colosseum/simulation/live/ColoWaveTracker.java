@@ -1,8 +1,8 @@
-package com.kraken.api.simulation.colosseum.live;
+package plugins.colosseum.simulation.live;
 
-import com.kraken.api.simulation.colosseum.ColoConstants;
-import com.kraken.api.simulation.colosseum.ColoNpcType;
-import com.kraken.api.simulation.colosseum.ColoTick;
+import plugins.colosseum.simulation.ColoConstants;
+import plugins.colosseum.simulation.ColoNpcType;
+import plugins.colosseum.simulation.ColoTick;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Actor;

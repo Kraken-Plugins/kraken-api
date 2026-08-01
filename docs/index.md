@@ -65,8 +65,8 @@
 | [com.kraken.api.simulation.colosim](kraken-api/com.kraken.api.simulation.colosim/index.md) |
 | [com.kraken.api.simulation.colosim.model](kraken-api/com.kraken.api.simulation.colosim.model/index.md) |
 | [com.kraken.api.simulation.colosseum](kraken-api/com.kraken.api.simulation.colosseum/index.md) |
-| [com.kraken.api.simulation.colosseum.live](kraken-api/com.kraken.api.simulation.colosseum.live/index.md) |
-| [com.kraken.api.simulation.colosseum.plan](kraken-api/com.kraken.api.simulation.colosseum.plan/index.md) |
+| [plugins.colosseum.simulation.live](kraken-api/com.kraken.api.simulation.colosseum.live/index.md) |
+| [plugins.colosseum.simulation.plan](kraken-api/com.kraken.api.simulation.colosseum.plan/index.md) |
 | [com.kraken.api.simulation.snapshot](kraken-api/com.kraken.api.simulation.snapshot/index.md) |
 | [com.kraken.api.simulation.tree](kraken-api/com.kraken.api.simulation.tree/index.md) |
 | [com.kraken.api.util](kraken-api/com.kraken.api.util/index.md) |

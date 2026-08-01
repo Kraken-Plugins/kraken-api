@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosseum;
+package plugins.colosseum.simulation;
 
 /**
  * Timing and behaviour constants for the Fortis Colosseum simulation.

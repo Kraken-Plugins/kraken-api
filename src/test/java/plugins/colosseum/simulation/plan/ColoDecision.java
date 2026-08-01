@@ -1,8 +1,8 @@
-package com.kraken.api.simulation.colosseum.plan;
+package plugins.colosseum.simulation.plan;
 
-import com.kraken.api.simulation.colosseum.ColoCoords;
-import com.kraken.api.simulation.colosseum.ColoGrid;
-import com.kraken.api.simulation.colosseum.PlayerCommand;
+import plugins.colosseum.simulation.ColoCoords;
+import plugins.colosseum.simulation.ColoGrid;
+import plugins.colosseum.simulation.PlayerCommand;
 import lombok.Getter;
 import net.runelite.api.Prayer;
 import net.runelite.api.coords.WorldPoint;

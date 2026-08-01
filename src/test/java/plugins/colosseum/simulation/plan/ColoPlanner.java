@@ -1,16 +1,16 @@
-package com.kraken.api.simulation.colosseum.plan;
+package plugins.colosseum.simulation.plan;
 
-import com.kraken.api.simulation.colosseum.ColoCoords;
-import com.kraken.api.simulation.colosseum.ColoConstants;
-import com.kraken.api.simulation.colosseum.ColoFrame;
-import com.kraken.api.simulation.colosseum.ColoGrid;
-import com.kraken.api.simulation.colosseum.ColoLos;
-import com.kraken.api.simulation.colosseum.ColoNpcType;
-import com.kraken.api.simulation.colosseum.ColoScratch;
-import com.kraken.api.simulation.colosseum.ColoState;
-import com.kraken.api.simulation.colosseum.ColoTick;
-import com.kraken.api.simulation.colosseum.LoadoutConfig;
-import com.kraken.api.simulation.colosseum.PlayerCommand;
+import plugins.colosseum.simulation.ColoCoords;
+import plugins.colosseum.simulation.ColoConstants;
+import plugins.colosseum.simulation.ColoFrame;
+import plugins.colosseum.simulation.ColoGrid;
+import plugins.colosseum.simulation.ColoLos;
+import plugins.colosseum.simulation.ColoNpcType;
+import plugins.colosseum.simulation.ColoScratch;
+import plugins.colosseum.simulation.ColoState;
+import plugins.colosseum.simulation.ColoTick;
+import plugins.colosseum.simulation.LoadoutConfig;
+import plugins.colosseum.simulation.PlayerCommand;
 
 /**
  * Real-time, time-budgeted plan search over the colosseum tick engine.

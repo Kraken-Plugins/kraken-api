@@ -1,6 +1,5 @@
-package com.kraken.api.simulation.colosseum;
+package plugins.colosseum.simulation;
 
-import com.kraken.api.simulation.NpcAttackStyle;
 import lombok.Getter;
 
 /**

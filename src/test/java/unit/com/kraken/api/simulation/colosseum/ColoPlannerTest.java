@@ -1,13 +1,12 @@
 package unit.com.kraken.api.simulation.colosseum;
 
-import com.kraken.api.simulation.colosseum.ColoCoords;
-import com.kraken.api.simulation.colosseum.ColoFrame;
-import com.kraken.api.simulation.colosseum.ColoGrid;
-import com.kraken.api.simulation.colosseum.ColoNpcType;
-import com.kraken.api.simulation.colosseum.ColoState;
-import com.kraken.api.simulation.colosseum.plan.ColoDecision;
-import com.kraken.api.simulation.colosseum.plan.ColoPlanner;
-import com.kraken.api.simulation.colosseum.plan.PlannerOptions;
+import plugins.colosseum.simulation.ColoFrame;
+import plugins.colosseum.simulation.ColoGrid;
+import plugins.colosseum.simulation.ColoNpcType;
+import plugins.colosseum.simulation.ColoState;
+import plugins.colosseum.simulation.plan.ColoDecision;
+import plugins.colosseum.simulation.plan.ColoPlanner;
+import plugins.colosseum.simulation.plan.PlannerOptions;
 import net.runelite.api.Prayer;
 import org.junit.jupiter.api.Test;
 

@@ -1,11 +1,11 @@
-package com.kraken.api.simulation.colosseum.plan;
+package plugins.colosseum.simulation.plan;
 
-import com.kraken.api.simulation.colosseum.ColoCoords;
-import com.kraken.api.simulation.colosseum.ColoFrame;
-import com.kraken.api.simulation.colosseum.ColoGrid;
-import com.kraken.api.simulation.colosseum.ColoNpcType;
-import com.kraken.api.simulation.colosseum.ColoState;
-import com.kraken.api.simulation.colosseum.ColoTick;
+import plugins.colosseum.simulation.ColoCoords;
+import plugins.colosseum.simulation.ColoFrame;
+import plugins.colosseum.simulation.ColoGrid;
+import plugins.colosseum.simulation.ColoNpcType;
+import plugins.colosseum.simulation.ColoState;
+import plugins.colosseum.simulation.ColoTick;
 
 /**
  * Per-tile threat analysis around the player: for every walkable tile in a radius, which

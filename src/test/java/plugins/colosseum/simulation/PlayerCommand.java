@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosseum;
+package plugins.colosseum.simulation;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

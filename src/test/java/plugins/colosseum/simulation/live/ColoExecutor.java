@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosseum.live;
+package plugins.colosseum.simulation.live;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -8,8 +8,8 @@ import com.kraken.api.query.equipment.EquipmentEntity;
 import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.prayer.PrayerService;
-import com.kraken.api.simulation.colosseum.LoadoutConfig;
-import com.kraken.api.simulation.colosseum.plan.ColoDecision;
+import plugins.colosseum.simulation.LoadoutConfig;
+import plugins.colosseum.simulation.plan.ColoDecision;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.NPC;

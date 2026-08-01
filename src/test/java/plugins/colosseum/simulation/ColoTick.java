@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosseum;
+package plugins.colosseum.simulation;
 
 /**
  * The colosseum tick engine: advances a {@link ColoState} by exactly one game tick given a

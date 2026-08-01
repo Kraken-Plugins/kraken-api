@@ -1,11 +1,11 @@
 package plugins.colosseum;
 
 import com.google.inject.Inject;
-import com.kraken.api.simulation.colosseum.ColoNpcType;
-import com.kraken.api.simulation.colosseum.ColoState;
-import com.kraken.api.simulation.colosseum.ColoTick;
-import com.kraken.api.simulation.colosseum.live.ColoCapture;
-import com.kraken.api.simulation.colosseum.plan.ColoDecision;
+import plugins.colosseum.simulation.ColoNpcType;
+import plugins.colosseum.simulation.ColoState;
+import plugins.colosseum.simulation.ColoTick;
+import plugins.colosseum.simulation.live.ColoCapture;
+import plugins.colosseum.simulation.plan.ColoDecision;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.LineComponent;

@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosseum;
+package plugins.colosseum.simulation;
 
 /**
  * Line-of-sight and melee reachability for the colosseum grid.

@@ -1,13 +1,13 @@
-package com.kraken.api.simulation.colosseum.live;
+package plugins.colosseum.simulation.live;
 
 import com.kraken.api.Context;
-import com.kraken.api.simulation.colosseum.ColoConstants;
-import com.kraken.api.simulation.colosseum.ColoCoords;
-import com.kraken.api.simulation.colosseum.ColoFrame;
-import com.kraken.api.simulation.colosseum.ColoGrid;
-import com.kraken.api.simulation.colosseum.ColoNpcType;
-import com.kraken.api.simulation.colosseum.ColoState;
-import com.kraken.api.simulation.colosseum.LoadoutConfig;
+import plugins.colosseum.simulation.ColoConstants;
+import plugins.colosseum.simulation.ColoCoords;
+import plugins.colosseum.simulation.ColoFrame;
+import plugins.colosseum.simulation.ColoGrid;
+import plugins.colosseum.simulation.ColoNpcType;
+import plugins.colosseum.simulation.ColoState;
+import plugins.colosseum.simulation.LoadoutConfig;
 import lombok.Getter;
 import net.runelite.api.Client;
 import net.runelite.api.CollisionData;

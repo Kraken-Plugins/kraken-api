@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosseum;
+package plugins.colosseum.simulation;
 
 /**
  * Mutable, poolable simulation state: everything about one possible future of the arena.

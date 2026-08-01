@@ -1,11 +1,11 @@
 package plugins.colosseum;
 
 import com.google.inject.Inject;
-import com.kraken.api.simulation.colosseum.ColoCoords;
-import com.kraken.api.simulation.colosseum.ColoGrid;
-import com.kraken.api.simulation.colosseum.live.ColoCapture;
-import com.kraken.api.simulation.colosseum.plan.ColoDecision;
-import com.kraken.api.simulation.colosseum.plan.DangerMap;
+import plugins.colosseum.simulation.ColoCoords;
+import plugins.colosseum.simulation.ColoGrid;
+import plugins.colosseum.simulation.live.ColoCapture;
+import plugins.colosseum.simulation.plan.ColoDecision;
+import plugins.colosseum.simulation.plan.DangerMap;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
 import net.runelite.api.Point;

@@ -1,4 +1,4 @@
-package com.kraken.api.simulation;
+package plugins.colosseum.simulation;
 
 import net.runelite.api.Prayer;
 
