@@ -147,13 +147,134 @@ public interface AutoColosseumConfig extends Config {
     }
 
     // ==================================
+    // Sim Decision Section
+    //===================================
+
+    @ConfigSection(
+            name = "Simulation Decision",
+            description = "Tweaks how futures are scored and decisions are determined.",
+            position = 11
+    )
+    String simulationDecisionSection = "simulationDecision";
+
+    @ConfigItem(
+            keyName = "deathPenalty",
+            name = "Death Penalty",
+            description = "Flat penalty for futures where the expected-damage trajectory kills the player.",
+            position = 2,
+            section = simulationDecisionSection
+    )
+    default double deathPenalty() {
+        return 1_000_000;
+    }
+
+    @ConfigItem(
+            keyName = "lethalRiskPerHp",
+            name = "Lethal Risk Per HP",
+            description = "Penalty per hitpoint the worst-case burst floor dips below zero (could have died).",
+            position = 3,
+            section = simulationDecisionSection
+    )
+    default double lethalRiskPerHp() {
+        return 4_000;
+    }
+
+    @ConfigItem(
+            keyName = "hpWeight",
+            name = "HP Weight",
+            description = "Reward per remaining player hitpoint at the horizon.",
+            position = 4,
+            section = simulationDecisionSection
+    )
+    default double hpWeight() {
+        return 6;
+    }
+
+    @ConfigItem(
+            keyName = "damageTakenWeight",
+            name = "Damage Taken Weight",
+            description = "Penalty per expected hitpoint of damage taken during the rollout.",
+            position = 5,
+            section = simulationDecisionSection
+    )
+    default double damageTakenWeight() {
+        return 14;
+    }
+
+    @ConfigItem(
+            keyName = "killWeight",
+            name = "Kill Weight",
+            description = "Reward per NPC killed during the rollout.",
+            position = 6,
+            section = simulationDecisionSection
+    )
+    default double killWeight() {
+        return 900;
+    }
+
+    @ConfigItem(
+            keyName = "damageDealtWeight",
+            name = "Damage Dealt Weight",
+            description = "Reward per expected hitpoint of damage dealt.",
+            position = 7,
+            section = simulationDecisionSection
+    )
+    default double damageDealtWeight() {
+        return 6;
+    }
+
+    @ConfigItem(
+            keyName = "supplyWeight",
+            name = "Supply Weight",
+            description = "Penalty per supply consumed.",
+            position = 8,
+            section = simulationDecisionSection
+    )
+    default double supplyWeight() {
+        return 25;
+    }
+
+    @ConfigItem(
+            keyName = "prayerWeight",
+            name = "Prayer Weight",
+            description = "Penalty per prayer point below the cap at the horizon.",
+            position = 9,
+            section = simulationDecisionSection
+    )
+    default double prayerWeight() {
+        return 2.5;
+    }
+
+    @ConfigItem(
+            keyName = "endExposureWeight",
+            name = "End Exposure Weight",
+            description = "Penalty per NPC that has line of sight to the player at the horizon.",
+            position = 10,
+            section = simulationDecisionSection
+    )
+    default double endExposureWeight() {
+        return 30;
+    }
+
+    @ConfigItem(
+            keyName = "runEnergyWeight",
+            name = "Run Energy Weight",
+            description = "Small reward for retaining run energy (units of 1%).",
+            position = 11,
+            section = simulationDecisionSection
+    )
+    default double runEnergyWeight() {
+        return 0.4;
+    }
+
+    // ==================================
     // Food & Potions Section
     //===================================
 
     @ConfigSection(
             name = "Food & Potions",
             description = "Options to tune when to eat food and drink potions.",
-            position = 11
+            position = 12
     )
     String foodAndPotions = "foodAndPotions";
 
@@ -161,31 +282,55 @@ public interface AutoColosseumConfig extends Config {
     @ConfigItem(
             keyName = "eatFoodAtHp",
             name = "Eat at HP",
-            description = "Rollout policy eats primary food at or below this HP (0 uses default of 48).",
+            description = "Eats primary food at or below this HP.",
             position = 15,
             section = foodAndPotions
     )
     default int eatFoodAtHp() {
-        return 0;
+        return 48;
     }
 
     @Range(min = 1, max = 98)
     @ConfigItem(
             keyName = "eatComboAtHp",
             name = "Combo Eat at HP",
-            description = "Eats a combo eat if available at or below this HP (0 uses default of 34).",
+            description = "Eats a combo eat if available at or below this HP.",
             position = 13,
             section = foodAndPotions
     )
     default int eatComboAt() {
-        return 0;
+        return 34;
+    }
+
+    @Range(min = 1, max = 98)
+    @ConfigItem(
+            keyName = "sipBrew",
+            name = "Sip Saradomin Brew",
+            description = "Sips a Saradomin brew at or below this HP when out of hard food.",
+            position = 14,
+            section = foodAndPotions
+    )
+    default int sipBrew() {
+        return 55;
+    }
+
+    @Range(min = 1, max = 77)
+    @ConfigItem(
+            keyName = "sipRestore",
+            name = "Sip Super Restore",
+            description = "Sips a Super Restore at or below this Prayer",
+            position = 15,
+            section = foodAndPotions
+    )
+    default int sipRestore() {
+        return 15;
     }
 
     @ConfigSection(
             name = "Gear",
             description = "Weapon and armour ids for each combat style. Wear a setup, then use the "
                     + "copy buttons and paste the ids into the matching style's fields.",
-            position = 20
+            position = 13
     )
     String gearSection = "gearSection";
 
@@ -280,7 +425,7 @@ public interface AutoColosseumConfig extends Config {
     @ConfigSection(
             name = "Overlay",
             description = "Debug visualization.",
-            position = 30
+            position = 14
     )
     String overlaySection = "overlaySection";
 

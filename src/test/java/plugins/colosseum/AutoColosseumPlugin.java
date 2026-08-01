@@ -12,10 +12,7 @@ import com.kraken.api.simulation.colosseum.PlayerCommand;
 import com.kraken.api.simulation.colosseum.live.ColoCapture;
 import com.kraken.api.simulation.colosseum.live.ColoExecutor;
 import com.kraken.api.simulation.colosseum.live.ColoWaveTracker;
-import com.kraken.api.simulation.colosseum.plan.ColoDecision;
-import com.kraken.api.simulation.colosseum.plan.ColoPlanner;
-import com.kraken.api.simulation.colosseum.plan.DangerMap;
-import com.kraken.api.simulation.colosseum.plan.PlannerOptions;
+import com.kraken.api.simulation.colosseum.plan.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.EquipmentInventorySlot;
@@ -215,7 +212,20 @@ public class AutoColosseumPlugin extends Plugin {
                 .maxSafeTiles(config.maxSafeTiles())
                 .maxAttackTiles(config.maxAttackTiles())
                 .maxTargets(config.maxTargets())
-                .eatComboAtHp(config.eatComboAt());
+                .sipBrewAtHp(config.sipBrew())
+                .sipRestoreAtPrayer(config.sipRestore())
+                .eatComboAtHp(config.eatComboAt())
+                        .scorer(ColoScorer.builder()
+                                .deathPenalty(config.deathPenalty())
+                                .lethalRiskPerHp(config.lethalRiskPerHp())
+                                .hpWeight(config.hpWeight())
+                                .damageTakenWeight(config.damageTakenWeight())
+                                .killWeight(config.killWeight())
+                                .damageDealtWeight(config.damageDealtWeight())
+                                .supplyWeight(config.supplyWeight())
+                                .prayerWeight(config.prayerWeight())
+                                .endExposureWeight(config.endExposureWeight())
+                                .runEnergyWeight(config.runEnergyWeight()).build());
 
         builder.eatFoodAtHp(config.eatFoodAtHp());
         return builder.build();
