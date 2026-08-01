@@ -9,7 +9,7 @@ import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.prayer.PrayerService;
 import plugins.colosseum.simulation.LoadoutConfig;
-import plugins.colosseum.simulation.plan.ColoDecision;
+import plugins.colosseum.simulation.plan.Decision;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.NPC;
@@ -21,14 +21,14 @@ import net.runelite.api.coords.WorldPoint;
 import java.util.Objects;
 
 /**
- * Executes a {@link ColoDecision} through the Kraken API in priority order: prayer first
+ * Executes a {@link Decision} through the Kraken API in priority order: prayer first
  * (the most tick-critical action), then consumables (survival), then gear swaps, then the
  * attack or movement click. Attack and movement are mutually exclusive per tick, mirroring
  * both the engine model and the real client (a new click replaces the interaction).
  */
 @Slf4j
 @Singleton
-public final class ColoExecutor {
+public final class Executor {
     private final Context ctx;
     private final PrayerService prayerService;
     private final MovementService movementService;
@@ -41,7 +41,7 @@ public final class ColoExecutor {
      * @param movementService movement service.
      */
     @Inject
-    public ColoExecutor(Context ctx, PrayerService prayerService, MovementService movementService) {
+    public Executor(Context ctx, PrayerService prayerService, MovementService movementService) {
         this.ctx = Objects.requireNonNull(ctx, "ctx");
         this.prayerService = Objects.requireNonNull(prayerService, "prayerService");
         this.movementService = Objects.requireNonNull(movementService, "movementService");
@@ -54,7 +54,7 @@ public final class ColoExecutor {
      * @param loadout loadout used to resolve item ids.
      * @return true when at least one action was issued.
      */
-    public boolean execute(ColoDecision decision, LoadoutConfig loadout) {
+    public boolean execute(Decision decision, LoadoutConfig loadout) {
         if (decision == null || loadout == null) {
             return false;
         }
@@ -77,7 +77,7 @@ public final class ColoExecutor {
         return Boolean.TRUE.equals(executed);
     }
 
-    private boolean executePrayer(ColoDecision decision) {
+    private boolean executePrayer(Decision decision) {
         Prayer prayer = decision.getPrayerToActivate();
         if (prayer != null) {
             return prayerService.toggle(prayer, true);
@@ -88,7 +88,7 @@ public final class ColoExecutor {
         return false;
     }
 
-    private boolean executeConsumables(ColoDecision decision, LoadoutConfig loadout) {
+    private boolean executeConsumables(Decision decision, LoadoutConfig loadout) {
         boolean any = false;
         if (decision.isEatFood()) {
             any |= interactFirst(loadout.getFoodItemIds(), "Eat");
@@ -105,7 +105,7 @@ public final class ColoExecutor {
         return any;
     }
 
-    private boolean executeGear(ColoDecision decision, LoadoutConfig loadout) {
+    private boolean executeGear(Decision decision, LoadoutConfig loadout) {
         int setIndex = decision.getGearSetIndex();
         if (setIndex < 0 || setIndex >= loadout.gearSetCount()) {
             return false;
@@ -120,7 +120,7 @@ public final class ColoExecutor {
         return any;
     }
 
-    private boolean executeAttack(ColoDecision decision) {
+    private boolean executeAttack(Decision decision) {
         int npcIndex = decision.getAttackNpcRuneliteIndex();
         // Freshest-possible redundancy guard: if the client says we are already fighting
         // this exact NPC, re-clicking it accomplishes nothing.
@@ -141,7 +141,7 @@ public final class ColoExecutor {
         return npc.interact("Attack");
     }
 
-    private boolean executeMove(ColoDecision decision) {
+    private boolean executeMove(Decision decision) {
         WorldPoint destination = decision.getMoveDestination();
         if (destination == null) {
             return false;

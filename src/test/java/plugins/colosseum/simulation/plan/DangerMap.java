@@ -1,11 +1,11 @@
 package plugins.colosseum.simulation.plan;
 
-import plugins.colosseum.simulation.ColoCoords;
-import plugins.colosseum.simulation.ColoFrame;
-import plugins.colosseum.simulation.ColoGrid;
-import plugins.colosseum.simulation.ColoNpcType;
-import plugins.colosseum.simulation.ColoState;
-import plugins.colosseum.simulation.ColoTick;
+import plugins.colosseum.simulation.Coords;
+import plugins.colosseum.simulation.Frame;
+import plugins.colosseum.simulation.Grid;
+import plugins.colosseum.simulation.NpcType;
+import plugins.colosseum.simulation.State;
+import plugins.colosseum.simulation.Tick;
 
 /**
  * Per-tile threat analysis around the player: for every walkable tile in a radius, which
@@ -16,14 +16,14 @@ import plugins.colosseum.simulation.ColoTick;
  * lowest-exposure attack positions) and by the debug overlay as a heat map.</p>
  */
 public final class DangerMap {
-    private static final int FIELD_SIZE = ColoCoords.MAX_DIMENSION * ColoCoords.MAX_DIMENSION;
+    private static final int FIELD_SIZE = Coords.MAX_DIMENSION * Coords.MAX_DIMENSION;
 
     private final byte[] losCount = new byte[FIELD_SIZE];
     /** Expected damage per tick x100 if standing on the tile unprotected. */
     private final short[] expectedDamagePerTick = new short[FIELD_SIZE];
     private final boolean[] computed = new boolean[FIELD_SIZE];
     private int radius;
-    private short center = ColoCoords.NONE;
+    private short center = Coords.NONE;
 
     /**
      * Recomputes the map around the player.
@@ -31,13 +31,13 @@ public final class DangerMap {
      * @param state state to analyse.
      * @param radius tile radius around the player to cover.
      */
-    public void compute(ColoState state, int radius) {
+    public void compute(State state, int radius) {
         this.radius = radius;
         this.center = state.playerPos();
-        ColoFrame frame = state.frame();
-        ColoGrid grid = frame.getGrid();
-        int px = ColoCoords.x(center);
-        int py = ColoCoords.y(center);
+        Frame frame = state.frame();
+        Grid grid = frame.getGrid();
+        int px = Coords.x(center);
+        int py = Coords.y(center);
         double factor = frame.getLoadout().getNpcExpectedDamageFactor();
 
         java.util.Arrays.fill(computed, false);
@@ -50,21 +50,21 @@ public final class DangerMap {
                 if (grid.isMoveBlocked(x, y)) {
                     continue;
                 }
-                short tile = ColoCoords.pack(x, y);
+                short tile = Coords.pack(x, y);
                 int count = 0;
                 double damage = 0;
                 for (int slot = 0; slot < frame.getNpcSlotCount(); slot++) {
                     if (!state.npcActive(slot)) {
                         continue;
                     }
-                    if (!ColoTick.npcHasLosToTile(state, slot, tile)) {
+                    if (!Tick.npcHasLosToTile(state, slot, tile)) {
                         continue;
                     }
                     count++;
-                    ColoNpcType type = frame.type(slot);
+                    NpcType type = frame.type(slot);
                     int maxHit = type.getMaxHit();
-                    if (type == ColoNpcType.JAGUAR_WARRIOR) {
-                        maxHit *= ColoTick.JAGUAR_HITS_PER_ATTACK;
+                    if (type == NpcType.JAGUAR_WARRIOR) {
+                        maxHit *= Tick.JAGUAR_HITS_PER_ATTACK;
                     }
                     damage += maxHit * factor / Math.max(1, type.getAttackSpeedTicks());
                 }
@@ -89,7 +89,7 @@ public final class DangerMap {
      * @return true when the tile was inside the last computed radius.
      */
     public boolean covers(short tile) {
-        return ColoCoords.isPresent(tile) && computed[tile & 0xFFF];
+        return Coords.isPresent(tile) && computed[tile & 0xFFF];
     }
 
     /**

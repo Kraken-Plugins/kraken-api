@@ -1,8 +1,8 @@
 package plugins.colosseum.simulation.live;
 
-import plugins.colosseum.simulation.ColoConstants;
-import plugins.colosseum.simulation.ColoNpcType;
-import plugins.colosseum.simulation.ColoTick;
+import plugins.colosseum.simulation.Constants;
+import plugins.colosseum.simulation.NpcType;
+import plugins.colosseum.simulation.Tick;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Actor;
@@ -20,12 +20,12 @@ import java.util.Map;
  *
  * <p>The hosting plugin forwards RuneLite events into this tracker
  * ({@link #onGameTick()}, {@link #onNpcSpawned}, {@link #onNpcDespawned},
- * {@link #onAnimationChanged}); {@link ColoCapture} then reads it while building the
+ * {@link #onAnimationChanged}); {@link Capture} then reads it while building the
  * simulation state. Everything here is an estimate that self-corrects every tick - the
  * planner replans from a fresh capture each tick, which is what makes the system adapt to
  * surprises (reinforcements, missed observations, lag).</p>
  */
-public final class ColoWaveTracker {
+public final class WaveTracker {
     /**
      * Per-NPC observation record.
      */
@@ -33,15 +33,15 @@ public final class ColoWaveTracker {
         @Getter
         private final int npcIndex;
         @Getter
-        private final ColoNpcType type;
+        private final NpcType type;
         private NPC npc;
         int lastAttackTick = Integer.MIN_VALUE;
         int attackCount;
         int chargeSeenTick = Integer.MIN_VALUE;
-        int pattern = ColoTick.PATTERN_UNKNOWN;
+        int pattern = Tick.PATTERN_UNKNOWN;
         int lastKnownHp;
 
-        NpcRecord(int npcIndex, ColoNpcType type, NPC npc) {
+        NpcRecord(int npcIndex, NpcType type, NPC npc) {
             this.npcIndex = npcIndex;
             this.type = type;
             this.npc = npc;
@@ -67,7 +67,7 @@ public final class ColoWaveTracker {
 
     /** Observed warband attack-cycle phase (tick % 6 of their attacks). */
     @Getter
-    private int warbandCyclePhase = ColoConstants.DEFAULT_WARBAND_CYCLE_PHASE;
+    private int warbandCyclePhase = Constants.DEFAULT_WARBAND_CYCLE_PHASE;
 
     /**
      * Spot-anim id shown by a manticore charging a ranged-first triple; -1 disables
@@ -100,14 +100,14 @@ public final class ColoWaveTracker {
             if (npc == null) {
                 continue;
             }
-            if (record.type == ColoNpcType.MANTICORE) {
+            if (record.type == NpcType.MANTICORE) {
                 if (manticoreRangedSpotAnim >= 0 && npc.hasSpotAnim(manticoreRangedSpotAnim)) {
-                    record.pattern = ColoTick.PATTERN_RANGED_FIRST;
+                    record.pattern = Tick.PATTERN_RANGED_FIRST;
                     if (record.chargeSeenTick == Integer.MIN_VALUE) {
                         record.chargeSeenTick = waveTick;
                     }
                 } else if (manticoreMagicSpotAnim >= 0 && npc.hasSpotAnim(manticoreMagicSpotAnim)) {
-                    record.pattern = ColoTick.PATTERN_MAGIC_FIRST;
+                    record.pattern = Tick.PATTERN_MAGIC_FIRST;
                     if (record.chargeSeenTick == Integer.MIN_VALUE) {
                         record.chargeSeenTick = waveTick;
                     }
@@ -128,7 +128,7 @@ public final class ColoWaveTracker {
      * @param npc spawned npc.
      */
     public void onNpcSpawned(NPC npc) {
-        ColoNpcType type = ColoNpcType.fromNpcId(npc.getId());
+        NpcType type = NpcType.fromNpcId(npc.getId());
         if (type == null) {
             return;
         }
@@ -173,7 +173,7 @@ public final class ColoWaveTracker {
         record.lastAttackTick = waveTick;
         record.attackCount++;
         if (record.type.isWarband() && waveTick >= 0) {
-            warbandCyclePhase = Math.floorMod(waveTick, ColoConstants.WARBAND_CYCLE_TICKS);
+            warbandCyclePhase = Math.floorMod(waveTick, Constants.WARBAND_CYCLE_TICKS);
         }
     }
 
@@ -227,13 +227,13 @@ public final class ColoWaveTracker {
      * @return estimated ticks until the npc can act (0 when unknown - conservative).
      */
     public int cooldownEstimate(NpcRecord record) {
-        if (record.type == ColoNpcType.MANTICORE) {
+        if (record.type == NpcType.MANTICORE) {
             if (record.lastAttackTick != Integer.MIN_VALUE) {
                 int sinceFire = waveTick - record.lastAttackTick;
                 return Math.max(0, record.type.getAttackSpeedTicks() - sinceFire);
             }
             if (record.chargeSeenTick != Integer.MIN_VALUE) {
-                return Math.max(0, ColoConstants.MANTICORE_CHARGE_TICKS - (waveTick - record.chargeSeenTick));
+                return Math.max(0, Constants.MANTICORE_CHARGE_TICKS - (waveTick - record.chargeSeenTick));
             }
             return 0;
         }
@@ -248,14 +248,14 @@ public final class ColoWaveTracker {
      * @return orbs remaining in an in-progress triple (0 outside one).
      */
     public int manticoreOrbsRemaining(NpcRecord record) {
-        if (record.type != ColoNpcType.MANTICORE || record.lastAttackTick == Integer.MIN_VALUE) {
+        if (record.type != NpcType.MANTICORE || record.lastAttackTick == Integer.MIN_VALUE) {
             return 0;
         }
         int sinceFire = waveTick - record.lastAttackTick;
-        if (sinceFire < 0 || sinceFire >= ColoConstants.MANTICORE_ORB_COUNT) {
+        if (sinceFire < 0 || sinceFire >= Constants.MANTICORE_ORB_COUNT) {
             return 0;
         }
-        return ColoConstants.MANTICORE_ORB_COUNT - 1 - sinceFire;
+        return Constants.MANTICORE_ORB_COUNT - 1 - sinceFire;
     }
 
     /**
@@ -271,7 +271,7 @@ public final class ColoWaveTracker {
      * @return auto attacks since the last sky javelin, 0-4.
      */
     public int javelinAutosSinceSpecial(NpcRecord record) {
-        return record.attackCount % ColoConstants.JAVELIN_SPECIAL_EVERY_N_ATTACKS;
+        return record.attackCount % Constants.JAVELIN_SPECIAL_EVERY_N_ATTACKS;
     }
 
     /**

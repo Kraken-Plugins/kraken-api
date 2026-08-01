@@ -1,6 +1,6 @@
 package plugins.colosseum.simulation.plan;
 
-import plugins.colosseum.simulation.ColoState;
+import plugins.colosseum.simulation.State;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -15,7 +15,7 @@ import lombok.Getter;
  */
 @Getter
 @Builder(toBuilder = true)
-public final class ColoScorer {
+public final class Scorer {
     /** Flat penalty for futures where the expected-damage trajectory kills the player. */
     @Builder.Default
     private final double deathPenalty = 1_000_000;
@@ -59,8 +59,8 @@ public final class ColoScorer {
     /**
      * @return scorer with default weights.
      */
-    public static ColoScorer defaults() {
-        return ColoScorer.builder().build();
+    public static Scorer defaults() {
+        return Scorer.builder().build();
     }
 
     /**
@@ -70,7 +70,7 @@ public final class ColoScorer {
      * @param endLosThreats NPCs with line of sight to the player in the end state.
      * @return score, larger is better.
      */
-    public double score(ColoState end, int endLosThreats) {
+    public double score(State end, int endLosThreats) {
         double score = 0;
         if (end.playerDied()) {
             // Dying later is marginally better so gradients still exist.

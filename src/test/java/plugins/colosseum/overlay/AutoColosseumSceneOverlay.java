@@ -1,10 +1,12 @@
-package plugins.colosseum;
+package plugins.colosseum.overlay;
 
 import com.google.inject.Inject;
-import plugins.colosseum.simulation.ColoCoords;
-import plugins.colosseum.simulation.ColoGrid;
-import plugins.colosseum.simulation.live.ColoCapture;
-import plugins.colosseum.simulation.plan.ColoDecision;
+import plugins.colosseum.AutoColosseumConfig;
+import plugins.colosseum.AutoColosseumPlugin;
+import plugins.colosseum.simulation.Coords;
+import plugins.colosseum.simulation.Grid;
+import plugins.colosseum.simulation.live.Capture;
+import plugins.colosseum.simulation.plan.Decision;
 import plugins.colosseum.simulation.plan.DangerMap;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
@@ -30,13 +32,13 @@ import java.util.Map;
  * (tiles NPCs can currently hit, shaded by expected damage), the chosen plan's predicted
  * player path, and predicted NPC movement.
  */
-public class ColosseumSceneOverlay extends Overlay {
+public class AutoColosseumSceneOverlay extends Overlay {
     private final Client client;
     private final AutoColosseumPlugin plugin;
     private final AutoColosseumConfig config;
 
     @Inject
-    public ColosseumSceneOverlay(Client client, AutoColosseumPlugin plugin, AutoColosseumConfig config) {
+    public AutoColosseumSceneOverlay(Client client, AutoColosseumPlugin plugin, AutoColosseumConfig config) {
         this.client = client;
         this.plugin = plugin;
         this.config = config;
@@ -50,8 +52,8 @@ public class ColosseumSceneOverlay extends Overlay {
         if (!config.enabled()) {
             return null;
         }
-        ColoCapture capture = plugin.getLastCapture();
-        ColoDecision decision = plugin.getLastDecision();
+        Capture capture = plugin.getLastCapture();
+        Decision decision = plugin.getLastDecision();
         if (capture == null) {
             return null;
         }
@@ -71,21 +73,21 @@ public class ColosseumSceneOverlay extends Overlay {
         return null;
     }
 
-    private void renderDangerMap(Graphics2D graphics, ColoGrid grid) {
+    private void renderDangerMap(Graphics2D graphics, Grid grid) {
         DangerMap dangerMap = plugin.dangerMap();
         short center = dangerMap.center();
-        if (!ColoCoords.isPresent(center)) {
+        if (!Coords.isPresent(center)) {
             return;
         }
         int radius = dangerMap.radius();
-        int cx = ColoCoords.x(center);
-        int cy = ColoCoords.y(center);
+        int cx = Coords.x(center);
+        int cy = Coords.y(center);
         for (int y = cy - radius; y <= cy + radius; y++) {
             for (int x = cx - radius; x <= cx + radius; x++) {
                 if (!grid.inBounds(x, y)) {
                     continue;
                 }
-                short tile = ColoCoords.pack(x, y);
+                short tile = Coords.pack(x, y);
                 int damage = dangerMap.expectedDamagePerTickX100(tile);
                 if (damage <= 0) {
                     continue;
@@ -97,7 +99,7 @@ public class ColosseumSceneOverlay extends Overlay {
         }
     }
 
-    private void renderCandidates(Graphics2D graphics, ColoDecision decision) {
+    private void renderCandidates(Graphics2D graphics, Decision decision) {
         int count = decision.candidateCount();
         if (count == 0) {
             return;
@@ -148,7 +150,7 @@ public class ColosseumSceneOverlay extends Overlay {
         OverlayUtil.renderTextLocation(graphics, textLocation, text, color);
     }
 
-    private void renderPlannedPath(Graphics2D graphics, ColoDecision decision) {
+    private void renderPlannedPath(Graphics2D graphics, Decision decision) {
         WorldPoint[] path = decision.plannedPathWorld();
         WorldPoint previous = null;
         for (WorldPoint point : path) {

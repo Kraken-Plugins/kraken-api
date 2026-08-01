@@ -1,11 +1,13 @@
-package plugins.colosseum;
+package plugins.colosseum.overlay;
 
 import com.google.inject.Inject;
-import plugins.colosseum.simulation.ColoNpcType;
-import plugins.colosseum.simulation.ColoState;
-import plugins.colosseum.simulation.ColoTick;
-import plugins.colosseum.simulation.live.ColoCapture;
-import plugins.colosseum.simulation.plan.ColoDecision;
+import plugins.colosseum.AutoColosseumConfig;
+import plugins.colosseum.AutoColosseumPlugin;
+import plugins.colosseum.simulation.NpcType;
+import plugins.colosseum.simulation.State;
+import plugins.colosseum.simulation.Tick;
+import plugins.colosseum.simulation.live.Capture;
+import plugins.colosseum.simulation.plan.Decision;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.LineComponent;
@@ -19,7 +21,7 @@ import java.awt.Graphics2D;
  * Panel overlay: the decision's reasoning, planner statistics, predicted outcomes and
  * per-manticore charge states - the "why did it do that" view.
  */
-public class ColosseumInfoOverlay extends OverlayPanel {
+public class AutoColosseumInfoOverlay extends OverlayPanel {
     private static final Color TITLE = new Color(255, 180, 60);
     private static final Color WARN = new Color(255, 90, 80);
     private static final Color OK = new Color(120, 230, 120);
@@ -28,7 +30,7 @@ public class ColosseumInfoOverlay extends OverlayPanel {
     private final AutoColosseumConfig config;
 
     @Inject
-    public ColosseumInfoOverlay(AutoColosseumPlugin plugin, AutoColosseumConfig config) {
+    public AutoColosseumInfoOverlay(AutoColosseumPlugin plugin, AutoColosseumConfig config) {
         this.plugin = plugin;
         this.config = config;
         setPosition(OverlayPosition.TOP_LEFT);
@@ -50,14 +52,14 @@ public class ColosseumInfoOverlay extends OverlayPanel {
             return super.render(graphics);
         }
 
-        ColoCapture capture = plugin.getLastCapture();
-        ColoDecision decision = plugin.getLastDecision();
+        Capture capture = plugin.getLastCapture();
+        Decision decision = plugin.getLastDecision();
         if (capture == null || decision == null) {
             addLine("State", "waiting for wave", Color.LIGHT_GRAY);
             return super.render(graphics);
         }
 
-        ColoState state = capture.getState();
+        State state = capture.getState();
         addLine("Wave tick", Integer.toString(state.tick()), Color.WHITE);
         addLine("Plan", decision.getReasoning(), Color.WHITE);
         addLine("Score", String.format("%.0f", decision.getScore()), Color.WHITE);
@@ -71,18 +73,18 @@ public class ColosseumInfoOverlay extends OverlayPanel {
                 + " brew " + state.brewDoses() + " rest " + state.restoreDoses(), Color.WHITE);
 
         for (int slot = 0; slot < capture.getFrame().getNpcSlotCount(); slot++) {
-            if (!state.npcActive(slot) || capture.getFrame().type(slot) != ColoNpcType.MANTICORE) {
+            if (!state.npcActive(slot) || capture.getFrame().type(slot) != NpcType.MANTICORE) {
                 continue;
             }
             String patternText;
             switch (state.manticorePattern(slot)) {
-                case ColoTick.PATTERN_RANGED_FIRST:
+                case Tick.PATTERN_RANGED_FIRST:
                     patternText = "range-first";
                     break;
-                case ColoTick.PATTERN_MAGIC_FIRST:
+                case Tick.PATTERN_MAGIC_FIRST:
                     patternText = "mage-first";
                     break;
-                case ColoTick.PATTERN_UNKNOWN:
+                case Tick.PATTERN_UNKNOWN:
                     patternText = "unknown";
                     break;
                 default:
@@ -95,7 +97,7 @@ public class ColosseumInfoOverlay extends OverlayPanel {
                     : "cd " + Math.max(0, state.npcCooldown(slot)))
                     : "uncharged";
             addLine("Manticore#" + slot, patternText + ", " + chargeText,
-                    state.manticorePattern(slot) == ColoTick.PATTERN_UNKNOWN ? WARN : Color.WHITE);
+                    state.manticorePattern(slot) == Tick.PATTERN_UNKNOWN ? WARN : Color.WHITE);
         }
 
         return super.render(graphics);

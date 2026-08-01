@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
  * simulation state copies down to primitive array copies with no object churn.</p>
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class ColoCoords {
+public final class Coords {
     /** Sentinel packed position meaning "none". */
     public static final short NONE = -1;
 

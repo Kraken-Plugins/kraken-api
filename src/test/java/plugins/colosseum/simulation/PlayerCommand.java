@@ -161,11 +161,11 @@ public final class PlayerCommand {
         return cmd | SPEC_BIT;
     }
 
-    /** @param cmd command. @return packed move destination or {@link ColoCoords#NONE}.
+    /** @param cmd command. @return packed move destination or {@link Coords#NONE}.
      *  @return moveTarget        */
     public static short moveTarget(long cmd) {
         int raw = (int) (cmd & MOVE_MASK);
-        return raw == 0xFFF ? ColoCoords.NONE : (short) raw;
+        return raw == 0xFFF ? Coords.NONE : (short) raw;
     }
 
     /** @param cmd command. @return true when the movement click is a run click.

@@ -1,7 +1,7 @@
 package plugins.colosseum.simulation.plan;
 
-import plugins.colosseum.simulation.ColoCoords;
-import plugins.colosseum.simulation.ColoGrid;
+import plugins.colosseum.simulation.Coords;
+import plugins.colosseum.simulation.Grid;
 import plugins.colosseum.simulation.PlayerCommand;
 import lombok.Getter;
 import net.runelite.api.Prayer;
@@ -12,9 +12,9 @@ import net.runelite.api.coords.WorldPoint;
  * evidence (scores, predicted path, reasoning) the debug overlay renders.
  */
 @Getter
-public final class ColoDecision {
+public final class Decision {
     private final long command;
-    private final ColoGrid grid;
+    private final Grid grid;
 
     private final double score;
     private final String reasoning;
@@ -35,9 +35,9 @@ public final class ColoDecision {
     private final double[] candidateScores;
     private final short[] plannedPath;
 
-    ColoDecision(
+    Decision(
             long command,
-            ColoGrid grid,
+            Grid grid,
             double score,
             String reasoning,
             int rollouts,
@@ -76,7 +76,7 @@ public final class ColoDecision {
     /** @return movement destination for this tick, or null when holding position. */
     public WorldPoint getMoveDestination() {
         short dest = PlayerCommand.moveTarget(command);
-        if (!ColoCoords.isPresent(dest)) {
+        if (!Coords.isPresent(dest)) {
             return null;
         }
         return grid.toWorld(dest);

@@ -1,12 +1,12 @@
 package plugins.colosseum.simulation.live;
 
 import com.kraken.api.Context;
-import plugins.colosseum.simulation.ColoConstants;
-import plugins.colosseum.simulation.ColoCoords;
-import plugins.colosseum.simulation.ColoFrame;
-import plugins.colosseum.simulation.ColoGrid;
-import plugins.colosseum.simulation.ColoNpcType;
-import plugins.colosseum.simulation.ColoState;
+import plugins.colosseum.simulation.Constants;
+import plugins.colosseum.simulation.Coords;
+import plugins.colosseum.simulation.Frame;
+import plugins.colosseum.simulation.Grid;
+import plugins.colosseum.simulation.NpcType;
+import plugins.colosseum.simulation.State;
 import plugins.colosseum.simulation.LoadoutConfig;
 import lombok.Getter;
 import net.runelite.api.Client;
@@ -21,19 +21,19 @@ import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InventoryID;
 
 /**
- * Builds a {@link ColoFrame} + {@link ColoState} pair from the live client without mutating
+ * Builds a {@link Frame} + {@link State} pair from the live client without mutating
  * anything: the arena collision grid (anchored on the colosseum region), every tracked wave
- * NPC with cooldown/charge estimates from the {@link ColoWaveTracker}, and the player's
+ * NPC with cooldown/charge estimates from the {@link WaveTracker}, and the player's
  * vitals, supplies and consumption timers.
  */
 @Getter
-public final class ColoCapture {
+public final class Capture {
     private static final int SPECIAL_ATTACK_VARP = 300;
 
-    private final ColoFrame frame;
-    private final ColoState state;
+    private final Frame frame;
+    private final State state;
 
-    private ColoCapture(ColoFrame frame, ColoState state) {
+    private Capture(Frame frame, State state) {
         this.frame = frame;
         this.state = state;
     }
@@ -47,11 +47,11 @@ public final class ColoCapture {
      * @param currentGearSet gear set index the player currently wears.
      * @return capture, or null when not in a capturable state (no player/collision).
      */
-    public static ColoCapture capture(Context ctx, ColoWaveTracker tracker, LoadoutConfig loadout, int currentGearSet) {
+    public static Capture capture(Context ctx, WaveTracker tracker, LoadoutConfig loadout, int currentGearSet) {
         return ctx.runOnClientThread(() -> captureOnClientThread(ctx.getClient(), tracker, loadout, currentGearSet));
     }
 
-    static ColoCapture captureOnClientThread(Client client, ColoWaveTracker tracker, LoadoutConfig loadout, int currentGearSet) {
+    static Capture captureOnClientThread(Client client, WaveTracker tracker, LoadoutConfig loadout, int currentGearSet) {
         if (client == null) {
             return null;
         }
@@ -75,7 +75,7 @@ public final class ColoCapture {
         int regionId = playerPoint.getRegionID();
         int baseX = (regionId >>> 8) << 6;
         int baseY = (regionId & 0xFF) << 6;
-        ColoGrid grid = ColoGrid.fromCollisionFlags(
+        Grid grid = Grid.fromCollisionFlags(
                 collisionMaps[plane].getFlags(),
                 baseX - worldView.getBaseX(),
                 baseY - worldView.getBaseY(),
@@ -86,19 +86,19 @@ public final class ColoCapture {
                 plane
         );
         short playerLocal = grid.toLocal(playerPoint.getX(), playerPoint.getY());
-        if (!ColoCoords.isPresent(playerLocal)) {
+        if (!Coords.isPresent(playerLocal)) {
             return null;
         }
 
         // Collect tracked wave NPCs inside the grid.
         int slotCount = 0;
-        ColoNpcType[] types = new ColoNpcType[ColoConstants.MAX_NPCS];
-        int[] indices = new int[ColoConstants.MAX_NPCS];
-        short[] maxHp = new short[ColoConstants.MAX_NPCS];
-        ColoWaveTracker.NpcRecord[] slotRecords = new ColoWaveTracker.NpcRecord[ColoConstants.MAX_NPCS];
-        short[] positions = new short[ColoConstants.MAX_NPCS];
-        for (ColoWaveTracker.NpcRecord record : tracker.records()) {
-            if (slotCount >= ColoConstants.MAX_NPCS) {
+        NpcType[] types = new NpcType[Constants.MAX_NPCS];
+        int[] indices = new int[Constants.MAX_NPCS];
+        short[] maxHp = new short[Constants.MAX_NPCS];
+        WaveTracker.NpcRecord[] slotRecords = new WaveTracker.NpcRecord[Constants.MAX_NPCS];
+        short[] positions = new short[Constants.MAX_NPCS];
+        for (WaveTracker.NpcRecord record : tracker.records()) {
+            if (slotCount >= Constants.MAX_NPCS) {
                 break;
             }
             if (record.npc() == null || record.npc().getWorldLocation() == null) {
@@ -109,7 +109,7 @@ public final class ColoCapture {
                 continue;
             }
             short local = grid.toLocal(npcPoint.getX(), npcPoint.getY());
-            if (!ColoCoords.isPresent(local)) {
+            if (!Coords.isPresent(local)) {
                 continue;
             }
             types[slotCount] = record.getType();
@@ -120,7 +120,7 @@ public final class ColoCapture {
             slotCount++;
         }
 
-        ColoNpcType[] trimmedTypes = new ColoNpcType[slotCount];
+        NpcType[] trimmedTypes = new NpcType[slotCount];
         int[] trimmedIndices = new int[slotCount];
         short[] trimmedMaxHp = new short[slotCount];
         System.arraycopy(types, 0, trimmedTypes, 0, slotCount);
@@ -129,7 +129,7 @@ public final class ColoCapture {
 
         int maxHitpoints = Math.max(1, client.getRealSkillLevel(Skill.HITPOINTS));
         int prayerCap = Math.max(1, client.getRealSkillLevel(Skill.PRAYER));
-        ColoFrame frame = new ColoFrame(
+        Frame frame = new Frame(
                 grid,
                 loadout,
                 trimmedTypes,
@@ -142,7 +142,7 @@ public final class ColoCapture {
                 0
         );
 
-        ColoState state = new ColoState();
+        State state = new State();
         state.reset(frame);
         state.setTick(Math.max(0, tracker.getWaveTick()));
 
@@ -184,34 +184,34 @@ public final class ColoCapture {
         }
 
         for (int slot = 0; slot < slotCount; slot++) {
-            ColoWaveTracker.NpcRecord record = slotRecords[slot];
+            WaveTracker.NpcRecord record = slotRecords[slot];
             state.activateNpc(slot, positions[slot], tracker.lastKnownHp(record), tracker.cooldownEstimate(record));
-            if (record.getType() == ColoNpcType.MANTICORE) {
+            if (record.getType() == NpcType.MANTICORE) {
                 state.setManticoreState(
                         slot,
                         record.pattern(),
                         tracker.manticoreChargingStarted(record),
                         tracker.manticoreOrbsRemaining(record)
                 );
-            } else if (record.getType() == ColoNpcType.JAVELIN_COLOSSUS) {
+            } else if (record.getType() == NpcType.JAVELIN_COLOSSUS) {
                 state.setJavelinAutos(slot, tracker.javelinAutosSinceSpecial(record));
             }
         }
 
-        return new ColoCapture(frame, state);
+        return new Capture(frame, state);
     }
 
     private static byte activeOverhead(Client client) {
         if (client.isPrayerActive(Prayer.PROTECT_FROM_MELEE)) {
-            return ColoState.OVERHEAD_MELEE;
+            return State.OVERHEAD_MELEE;
         }
         if (client.isPrayerActive(Prayer.PROTECT_FROM_MISSILES)) {
-            return ColoState.OVERHEAD_MISSILES;
+            return State.OVERHEAD_MISSILES;
         }
         if (client.isPrayerActive(Prayer.PROTECT_FROM_MAGIC)) {
-            return ColoState.OVERHEAD_MAGIC;
+            return State.OVERHEAD_MAGIC;
         }
-        return ColoState.OVERHEAD_NONE;
+        return State.OVERHEAD_NONE;
     }
 
     private static int countItems(ItemContainer container, int[] itemIds) {

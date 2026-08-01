@@ -6,7 +6,7 @@ package plugins.colosseum.simulation;
  * <p>Values come from the OSRS Wiki and the community wave simulator this engine is
  * parity-tested against. Anything marked as an estimate is called out explicitly.</p>
  */
-public final class ColoConstants {
+public final class Constants {
     /** Ticks a manticore takes to charge its triple attack after first gaining line of sight. */
     public static final int MANTICORE_CHARGE_TICKS = 10;
 
@@ -74,6 +74,6 @@ public final class ColoConstants {
     /** Maximum NPC slots a single simulation state tracks. */
     public static final int MAX_NPCS = 16;
 
-    private ColoConstants() {
+    private Constants() {
     }
 }

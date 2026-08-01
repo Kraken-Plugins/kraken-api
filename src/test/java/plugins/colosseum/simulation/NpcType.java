@@ -13,7 +13,7 @@ import lombok.Getter;
  * engine's tick loop is parity-tested against.</p>
  */
 @Getter
-public enum ColoNpcType {
+public enum NpcType {
     /**
      * Manticore: charges a triple attack (10 ticks) on first line of sight, then fires three
      * orbs on consecutive ticks - ranged/magic in a fixed per-spawn order, melee always last
@@ -87,7 +87,7 @@ public enum ColoNpcType {
     private final boolean smartPathing;
     private final SpecialKind specialKind;
 
-    ColoNpcType(
+    NpcType(
             int[] npcIds,
             String displayName,
             int processingPriority,
@@ -119,8 +119,8 @@ public enum ColoNpcType {
      * @param npcId RuneLite npc id.
      * @return matching type, or null when the id is not a simulated wave NPC.
      */
-    public static ColoNpcType fromNpcId(int npcId) {
-        for (ColoNpcType type : values()) {
+    public static NpcType fromNpcId(int npcId) {
+        for (NpcType type : values()) {
             for (int id : type.npcIds) {
                 if (id == npcId) {
                     return type;

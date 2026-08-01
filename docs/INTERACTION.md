@@ -7,52 +7,12 @@ Kraken still utilizes some network packets to directly communicate with Jagex's 
 some niche dialogue operations. By leveraging `doAction` for the heavy lifting for ~85% of interactions and the network packets for the remaining ~15%, the Kraken API 
 takes significantly less time and effot to update when the game obfuscation changes. 
 
-Packets must be instantiated once within the client before they can be used. Instantiate packets by calling:
+Packets will be automatically instantiated when the `Context` class is built by Guice.
 
 ```java
 @Inject
 private Context ctx;
-
-@Override
-public void startUp() {
-  ctx.initializePackets();
-}
 ```
-
-## Interceptor Pattern
-
-Before diving into the packet system, it's important to understand the interceptor pattern and how it mutates the game client at runtime.
-The interceptor pattern is a design pattern that allows you to intercept and modify the behavior of a method call. There are several interceptors
-defined in the `com.kraken.api.core.interceptor` package. These interceptors are used to modify the behavior of the game client at runtime and include
-functionality like:
-
-- Hooking into when a packet is sent to the server exposing a RuneLite event for `@Subscribe`'ing to outgoing packets
-- Patching methods which load mouse hook detection tools (e.g. capturing when remote inputs from Parsec, TeamViewer, etc... are used to make clicks instead of your computer)
-- Other interceptors, which may be added in the future
-
-The Kraken API stands on a premise to **not** modify the game client to run correctly, so calling out these modifications is important so that users are aware and understand
-what is happening to enable certain API functionality.
-
-The API gives you the option on which interceptors you would like to load for your plugins. For example,
-
-```java
-@Inject
-private Context ctx;
-
-@Override
-public void startUp() {
-    // Load only the mouse hook DLL patch not packet interception.
-    context.initializeInterceptors(
-            InterceptorBuilder.builder()
-                    .withPacketInterceptor(false)
-                    .withMouseHookInterceptor(true)
-                    .build()
-    );
-}
-```
-
-When `.initializeInterceptors()` is called the interceptors will run patching the runtime classes defined in `packets.json`, mutating the game client
-to enable the functionality you have requested.
 
 ## Packet System Overview
 

@@ -3,21 +3,21 @@ package plugins.colosseum.simulation;
 import lombok.Getter;
 
 /**
- * Immutable per-decision context shared by every {@link ColoState} branched from one
+ * Immutable per-decision context shared by every {@link State} branched from one
  * snapshot: the collision grid, per-slot NPC identity data and the player loadout.
  *
- * <p>Splitting the immutable identity data out of {@link ColoState} keeps state copies down
+ * <p>Splitting the immutable identity data out of {@link State} keeps state copies down
  * to a handful of small primitive-array copies; the frame itself is shared by reference
  * across the whole search tree.</p>
  */
 @Getter
-public final class ColoFrame {
-    private final ColoGrid grid;
+public final class Frame {
+    private final Grid grid;
     private final LoadoutConfig loadout;
 
     private final int npcSlotCount;
     /** Per-slot colosseum type. */
-    private final ColoNpcType[] npcTypes;
+    private final NpcType[] npcTypes;
     /** Per-slot RuneLite npc index for mapping decisions back onto live NPCs. */
     private final int[] npcRuneliteIndices;
     /** Per-slot max hitpoints (from type, kept separately to allow modifier scaling). */
@@ -52,10 +52,10 @@ public final class ColoFrame {
      * @param warbandCyclePhase warband 6-tick cycle phase.
      * @param mantimayhemTier mantimayhem modifier tier, 0 when absent.
      */
-    public ColoFrame(
-            ColoGrid grid,
+    public Frame(
+            Grid grid,
             LoadoutConfig loadout,
-            ColoNpcType[] npcTypes,
+            NpcType[] npcTypes,
             int[] npcRuneliteIndices,
             short[] npcMaxHp,
             int playerMaxHp,
@@ -70,7 +70,7 @@ public final class ColoFrame {
         if (npcTypes.length != npcRuneliteIndices.length || npcTypes.length != npcMaxHp.length) {
             throw new IllegalArgumentException("npc arrays must have equal length");
         }
-        if (npcTypes.length > ColoConstants.MAX_NPCS) {
+        if (npcTypes.length > Constants.MAX_NPCS) {
             throw new IllegalArgumentException("too many npc slots: " + npcTypes.length);
         }
         this.grid = grid;
@@ -82,7 +82,7 @@ public final class ColoFrame {
         this.playerMaxHp = Math.max(1, playerMaxHp);
         this.prayerPointCap = Math.max(1, prayerPointCap);
         this.waveStartGates = waveStartGates;
-        this.warbandCyclePhase = Math.floorMod(warbandCyclePhase, ColoConstants.WARBAND_CYCLE_TICKS);
+        this.warbandCyclePhase = Math.floorMod(warbandCyclePhase, Constants.WARBAND_CYCLE_TICKS);
         this.mantimayhemTier = mantimayhemTier;
         this.processingOrder = buildProcessingOrder(this.npcTypes, this.npcRuneliteIndices);
     }
@@ -91,7 +91,7 @@ public final class ColoFrame {
      * @param slot npc slot.
      * @return npc type for the slot.
      */
-    public ColoNpcType type(int slot) {
+    public NpcType type(int slot) {
         return npcTypes[slot];
     }
 
@@ -118,7 +118,7 @@ public final class ColoFrame {
         return -1;
     }
 
-    private static byte[] buildProcessingOrder(ColoNpcType[] types, int[] runeliteIndices) {
+    private static byte[] buildProcessingOrder(NpcType[] types, int[] runeliteIndices) {
         Integer[] slots = new Integer[types.length];
         for (int i = 0; i < slots.length; i++) {
             slots[i] = i;

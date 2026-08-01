@@ -1,7 +1,7 @@
 package plugins.colosseum.simulation;
 
 /**
- * The colosseum tick engine: advances a {@link ColoState} by exactly one game tick given a
+ * The colosseum tick engine: advances a {@link State} by exactly one game tick given a
  * {@link PlayerCommand}.
  *
  * <p>Phase order per tick follows the real engine (client input, then NPC turns, then the
@@ -30,7 +30,7 @@ package plugins.colosseum.simulation;
  * <p>Damage is tracked as expected value (accuracy x mean roll) for optimisation plus a
  * parallel worst-case burst floor for lethality checks; both live on the state.</p>
  */
-public final class ColoTick {
+public final class Tick {
     /** Hit style: typeless (prayer never applies). */
     public static final int STYLE_TYPELESS = 0;
     /** Hit style: melee. */
@@ -89,7 +89,7 @@ public final class ColoTick {
     private static final int HIT_TILE_NONE = 0xFFF;
 
     /**
-     * Observer for NPC attack launches, wired through {@link ColoScratch#attackListener}.
+     * Observer for NPC attack launches, wired through {@link Scratch#attackListener}.
      */
     public interface AttackListener {
         /**
@@ -101,7 +101,7 @@ public final class ColoTick {
         void onAttack(int slot, int styleCode, int tick, boolean special);
     }
 
-    private ColoTick() {
+    private Tick() {
     }
 
     /**
@@ -111,15 +111,15 @@ public final class ColoTick {
      * @param cmd packed player command for this tick (see {@link PlayerCommand}).
      * @param scratch reusable working memory.
      */
-    public static void advance(ColoState s, long cmd, ColoScratch scratch) {
-        ColoFrame frame = s.frame;
+    public static void advance(State s, long cmd, Scratch scratch) {
+        Frame frame = s.frame;
         int tick = s.tick;
 
         boolean overheadActivated = applyCommand(s, cmd);
 
-        boolean canMove = !frame.isWaveStartGates() || tick >= ColoConstants.WAVE_START_MOVE_GATE_TICKS;
-        boolean canGainLos = !frame.isWaveStartGates() || tick >= ColoConstants.WAVE_START_LOS_GATE_TICKS;
-        boolean canAttack = !frame.isWaveStartGates() || tick >= ColoConstants.WAVE_START_ATTACK_GATE_TICKS;
+        boolean canMove = !frame.isWaveStartGates() || tick >= Constants.WAVE_START_MOVE_GATE_TICKS;
+        boolean canGainLos = !frame.isWaveStartGates() || tick >= Constants.WAVE_START_LOS_GATE_TICKS;
+        boolean canAttack = !frame.isWaveStartGates() || tick >= Constants.WAVE_START_ATTACK_GATE_TICKS;
 
         resolveNpcTargetedHits(s);
         npcMovementPhase(s, scratch, canMove, canGainLos);
@@ -138,14 +138,14 @@ public final class ColoTick {
     // Phase 1: client input
     // ------------------------------------------------------------------
 
-    private static boolean applyCommand(ColoState s, long cmd) {
-        ColoFrame frame = s.frame;
+    private static boolean applyCommand(State s, long cmd) {
+        Frame frame = s.frame;
         LoadoutConfig loadout = frame.getLoadout();
         boolean overheadActivated = false;
 
         int overheadCmd = PlayerCommand.overhead(cmd);
         if (overheadCmd == PlayerCommand.OVERHEAD_OFF) {
-            s.overhead = ColoState.OVERHEAD_NONE;
+            s.overhead = State.OVERHEAD_NONE;
         } else if (overheadCmd >= PlayerCommand.OVERHEAD_MELEE && overheadCmd <= PlayerCommand.OVERHEAD_MAGIC) {
             byte target = (byte) (overheadCmd - 1);
             if (s.prayerPoints > 0 && s.overhead != target) {
@@ -187,10 +187,10 @@ public final class ColoTick {
         }
 
         if (PlayerCommand.stop(cmd)) {
-            s.moveTarget = ColoCoords.NONE;
+            s.moveTarget = Coords.NONE;
         }
         short moveTarget = PlayerCommand.moveTarget(cmd);
-        if (ColoCoords.isPresent(moveTarget)) {
+        if (Coords.isPresent(moveTarget)) {
             s.moveTarget = moveTarget;
             s.moveRun = PlayerCommand.run(cmd);
             // A ground click cancels the current interaction; an attack in the same command
@@ -205,7 +205,7 @@ public final class ColoTick {
             // An attack click replaces the current interaction, cancelling any ground path
             // (the player attacks from where they stand when in range).
             s.attackTargetSlot = (byte) attackTarget;
-            s.moveTarget = ColoCoords.NONE;
+            s.moveTarget = Coords.NONE;
         }
         return overheadActivated;
     }
@@ -214,8 +214,8 @@ public final class ColoTick {
     // Phase 2: NPC turns
     // ------------------------------------------------------------------
 
-    private static void npcMovementPhase(ColoState s, ColoScratch scratch, boolean canMove, boolean canGainLos) {
-        ColoFrame frame = s.frame;
+    private static void npcMovementPhase(State s, Scratch scratch, boolean canMove, boolean canGainLos) {
+        Frame frame = s.frame;
         byte[] order = frame.getProcessingOrder();
         java.util.Arrays.fill(scratch.npcMoved, false);
 
@@ -229,7 +229,7 @@ public final class ColoTick {
             if (!canMove) {
                 continue;
             }
-            ColoNpcType type = frame.type(slot);
+            NpcType type = frame.type(slot);
             boolean holdsPosition = canGainLos && npcHasLosToPlayer(s, slot);
             if (holdsPosition) {
                 continue;
@@ -237,7 +237,7 @@ public final class ColoTick {
             short next = type.isSmartPathing()
                     ? chooseSmartStep(s, scratch, slot, type)
                     : chooseDumbStep(s, slot, type);
-            if (ColoCoords.isPresent(next)) {
+            if (Coords.isPresent(next)) {
                 s.npcPos[slot] = next;
                 scratch.npcMoved[slot] = true;
             }
@@ -252,57 +252,57 @@ public final class ColoTick {
      * @param s state.
      * @param scratch scratch memory (for route-finder approach fields).
      * @param slot npc slot.
-     * @return packed next anchor, or {@link ColoCoords#NONE} when the npc would not move.
+     * @return packed next anchor, or {@link Coords#NONE} when the npc would not move.
      */
-    public static short predictNextNpcPos(ColoState s, ColoScratch scratch, int slot) {
-        ColoNpcType type = s.frame.type(slot);
+    public static short predictNextNpcPos(State s, Scratch scratch, int slot) {
+        NpcType type = s.frame.type(slot);
         return type.isSmartPathing()
                 ? chooseSmartStep(s, scratch, slot, type)
                 : chooseDumbStep(s, slot, type);
     }
 
-    private static short chooseDumbStep(ColoState s, int slot, ColoNpcType type) {
+    private static short chooseDumbStep(State s, int slot, NpcType type) {
         int size = type.getSize();
-        int nx = ColoCoords.x(s.npcPos[slot]);
-        int ny = ColoCoords.y(s.npcPos[slot]);
-        int px = ColoCoords.x(s.playerPos);
-        int py = ColoCoords.y(s.playerPos);
+        int nx = Coords.x(s.npcPos[slot]);
+        int ny = Coords.y(s.npcPos[slot]);
+        int px = Coords.x(s.playerPos);
+        int py = Coords.y(s.playerPos);
 
         int dxs = Integer.signum(px - nx);
         int dys = Integer.signum(py - ny);
         if (dxs == 0 && dys == 0) {
-            return ColoCoords.NONE;
+            return Coords.NONE;
         }
         // Cancel the diagonal when it would step onto the player (community-sim rule).
-        if (ColoLos.overlaps(nx + dxs, ny + dys, size, px, py)) {
+        if (LineOfSight.overlaps(nx + dxs, ny + dys, size, px, py)) {
             dys = 0;
         }
 
         if (isNpcPlacementLegal(s, slot, nx + dxs, ny + dys, size)
                 && (size > 1 || dxs == 0 || dys == 0
                 || (isNpcPlacementLegal(s, slot, nx + dxs, ny, size) && isNpcPlacementLegal(s, slot, nx, ny + dys, size)))) {
-            return ColoCoords.pack(nx + dxs, ny + dys);
+            return Coords.pack(nx + dxs, ny + dys);
         }
         if (dxs != 0 && isNpcPlacementLegal(s, slot, nx + dxs, ny, size)) {
-            return ColoCoords.pack(nx + dxs, ny);
+            return Coords.pack(nx + dxs, ny);
         }
         if (dys != 0 && isNpcPlacementLegal(s, slot, nx, ny + dys, size)) {
-            return ColoCoords.pack(nx, ny + dys);
+            return Coords.pack(nx, ny + dys);
         }
-        return ColoCoords.NONE;
+        return Coords.NONE;
     }
 
-    private static short chooseSmartStep(ColoState s, ColoScratch scratch, int slot, ColoNpcType type) {
-        ColoGrid grid = s.frame.getGrid();
+    private static short chooseSmartStep(State s, Scratch scratch, int slot, NpcType type) {
+        Grid grid = s.frame.getGrid();
         int size = type.getSize();
         byte[] field = scratch.approachField(grid, s.playerPos, size);
-        int nx = ColoCoords.x(s.npcPos[slot]);
-        int ny = ColoCoords.y(s.npcPos[slot]);
-        int px = ColoCoords.x(s.playerPos);
-        int py = ColoCoords.y(s.playerPos);
+        int nx = Coords.x(s.npcPos[slot]);
+        int ny = Coords.y(s.npcPos[slot]);
+        int px = Coords.x(s.playerPos);
+        int py = Coords.y(s.playerPos);
         int current = field[(ny << 6) | nx] & 0xFF;
-        if (current == 0 || current >= ColoScratch.UNREACHABLE) {
-            return ColoCoords.NONE;
+        if (current == 0 || current >= Scratch.UNREACHABLE) {
+            return Coords.NONE;
         }
 
         int dxs = Integer.signum(px - nx);
@@ -320,8 +320,8 @@ public final class ColoTick {
                 case 1: dx = dxs; dy = 0; break;
                 case 2: dx = 0; dy = dys; break;
                 default:
-                    dx = ColoScratch.DIR_X[i - 3];
-                    dy = ColoScratch.DIR_Y[i - 3];
+                    dx = Scratch.DIR_X[i - 3];
+                    dy = Scratch.DIR_Y[i - 3];
                     break;
             }
             if (dx == 0 && dy == 0) {
@@ -343,7 +343,7 @@ public final class ColoTick {
             if (!isNpcPlacementLegal(s, slot, cx, cy, size)) {
                 continue;
             }
-            if (ColoLos.overlaps(cx, cy, size, px, py)) {
+            if (LineOfSight.overlaps(cx, cy, size, px, py)) {
                 continue;
             }
             bestDist = dist;
@@ -351,12 +351,12 @@ public final class ColoTick {
             bestY = cy;
         }
         if (bestX == nx && bestY == ny) {
-            return ColoCoords.NONE;
+            return Coords.NONE;
         }
-        return ColoCoords.pack(bestX, bestY);
+        return Coords.pack(bestX, bestY);
     }
 
-    private static boolean isNpcPlacementLegal(ColoState s, int movingSlot, int x, int y, int size) {
+    private static boolean isNpcPlacementLegal(State s, int movingSlot, int x, int y, int size) {
         if (!s.frame.getGrid().isFootprintFree(x, y, size)) {
             return false;
         }
@@ -364,8 +364,8 @@ public final class ColoTick {
             if (other == movingSlot || !s.npcActive(other)) {
                 continue;
             }
-            int ox = ColoCoords.x(s.npcPos[other]);
-            int oy = ColoCoords.y(s.npcPos[other]);
+            int ox = Coords.x(s.npcPos[other]);
+            int oy = Coords.y(s.npcPos[other]);
             int otherSize = s.frame.size(other);
             if (x <= ox + otherSize - 1 && x + size - 1 >= ox && y <= oy + otherSize - 1 && y + size - 1 >= oy) {
                 return false;
@@ -374,16 +374,16 @@ public final class ColoTick {
         return true;
     }
 
-    private static void manticoreChargingPhase(ColoState s, boolean canAttack) {
+    private static void manticoreChargingPhase(State s, boolean canAttack) {
         if (!canAttack) {
             return;
         }
-        ColoFrame frame = s.frame;
+        Frame frame = s.frame;
 
         // Established pattern from manticores already charging or charged.
         int establishedPattern = PATTERN_UNKNOWN;
         for (int slot = 0; slot < frame.getNpcSlotCount(); slot++) {
-            if (s.npcActive(slot) && frame.type(slot) == ColoNpcType.MANTICORE && s.npcChargingStarted(slot)) {
+            if (s.npcActive(slot) && frame.type(slot) == NpcType.MANTICORE && s.npcChargingStarted(slot)) {
                 int pattern = s.npcAux[slot] & 7;
                 if (pattern != PATTERN_UNKNOWN) {
                     establishedPattern = pattern;
@@ -395,7 +395,7 @@ public final class ColoTick {
         // them has a known pattern (from live tracking) the whole group copies it.
         if (establishedPattern == PATTERN_UNKNOWN) {
             for (int slot = 0; slot < frame.getNpcSlotCount(); slot++) {
-                if (!s.npcActive(slot) || frame.type(slot) != ColoNpcType.MANTICORE || s.npcChargingStarted(slot)) {
+                if (!s.npcActive(slot) || frame.type(slot) != NpcType.MANTICORE || s.npcChargingStarted(slot)) {
                     continue;
                 }
                 if (!npcHasLosToPlayer(s, slot)) {
@@ -409,7 +409,7 @@ public final class ColoTick {
             }
         }
         for (int slot = 0; slot < frame.getNpcSlotCount(); slot++) {
-            if (!s.npcActive(slot) || frame.type(slot) != ColoNpcType.MANTICORE || s.npcChargingStarted(slot)) {
+            if (!s.npcActive(slot) || frame.type(slot) != NpcType.MANTICORE || s.npcChargingStarted(slot)) {
                 continue;
             }
             if (!npcHasLosToPlayer(s, slot)) {
@@ -418,13 +418,13 @@ public final class ColoTick {
             int ownPattern = s.npcAux[slot] & 7;
             int pattern = establishedPattern != PATTERN_UNKNOWN ? establishedPattern : ownPattern;
             s.npcAux[slot] = (byte) ((s.npcAux[slot] & ~7) | (pattern & 7));
-            s.npcFlags[slot] |= ColoState.NPC_FLAG_CHARGING_STARTED;
-            s.npcCooldown[slot] = (byte) ColoConstants.MANTICORE_CHARGE_TICKS;
+            s.npcFlags[slot] |= State.NPC_FLAG_CHARGING_STARTED;
+            s.npcCooldown[slot] = (byte) Constants.MANTICORE_CHARGE_TICKS;
         }
     }
 
-    private static void npcAttackPhase(ColoState s, ColoScratch scratch, boolean canAttack) {
-        ColoFrame frame = s.frame;
+    private static void npcAttackPhase(State s, Scratch scratch, boolean canAttack) {
+        Frame frame = s.frame;
         boolean manticoreFired = false;
 
         if (canAttack) {
@@ -432,20 +432,20 @@ public final class ColoTick {
                 if (!s.npcActive(slot)) {
                     continue;
                 }
-                ColoNpcType type = frame.type(slot);
+                NpcType type = frame.type(slot);
                 if (!npcHasLosToPlayer(s, slot)) {
                     continue;
                 }
                 switch (type.getSpecialKind()) {
                     case MANTICORE:
                         if (s.npcChargingStarted(slot) && s.npcCooldown[slot] <= 0 && !manticoreFired && orbsRemaining(s, slot) == 0) {
-                            setOrbsRemaining(s, slot, ColoConstants.MANTICORE_ORB_COUNT);
+                            setOrbsRemaining(s, slot, Constants.MANTICORE_ORB_COUNT);
                             s.npcCooldown[slot] = (byte) type.getAttackSpeedTicks();
                             manticoreFired = true;
                         }
                         break;
                     case WARBAND:
-                        if (s.tick % ColoConstants.WARBAND_CYCLE_TICKS == frame.getWarbandCyclePhase()
+                        if (s.tick % Constants.WARBAND_CYCLE_TICKS == frame.getWarbandCyclePhase()
                                 && !scratch.npcMoved[slot]) {
                             emitStandardAttack(s, scratch, slot, type);
                         }
@@ -474,7 +474,7 @@ public final class ColoTick {
 
             // Minotaurs with no player in melee reach spend their timer healing instead.
             for (byte slot : frame.getProcessingOrder()) {
-                if (!s.npcActive(slot) || frame.type(slot).getSpecialKind() != ColoNpcType.SpecialKind.MINOTAUR_HEAL) {
+                if (!s.npcActive(slot) || frame.type(slot).getSpecialKind() != NpcType.SpecialKind.MINOTAUR_HEAL) {
                     continue;
                 }
                 if (s.npcCooldown[slot] <= 0 && !npcHasLosToPlayer(s, slot)) {
@@ -488,11 +488,11 @@ public final class ColoTick {
         if (manticoreFired) {
             for (int slot = 0; slot < frame.getNpcSlotCount(); slot++) {
                 if (s.npcActive(slot)
-                        && frame.type(slot) == ColoNpcType.MANTICORE
+                        && frame.type(slot) == NpcType.MANTICORE
                         && s.npcChargingStarted(slot)
                         && s.npcCooldown[slot] <= 0
                         && orbsRemaining(s, slot) == 0) {
-                    s.npcCooldown[slot] = (byte) ColoConstants.MANTICORE_STAGGER_TICKS;
+                    s.npcCooldown[slot] = (byte) Constants.MANTICORE_STAGGER_TICKS;
                 }
             }
         }
@@ -500,22 +500,22 @@ public final class ColoTick {
         // Orb emission: once a triple starts, one orb launches per tick regardless of
         // line of sight, including the tick the triple began.
         for (int slot = 0; slot < frame.getNpcSlotCount(); slot++) {
-            if (!s.npcActive(slot) || frame.type(slot) != ColoNpcType.MANTICORE) {
+            if (!s.npcActive(slot) || frame.type(slot) != NpcType.MANTICORE) {
                 continue;
             }
             int remaining = orbsRemaining(s, slot);
             if (remaining <= 0) {
                 continue;
             }
-            emitManticoreOrb(s, scratch, slot, ColoConstants.MANTICORE_ORB_COUNT - remaining);
+            emitManticoreOrb(s, scratch, slot, Constants.MANTICORE_ORB_COUNT - remaining);
             setOrbsRemaining(s, slot, remaining - 1);
         }
     }
 
-    private static void emitStandardAttack(ColoState s, ColoScratch scratch, int slot, ColoNpcType type) {
+    private static void emitStandardAttack(State s, Scratch scratch, int slot, NpcType type) {
         int style = styleCode(type);
         int maxHit = type.getMaxHit();
-        if (type == ColoNpcType.JAGUAR_WARRIOR) {
+        if (type == NpcType.JAGUAR_WARRIOR) {
             maxHit *= JAGUAR_HITS_PER_ATTACK;
         }
         boolean blocked = style != STYLE_TYPELESS && s.overhead == style;
@@ -528,14 +528,14 @@ public final class ColoTick {
         }
     }
 
-    private static void emitJavelinAttack(ColoState s, ColoScratch scratch, int slot, ColoNpcType type) {
+    private static void emitJavelinAttack(State s, Scratch scratch, int slot, NpcType type) {
         int autos = s.npcAux[slot] & 7;
-        if (autos >= ColoConstants.JAVELIN_SPECIAL_EVERY_N_ATTACKS - 1) {
+        if (autos >= Constants.JAVELIN_SPECIAL_EVERY_N_ATTACKS - 1) {
             s.npcAux[slot] = (byte) (s.npcAux[slot] & ~7);
-            int max = ColoConstants.JAVELIN_SKY_MAX_DAMAGE;
+            int max = Constants.JAVELIN_SKY_MAX_DAMAGE;
             int expected = (int) Math.round(max * TYPELESS_EXPECTED_FACTOR);
             queueHit(s, encodeHit(
-                    s.tick + ColoConstants.JAVELIN_SKY_LAND_DELAY_TICKS,
+                    s.tick + Constants.JAVELIN_SKY_LAND_DELAY_TICKS,
                     max,
                     STYLE_TYPELESS,
                     slot,
@@ -553,12 +553,12 @@ public final class ColoTick {
         }
     }
 
-    private static void emitMinotaurMelee(ColoState s, ColoScratch scratch, int slot, ColoNpcType type) {
+    private static void emitMinotaurMelee(State s, Scratch scratch, int slot, NpcType type) {
         // Damage applies one tick after the attack and prayer is evaluated on the landing
         // tick (the minotaur's delayed hit is both tick-eatable and late-prayable).
         int expected = (int) Math.round(type.getMaxHit() * s.frame.getLoadout().getNpcExpectedDamageFactor());
         queueHit(s, encodeHit(
-                s.tick + ColoConstants.MINOTAUR_HIT_DELAY_TICKS,
+                s.tick + Constants.MINOTAUR_HIT_DELAY_TICKS,
                 type.getMaxHit(),
                 STYLE_MELEE,
                 slot,
@@ -572,33 +572,33 @@ public final class ColoTick {
         }
     }
 
-    private static boolean tryMinotaurHeal(ColoState s, int slot) {
-        ColoFrame frame = s.frame;
+    private static boolean tryMinotaurHeal(State s, int slot) {
+        Frame frame = s.frame;
         int size = frame.size(slot);
-        int centerX = ColoCoords.x(s.npcPos[slot]) + (size - 1) / 2;
-        int centerY = ColoCoords.y(s.npcPos[slot]) + (size - 1) / 2;
+        int centerX = Coords.x(s.npcPos[slot]) + (size - 1) / 2;
+        int centerY = Coords.y(s.npcPos[slot]) + (size - 1) / 2;
 
         int bestTarget = -1;
-        double lowestFraction = ColoConstants.MINOTAUR_HEAL_THRESHOLD;
+        double lowestFraction = Constants.MINOTAUR_HEAL_THRESHOLD;
         for (int other = 0; other < frame.getNpcSlotCount(); other++) {
             if (other == slot || !s.npcActive(other)) {
                 continue;
             }
-            if (frame.type(other).getSpecialKind() == ColoNpcType.SpecialKind.MINOTAUR_HEAL) {
+            if (frame.type(other).getSpecialKind() == NpcType.SpecialKind.MINOTAUR_HEAL) {
                 continue;
             }
             int otherSize = frame.size(other);
-            int otherCenterX = ColoCoords.x(s.npcPos[other]) + (otherSize - 1) / 2;
-            int otherCenterY = ColoCoords.y(s.npcPos[other]) + (otherSize - 1) / 2;
+            int otherCenterX = Coords.x(s.npcPos[other]) + (otherSize - 1) / 2;
+            int otherCenterY = Coords.y(s.npcPos[other]) + (otherSize - 1) / 2;
             int distance = Math.max(Math.abs(otherCenterX - centerX), Math.abs(otherCenterY - centerY));
-            if (distance > ColoConstants.MINOTAUR_HEAL_RANGE) {
+            if (distance > Constants.MINOTAUR_HEAL_RANGE) {
                 continue;
             }
             double fraction = s.npcHp[other] / (double) frame.getNpcMaxHp()[other];
             if (fraction >= lowestFraction) {
                 continue;
             }
-            if (!ColoLos.tileToTile(frame.getGrid(), centerX, centerY, otherCenterX, otherCenterY)) {
+            if (!LineOfSight.tileToTile(frame.getGrid(), centerX, centerY, otherCenterX, otherCenterY)) {
                 continue;
             }
             lowestFraction = fraction;
@@ -607,12 +607,12 @@ public final class ColoTick {
         if (bestTarget < 0) {
             return false;
         }
-        int healed = Math.min(frame.getNpcMaxHp()[bestTarget], s.npcHp[bestTarget] + ColoConstants.MINOTAUR_HEAL_PER_CYCLE);
+        int healed = Math.min(frame.getNpcMaxHp()[bestTarget], s.npcHp[bestTarget] + Constants.MINOTAUR_HEAL_PER_CYCLE);
         s.npcHp[bestTarget] = (short) healed;
         return true;
     }
 
-    private static void emitManticoreOrb(ColoState s, ColoScratch scratch, int slot, int orbIndex) {
+    private static void emitManticoreOrb(State s, Scratch scratch, int slot, int orbIndex) {
         int pattern = s.npcAux[slot] & 7;
         LoadoutConfig loadout = s.frame.getLoadout();
         double factor = loadout.getNpcExpectedDamageFactor();
@@ -669,7 +669,7 @@ public final class ColoTick {
     // Phase 3: player turn
     // ------------------------------------------------------------------
 
-    private static void resolveNpcTargetedHits(ColoState s) {
+    private static void resolveNpcTargetedHits(State s) {
         int i = 0;
         while (i < s.pendingHitCount) {
             long hit = s.pendingHits[i];
@@ -695,7 +695,7 @@ public final class ColoTick {
         }
     }
 
-    private static void resolvePlayerTargetedHits(ColoState s) {
+    private static void resolvePlayerTargetedHits(State s) {
         int burstMax = 0;
         int expectedSum = 0;
         int i = 0;
@@ -732,29 +732,29 @@ public final class ColoTick {
         }
     }
 
-    private static boolean movePlayer(ColoState s, ColoScratch scratch) {
-        if (!ColoCoords.isPresent(s.moveTarget) || s.playerDied) {
+    private static boolean movePlayer(State s, Scratch scratch) {
+        if (!Coords.isPresent(s.moveTarget) || s.playerDied) {
             return false;
         }
         if (s.moveTarget == s.playerPos) {
-            s.moveTarget = ColoCoords.NONE;
+            s.moveTarget = Coords.NONE;
             return false;
         }
-        ColoGrid grid = s.frame.getGrid();
+        Grid grid = s.frame.getGrid();
         byte[] field = scratch.playerField(grid, s.moveTarget);
         boolean wantRun = s.moveRun && s.runEnergyUnits > 0;
         int steps = wantRun ? 2 : 1;
         int taken = 0;
         for (int i = 0; i < steps && s.playerPos != s.moveTarget; i++) {
-            int cx = ColoCoords.x(s.playerPos);
-            int cy = ColoCoords.y(s.playerPos);
+            int cx = Coords.x(s.playerPos);
+            int cy = Coords.y(s.playerPos);
             int current = field[(cy << 6) | cx] & 0xFF;
-            if (current >= ColoScratch.UNREACHABLE) {
-                s.moveTarget = ColoCoords.NONE;
+            if (current >= Scratch.UNREACHABLE) {
+                s.moveTarget = Coords.NONE;
                 break;
             }
-            int px = ColoCoords.x(s.moveTarget);
-            int py = ColoCoords.y(s.moveTarget);
+            int px = Coords.x(s.moveTarget);
+            int py = Coords.y(s.moveTarget);
             int dxs = Integer.signum(px - cx);
             int dys = Integer.signum(py - cy);
             int bestDist = current;
@@ -768,8 +768,8 @@ public final class ColoTick {
                     case 1: dx = dxs; dy = 0; break;
                     case 2: dx = 0; dy = dys; break;
                     default:
-                        dx = ColoScratch.DIR_X[d - 3];
-                        dy = ColoScratch.DIR_Y[d - 3];
+                        dx = Scratch.DIR_X[d - 3];
+                        dy = Scratch.DIR_Y[d - 3];
                         break;
                 }
                 if (dx == 0 && dy == 0) {
@@ -784,7 +784,7 @@ public final class ColoTick {
                 if (dist >= bestDist) {
                     continue;
                 }
-                if (!ColoScratch.playerCanStep(grid, cx, cy, dx, dy)) {
+                if (!Scratch.playerCanStep(grid, cx, cy, dx, dy)) {
                     continue;
                 }
                 bestDist = dist;
@@ -794,11 +794,11 @@ public final class ColoTick {
             if (bestX == cx && bestY == cy) {
                 break;
             }
-            s.playerPos = ColoCoords.pack(bestX, bestY);
+            s.playerPos = Coords.pack(bestX, bestY);
             taken++;
         }
         if (s.playerPos == s.moveTarget) {
-            s.moveTarget = ColoCoords.NONE;
+            s.moveTarget = Coords.NONE;
         }
         boolean ran = wantRun && taken > 0;
         if (ran) {
@@ -814,7 +814,7 @@ public final class ColoTick {
         return ran;
     }
 
-    private static void playerAttack(ColoState s, long cmd) {
+    private static void playerAttack(State s, long cmd) {
         if (s.playerDied || s.attackTargetSlot < 0 || s.attackDelay > 0) {
             return;
         }
@@ -823,7 +823,7 @@ public final class ColoTick {
             return;
         }
         LoadoutConfig.GearSet gear = s.frame.getLoadout().gearSet(s.gearSet);
-        if (!ColoLos.tileHasLosToFootprint(
+        if (!LineOfSight.tileHasLosToFootprint(
                 s.frame.getGrid(),
                 s.playerPos,
                 gear.getAttackRange(),
@@ -839,7 +839,7 @@ public final class ColoTick {
         }
         int rounded = Math.max(0, (int) Math.round(damage));
         int style = styleCodeForPlayer(gear);
-        int distance = ColoCoords.chebyshev(s.playerPos, nearestNpcTile(s, slot));
+        int distance = Coords.chebyshev(s.playerPos, nearestNpcTile(s, slot));
         // +1: NPCs process before players, so player hits land one tick later than the
         // formula (receiver-processed-earlier rule).
         int landTick = s.tick + hitDelay(style, distance) + 1;
@@ -847,7 +847,7 @@ public final class ColoTick {
         s.attackDelay = (byte) gear.getAttackSpeedTicks();
     }
 
-    private static void housekeeping(ColoState s, boolean overheadActivated, boolean ranThisTick) {
+    private static void housekeeping(State s, boolean overheadActivated, boolean ranThisTick) {
         if (s.foodDelay > 0) {
             s.foodDelay--;
         }
@@ -862,15 +862,15 @@ public final class ColoTick {
         }
 
         LoadoutConfig loadout = s.frame.getLoadout();
-        if (s.overhead != ColoState.OVERHEAD_NONE && !overheadActivated) {
-            s.prayerDrainCounter += ColoConstants.PROTECTION_PRAYER_DRAIN_EFFECT;
+        if (s.overhead != State.OVERHEAD_NONE && !overheadActivated) {
+            s.prayerDrainCounter += Constants.PROTECTION_PRAYER_DRAIN_EFFECT;
             int resistance = 2 * loadout.getPrayerBonus() + 60;
             if (s.prayerDrainCounter > resistance) {
                 s.prayerDrainCounter -= resistance;
                 s.prayerPoints--;
                 if (s.prayerPoints <= 0) {
                     s.prayerPoints = 0;
-                    s.overhead = ColoState.OVERHEAD_NONE;
+                    s.overhead = State.OVERHEAD_NONE;
                 }
             }
         }
@@ -881,8 +881,8 @@ public final class ColoTick {
 
         s.specRegenCounter++;
         int interval = loadout.isLightbearer()
-                ? ColoConstants.SPEC_REGEN_INTERVAL_TICKS / 2
-                : ColoConstants.SPEC_REGEN_INTERVAL_TICKS;
+                ? Constants.SPEC_REGEN_INTERVAL_TICKS / 2
+                : Constants.SPEC_REGEN_INTERVAL_TICKS;
         if (s.specRegenCounter >= interval) {
             s.specRegenCounter = 0;
             s.specEnergy = Math.min(100, s.specEnergy + 10);
@@ -900,9 +900,9 @@ public final class ColoTick {
      * @param slot npc slot.
      * @return true when the npc could hit the player from where it stands.
      */
-    public static boolean npcHasLosToPlayer(ColoState s, int slot) {
-        ColoNpcType type = s.frame.type(slot);
-        return ColoLos.footprintHasLosTo(
+    public static boolean npcHasLosToPlayer(State s, int slot) {
+        NpcType type = s.frame.type(slot);
+        return LineOfSight.footprintHasLosTo(
                 s.frame.getGrid(),
                 s.npcPos[slot],
                 type.getSize(),
@@ -919,9 +919,9 @@ public final class ColoTick {
      * @param tile packed tile to test.
      * @return true when the npc could hit that tile from where it stands.
      */
-    public static boolean npcHasLosToTile(ColoState s, int slot, short tile) {
-        ColoNpcType type = s.frame.type(slot);
-        return ColoLos.footprintHasLosTo(
+    public static boolean npcHasLosToTile(State s, int slot, short tile) {
+        NpcType type = s.frame.type(slot);
+        return LineOfSight.footprintHasLosTo(
                 s.frame.getGrid(),
                 s.npcPos[slot],
                 type.getSize(),
@@ -951,7 +951,7 @@ public final class ColoTick {
         }
     }
 
-    private static int styleCode(ColoNpcType type) {
+    private static int styleCode(NpcType type) {
         switch (type.getAttackStyle()) {
             case MELEE:
                 return STYLE_MELEE;
@@ -977,26 +977,26 @@ public final class ColoTick {
         }
     }
 
-    private static int npcDistanceToPlayer(ColoState s, int slot) {
-        return ColoCoords.chebyshev(nearestNpcTile(s, slot), s.playerPos);
+    private static int npcDistanceToPlayer(State s, int slot) {
+        return Coords.chebyshev(nearestNpcTile(s, slot), s.playerPos);
     }
 
-    private static short nearestNpcTile(ColoState s, int slot) {
+    private static short nearestNpcTile(State s, int slot) {
         int size = s.frame.size(slot);
-        int nx = ColoCoords.x(s.npcPos[slot]);
-        int ny = ColoCoords.y(s.npcPos[slot]);
-        int px = ColoCoords.x(s.playerPos);
-        int py = ColoCoords.y(s.playerPos);
+        int nx = Coords.x(s.npcPos[slot]);
+        int ny = Coords.y(s.npcPos[slot]);
+        int px = Coords.x(s.playerPos);
+        int py = Coords.y(s.playerPos);
         int cx = Math.max(nx, Math.min(nx + size - 1, px));
         int cy = Math.max(ny, Math.min(ny + size - 1, py));
-        return ColoCoords.pack(cx, cy);
+        return Coords.pack(cx, cy);
     }
 
-    private static int orbsRemaining(ColoState s, int slot) {
+    private static int orbsRemaining(State s, int slot) {
         return (s.npcAux[slot] >> 3) & 3;
     }
 
-    private static void setOrbsRemaining(ColoState s, int slot, int value) {
+    private static void setOrbsRemaining(State s, int slot, int value) {
         s.npcAux[slot] = (byte) ((s.npcAux[slot] & ~(3 << 3)) | ((value & 3) << 3));
     }
 
@@ -1025,7 +1025,7 @@ public final class ColoTick {
         return hit;
     }
 
-    private static void queueHit(ColoState s, long hit) {
+    private static void queueHit(State s, long hit) {
         int maxAfter = (int) ((hit >> HIT_DMG_SHIFT) & 0xFF);
         int expected = (int) ((hit >> HIT_EXPECTED_SHIFT) & 0xFF);
         if (maxAfter <= 0 && expected <= 0) {

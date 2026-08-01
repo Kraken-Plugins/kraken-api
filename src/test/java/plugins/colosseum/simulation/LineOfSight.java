@@ -1,5 +1,8 @@
 package plugins.colosseum.simulation;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
  * Line-of-sight and melee reachability for the colosseum grid.
  *
@@ -11,10 +14,8 @@ package plugins.colosseum.simulation;
  * <p>Melee (range 1) never uses the raycast: it requires orthogonal adjacency to the attacker's
  * bounding box, so a melee NPC can never attack diagonally.</p>
  */
-public final class ColoLos {
-
-    private ColoLos() {
-    }
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class LineOfSight {
 
     /**
      * Checks whether an attacker footprint has line of sight (and range) to a single-tile target.
@@ -30,11 +31,11 @@ public final class ColoLos {
      * @param target packed target tile.
      * @return true when the attacker can hit the target from its current position.
      */
-    public static boolean footprintHasLosTo(ColoGrid grid, short anchor, int size, int range, short target) {
-        int ax = ColoCoords.x(anchor);
-        int ay = ColoCoords.y(anchor);
-        int tx = ColoCoords.x(target);
-        int ty = ColoCoords.y(target);
+    public static boolean footprintHasLosTo(Grid grid, short anchor, int size, int range, short target) {
+        int ax = Coords.x(anchor);
+        int ay = Coords.y(anchor);
+        int tx = Coords.x(target);
+        int ty = Coords.y(target);
 
         if (overlaps(ax, ay, size, tx, ty)) {
             return false;
@@ -61,11 +62,11 @@ public final class ColoLos {
      * @param targetSize target footprint size.
      * @return true when the attacker can hit the target footprint.
      */
-    public static boolean tileHasLosToFootprint(ColoGrid grid, short from, int range, short targetAnchor, int targetSize) {
-        int fx = ColoCoords.x(from);
-        int fy = ColoCoords.y(from);
-        int ax = ColoCoords.x(targetAnchor);
-        int ay = ColoCoords.y(targetAnchor);
+    public static boolean tileHasLosToFootprint(Grid grid, short from, int range, short targetAnchor, int targetSize) {
+        int fx = Coords.x(from);
+        int fy = Coords.y(from);
+        int ax = Coords.x(targetAnchor);
+        int ay = Coords.y(targetAnchor);
 
         if (overlaps(ax, ay, targetSize, fx, fy)) {
             return false;
@@ -93,7 +94,7 @@ public final class ColoLos {
      * @param y1 target local y.
      * @return true when unobstructed.
      */
-    public static boolean tileToTile(ColoGrid grid, int x0, int y0, int x1, int y1) {
+    public static boolean tileToTile(Grid grid, int x0, int y0, int x1, int y1) {
         if (grid.isLosBlocked(x0, y0) || grid.isLosBlocked(x1, y1)) {
             return false;
         }

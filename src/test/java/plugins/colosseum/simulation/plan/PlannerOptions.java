@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * Tuning knobs for {@link ColoPlanner}: time budget, rollout horizon, candidate caps and
+ * Tuning knobs for {@link Planner}: time budget, rollout horizon, candidate caps and
  * the consumable policy thresholds used inside rollouts.
  */
 @Getter
@@ -68,7 +68,7 @@ public final class PlannerOptions {
 
     /** Scorer used to evaluate rollouts. */
     @Builder.Default
-    private final ColoScorer scorer = ColoScorer.defaults();
+    private final Scorer scorer = Scorer.defaults();
 
     /**
      * @return default options tuned for a sub-frame (15 ms) decision.

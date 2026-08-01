@@ -15,20 +15,20 @@ package plugins.colosseum.simulation;
  *   Red Flag minotaurs). Keyed by player position and size.</li>
  * </ul>
  */
-public final class ColoScratch {
-    private static final int FIELD_SIZE = ColoCoords.MAX_DIMENSION * ColoCoords.MAX_DIMENSION;
+public final class Scratch {
+    private static final int FIELD_SIZE = Coords.MAX_DIMENSION * Coords.MAX_DIMENSION;
     private static final int PLAYER_FIELD_CACHE = 48;
     /** Field value for unreachable tiles. */
     public static final int UNREACHABLE = 255;
 
     /** Per-tick transient: which NPC slots moved during the current NPC phase. */
-    final boolean[] npcMoved = new boolean[ColoConstants.MAX_NPCS];
+    final boolean[] npcMoved = new boolean[Constants.MAX_NPCS];
 
     /**
-     * Optional hook invoked whenever an NPC launches an attack during {@link ColoTick#advance};
+     * Optional hook invoked whenever an NPC launches an attack during {@link Tick#advance};
      * used by tests and debug tooling (null and zero-cost otherwise).
      */
-    public ColoTick.AttackListener attackListener;
+    public Tick.AttackListener attackListener;
 
     private final int[] bfsQueue = new int[FIELD_SIZE];
 
@@ -37,23 +37,23 @@ public final class ColoScratch {
     private final long[] playerFieldStamp = new long[PLAYER_FIELD_CACHE];
     private long stampCounter;
 
-    private final short[] approachKeys = new short[ColoGrid.MAX_NPC_SIZE + 1];
-    private final byte[][] approachFields = new byte[ColoGrid.MAX_NPC_SIZE + 1][];
+    private final short[] approachKeys = new short[Grid.MAX_NPC_SIZE + 1];
+    private final byte[][] approachFields = new byte[Grid.MAX_NPC_SIZE + 1][];
 
     /**
      * Creates scratch memory.
      */
-    public ColoScratch() {
-        java.util.Arrays.fill(playerFieldKeys, ColoCoords.NONE);
-        java.util.Arrays.fill(approachKeys, ColoCoords.NONE);
+    public Scratch() {
+        java.util.Arrays.fill(playerFieldKeys, Coords.NONE);
+        java.util.Arrays.fill(approachKeys, Coords.NONE);
     }
 
     /**
      * Invalidates cached fields; call when the grid changes (new capture).
      */
     public void invalidate() {
-        java.util.Arrays.fill(playerFieldKeys, ColoCoords.NONE);
-        java.util.Arrays.fill(approachKeys, ColoCoords.NONE);
+        java.util.Arrays.fill(playerFieldKeys, Coords.NONE);
+        java.util.Arrays.fill(approachKeys, Coords.NONE);
     }
 
     /**
@@ -63,14 +63,14 @@ public final class ColoScratch {
      * @param dest packed destination tile.
      * @return distance field indexed by {@code y << 6 | x}; {@link #UNREACHABLE} where no path.
      */
-    public byte[] playerField(ColoGrid grid, short dest) {
+    public byte[] playerField(Grid grid, short dest) {
         int slot = -1;
         for (int i = 0; i < PLAYER_FIELD_CACHE; i++) {
             if (playerFieldKeys[i] == dest) {
                 playerFieldStamp[i] = ++stampCounter;
                 return playerFields[i];
             }
-            if (slot < 0 && playerFieldKeys[i] == ColoCoords.NONE) {
+            if (slot < 0 && playerFieldKeys[i] == Coords.NONE) {
                 slot = i;
             }
         }
@@ -102,7 +102,7 @@ public final class ColoScratch {
      * @param size npc footprint size.
      * @return distance field indexed by anchor {@code y << 6 | x}.
      */
-    public byte[] approachField(ColoGrid grid, short playerPos, int size) {
+    public byte[] approachField(Grid grid, short playerPos, int size) {
         if (approachKeys[size] == playerPos && approachFields[size] != null) {
             return approachFields[size];
         }
@@ -126,7 +126,7 @@ public final class ColoScratch {
      * @param dy step y, -1..1.
      * @return true when the player may take the step.
      */
-    public static boolean playerCanStep(ColoGrid grid, int x, int y, int dx, int dy) {
+    public static boolean playerCanStep(Grid grid, int x, int y, int dx, int dy) {
         if (grid.isMoveBlocked(x + dx, y + dy)) {
             return false;
         }
@@ -150,7 +150,7 @@ public final class ColoScratch {
      * @param size footprint size.
      * @return true when the step is statically legal.
      */
-    public static boolean npcCanStepStatic(ColoGrid grid, int x, int y, int dx, int dy, int size) {
+    public static boolean npcCanStepStatic(Grid grid, int x, int y, int dx, int dy, int size) {
         if (!grid.isFootprintFree(x + dx, y + dy, size)) {
             return false;
         }
@@ -160,10 +160,10 @@ public final class ColoScratch {
         return true;
     }
 
-    private void computePlayerField(ColoGrid grid, short dest, byte[] field) {
+    private void computePlayerField(Grid grid, short dest, byte[] field) {
         java.util.Arrays.fill(field, (byte) UNREACHABLE);
-        int dx0 = ColoCoords.x(dest);
-        int dy0 = ColoCoords.y(dest);
+        int dx0 = Coords.x(dest);
+        int dy0 = Coords.y(dest);
         if (grid.isMoveBlocked(dx0, dy0)) {
             return;
         }
@@ -202,10 +202,10 @@ public final class ColoScratch {
         }
     }
 
-    private void computeApproachField(ColoGrid grid, short playerPos, int size, byte[] field) {
+    private void computeApproachField(Grid grid, short playerPos, int size, byte[] field) {
         java.util.Arrays.fill(field, (byte) UNREACHABLE);
-        int px = ColoCoords.x(playerPos);
-        int py = ColoCoords.y(playerPos);
+        int px = Coords.x(playerPos);
+        int py = Coords.y(playerPos);
         int head = 0;
         int tail = 0;
         // Seed every legal anchor whose footprint is melee-adjacent to the player.
@@ -214,7 +214,7 @@ public final class ColoScratch {
                 if (ax < 0 || ay < 0) {
                     continue;
                 }
-                if (!ColoLos.isMeleeAdjacent(ax, ay, size, px, py)) {
+                if (!LineOfSight.isMeleeAdjacent(ax, ay, size, px, py)) {
                     continue;
                 }
                 if (!grid.isFootprintFree(ax, ay, size)) {

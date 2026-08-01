@@ -15,7 +15,7 @@ import net.runelite.api.coords.WorldPoint;
  *
  * <p>All queries are static-cost bit tests, safe to call millions of times per decision.</p>
  */
-public final class ColoGrid {
+public final class Grid {
     /** Largest NPC footprint the grid precomputes erosion for (Sol Heredit is excluded). */
     public static final int MAX_NPC_SIZE = 5;
 
@@ -31,9 +31,9 @@ public final class ColoGrid {
     /** Index 1..MAX_NPC_SIZE; blockedForSize[1] is the plain movement mask plus bounds. */
     private final long[][] blockedForSize;
 
-    private ColoGrid(int width, int height, int baseX, int baseY, int plane, long[] moveBlocked, long[] losBlocked) {
-        if (width <= 0 || height <= 0 || width > ColoCoords.MAX_DIMENSION || height > ColoCoords.MAX_DIMENSION) {
-            throw new IllegalArgumentException("Grid dimensions must be 1-" + ColoCoords.MAX_DIMENSION);
+    private Grid(int width, int height, int baseX, int baseY, int plane, long[] moveBlocked, long[] losBlocked) {
+        if (width <= 0 || height <= 0 || width > Coords.MAX_DIMENSION || height > Coords.MAX_DIMENSION) {
+            throw new IllegalArgumentException("Grid dimensions must be 1-" + Coords.MAX_DIMENSION);
         }
         this.width = width;
         this.height = height;
@@ -57,7 +57,7 @@ public final class ColoGrid {
      * @param plane capture plane.
      * @return immutable grid.
      */
-    public static ColoGrid fromCollisionFlags(
+    public static Grid fromCollisionFlags(
             int[][] flags,
             int sceneOriginX,
             int sceneOriginY,
@@ -87,7 +87,7 @@ public final class ColoGrid {
                 }
             }
         }
-        return new ColoGrid(width, height, baseX, baseY, plane, move, los);
+        return new Grid(width, height, baseX, baseY, plane, move, los);
     }
 
     /**
@@ -102,20 +102,20 @@ public final class ColoGrid {
      * @param blockedTiles packed local positions of fully blocked tiles.
      * @return immutable grid.
      */
-    public static ColoGrid synthetic(int width, int height, int baseX, int baseY, int plane, short[] blockedTiles) {
+    public static Grid synthetic(int width, int height, int baseX, int baseY, int plane, short[] blockedTiles) {
         long[] move = new long[height];
         long[] los = new long[height];
         if (blockedTiles != null) {
             for (short packed : blockedTiles) {
-                int x = ColoCoords.x(packed);
-                int y = ColoCoords.y(packed);
+                int x = Coords.x(packed);
+                int y = Coords.y(packed);
                 if (x < width && y < height) {
                     move[y] |= 1L << x;
                     los[y] |= 1L << x;
                 }
             }
         }
-        return new ColoGrid(width, height, baseX, baseY, plane, move, los);
+        return new Grid(width, height, baseX, baseY, plane, move, los);
     }
 
     /** @return grid width in tiles. */
@@ -199,7 +199,7 @@ public final class ColoGrid {
      * @return world point on the grid plane.
      */
     public WorldPoint toWorld(short packed) {
-        return new WorldPoint(baseX + ColoCoords.x(packed), baseY + ColoCoords.y(packed), plane);
+        return new WorldPoint(baseX + Coords.x(packed), baseY + Coords.y(packed), plane);
     }
 
     /**
@@ -207,15 +207,15 @@ public final class ColoGrid {
      *
      * @param worldX world x.
      * @param worldY world y.
-     * @return packed local position, or {@link ColoCoords#NONE} when outside the grid.
+     * @return packed local position, or {@link Coords#NONE} when outside the grid.
      */
     public short toLocal(int worldX, int worldY) {
         int x = worldX - baseX;
         int y = worldY - baseY;
         if (!inBounds(x, y)) {
-            return ColoCoords.NONE;
+            return Coords.NONE;
         }
-        return ColoCoords.pack(x, y);
+        return Coords.pack(x, y);
     }
 
     private static long[][] erode(long[] moveBlocked, int width, int height) {

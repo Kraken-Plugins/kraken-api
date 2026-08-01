@@ -35,14 +35,14 @@ public final class LoadoutConfig {
         private final int attackRange;
         /** Inventory item ids the executor equips when switching to this set. */
         private final int[] equipItemIds;
-        /** Expected damage per attack indexed by {@link ColoNpcType#ordinal()}. */
+        /** Expected damage per attack indexed by {@link NpcType#ordinal()}. */
         private final double[] expectedDamageByType;
 
         /**
          * @param type target npc type.
          * @return expected damage per attack against the type.
          */
-        public double expectedDamageVs(ColoNpcType type) {
+        public double expectedDamageVs(NpcType type) {
             if (expectedDamageByType == null || type.ordinal() >= expectedDamageByType.length) {
                 return 0;
             }
@@ -92,43 +92,43 @@ public final class LoadoutConfig {
      * @return default loadout.
      */
     public static LoadoutConfig defaults() {
-        int typeCount = ColoNpcType.values().length;
+        int typeCount = NpcType.values().length;
         double[] melee = new double[typeCount];
         double[] ranged = new double[typeCount];
         double[] magic = new double[typeCount];
 
-        set(melee, ColoNpcType.MANTICORE, 24);
-        set(melee, ColoNpcType.SERPENT_SHAMAN, 18);
-        set(melee, ColoNpcType.JAVELIN_COLOSSUS, 16);
-        set(melee, ColoNpcType.SHOCKWAVE_COLOSSUS, 18);
-        set(melee, ColoNpcType.JAGUAR_WARRIOR, 25);
-        set(melee, ColoNpcType.MINOTAUR, 24);
-        set(melee, ColoNpcType.MINOTAUR_RED_FLAG, 24);
-        set(melee, ColoNpcType.FREMENNIK_BERSERKER, 12);
-        set(melee, ColoNpcType.FREMENNIK_SEER, 14);
-        set(melee, ColoNpcType.FREMENNIK_ARCHER, 30);
+        set(melee, NpcType.MANTICORE, 24);
+        set(melee, NpcType.SERPENT_SHAMAN, 18);
+        set(melee, NpcType.JAVELIN_COLOSSUS, 16);
+        set(melee, NpcType.SHOCKWAVE_COLOSSUS, 18);
+        set(melee, NpcType.JAGUAR_WARRIOR, 25);
+        set(melee, NpcType.MINOTAUR, 24);
+        set(melee, NpcType.MINOTAUR_RED_FLAG, 24);
+        set(melee, NpcType.FREMENNIK_BERSERKER, 12);
+        set(melee, NpcType.FREMENNIK_SEER, 14);
+        set(melee, NpcType.FREMENNIK_ARCHER, 30);
 
-        set(ranged, ColoNpcType.MANTICORE, 20);
-        set(ranged, ColoNpcType.SERPENT_SHAMAN, 16);
-        set(ranged, ColoNpcType.JAVELIN_COLOSSUS, 20);
-        set(ranged, ColoNpcType.SHOCKWAVE_COLOSSUS, 14);
-        set(ranged, ColoNpcType.JAGUAR_WARRIOR, 16);
-        set(ranged, ColoNpcType.MINOTAUR, 14);
-        set(ranged, ColoNpcType.MINOTAUR_RED_FLAG, 14);
-        set(ranged, ColoNpcType.FREMENNIK_BERSERKER, 12);
-        set(ranged, ColoNpcType.FREMENNIK_SEER, 38);
-        set(ranged, ColoNpcType.FREMENNIK_ARCHER, 14);
+        set(ranged, NpcType.MANTICORE, 20);
+        set(ranged, NpcType.SERPENT_SHAMAN, 16);
+        set(ranged, NpcType.JAVELIN_COLOSSUS, 20);
+        set(ranged, NpcType.SHOCKWAVE_COLOSSUS, 14);
+        set(ranged, NpcType.JAGUAR_WARRIOR, 16);
+        set(ranged, NpcType.MINOTAUR, 14);
+        set(ranged, NpcType.MINOTAUR_RED_FLAG, 14);
+        set(ranged, NpcType.FREMENNIK_BERSERKER, 12);
+        set(ranged, NpcType.FREMENNIK_SEER, 38);
+        set(ranged, NpcType.FREMENNIK_ARCHER, 14);
 
-        set(magic, ColoNpcType.MANTICORE, 18);
-        set(magic, ColoNpcType.SERPENT_SHAMAN, 20);
-        set(magic, ColoNpcType.JAVELIN_COLOSSUS, 18);
-        set(magic, ColoNpcType.SHOCKWAVE_COLOSSUS, 20);
-        set(magic, ColoNpcType.JAGUAR_WARRIOR, 12);
-        set(magic, ColoNpcType.MINOTAUR, 16);
-        set(magic, ColoNpcType.MINOTAUR_RED_FLAG, 16);
-        set(magic, ColoNpcType.FREMENNIK_BERSERKER, 44);
-        set(magic, ColoNpcType.FREMENNIK_SEER, 12);
-        set(magic, ColoNpcType.FREMENNIK_ARCHER, 12);
+        set(magic, NpcType.MANTICORE, 18);
+        set(magic, NpcType.SERPENT_SHAMAN, 20);
+        set(magic, NpcType.JAVELIN_COLOSSUS, 18);
+        set(magic, NpcType.SHOCKWAVE_COLOSSUS, 20);
+        set(magic, NpcType.JAGUAR_WARRIOR, 12);
+        set(magic, NpcType.MINOTAUR, 16);
+        set(magic, NpcType.MINOTAUR_RED_FLAG, 16);
+        set(magic, NpcType.FREMENNIK_BERSERKER, 44);
+        set(magic, NpcType.FREMENNIK_SEER, 12);
+        set(magic, NpcType.FREMENNIK_ARCHER, 12);
 
         GearSet meleeSet = GearSet.builder()
                 .name("Melee")
@@ -193,7 +193,7 @@ public final class LoadoutConfig {
         return gearSets == null ? 0 : gearSets.length;
     }
 
-    private static void set(double[] table, ColoNpcType type, double value) {
+    private static void set(double[] table, NpcType type, double value) {
         table[type.ordinal()] = value;
     }
 }

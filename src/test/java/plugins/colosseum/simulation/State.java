@@ -4,15 +4,15 @@ package plugins.colosseum.simulation;
  * Mutable, poolable simulation state: everything about one possible future of the arena.
  *
  * <p>Layout is deliberately flat - primitive scalars plus a few small primitive arrays - so
- * that {@link #copyFrom(ColoState)} is a handful of {@code System.arraycopy} calls and the
+ * that {@link #copyFrom(State)} is a handful of {@code System.arraycopy} calls and the
  * search loop allocates nothing. Immutable identity data (types, sizes, max HP, the grid)
- * lives in the shared {@link ColoFrame}.</p>
+ * lives in the shared {@link Frame}.</p>
  *
  * <p>In-flight attacks are packed into a {@code long} ring: land tick (16 bits), max damage
  * (8), style (2), source/target slot (6), targeted tile for dodgeable specials (12), a
- * prayer-resolved flag and expected damage (8). See {@link ColoTick} for encoding.</p>
+ * prayer-resolved flag and expected damage (8). See {@link Tick} for encoding.</p>
  */
-public final class ColoState {
+public final class State {
     /** Overhead code: no protection prayer active. */
     public static final byte OVERHEAD_NONE = 0;
     /** Overhead code: Protect from Melee. */
@@ -22,7 +22,7 @@ public final class ColoState {
     /** Overhead code: Protect from Magic. */
     public static final byte OVERHEAD_MAGIC = 3;
 
-    ColoFrame frame;
+    Frame frame;
 
     /** Ticks since wave start (0-based; tick gating keys off this). */
     int tick;
@@ -52,17 +52,17 @@ public final class ColoState {
     byte restoreDoses;
 
     // ----- npcs (parallel arrays indexed by slot; identity data in frame) -----
-    final short[] npcPos = new short[ColoConstants.MAX_NPCS];
-    final short[] npcHp = new short[ColoConstants.MAX_NPCS];
-    final byte[] npcCooldown = new byte[ColoConstants.MAX_NPCS];
-    final byte[] npcFlags = new byte[ColoConstants.MAX_NPCS];
-    final byte[] npcAux = new byte[ColoConstants.MAX_NPCS];
+    final short[] npcPos = new short[Constants.MAX_NPCS];
+    final short[] npcHp = new short[Constants.MAX_NPCS];
+    final byte[] npcCooldown = new byte[Constants.MAX_NPCS];
+    final byte[] npcFlags = new byte[Constants.MAX_NPCS];
+    final byte[] npcAux = new byte[Constants.MAX_NPCS];
 
     static final byte NPC_FLAG_ACTIVE = 1;
     static final byte NPC_FLAG_CHARGING_STARTED = 2;
 
     // ----- in-flight hits -----
-    final long[] pendingHits = new long[ColoConstants.MAX_PENDING_HITS];
+    final long[] pendingHits = new long[Constants.MAX_PENDING_HITS];
     int pendingHitCount;
 
     // ----- rollout aggregates for scoring -----
@@ -79,10 +79,10 @@ public final class ColoState {
      *
      * @param frame shared frame.
      */
-    public void reset(ColoFrame frame) {
+    public void reset(Frame frame) {
         this.frame = frame;
         tick = 0;
-        playerPos = ColoCoords.NONE;
+        playerPos = Coords.NONE;
         playerHp = frame.getPlayerMaxHp();
         prayerPoints = frame.getPrayerPointCap();
         prayerDrainCounter = 0;
@@ -95,14 +95,14 @@ public final class ColoState {
         comboDelay = 0;
         potionDelay = 0;
         attackDelay = 0;
-        moveTarget = ColoCoords.NONE;
+        moveTarget = Coords.NONE;
         moveRun = false;
         attackTargetSlot = -1;
         foodCount = 0;
         comboCount = 0;
         brewDoses = 0;
         restoreDoses = 0;
-        java.util.Arrays.fill(npcPos, ColoCoords.NONE);
+        java.util.Arrays.fill(npcPos, Coords.NONE);
         java.util.Arrays.fill(npcHp, (short) 0);
         java.util.Arrays.fill(npcCooldown, (byte) 0);
         java.util.Arrays.fill(npcFlags, (byte) 0);
@@ -121,7 +121,7 @@ public final class ColoState {
      *
      * @param other source state.
      */
-    public void copyFrom(ColoState other) {
+    public void copyFrom(State other) {
         frame = other.frame;
         tick = other.tick;
         playerPos = other.playerPos;
@@ -144,11 +144,11 @@ public final class ColoState {
         comboCount = other.comboCount;
         brewDoses = other.brewDoses;
         restoreDoses = other.restoreDoses;
-        System.arraycopy(other.npcPos, 0, npcPos, 0, ColoConstants.MAX_NPCS);
-        System.arraycopy(other.npcHp, 0, npcHp, 0, ColoConstants.MAX_NPCS);
-        System.arraycopy(other.npcCooldown, 0, npcCooldown, 0, ColoConstants.MAX_NPCS);
-        System.arraycopy(other.npcFlags, 0, npcFlags, 0, ColoConstants.MAX_NPCS);
-        System.arraycopy(other.npcAux, 0, npcAux, 0, ColoConstants.MAX_NPCS);
+        System.arraycopy(other.npcPos, 0, npcPos, 0, Constants.MAX_NPCS);
+        System.arraycopy(other.npcHp, 0, npcHp, 0, Constants.MAX_NPCS);
+        System.arraycopy(other.npcCooldown, 0, npcCooldown, 0, Constants.MAX_NPCS);
+        System.arraycopy(other.npcFlags, 0, npcFlags, 0, Constants.MAX_NPCS);
+        System.arraycopy(other.npcAux, 0, npcAux, 0, Constants.MAX_NPCS);
         System.arraycopy(other.pendingHits, 0, pendingHits, 0, other.pendingHitCount);
         pendingHitCount = other.pendingHitCount;
         expectedDamageTaken = other.expectedDamageTaken;
@@ -162,7 +162,7 @@ public final class ColoState {
     // ----- read accessors (used by planner, overlays and tests) -----
 
     /** @return shared frame. */
-    public ColoFrame frame() {
+    public Frame frame() {
         return frame;
     }
 
@@ -211,7 +211,7 @@ public final class ColoState {
         return attackDelay;
     }
 
-    /** @return queued movement destination or {@link ColoCoords#NONE}. */
+    /** @return queued movement destination or {@link Coords#NONE}. */
     public short moveTarget() {
         return moveTarget;
     }
@@ -283,7 +283,7 @@ public final class ColoState {
 
     /**
      * @param slot npc slot.
-     * @return manticore pattern code (see {@link ColoTick} PATTERN_* constants), 0 unknown.
+     * @return manticore pattern code (see {@link Tick} PATTERN_* constants), 0 unknown.
      */
     public int manticorePattern(int slot) {
         return npcAux[slot] & 7;
@@ -392,7 +392,7 @@ public final class ColoState {
      * Marks a manticore slot's charge state and attack pattern (from live tracking).
      *
      * @param slot slot index.
-     * @param patternCode pattern code, 0 when unknown (see {@link ColoTick}).
+     * @param patternCode pattern code, 0 when unknown (see {@link Tick}).
      * @param chargingStarted true when the charge has begun.
      * @param orbsRemaining orbs still to be launched from an in-progress triple.
      */
@@ -483,7 +483,7 @@ public final class ColoState {
      * @param slot npc slot the player is attacking, or -1 for none.
      */
     public void setAttackTarget(int slot) {
-        this.attackTargetSlot = (byte) (slot >= 0 && slot < ColoConstants.MAX_NPCS ? slot : -1);
+        this.attackTargetSlot = (byte) (slot >= 0 && slot < Constants.MAX_NPCS ? slot : -1);
     }
 
     private static int clampByte(int value) {

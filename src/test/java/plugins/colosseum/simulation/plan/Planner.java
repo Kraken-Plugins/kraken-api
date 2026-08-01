@@ -1,14 +1,14 @@
 package plugins.colosseum.simulation.plan;
 
-import plugins.colosseum.simulation.ColoCoords;
-import plugins.colosseum.simulation.ColoConstants;
-import plugins.colosseum.simulation.ColoFrame;
-import plugins.colosseum.simulation.ColoGrid;
-import plugins.colosseum.simulation.ColoLos;
-import plugins.colosseum.simulation.ColoNpcType;
-import plugins.colosseum.simulation.ColoScratch;
-import plugins.colosseum.simulation.ColoState;
-import plugins.colosseum.simulation.ColoTick;
+import plugins.colosseum.simulation.Coords;
+import plugins.colosseum.simulation.Constants;
+import plugins.colosseum.simulation.Frame;
+import plugins.colosseum.simulation.Grid;
+import plugins.colosseum.simulation.LineOfSight;
+import plugins.colosseum.simulation.NpcType;
+import plugins.colosseum.simulation.Scratch;
+import plugins.colosseum.simulation.State;
+import plugins.colosseum.simulation.Tick;
 import plugins.colosseum.simulation.LoadoutConfig;
 import plugins.colosseum.simulation.PlayerCommand;
 
@@ -40,29 +40,29 @@ import plugins.colosseum.simulation.PlayerCommand;
  * commands are packed longs, and rollouts reuse one scratch. A full pass is typically a
  * few thousand simulated ticks, well inside a 15 ms budget.</p>
  */
-public final class ColoPlanner {
+public final class Planner {
     private static final int MAX_CANDIDATES = 64;
 
     /** Kill-order priority (research-backed): warband first (melee, mage, range), then
      *  shamans and jaguars, then the big colossi, minotaurs last. */
-    private static final ColoNpcType[] KILL_PRIORITY = {
-            ColoNpcType.FREMENNIK_BERSERKER,
-            ColoNpcType.FREMENNIK_SEER,
-            ColoNpcType.FREMENNIK_ARCHER,
-            ColoNpcType.SERPENT_SHAMAN,
-            ColoNpcType.JAGUAR_WARRIOR,
-            ColoNpcType.MANTICORE,
-            ColoNpcType.SHOCKWAVE_COLOSSUS,
-            ColoNpcType.JAVELIN_COLOSSUS,
-            ColoNpcType.MINOTAUR,
-            ColoNpcType.MINOTAUR_RED_FLAG,
+    private static final NpcType[] KILL_PRIORITY = {
+            NpcType.FREMENNIK_BERSERKER,
+            NpcType.FREMENNIK_SEER,
+            NpcType.FREMENNIK_ARCHER,
+            NpcType.SERPENT_SHAMAN,
+            NpcType.JAGUAR_WARRIOR,
+            NpcType.MANTICORE,
+            NpcType.SHOCKWAVE_COLOSSUS,
+            NpcType.JAVELIN_COLOSSUS,
+            NpcType.MINOTAUR,
+            NpcType.MINOTAUR_RED_FLAG,
     };
 
-    private final ColoScratch scratch = new ColoScratch();
+    private final Scratch scratch = new Scratch();
     private final DangerMap dangerMap = new DangerMap();
-    private final ColoState rollout = new ColoState();
-    private final ColoState replay = new ColoState();
-    private final ColoState[] stage2Roots;
+    private final State rollout = new State();
+    private final State replay = new State();
+    private final State[] stage2Roots;
     private final long[] stage2Commands;
     private final int[] stage2Targets;
     private final double[] stage2Scores;
@@ -70,19 +70,19 @@ public final class ColoPlanner {
 
     private final short[] candidateTiles = new short[MAX_CANDIDATES];
     private final double[] candidateBestScores = new double[MAX_CANDIDATES];
-    private final boolean[] seenTile = new boolean[ColoCoords.MAX_DIMENSION * ColoCoords.MAX_DIMENSION];
+    private final boolean[] seenTile = new boolean[Coords.MAX_DIMENSION * Coords.MAX_DIMENSION];
     private final int[] targetSlots = new int[8];
     private final double[] styleDamage = new double[4];
 
-    private ColoGrid lastGrid;
+    private Grid lastGrid;
 
     /**
      * Creates a planner. One instance per decision thread; instances are not thread-safe.
      */
-    public ColoPlanner() {
-        stage2Roots = new ColoState[8];
+    public Planner() {
+        stage2Roots = new State[8];
         for (int i = 0; i < stage2Roots.length; i++) {
-            stage2Roots[i] = new ColoState();
+            stage2Roots[i] = new State();
         }
         stage2Commands = new long[8];
         stage2Targets = new int[8];
@@ -102,11 +102,11 @@ public final class ColoPlanner {
      * @param options tuning options.
      * @return decision for this tick with visualization data.
      */
-    public ColoDecision plan(ColoState root, PlannerOptions options) {
+    public Decision plan(State root, PlannerOptions options) {
         long start = System.nanoTime();
         long deadline = start + options.getBudgetNanos();
-        ColoFrame frame = root.frame();
-        ColoGrid grid = frame.getGrid();
+        Frame frame = root.frame();
+        Grid grid = frame.getGrid();
         if (grid != lastGrid) {
             scratch.invalidate();
             lastGrid = grid;
@@ -159,7 +159,7 @@ public final class ColoPlanner {
         // Second stage: extend the most promising plans with a follow-up destination.
         long stage2Deadline = deadline;
         for (int pi = 0; pi < stage2Count && System.nanoTime() < stage2Deadline; pi++) {
-            ColoState mid = stage2Roots[pi];
+            State mid = stage2Roots[pi];
             if (mid.playerDied()) {
                 continue;
             }
@@ -196,7 +196,7 @@ public final class ColoPlanner {
         System.arraycopy(candidateBestScores, 0, scoresOut, 0, candidateCount);
 
         int attackIndex = bestTarget >= 0 ? frame.getNpcRuneliteIndices()[bestTarget] : -1;
-        return new ColoDecision(
+        return new Decision(
                 bestCommand,
                 grid,
                 bestScore,
@@ -218,7 +218,7 @@ public final class ColoPlanner {
     }
 
     private int offerStage2(
-            ColoState root,
+            State root,
             PlannerOptions options,
             int stage2Count,
             long firstCommand,
@@ -253,12 +253,12 @@ public final class ColoPlanner {
         return stage2Count;
     }
 
-    private void runRollout(ColoState state, long firstCommand, int target, int horizon, PlannerOptions options) {
+    private void runRollout(State state, long firstCommand, int target, int horizon, PlannerOptions options) {
         int currentTarget = target;
         short plannedDest = PlayerCommand.moveTarget(firstCommand);
         for (int t = 0; t < horizon; t++) {
             long cmd = t == 0 ? firstCommand : policyCommand(state, currentTarget, plannedDest, options);
-            ColoTick.advance(state, cmd, scratch);
+            Tick.advance(state, cmd, scratch);
             if (state.playerDied()) {
                 return;
             }
@@ -268,14 +268,14 @@ public final class ColoPlanner {
         }
     }
 
-    private short[] replayPath(ColoState state, long firstCommand, int target, PlannerOptions options) {
+    private short[] replayPath(State state, long firstCommand, int target, PlannerOptions options) {
         short[] path = new short[options.getHorizonTicks()];
         int currentTarget = target;
         short plannedDest = PlayerCommand.moveTarget(firstCommand);
         int length = 0;
         for (int t = 0; t < options.getHorizonTicks(); t++) {
             long cmd = t == 0 ? firstCommand : policyCommand(state, currentTarget, plannedDest, options);
-            ColoTick.advance(state, cmd, scratch);
+            Tick.advance(state, cmd, scratch);
             path[length++] = state.playerPos();
             if (state.playerDied()) {
                 break;
@@ -293,20 +293,20 @@ public final class ColoPlanner {
     // Candidate generation
     // ------------------------------------------------------------------
 
-    private int collectDestinations(ColoState root, PlannerOptions options, int primaryTarget) {
-        ColoGrid grid = root.frame().getGrid();
+    private int collectDestinations(State root, PlannerOptions options, int primaryTarget) {
+        Grid grid = root.frame().getGrid();
         java.util.Arrays.fill(seenTile, false);
         int count = 0;
         short playerPos = root.playerPos();
-        int px = ColoCoords.x(playerPos);
-        int py = ColoCoords.y(playerPos);
+        int px = Coords.x(playerPos);
+        int py = Coords.y(playerPos);
 
         count = addCandidate(count, playerPos);
         for (int d = 0; d < 8; d++) {
-            int nx = px + ColoScratch.DIR_X[d];
-            int ny = py + ColoScratch.DIR_Y[d];
-            if (grid.inBounds(nx, ny) && ColoScratch.playerCanStep(grid, px, py, ColoScratch.DIR_X[d], ColoScratch.DIR_Y[d])) {
-                count = addCandidate(count, ColoCoords.pack(nx, ny));
+            int nx = px + Scratch.DIR_X[d];
+            int ny = py + Scratch.DIR_Y[d];
+            if (grid.inBounds(nx, ny) && Scratch.playerCanStep(grid, px, py, Scratch.DIR_X[d], Scratch.DIR_Y[d])) {
+                count = addCandidate(count, Coords.pack(nx, ny));
             }
         }
 
@@ -328,7 +328,7 @@ public final class ColoPlanner {
             count = addBestTiles(
                     root, options, count, walkDistance,
                     options.getMaxAttackTiles(),
-                    tile -> ColoLos.tileHasLosToFootprint(grid, tile, gear.getAttackRange(), targetAnchor, targetSize),
+                    tile -> LineOfSight.tileHasLosToFootprint(grid, tile, gear.getAttackRange(), targetAnchor, targetSize),
                     (tile, dist) -> dangerMap.expectedDamagePerTickX100(tile) * 4 + dist
             );
         }
@@ -345,7 +345,7 @@ public final class ColoPlanner {
     }
 
     private int addBestTiles(
-            ColoState root,
+            State root,
             PlannerOptions options,
             int count,
             byte[] walkDistance,
@@ -356,10 +356,10 @@ public final class ColoPlanner {
         if (maxTiles <= 0 || count >= MAX_CANDIDATES) {
             return count;
         }
-        ColoGrid grid = root.frame().getGrid();
+        Grid grid = root.frame().getGrid();
         int radius = options.getDangerRadius();
-        int px = ColoCoords.x(root.playerPos());
-        int py = ColoCoords.y(root.playerPos());
+        int px = Coords.x(root.playerPos());
+        int py = Coords.y(root.playerPos());
 
         // Fixed-size selection of the lowest-cost qualifying tiles.
         short[] bestTiles = new short[maxTiles];
@@ -372,10 +372,10 @@ public final class ColoPlanner {
                 }
                 int idx = (y << 6) | x;
                 int dist = walkDistance[idx] & 0xFF;
-                if (dist >= ColoScratch.UNREACHABLE) {
+                if (dist >= Scratch.UNREACHABLE) {
                     continue;
                 }
-                short tile = ColoCoords.pack(x, y);
+                short tile = Coords.pack(x, y);
                 if (!filter.accept(tile)) {
                     continue;
                 }
@@ -414,13 +414,13 @@ public final class ColoPlanner {
         return count + 1;
     }
 
-    private int collectTargets(ColoState root, PlannerOptions options) {
+    private int collectTargets(State root, PlannerOptions options) {
         int count = 0;
         int current = root.attackTargetSlot();
         if (current >= 0 && root.npcActive(current)) {
             targetSlots[count++] = current;
         }
-        for (ColoNpcType type : KILL_PRIORITY) {
+        for (NpcType type : KILL_PRIORITY) {
             if (count >= Math.min(options.getMaxTargets(), targetSlots.length)) {
                 break;
             }
@@ -430,7 +430,7 @@ public final class ColoPlanner {
                 if (!root.npcActive(slot) || root.frame().type(slot) != type || slot == current) {
                     continue;
                 }
-                int distance = ColoCoords.chebyshev(root.npcPos(slot), root.playerPos());
+                int distance = Coords.chebyshev(root.npcPos(slot), root.playerPos());
                 if (distance < bestDistance) {
                     bestDistance = distance;
                     bestSlot = slot;
@@ -443,8 +443,8 @@ public final class ColoPlanner {
         return count;
     }
 
-    private int nextTargetByPriority(ColoState state) {
-        for (ColoNpcType type : KILL_PRIORITY) {
+    private int nextTargetByPriority(State state) {
+        for (NpcType type : KILL_PRIORITY) {
             for (int slot = 0; slot < state.frame().getNpcSlotCount(); slot++) {
                 if (state.npcActive(slot) && state.frame().type(slot) == type) {
                     return slot;
@@ -458,15 +458,15 @@ public final class ColoPlanner {
     // Rollout policies
     // ------------------------------------------------------------------
 
-    private long composeFirstCommand(ColoState root, short dest, int target, PlannerOptions options) {
+    private long composeFirstCommand(State root, short dest, int target, PlannerOptions options) {
         long cmd = basePolicy(root, target, options);
-        boolean moving = ColoCoords.isPresent(dest) && dest != root.playerPos();
+        boolean moving = Coords.isPresent(dest) && dest != root.playerPos();
         if (moving) {
             // A ground click owns the tick; attacking resumes via the rollout policy once
             // in position (or as ready-weapon kite shots along the way).
             cmd = PlayerCommand.withMove(cmd, dest, options.isRun());
         } else {
-            if (ColoCoords.isPresent(root.moveTarget())) {
+            if (Coords.isPresent(root.moveTarget())) {
                 cmd = PlayerCommand.withStop(cmd);
             }
             if (target >= 0 && root.attackTargetSlot() != target) {
@@ -476,12 +476,12 @@ public final class ColoPlanner {
         return cmd;
     }
 
-    private long policyCommand(ColoState state, int target, short plannedDest, PlannerOptions options) {
+    private long policyCommand(State state, int target, short plannedDest, PlannerOptions options) {
         long cmd = basePolicy(state, target, options);
         if (target < 0 || !state.npcActive(target)) {
             // No target: just make sure the planned destination is still being pursued.
-            if (!ColoCoords.isPresent(state.moveTarget())
-                    && ColoCoords.isPresent(plannedDest)
+            if (!Coords.isPresent(state.moveTarget())
+                    && Coords.isPresent(plannedDest)
                     && state.playerPos() != plannedDest) {
                 cmd = PlayerCommand.withMove(cmd, plannedDest, options.isRun());
             }
@@ -489,17 +489,17 @@ public final class ColoPlanner {
         }
 
         LoadoutConfig.GearSet gear = state.frame().getLoadout().gearSet(state.gearSet());
-        boolean inRangeNow = ColoLos.tileHasLosToFootprint(
+        boolean inRangeNow = LineOfSight.tileHasLosToFootprint(
                 state.frame().getGrid(),
                 state.playerPos(),
                 gear.getAttackRange(),
                 state.npcPos(target),
                 state.frame().size(target)
         );
-        boolean traveling = ColoCoords.isPresent(state.moveTarget());
+        boolean traveling = Coords.isPresent(state.moveTarget());
         boolean engaged = state.attackTargetSlot() == target;
         boolean weaponReady = state.attackDelay() <= 0;
-        boolean atPlannedDest = !ColoCoords.isPresent(plannedDest) || state.playerPos() == plannedDest;
+        boolean atPlannedDest = !Coords.isPresent(plannedDest) || state.playerPos() == plannedDest;
 
         if (traveling) {
             // Kite shot: interrupt movement only when the weapon is ready and the target is
@@ -521,7 +521,7 @@ public final class ColoPlanner {
         return cmd;
     }
 
-    private long basePolicy(ColoState state, int target, PlannerOptions options) {
+    private long basePolicy(State state, int target, PlannerOptions options) {
         long cmd = PlayerCommand.NONE;
 
         int overheadCode = policyOverhead(state);
@@ -563,25 +563,25 @@ public final class ColoPlanner {
      * returns the overhead command blocking it (keeping the current overhead when no
      * launch is predicted).
      */
-    private int policyOverhead(ColoState state) {
+    private int policyOverhead(State state) {
         java.util.Arrays.fill(styleDamage, 0);
-        ColoFrame frame = state.frame();
+        Frame frame = state.frame();
         double factor = frame.getLoadout().getNpcExpectedDamageFactor();
         int upcomingTick = state.tick();
-        boolean canAttack = !frame.isWaveStartGates() || upcomingTick >= ColoConstants.WAVE_START_ATTACK_GATE_TICKS;
+        boolean canAttack = !frame.isWaveStartGates() || upcomingTick >= Constants.WAVE_START_ATTACK_GATE_TICKS;
 
         if (canAttack) {
             for (int slot = 0; slot < frame.getNpcSlotCount(); slot++) {
                 if (!state.npcActive(slot)) {
                     continue;
                 }
-                ColoNpcType type = frame.type(slot);
-                boolean losNow = ColoTick.npcHasLosToPlayer(state, slot);
+                NpcType type = frame.type(slot);
+                boolean losNow = Tick.npcHasLosToPlayer(state, slot);
                 boolean losAfterMove = losNow;
                 if (!losNow) {
-                    short next = ColoTick.predictNextNpcPos(state, scratch, slot);
-                    if (ColoCoords.isPresent(next)) {
-                        losAfterMove = ColoLos.footprintHasLosTo(
+                    short next = Tick.predictNextNpcPos(state, scratch, slot);
+                    if (Coords.isPresent(next)) {
+                        losAfterMove = LineOfSight.footprintHasLosTo(
                                 frame.getGrid(), next, type.getSize(), type.getAttackRange(), state.playerPos());
                     }
                 }
@@ -593,7 +593,7 @@ public final class ColoPlanner {
                         int orbsRemaining = state.manticoreOrbsRemaining(slot);
                         int orbIndex = -1;
                         if (orbsRemaining > 0) {
-                            orbIndex = ColoConstants.MANTICORE_ORB_COUNT - orbsRemaining;
+                            orbIndex = Constants.MANTICORE_ORB_COUNT - orbsRemaining;
                         } else if (state.npcChargingStarted(slot) && state.npcCooldown(slot) <= 1 && losNow) {
                             orbIndex = 0;
                         }
@@ -603,7 +603,7 @@ public final class ColoPlanner {
                         break;
                     }
                     case WARBAND:
-                        if (upcomingTick % ColoConstants.WARBAND_CYCLE_TICKS == frame.getWarbandCyclePhase() && losNow) {
+                        if (upcomingTick % Constants.WARBAND_CYCLE_TICKS == frame.getWarbandCyclePhase() && losNow) {
                             addStyleDamage(styleCodeOf(type), type.getMaxHit() * factor);
                         }
                         break;
@@ -611,14 +611,14 @@ public final class ColoPlanner {
                         // The melee hit lands one tick after the attack; it is covered by
                         // the pending-hit scan below once launched.
                         if (state.npcCooldown(slot) <= 1 && losAfterMove) {
-                            addStyleDamage(ColoTick.STYLE_MELEE, type.getMaxHit() * factor);
+                            addStyleDamage(Tick.STYLE_MELEE, type.getMaxHit() * factor);
                         }
                         break;
                     default:
                         if (state.npcCooldown(slot) <= 1) {
                             double damage = type.getMaxHit() * factor;
-                            if (type == ColoNpcType.JAGUAR_WARRIOR) {
-                                damage *= ColoTick.JAGUAR_HITS_PER_ATTACK;
+                            if (type == NpcType.JAGUAR_WARRIOR) {
+                                damage *= Tick.JAGUAR_HITS_PER_ATTACK;
                             }
                             addStyleDamage(styleCodeOf(type), damage);
                         }
@@ -630,12 +630,12 @@ public final class ColoPlanner {
         // Unresolved (prayer-checked-on-landing) hits that land next tick.
         for (int i = 0; i < state.pendingHitCount(); i++) {
             long hit = state.pendingHit(i);
-            if (ColoTick.hitTargetsNpc(hit) || ColoTick.hitLandTick(hit) != upcomingTick) {
+            if (Tick.hitTargetsNpc(hit) || Tick.hitLandTick(hit) != upcomingTick) {
                 continue;
             }
-            int style = ColoTick.hitStyle(hit);
-            if (style != ColoTick.STYLE_TYPELESS) {
-                addStyleDamage(style, ColoTick.hitExpectedDamage(hit));
+            int style = Tick.hitStyle(hit);
+            if (style != Tick.STYLE_TYPELESS) {
+                addStyleDamage(style, Tick.hitExpectedDamage(hit));
             }
         }
 
@@ -654,29 +654,29 @@ public final class ColoPlanner {
             return PlayerCommand.OVERHEAD_KEEP;
         }
         switch (bestStyle) {
-            case ColoTick.STYLE_MELEE:
+            case Tick.STYLE_MELEE:
                 return PlayerCommand.OVERHEAD_MELEE;
-            case ColoTick.STYLE_RANGED:
+            case Tick.STYLE_RANGED:
                 return PlayerCommand.OVERHEAD_MISSILES;
             default:
                 return PlayerCommand.OVERHEAD_MAGIC;
         }
     }
 
-    private void accumulateOrbDamage(ColoState state, int slot, int orbIndex, double factor) {
+    private void accumulateOrbDamage(State state, int slot, int orbIndex, double factor) {
         int pattern = state.manticorePattern(slot);
-        if (pattern != ColoTick.PATTERN_UNKNOWN) {
-            int style = ColoTick.ORB_STYLES[pattern][orbIndex];
+        if (pattern != Tick.PATTERN_UNKNOWN) {
+            int style = Tick.ORB_STYLES[pattern][orbIndex];
             double damage;
             switch (style) {
-                case ColoTick.STYLE_RANGED:
-                    damage = ColoTick.MANTICORE_MAX_HIT_RANGED * factor;
+                case Tick.STYLE_RANGED:
+                    damage = Tick.MANTICORE_MAX_HIT_RANGED * factor;
                     break;
-                case ColoTick.STYLE_MAGIC:
-                    damage = ColoTick.MANTICORE_MAX_HIT_MAGIC * factor;
+                case Tick.STYLE_MAGIC:
+                    damage = Tick.MANTICORE_MAX_HIT_MAGIC * factor;
                     break;
                 default:
-                    damage = ColoTick.MANTICORE_MAX_HIT_MELEE * factor;
+                    damage = Tick.MANTICORE_MAX_HIT_MELEE * factor;
                     break;
             }
             addStyleDamage(style, damage);
@@ -684,10 +684,10 @@ public final class ColoPlanner {
         }
         boolean lastOrbKnownMelee = state.frame().getMantimayhemTier() < 3 && orbIndex == 2;
         if (lastOrbKnownMelee) {
-            addStyleDamage(ColoTick.STYLE_MELEE, ColoTick.MANTICORE_MAX_HIT_MELEE * factor);
+            addStyleDamage(Tick.STYLE_MELEE, Tick.MANTICORE_MAX_HIT_MELEE * factor);
         } else {
-            addStyleDamage(ColoTick.STYLE_RANGED, ColoTick.MANTICORE_MAX_HIT_RANGED * factor / 2);
-            addStyleDamage(ColoTick.STYLE_MAGIC, ColoTick.MANTICORE_MAX_HIT_MAGIC * factor / 2);
+            addStyleDamage(Tick.STYLE_RANGED, Tick.MANTICORE_MAX_HIT_RANGED * factor / 2);
+            addStyleDamage(Tick.STYLE_MAGIC, Tick.MANTICORE_MAX_HIT_MAGIC * factor / 2);
         }
     }
 
@@ -697,26 +697,26 @@ public final class ColoPlanner {
         }
     }
 
-    private static int styleCodeOf(ColoNpcType type) {
+    private static int styleCodeOf(NpcType type) {
         switch (type.getAttackStyle()) {
             case MELEE:
-                return ColoTick.STYLE_MELEE;
+                return Tick.STYLE_MELEE;
             case RANGED:
-                return ColoTick.STYLE_RANGED;
+                return Tick.STYLE_RANGED;
             case MAGIC:
-                return ColoTick.STYLE_MAGIC;
+                return Tick.STYLE_MAGIC;
             default:
-                return ColoTick.STYLE_TYPELESS;
+                return Tick.STYLE_TYPELESS;
         }
     }
 
-    private LoadoutConfig.GearSet bestGearFor(ColoState state, int slot) {
+    private LoadoutConfig.GearSet bestGearFor(State state, int slot) {
         return state.frame().getLoadout().gearSet(bestGearIndexFor(state, slot));
     }
 
-    private int bestGearIndexFor(ColoState state, int slot) {
+    private int bestGearIndexFor(State state, int slot) {
         LoadoutConfig loadout = state.frame().getLoadout();
-        ColoNpcType type = state.frame().type(slot);
+        NpcType type = state.frame().type(slot);
         int best = 0;
         double bestDamage = -1;
         for (int i = 0; i < loadout.gearSetCount(); i++) {
@@ -730,10 +730,10 @@ public final class ColoPlanner {
         return best;
     }
 
-    private int countLosThreats(ColoState state) {
+    private int countLosThreats(State state) {
         int count = 0;
         for (int slot = 0; slot < state.frame().getNpcSlotCount(); slot++) {
-            if (state.npcActive(slot) && ColoTick.npcHasLosToPlayer(state, slot)) {
+            if (state.npcActive(slot) && Tick.npcHasLosToPlayer(state, slot)) {
                 count++;
             }
         }
@@ -741,7 +741,7 @@ public final class ColoPlanner {
     }
 
     private String buildReasoning(
-            ColoState root,
+            State root,
             long command,
             int target,
             double score,
@@ -750,9 +750,9 @@ public final class ColoPlanner {
     ) {
         StringBuilder sb = new StringBuilder(160);
         short dest = PlayerCommand.moveTarget(command);
-        if (ColoCoords.isPresent(dest)) {
+        if (Coords.isPresent(dest)) {
             int losThere = dangerMap.losCount(dest);
-            sb.append("Move to (").append(ColoCoords.x(dest)).append(',').append(ColoCoords.y(dest)).append(')');
+            sb.append("Move to (").append(Coords.x(dest)).append(',').append(Coords.y(dest)).append(')');
             sb.append(losThere == 0 ? " [cover]" : " [" + losThere + " NPC LoS]");
         } else {
             sb.append("Hold position");
