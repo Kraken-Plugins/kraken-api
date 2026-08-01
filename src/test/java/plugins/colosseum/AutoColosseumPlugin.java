@@ -4,18 +4,17 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.simulation.colosseum.ColoScratch;
-import com.kraken.api.simulation.colosseum.ColoState;
-import com.kraken.api.simulation.colosseum.ColoTick;
-import com.kraken.api.simulation.colosseum.LoadoutConfig;
-import com.kraken.api.simulation.colosseum.PlayerCommand;
-import com.kraken.api.simulation.colosseum.live.ColoCapture;
-import com.kraken.api.simulation.colosseum.live.ColoExecutor;
-import com.kraken.api.simulation.colosseum.live.ColoWaveTracker;
-import com.kraken.api.simulation.colosseum.plan.ColoDecision;
-import com.kraken.api.simulation.colosseum.plan.ColoPlanner;
-import com.kraken.api.simulation.colosseum.plan.DangerMap;
-import com.kraken.api.simulation.colosseum.plan.PlannerOptions;
+import plugins.colosseum.overlay.AutoColosseumInfoOverlay;
+import plugins.colosseum.overlay.AutoColosseumSceneOverlay;
+import plugins.colosseum.simulation.Scratch;
+import plugins.colosseum.simulation.State;
+import plugins.colosseum.simulation.Tick;
+import plugins.colosseum.simulation.LoadoutConfig;
+import plugins.colosseum.simulation.PlayerCommand;
+import plugins.colosseum.simulation.live.Capture;
+import plugins.colosseum.simulation.live.Executor;
+import plugins.colosseum.simulation.live.WaveTracker;
+import plugins.colosseum.simulation.plan.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.EquipmentInventorySlot;
@@ -64,32 +63,32 @@ public class AutoColosseumPlugin extends Plugin {
     private AutoColosseumConfig config;
 
     @Inject
-    private ColosseumSceneOverlay sceneOverlay;
+    private AutoColosseumSceneOverlay sceneOverlay;
 
     @Inject
-    private ColosseumInfoOverlay infoOverlay;
+    private AutoColosseumInfoOverlay infoOverlay;
 
     @Inject
     private Context context;
 
     @Inject
-    private ColoExecutor executor;
+    private Executor executor;
 
     @Getter
-    private final ColoWaveTracker tracker = new ColoWaveTracker();
+    private final WaveTracker tracker = new WaveTracker();
 
-    private final ColoPlanner planner = new ColoPlanner();
-    private final ColoScratch previewScratch = new ColoScratch();
-    private final ColoState previewState = new ColoState();
+    private final Planner planner = new Planner();
+    private final Scratch previewScratch = new Scratch();
+    private final State previewState = new State();
 
     @Getter
     private LoadoutConfig loadout = LoadoutConfig.defaults();
 
     @Getter
-    private volatile ColoCapture lastCapture;
+    private volatile Capture lastCapture;
 
     @Getter
-    private volatile ColoDecision lastDecision;
+    private volatile Decision lastDecision;
 
     @Getter
     private volatile String lastError;
@@ -174,7 +173,7 @@ public class AutoColosseumPlugin extends Plugin {
         try {
             tracker.onGameTick();
             detectCurrentGearSet();
-            ColoCapture capture = ColoCapture.capture(context, tracker, loadout, currentGearSet);
+            Capture capture = Capture.capture(context, tracker, loadout, currentGearSet);
             lastCapture = capture;
             if (capture == null || capture.getFrame().getNpcSlotCount() == 0) {
                 lastDecision = null;
@@ -182,7 +181,7 @@ public class AutoColosseumPlugin extends Plugin {
                 return;
             }
 
-            ColoDecision decision = planner.plan(capture.getState(), plannerOptions());
+            Decision decision = planner.plan(capture.getState(), plannerOptions());
             lastDecision = decision;
             predictNpcPaths(capture);
 
@@ -206,11 +205,31 @@ public class AutoColosseumPlugin extends Plugin {
 
     private PlannerOptions plannerOptions() {
         PlannerOptions.PlannerOptionsBuilder builder = PlannerOptions.builder()
-                .budgetNanos(Math.max(2, config.budgetMillis()) * 1_000_000L)
-                .horizonTicks(Math.max(4, config.horizonTicks()));
-        if (config.eatFoodAtHp() > 0) {
-            builder.eatFoodAtHp(config.eatFoodAtHp());
-        }
+                .budgetNanos(config.budgetMillis() * 1_000_000L)
+                .stage2HorizonTicks(config.stageTwoHorizonTicks())
+                .stage2TopPlans(config.stageTwoTopPlans())
+                .horizonTicks(config.horizonTicks())
+                .dangerRadius(config.dangerRadius())
+                .maxDestinations(config.maxDestinations())
+                .maxSafeTiles(config.maxSafeTiles())
+                .maxAttackTiles(config.maxAttackTiles())
+                .maxTargets(config.maxTargets())
+                .sipBrewAtHp(config.sipBrew())
+                .sipRestoreAtPrayer(config.sipRestore())
+                .eatComboAtHp(config.eatComboAt())
+                        .scorer(Scorer.builder()
+                                .deathPenalty(config.deathPenalty())
+                                .lethalRiskPerHp(config.lethalRiskPerHp())
+                                .hpWeight(config.hpWeight())
+                                .damageTakenWeight(config.damageTakenWeight())
+                                .killWeight(config.killWeight())
+                                .damageDealtWeight(config.damageDealtWeight())
+                                .supplyWeight(config.supplyWeight())
+                                .prayerWeight(config.prayerWeight())
+                                .endExposureWeight(config.endExposureWeight())
+                                .runEnergyWeight(config.runEnergyWeight()).build());
+
+        builder.eatFoodAtHp(config.eatFoodAtHp());
         return builder.build();
     }
 
@@ -348,7 +367,7 @@ public class AutoColosseumPlugin extends Plugin {
      * Predicts NPC movement over the next few ticks by advancing a copy of the captured
      * state with no player input, recording each NPC's anchor per tick.
      */
-    private void predictNpcPaths(ColoCapture capture) {
+    private void predictNpcPaths(Capture capture) {
         npcPredictedPaths.clear();
         if (!config.showNpcPaths()) {
             return;
@@ -361,7 +380,7 @@ public class AutoColosseumPlugin extends Plugin {
         }
         int ticks = Math.max(2, config.npcPathTicks());
         for (int t = 0; t < ticks; t++) {
-            ColoTick.advance(previewState, PlayerCommand.NONE, previewScratch);
+            Tick.advance(previewState, PlayerCommand.NONE, previewScratch);
             for (int slot = 0; slot < slotCount; slot++) {
                 if (!previewState.npcActive(slot)) {
                     continue;

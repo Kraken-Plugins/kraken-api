@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(./gradlew compileJava -q)",
+      "Bash(./gradlew test *)",
+      "Bash(grep -v \"^\\\\s*$\")",
+      "Bash(awk -F: '{print $NF}')",
+      "Bash(./gradlew tasks *)",
+      "Bash(timeout 600 ./gradlew compileTestJava -q)",
+      "Bash(echo \"EXIT=$?\")"
+    ]
+  }
+}

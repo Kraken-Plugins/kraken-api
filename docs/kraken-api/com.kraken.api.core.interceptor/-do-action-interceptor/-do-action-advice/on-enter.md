@@ -1,6 +1,0 @@
-//[kraken-api](../../../../index.md)/[com.kraken.api.core.interceptor](../../index.md)/[DoActionInterceptor](../index.md)/[DoActionAdvice](index.md)/[onEnter](on-enter.md)
-
-# onEnter
-
-[Kraken API]\
-open fun [onEnter](on-enter.md)(param0: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), param1: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), opcode: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), id: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), itemId: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), worldView: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), option: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html), target: [String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html), mouseX: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), mouseY: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html), garbageValue: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-int/index.html))

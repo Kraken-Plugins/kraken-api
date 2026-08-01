@@ -2,7 +2,6 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
-    id 'org.jetbrains.dokka' version '1.9.20'
 }
 
 // Project version is set via the VERSION environment
@@ -82,12 +81,7 @@ test {
 sourceSets {
     test {
         java {
-            srcDirs = ['src/test/java', 'tests/sim']
-            // The colosseumv2 plugin sources were removed from the public API
-            // (commit 88a8b028) but their unit tests remain and no longer compile.
-            // Excluded so the test suite can build; delete the orphaned tests or
-            // restore the plugin and remove this exclude.
-            exclude 'unit/plugins/colosseumv2/**'
+            srcDirs = ['src/test/java']
         }
     }
 }
@@ -105,21 +99,6 @@ jar {
     archiveBaseName = 'kraken-api'
     archiveVersion = projectVersion
     archiveClassifier = 'unshaded'
-}
-
-dokkaGfm {
-    outputDirectory.set(file("docs"))
-
-    dokkaSourceSets {
-        main {
-            sourceRoots.from(file("src/main/java"))
-            displayName.set("Kraken API")
-            externalDocumentationLink {
-                url.set(new URL("https://docs.oracle.com/en/java/javase/11/docs/api/"))
-                packageListUrl.set(new URL("https://docs.oracle.com/en/java/javase/11/docs/api/element-list"))
-            }
-        }
-    }
 }
 
 publishing {
@@ -171,4 +150,4 @@ publishing {
     }
 }
 
-build.dependsOn dokkaGfm, shadowJar
+build.dependsOn shadowJar
