@@ -4,11 +4,35 @@ import net.runelite.client.config.*;
 
 @ConfigGroup("krakenColosseum")
 public interface AutoColosseumConfig extends Config {
+
+    @ConfigItem(
+            keyName = "licenseKey",
+            name = "License Key",
+            description = "License key required to enable the plugin.",
+            position = -2,
+            secret = true
+    )
+    default String licenseKey() {
+        return "";
+    }
+
+    // ==================================
+    // Simulation Section
+    //===================================
+
+    @ConfigSection(
+            name = "Simulation",
+            description = "Options to tune the game simulation.",
+            position = 10
+    )
+    String simulationSection = "simulationSection";
+
     @ConfigItem(
             keyName = "enabled",
-            name = "Enable planner",
+            name = "Enable Simulation",
             description = "Capture, plan and visualize every game tick.",
-            position = 0
+            position = -50,
+            section = simulationSection
     )
     default boolean enabled() {
         return true;
@@ -16,54 +40,144 @@ public interface AutoColosseumConfig extends Config {
 
     @ConfigItem(
             keyName = "autoExecute",
-            name = "Auto execute decisions",
-            description = "Execute the planned prayer/eat/gear/move/attack actions through the Kraken API.",
-            position = 1
+            name = "Execute Simulation Decisions",
+            description = "Execute the planned prayer/eat/gear/move/attack actions that are the outcome of the <br>" +
+                    "game simulation",
+            position = -48,
+            section = simulationSection
     )
     default boolean autoExecute() {
         return false;
     }
 
-    @ConfigSection(
-            name = "Planner",
-            description = "Search tuning.",
-            position = 10
-    )
-    String plannerSection = "plannerSection";
-
+    @Units(Units.MILLISECONDS)
     @Range(min = 2, max = 40)
     @ConfigItem(
             keyName = "budgetMillis",
-            name = "Budget (ms)",
-            description = "Wall-clock planning budget per tick.",
+            name = "Simulation Budget",
+            description = "The maximum amount of time the simulation can use per game tick to run.",
             position = 11,
-            section = plannerSection
+            section = simulationSection
     )
     default int budgetMillis() {
         return 15;
     }
 
+    @Units(Units.TICKS)
     @Range(min = 4, max = 30)
     @ConfigItem(
             keyName = "horizonTicks",
-            name = "Horizon (ticks)",
-            description = "Rollout depth per candidate plan.",
+            name = "Search Horizon",
+            description = "How many ticks in advance of the current tick to simulate.",
             position = 12,
-            section = plannerSection
+            section = simulationSection
     )
     default int horizonTicks() {
         return 12;
     }
 
-    @Range(min = 0, max = 30)
+    @Units(Units.TICKS)
+    @Range(min = 4, max = 30)
+    @ConfigItem(
+            keyName = "stage2HorizonTicks",
+            name = "S2 Search Horizon",
+            description = "How many ticks in advance of the current tick to simulate for second stage simulations <br>" +
+                    "(follow-up destinations).",
+            position = 13,
+            section = simulationSection
+    )
+    default int stageTwoHorizonTicks() {
+        return 12;
+    }
+
+    @Range(min = 1, max = 10)
+    @ConfigItem(
+            keyName = "stage2TopPlans",
+            name = "S2 Top Plans",
+            description = "Number of top first-stage plans that get second-stage refinement.",
+            position = 14,
+            section = simulationSection
+    )
+    default int stageTwoTopPlans() {
+        return 12;
+    }
+
+    @ConfigItem(
+            keyName = "maxDestinations",
+            name = "Max Destinations",
+            description = "Cap on candidate movement destinations per stage.",
+            position = 15,
+            section = simulationSection
+    )
+    default int maxDestinations() {
+        return 24;
+    }
+
+    @ConfigItem(
+            keyName = "maxSafeTiles",
+            name = "Max Safe Tiles",
+            description = "Cap on zero-exposure 'cover' tiles added as destinations.",
+            position = 16,
+            section = simulationSection
+    )
+    default int maxSafeTiles() {
+        return 8;
+    }
+
+    @ConfigItem(
+            keyName = "maxAttackTiles",
+            name = "Max Attack Tiles",
+            description = "Cap on low-danger attack-position tiles added as destinations.",
+            position = 17,
+            section = simulationSection
+    )
+    default int maxAttackTiles() {
+        return 6;
+    }
+
+    @ConfigItem(
+            keyName = "maxTargets",
+            name = "Max Targets",
+            description = "Cap on candidate attack targets considered per destination.",
+            position = 18,
+            section = simulationSection
+    )
+    default int maxTargets() {
+        return 3;
+    }
+
+    // ==================================
+    // Food & Potions Section
+    //===================================
+
+    @ConfigSection(
+            name = "Food & Potions",
+            description = "Options to tune when to eat food and drink potions.",
+            position = 11
+    )
+    String foodAndPotions = "foodAndPotions";
+
+    @Range(min = 1, max = 98)
     @ConfigItem(
             keyName = "eatFoodAtHp",
             name = "Eat at HP",
-            description = "Rollout policy eats primary food at or below this HP (0 uses default).",
-            position = 13,
-            section = plannerSection
+            description = "Rollout policy eats primary food at or below this HP (0 uses default of 48).",
+            position = 15,
+            section = foodAndPotions
     )
     default int eatFoodAtHp() {
+        return 0;
+    }
+
+    @Range(min = 1, max = 98)
+    @ConfigItem(
+            keyName = "eatComboAtHp",
+            name = "Combo Eat at HP",
+            description = "Eats a combo eat if available at or below this HP (0 uses default of 34).",
+            position = 13,
+            section = foodAndPotions
+    )
+    default int eatComboAt() {
         return 0;
     }
 
@@ -190,6 +304,17 @@ public interface AutoColosseumConfig extends Config {
     )
     default boolean showDangerTiles() {
         return true;
+    }
+
+    @ConfigItem(
+            keyName = "dangerRadius",
+            name = "Danger Radius",
+            description = "The radius around the player of dangerous tiles. Defaults to 12",
+            position = 33,
+            section = overlaySection
+    )
+    default int dangerRadius() {
+        return 12;
     }
 
     @ConfigItem(

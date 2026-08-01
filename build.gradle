@@ -2,7 +2,6 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
-    id 'org.jetbrains.dokka' version '1.9.20'
 }
 
 // Project version is set via the VERSION environment
@@ -107,21 +106,6 @@ jar {
     archiveClassifier = 'unshaded'
 }
 
-dokkaGfm {
-    outputDirectory.set(file("docs"))
-
-    dokkaSourceSets {
-        main {
-            sourceRoots.from(file("src/main/java"))
-            displayName.set("Kraken API")
-            externalDocumentationLink {
-                url.set(new URL("https://docs.oracle.com/en/java/javase/11/docs/api/"))
-                packageListUrl.set(new URL("https://docs.oracle.com/en/java/javase/11/docs/api/element-list"))
-            }
-        }
-    }
-}
-
 publishing {
     publications {
         maven(MavenPublication) {
@@ -171,4 +155,4 @@ publishing {
     }
 }
 
-build.dependsOn dokkaGfm, shadowJar
+build.dependsOn shadowJar

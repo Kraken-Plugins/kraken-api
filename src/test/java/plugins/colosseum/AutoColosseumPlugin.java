@@ -206,11 +206,18 @@ public class AutoColosseumPlugin extends Plugin {
 
     private PlannerOptions plannerOptions() {
         PlannerOptions.PlannerOptionsBuilder builder = PlannerOptions.builder()
-                .budgetNanos(Math.max(2, config.budgetMillis()) * 1_000_000L)
-                .horizonTicks(Math.max(4, config.horizonTicks()));
-        if (config.eatFoodAtHp() > 0) {
-            builder.eatFoodAtHp(config.eatFoodAtHp());
-        }
+                .budgetNanos(config.budgetMillis() * 1_000_000L)
+                .stage2HorizonTicks(config.stageTwoHorizonTicks())
+                .stage2TopPlans(config.stageTwoTopPlans())
+                .horizonTicks(config.horizonTicks())
+                .dangerRadius(config.dangerRadius())
+                .maxDestinations(config.maxDestinations())
+                .maxSafeTiles(config.maxSafeTiles())
+                .maxAttackTiles(config.maxAttackTiles())
+                .maxTargets(config.maxTargets())
+                .eatComboAtHp(config.eatComboAt());
+
+        builder.eatFoodAtHp(config.eatFoodAtHp());
         return builder.build();
     }
 
