@@ -1,5 +1,6 @@
 package plugins.colosseum.simulation;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
@@ -13,6 +14,7 @@ import lombok.Getter;
  * engine's tick loop is parity-tested against.</p>
  */
 @Getter
+@AllArgsConstructor
 public enum NpcType {
     /**
      * Manticore: charges a triple attack (10 ticks) on first line of sight, then fires three
@@ -44,10 +46,10 @@ public enum NpcType {
      * scans for a damaged NPC (below 75% max HP, centre within 7 tiles, line of sight, not a
      * minotaur) and heals it instead. Its melee damage is applied one tick after the attack.
      */
-    MINOTAUR(new int[]{12812}, "Minotaur", 5, 3, 1, 5, 74, 225, NpcAttackStyle.MELEE, false, SpecialKind.MINOTAUR_HEAL),
+    MINOTAUR(new int[]{12812}, "Minotaur", 0, 3, 1, 5, 74, 225, NpcAttackStyle.MELEE, false, SpecialKind.MINOTAUR_HEAL),
 
     /** Red Flag minotaur variant: identical stats but route-finds around pillars. */
-    MINOTAUR_RED_FLAG(new int[]{12813}, "Minotaur (Red Flag)", 5, 3, 1, 5, 74, 225, NpcAttackStyle.MELEE, true, SpecialKind.MINOTAUR_HEAL),
+    MINOTAUR_RED_FLAG(new int[]{12813}, "Minotaur (Red Flag)", 0, 3, 1, 5, 74, 225, NpcAttackStyle.MELEE, true, SpecialKind.MINOTAUR_HEAL),
 
     /**
      * Fremennik berserker: route-finds around pillars, attacks only from melee reach while
@@ -86,32 +88,6 @@ public enum NpcType {
     private final NpcAttackStyle attackStyle;
     private final boolean smartPathing;
     private final SpecialKind specialKind;
-
-    NpcType(
-            int[] npcIds,
-            String displayName,
-            int processingPriority,
-            int size,
-            int attackRange,
-            int attackSpeedTicks,
-            int maxHit,
-            int maxHitpoints,
-            NpcAttackStyle attackStyle,
-            boolean smartPathing,
-            SpecialKind specialKind
-    ) {
-        this.npcIds = npcIds;
-        this.displayName = displayName;
-        this.processingPriority = processingPriority;
-        this.size = size;
-        this.attackRange = attackRange;
-        this.attackSpeedTicks = attackSpeedTicks;
-        this.maxHit = maxHit;
-        this.maxHitpoints = maxHitpoints;
-        this.attackStyle = attackStyle;
-        this.smartPathing = smartPathing;
-        this.specialKind = specialKind;
-    }
 
     /**
      * Resolves a colosseum NPC type from a RuneLite NPC id.

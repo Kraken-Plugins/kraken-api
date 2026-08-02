@@ -2,6 +2,9 @@ package plugins.colosseum.simulation;
 
 import lombok.Getter;
 
+import java.util.Arrays;
+import java.util.Comparator;
+
 /**
  * Immutable per-decision context shared by every {@link State} branched from one
  * snapshot: the collision grid, per-slot NPC identity data and the player loadout.
@@ -123,13 +126,9 @@ public final class Frame {
         for (int i = 0; i < slots.length; i++) {
             slots[i] = i;
         }
-        java.util.Arrays.sort(slots, (a, b) -> {
-            int byPriority = Integer.compare(types[a].getProcessingPriority(), types[b].getProcessingPriority());
-            if (byPriority != 0) {
-                return byPriority;
-            }
-            return Integer.compare(runeliteIndices[a], runeliteIndices[b]);
-        });
+        Arrays.sort(slots, Comparator.comparingInt((Integer a) -> types[a].getProcessingPriority())
+                .thenComparingInt(a -> runeliteIndices[a]));
+
         byte[] order = new byte[slots.length];
         for (int i = 0; i < slots.length; i++) {
             order[i] = (byte) (int) slots[i];

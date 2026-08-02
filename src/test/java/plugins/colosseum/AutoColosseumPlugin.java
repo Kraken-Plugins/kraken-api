@@ -77,8 +77,13 @@ public class AutoColosseumPlugin extends Plugin {
     @Getter
     private final WaveTracker tracker = new WaveTracker();
 
+    @Getter
     private final Planner planner = new Planner();
+
+    @Getter
     private final Scratch previewScratch = new Scratch();
+
+    @Getter
     private final State previewState = new State();
 
     @Getter
@@ -198,11 +203,6 @@ public class AutoColosseumPlugin extends Plugin {
         }
     }
 
-    /** @return danger map from the last planning pass (overlay use). */
-    public DangerMap dangerMap() {
-        return planner.dangerMap();
-    }
-
     private PlannerOptions plannerOptions() {
         PlannerOptions.PlannerOptionsBuilder builder = PlannerOptions.builder()
                 .budgetNanos(config.budgetMillis() * 1_000_000L)
@@ -228,7 +228,6 @@ public class AutoColosseumPlugin extends Plugin {
                                 .prayerWeight(config.prayerWeight())
                                 .endExposureWeight(config.endExposureWeight())
                                 .runEnergyWeight(config.runEnergyWeight()).build());
-
         builder.eatFoodAtHp(config.eatFoodAtHp());
         return builder.build();
     }
