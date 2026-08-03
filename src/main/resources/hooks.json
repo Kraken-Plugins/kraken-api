@@ -35,6 +35,8 @@
     "sessionClassName": "at",
     "accountIdFieldName": "ly",
     "accountIdClassName": "ec",
+    "displayNameFieldName": "cm",
+    "displayNameClassName": "bf",
     "accountCheckFieldName": "dm",
     "accountCheckClassName": "client",
     "jagexValueFieldName": "af",
