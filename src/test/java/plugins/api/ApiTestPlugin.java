@@ -174,6 +174,8 @@ public class ApiTestPlugin extends Plugin {
         registerTest("widgetTargetOnWidget", "WidgetWidgetTargetTest", config::widgetTargetOnWidget, widgetTargetWidgetTest::executeTest);
         registerTest("widgetSubAction", "WidgetSubActionTargetTest", config::widgetSubAction, widgetSubActionTest::executeTest);
         registerTest("widgetAction", "WidgetActionTest", config::widgetAction, widgetActionTest::executeTest);
+
+        testResultManager.clearAllResults();
     }
 
     private void registerTest(String configKey, String testName, BooleanSupplier enabled, Supplier<java.util.concurrent.CompletableFuture<Boolean>> test) {
@@ -286,6 +288,7 @@ public class ApiTestPlugin extends Plugin {
 
         // TODO Find out how you want to test this
         // breakManager.attachScript(exampleScript, profile);
+        testResultManager.clearAllResults();
     }
 
     @Override

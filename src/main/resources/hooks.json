@@ -1,60 +1,58 @@
 {
   "reflectionHooks": {
-    "isaacCipherFieldName": "aa",
+    "isaacCipherFieldName": "ab",
     "addNodeMethodName": "ae",
     "addNodeClassName": "client",
-    "addNodeGarbageValue": 2034800314,
-    "clientPacketClassName": "jf",
-    "packetWriterClassName": "dw",
-    "packetWriterFieldName": "ad",
-    "classContainingPacketBufferNodeName": "xt",
-    "packetBufferNodeFactoryMethodName": "ag",
-    "bufferClassName": "xv",
-    "extendedBufferClassName": "xm",
-    "offsetMultiplier": -1278253407,
-    "indexMultiplier": 769523041,
-    "bufferOffsetField": "ab",
-    "bufferArrayField": "ak",
-    "mouseHandlerLastPressedClass": "sw",
-    "mouseHandlerLastPressedField": "av",
-    "mouseHandlerMultiplier": 4865206394403847849,
-    "clientMillisField": "gx",
-    "clientMillisMultiplier": 5323891611902821573,
-    "packetBufferNodeClassName": "jr",
-    "packetBufferFieldName": "al",
-    "packetBufferNodeGarbageValue": -2111588182,
-    "doActionClassName": "ek",
-    "doActionMethodName": "fu",
-    "doActionGarbageValue": -35274227
+    "addNodeGarbageValue": -1301097035,
+    "clientPacketClassName": "js",
+    "packetWriterClassName": "dj",
+    "packetWriterFieldName": "ai",
+    "classContainingPacketBufferNodeName": "ef",
+    "packetBufferNodeFactoryMethodName": "af",
+    "bufferClassName": "xs",
+    "extendedBufferClassName": "xy",
+    "offsetMultiplier": -1095856699,
+    "indexMultiplier": 702114061,
+    "bufferOffsetField": "ay",
+    "bufferArrayField": "aj",
+    "mouseHandlerLastPressedClass": "tz",
+    "mouseHandlerLastPressedField": "al",
+    "mouseHandlerMultiplier": 5802030557961029083,
+    "clientMillisField": "gr",
+    "clientMillisMultiplier": -1592775510923690537,
+    "packetBufferNodeClassName": "jl",
+    "packetBufferFieldName": "ac",
+    "packetBufferNodeGarbageValue": -111,
+    "doActionClassName": "qp",
+    "doActionMethodName": "ef",
+    "doActionGarbageValue": 242848078
   },
   "loginHooks": {
-    "loginIndexGarbageValue": 2112989209,
-    "loginIndexMethodName": "bo",
-    "loginIndexClassName": "pu",
-    "sessionFieldName": "ln",
-    "sessionClassName": "et",
-    "accountIdFieldName": "lx",
-    "accountIdClassName": "lo",
-    "displayNameFieldName": "cl",
-    "displayNameClassName": "bx",
-    "accountCheckFieldName": "da",
+    "loginIndexGarbageValue": 2004336579,
+    "loginIndexMethodName": "am",
+    "loginIndexClassName": "ac",
+    "sessionFieldName": "lb",
+    "sessionClassName": "at",
+    "accountIdFieldName": "ly",
+    "accountIdClassName": "ec",
+    "accountCheckFieldName": "dm",
     "accountCheckClassName": "client",
     "jagexValueFieldName": "af",
-    "jagexValueClassName": "zd",
-    "legacyValueFieldName": "ag",
-    "legacyValueClassName": "zd"
+    "jagexValueClassName": "aap",
+    "legacyValueFieldName": "az",
+    "legacyValueClassName": "aap"
   },
   "securityHooks": {
     "mouseHookDllClassName": "client",
-    "mouseHookDllMethodName": "ip",
-    "clientLogFieldName": "br",
+    "mouseHookDllMethodName": "ig",
+    "clientLogFieldName": "xo",
     "callStackClassName": "client",
-    "callStackMethodName": "qa",
-    "cleanCallStackValue": "client36898qa\nclient24273wt\nnrc.RuneLite287start\nnrc.RuneLite264main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
-    "platformInfoClassName": "vs",
-    "platformInfoMethodName": "ag",
-    "agentField": "ct",
-    "callStackField": "cx",
+    "callStackMethodName": "nv",
+    "cleanCallStackValue": "client27862nv\nclient11007pe\nnrc.RuneLite297start\nnrc.RuneLite274main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
+    "platformInfoClassName": "vt",
+    "platformInfoMethodName": "az",
+    "agentField": "cc",
+    "callStackField": "ca",
     "isPlatformInfoMethodStatic": false,
     "platformInfoMethodArgCount": 2
   },
@@ -64,83 +62,67 @@
       "obfuscatedName": "bb",
       "writes": [
         {
-          "param": "mouseX",
-          "methodName": "ev",
+          "param": "0",
+          "methodName": "uq",
           "operations": [
             {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
-            },
-            {
-              "type": "ADD",
-              "operand": 128
-            }
-          ]
-        },
-        {
-          "param": "mouseInfo",
-          "methodName": "ey",
-          "operations": [
-            {
-              "type": "ADD",
-              "operand": 128
-            },
-            {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
+              "type": "RAW"
             }
           ]
         },
         {
           "param": "mouseY",
-          "methodName": "ev",
-          "operations": [
-            {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
-            },
-            {
-              "type": "ADD",
-              "operand": 128
-            }
-          ]
-        },
-        {
-          "param": "0",
-          "methodName": "dz",
-          "operations": [
-            {
-              "type": "SUBTRACT",
-              "operand": 128
-            }
-          ]
-        }
-      ],
-      "type": "EVENT_MOUSE_CLICK"
-    },
-    "MOVE_GAMECLICK": {
-      "packetName": "MOVE_GAMECLICK",
-      "obfuscatedName": "ea",
-      "writes": [
-        {
-          "param": "5",
-          "methodName": "bw",
-          "operations": [
-            {
-              "type": "RAW"
-            }
-          ]
-        },
-        {
-          "param": "worldPointX",
           "methodName": "el",
           "operations": [
             {
-              "type": "RAW"
+              "type": "ADD",
+              "operand": 128
             },
             {
               "type": "RIGHT_SHIFT",
               "operand": 8
+            }
+          ]
+        },
+        {
+          "param": "mouseInfo",
+          "methodName": "bv",
+          "operations": [
+            {
+              "type": "RIGHT_SHIFT",
+              "operand": 8
+            },
+            {
+              "type": "RAW"
+            }
+          ]
+        },
+        {
+          "param": "mouseX",
+          "methodName": "el",
+          "operations": [
+            {
+              "type": "ADD",
+              "operand": 128
+            },
+            {
+              "type": "RIGHT_SHIFT",
+              "operand": 8
+            }
+          ]
+        }
+      ]
+    },
+    "MOVE_GAMECLICK": {
+      "packetName": "MOVE_GAMECLICK",
+      "obfuscatedName": "da",
+      "writes": [
+        {
+          "param": "5",
+          "methodName": "uq",
+          "operations": [
+            {
+              "type": "RAW"
             }
           ]
         },
@@ -149,7 +131,8 @@
           "methodName": "el",
           "operations": [
             {
-              "type": "RAW"
+              "type": "ADD",
+              "operand": 128
             },
             {
               "type": "RIGHT_SHIFT",
@@ -159,24 +142,37 @@
         },
         {
           "param": "ctrlDown",
-          "methodName": "dz",
+          "methodName": "dj",
           "operations": [
             {
               "type": "SUBTRACT",
+              "operand": 0
+            }
+          ]
+        },
+        {
+          "param": "worldPointX",
+          "methodName": "el",
+          "operations": [
+            {
+              "type": "ADD",
               "operand": 128
+            },
+            {
+              "type": "RIGHT_SHIFT",
+              "operand": 8
             }
           ]
         }
-      ],
-      "type": "MOVE_GAMECLICK"
+      ]
     },
     "RESUME_COUNTDIALOG": {
       "packetName": "RESUME_COUNTDIALOG",
-      "obfuscatedName": "cd",
+      "obfuscatedName": "cy",
       "writes": [
         {
           "param": "var0",
-          "methodName": "cg",
+          "methodName": "bz",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -195,41 +191,15 @@
             }
           ]
         }
-      ],
-      "type": "RESUME_COUNTDIALOG"
-    },
-    "RESUME_STRINGDIALOG": {
-      "packetName": "RESUME_STRINGDIALOG",
-      "obfuscatedName": "cq",
-      "writes": [
-        {
-          "param": "length",
-          "methodName": "bw",
-          "operations": [
-            {
-              "type": "RAW"
-            }
-          ]
-        },
-        {
-          "param": "string",
-          "methodName": "co",
-          "operations": [
-            {
-              "type": "STRING_CP1252_NULL_TERMINATED"
-            }
-          ]
-        }
-      ],
-      "type": "RESUME_STRINGDIALOG"
+      ]
     },
     "RESUME_OBJDIALOG": {
       "packetName": "RESUME_OBJDIALOG",
-      "obfuscatedName": "bs",
+      "obfuscatedName": "ab",
       "writes": [
         {
           "param": "var0",
-          "methodName": "bd",
+          "methodName": "bv",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -240,8 +210,31 @@
             }
           ]
         }
-      ],
-      "type": "RESUME_OBJDIALOG"
+      ]
+    },
+    "RESUME_STRINGDIALOG": {
+      "packetName": "RESUME_STRINGDIALOG",
+      "obfuscatedName": "cb",
+      "writes": [
+        {
+          "param": "length",
+          "methodName": "uq",
+          "operations": [
+            {
+              "type": "RAW"
+            }
+          ]
+        },
+        {
+          "param": "string",
+          "methodName": "ct",
+          "operations": [
+            {
+              "type": "STRING_CP1252_NULL_TERMINATED"
+            }
+          ]
+        }
+      ]
     }
   }
 }
