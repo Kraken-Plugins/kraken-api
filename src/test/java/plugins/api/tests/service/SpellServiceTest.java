@@ -46,7 +46,7 @@ public class SpellServiceTest extends BaseApiTest {
             }
             ctx.bank().withName("Law rune").first().withdrawOne();
             bankService.close();
-            Thread.sleep(RandomUtils.randomIntBetween(400, 1000));
+            Thread.sleep(RandomUtils.randomIntBetween(2400, 3200));
             boolean hasRunesTrue = magicService.hasRequiredRunes(Standard.VARROCK_TELEPORT);
             if(!hasRunesTrue) {
                 log.info("Spell Service tests failed, hasRequiredRunes returned false when player should have VARROCK_TELEPORT runes");
