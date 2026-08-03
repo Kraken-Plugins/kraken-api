@@ -50,7 +50,7 @@
     "clientLogFieldName": "xo",
     "callStackClassName": "client",
     "callStackMethodName": "nv",
-    "cleanCallStackValue": "client27862nv\nclient11007pe\nnrc.RuneLite297start\nnrc.RuneLite274main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
+    "cleanCallStackValue": "client27862nv\nclient11007pe\nnrc.RuneLite287start\nnrc.RuneLite264main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
     "platformInfoClassName": "vt",
     "platformInfoMethodName": "az",
     "agentField": "cc",
