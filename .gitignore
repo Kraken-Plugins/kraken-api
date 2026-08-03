@@ -8,6 +8,7 @@
 *.iml
 .env
 .DS_STORE
+settings.local.json
 
 .gradle-user
 .gradle-user/*
