@@ -74,7 +74,7 @@ public class AutoColosseumSceneOverlay extends Overlay {
     }
 
     private void renderDangerMap(Graphics2D graphics, Grid grid) {
-        DangerMap dangerMap = plugin.dangerMap();
+        DangerMap dangerMap = plugin.getPlanner().dangerMap();
         short center = dangerMap.center();
         if (!Coords.isPresent(center)) {
             return;

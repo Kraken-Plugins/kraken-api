@@ -340,7 +340,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     /**
      * Returns the first type of object being queried (e.g., NpcEntity, WidgetEntity) from the stream.
      * If the stream contains no objects, then this will return null.
-     * @return T The type of object being queried (e.g., NpcEntity, WidgetEntity)
+     * @return T The first type of object being queried (e.g., NpcEntity, WidgetEntity)
      */
     public T first() {
         return ctx.runOnClientThread(() -> {
@@ -354,6 +354,47 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
             }
 
             return stream.findFirst().orElse(null);
+        });
+    }
+
+    /**
+     * Returns the first type of object being queried (e.g. NpcEntity, WidgetEntity) from the stream matching
+     * a provided predicate. If the stream contains no object then this will return null. This respects predicates
+     * which have already been applied via {@link filter}.
+     * @param predicate The predicate to apply to the stream of objects
+     * @return T the first type of object being queried matching the provided predicate.
+     */
+    public T firstMatching(Predicate<T> predicate) {
+        return ctx.runOnClientThread(() -> {
+            Stream<T> stream = source().get();
+            for (Predicate<T> filter : filters) {
+                stream = stream.filter(filter);
+            }
+
+            if (comparator != null) {
+                stream = stream.sorted(comparator);
+            }
+
+            return stream.filter(predicate).findFirst().orElse(null);
+        });
+    }
+
+    /**
+     * Returns true if the type of entity being queried is present and not null in the scene.
+     * @return True if the entity is present and false otherwise.
+     */
+    public boolean isPresent() {
+        return ctx.runOnClientThread(() -> {
+            Stream<T> stream = source().get();
+            for (Predicate<T> filter : filters) {
+                stream = stream.filter(filter);
+            }
+
+            if (comparator != null) {
+                stream = stream.sorted(comparator);
+            }
+
+            return stream.findAny().isPresent();
         });
     }
 

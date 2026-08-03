@@ -47,10 +47,10 @@ A single snapshot cannot tell you how long ago a manticore fired or which orb pa
 charged. [`WaveTracker`](../../src/test/java/plugins/colosseum/simulation/live/WaveTracker.java)
 accumulates that over time from the events the plugin forwards to it:
 
-| Event | What the tracker learns |
-|---|---|
-| `onNpcSpawned` | Registers colosseum NPCs (by id, via `NpcType.fromNpcId`). The first spawn into an empty arena starts the wave clock at tick 0; when the last NPC despawns the clock stops. |
-| `onGameTick` | Advances the wave clock; reads each manticore's charge spot-animation to learn its orb pattern (ranged-first vs magic-first); updates last-known NPC HP from health bars. |
+| Event                | What the tracker learns                                                                                                                                                                                                                                                                                                                 |
+|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `onNpcSpawned`       | Registers colosseum NPCs (by id, via `NpcType.fromNpcId`). The first spawn into an empty arena starts the wave clock at tick 0; when the last NPC despawns the clock stops.                                                                                                                                                             |
+| `onGameTick`         | Advances the wave clock; reads each manticore's charge spot-animation to learn its orb pattern (ranged-first vs magic-first); updates last-known NPC HP from health bars.                                                                                                                                                               |
 | `onAnimationChanged` | Treated as an attack launch (colosseum NPCs only animate when attacking or dying): records the tick for cooldown estimation, counts javelin attacks toward the every-5th special, and learns the warband's 6-tick cycle phase from observed warband attack ticks. The local player's animations feed a player attack-cooldown estimate. |
 
 From those observations it derives the estimates `Capture` bakes into the snapshot:
@@ -99,7 +99,7 @@ most tick-critical first:
 1. **Prayer** — activate the decided overhead (or deactivate all), via `PrayerService`.
 2. **Consumables** — eat/sip by item id, via inventory interactions.
 3. **Gear** — equip every item of the decided set (weapon ids first, so attack-speed
-   changes land before armour).
+   changes land before armor).
 4. **Special attack** toggle, if decided.
 5. **Attack _or_ move** — mutually exclusive, mirroring both the engine model and the
    real client (a new click replaces the current interaction).

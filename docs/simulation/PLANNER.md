@@ -49,8 +49,8 @@ also what the scene overlay renders as the red heat map.
 
 Up to 24 destinations (deduplicated), gathered from three sources:
 
-1. **The immediate neighbourhood** — the player's current tile plus its 8 legal
-   neighbours. Cheap dodges and one-tile adjustments.
+1. **The immediate neighborhood** — the player's current tile plus its 8 legal
+   neighbors. Cheap dodges and one-tile adjustments.
 2. **The nearest cover** — up to 8 zero-exposure tiles, preferring the closest by actual
    walking distance (a BFS field from the player, so tiles behind walls cost their real
    path length).
@@ -65,12 +65,12 @@ consideration), then the nearest NPC of each type in a fixed, research-backed ki
 
 1. Fremennik berserker, seer, archer — fragile, each weak to a style, constant chip
    damage while alive
-2. Serpent shaman
-3. Jaguar warrior
-4. Manticore
-5. Shockwave Colossus
-6. Javelin Colossus
-7. Minotaurs last (tanky, and mostly a threat via healing others)
+2. Minotaurs
+3. Serpent shaman
+4. Jaguar warrior
+5. Manticore
+6. Shockwave Colossus
+7. Javelin Colossus
 
 When a target dies mid-rollout, the retargeting policy picks the next alive NPC in this
 same order.
@@ -144,18 +144,18 @@ up.
 [`Scorer`](../../src/test/java/plugins/colosseum/simulation/plan/Scorer.java) reduces a
 rollout end-state to one number. Default weights:
 
-| Term | Weight | Direction |
-|---|---|---|
-| Player died during the rollout | 1,000,000 (minus ticks survived, so dying later still beats dying sooner) | penalty |
-| Worst-case HP floor below zero ("could have died") | 4,000 per HP below zero | penalty |
-| Expected damage taken | 14 per HP | penalty |
-| Player HP at the horizon | 6 per HP | reward |
-| NPC killed | 900 each | reward |
-| Expected damage dealt | 6 per HP | reward |
-| Supply consumed | 25 each | penalty |
-| Prayer points below cap at horizon | 2.5 each | penalty |
-| NPC with line of sight to the player at horizon | 30 each | penalty |
-| Run energy retained | 0.4 per 1% | reward |
+| Term                                               | Weight                                                                    | Direction |
+|----------------------------------------------------|---------------------------------------------------------------------------|-----------|
+| Player died during the rollout                     | 1,000,000 (minus ticks survived, so dying later still beats dying sooner) | penalty   |
+| Worst-case HP floor below zero ("could have died") | 4,000 per HP below zero                                                   | penalty   |
+| Expected damage taken                              | 14 per HP                                                                 | penalty   |
+| Player HP at the horizon                           | 6 per HP                                                                  | reward    |
+| NPC killed                                         | 900 each                                                                  | reward    |
+| Expected damage dealt                              | 6 per HP                                                                  | reward    |
+| Supply consumed                                    | 25 each                                                                   | penalty   |
+| Prayer points below cap at horizon                 | 2.5 each                                                                  | penalty   |
+| NPC with line of sight to the player at horizon    | 30 each                                                                   | penalty   |
+| Run energy retained                                | 0.4 per 1%                                                                | reward    |
 
 The structure matters more than the numbers: the death and lethal-risk terms are *orders
 of magnitude* above everything else, so no amount of kill progress can buy a risky plan.

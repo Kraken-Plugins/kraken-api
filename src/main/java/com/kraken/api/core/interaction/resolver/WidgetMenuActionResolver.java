@@ -13,7 +13,11 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.util.Text;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -50,7 +54,39 @@ public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {
             int worldView = client.getTopLevelWorldView().getId();
 
             Optional<MenuOption> option = resolveOption(client, widget, action, worldView);
+
             if (option.isEmpty()) {
+
+                // Could be controversial but wield and wear are very similar and users may easily get them mixed up
+                // but their intentions are clear: equip some gear. So if we fail to resolve an action but
+                // we can reasonably infer that the user want's to wield gear then this will auto-resolve to the right
+                // action if its present on the item.
+                if(action.equalsIgnoreCase("wield") || action.equalsIgnoreCase("wear")) {
+                    List<String> sanitizedActions = Arrays.stream(Objects.requireNonNull(widget.getActions()))
+                            .filter(Objects::nonNull)
+                            .map(String::toLowerCase)
+                            .collect(Collectors.toList());
+
+                    if(action.equalsIgnoreCase("wear") && sanitizedActions.contains("wield")) {
+                        option = resolveOption(client, widget, "wield", worldView);
+                    } else if(action.equalsIgnoreCase("wield") && sanitizedActions.contains("wear")) {
+                        option = resolveOption(client, widget, "wear", worldView);
+                    }
+
+                    // Still can't resolve, give up.
+                    if(option.isEmpty()) {
+                        log.info("Failed to resolve widget interaction (wield/wear inference): id={}, action={}, available actions={}", widget.getId(), action, widget.getActions());
+                        return Optional.empty();
+                    }
+
+                    String target = widget.getName();
+                    if (target == null || target.isBlank()) {
+                        target = widget.getText();
+                    }
+
+                    return Optional.of(new ResolvedMenuAction(option.get(), target == null ? "" : Text.removeTags(target)));
+                }
+
                 log.info("Failed to resolve widget interaction: id={}, action={}, available actions={}", widget.getId(), action, widget.getActions());
                 return Optional.empty();
             }

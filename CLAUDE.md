@@ -78,9 +78,7 @@ New behavior goes in the narrowest layer that owns it. Do not add a query for so
 
 ## Dependency rules
 
-RuneLite, guice, guava, gson, slf4j, and lombok are `compileOnly` on purpose — RuneLite supplies them at runtime, and bundling them causes classloader/version conflicts. Only `org.benf:cfr` and the `shortest-path` submodule are shaded in. Do not promote a `compileOnly` dependency to `implementation`, and think hard before adding any new runtime dependency.
-
-The `shortest-path` dependency is a git submodule — clone with `--recurse-submodules`.
+RuneLite, guice, guava, gson, slf4j, and lombok are `compileOnly` on purpose — RuneLite supplies them at runtime, and bundling them causes classloader/version conflicts. Only `org.benf:cfr` is shaded in. Do not promote a `compileOnly` dependency to `implementation`, and think hard before adding any new runtime dependency.
 
 ## Conventions
 
@@ -89,3 +87,14 @@ The `shortest-path` dependency is a git submodule — clone with `--recurse-subm
 - Never hand-edit `build/**` or `docs/kraken-api/**` (generated).
 - Commits: sign off with `git commit -s`. Project policy is that AI agents are **never** listed as commit co-authors — omit any `Co-Authored-By` trailer naming an AI.
 - Versioning is automated: CI bumps the patch on merge to `master`; bump `version.txt` manually for a minor/major base.
+- Any public methods should have their respective javadocs with `@param` and `@return` defined. Any private methods which are more complex than some simple conditional logic should also be documented inline with block level comments.
+- When writing documentation be sure to include `@param` and `@return` for any parameters and return values like:
+
+```java
+/**
+ * Clamps damage into [minimum, maximum].
+ * @param maximum The maximum value
+ * @param minimum The minimum value
+ * @return The return value description
+ */
+```

@@ -35,4 +35,12 @@ public interface Interactable<T> {
      * @return True when the game entity is null and false otherwise.
      */
     boolean isNull();
+
+
+    /**
+     * True when the game entity is not null and is present.
+     * @return True when the game entity is not null.
+     */
+    boolean isPresent();
+
 }

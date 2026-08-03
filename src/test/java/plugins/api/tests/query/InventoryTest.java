@@ -36,9 +36,19 @@ public class InventoryTest extends BaseApiTest {
             }
 
             bankService.setWithdrawMode(false);
-            ctx.bank().withName("Swordfish").first().withdraw(5);
+
+            if(ctx.bank().withName("Swordfish").isPresent()) {
+                ctx.bank().withName("Swordfish").first().withdraw(5);
+            } else {
+                log.error("Failed to find Swordfish in the bank");
+            }
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-            ctx.bank().withName("Lobster").first().withdraw(5);
+
+            if(ctx.bank().withName("Lobster").isPresent()) {
+                ctx.bank().withName("Lobster").first().withdraw(5);
+            } else {
+                log.error("No lobster present in the bank");
+            }
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
 
             assertTrue(ctx.inventory().inSlot(0).getName().equals("Swordfish"), "Swordfish is in slot 0");

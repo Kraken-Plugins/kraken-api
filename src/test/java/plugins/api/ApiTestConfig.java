@@ -473,6 +473,18 @@ public interface ApiTestConfig extends Config {
         return true;
     }
 
+    @ConfigItem(
+            keyName = "enableDpsService",
+            name = "Start DPS Service Tests",
+            description = "Enable DPS service tests. Requires the free to play kit listed in docs/TESTS.md " +
+                    "to be in the bank and a nearby guard, man or goblin.",
+            section = serviceTests,
+            position = 13
+    )
+    default boolean enableDpsService() {
+        return true;
+    }
+
     // ==============================================
     // ========== MOUSE SETTINGS ==========
     // ==============================================

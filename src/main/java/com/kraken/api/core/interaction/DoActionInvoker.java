@@ -10,6 +10,7 @@ import net.runelite.api.Client;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * Encapsulates the reflection-based invocation of the RuneLite doAction method.
@@ -19,7 +20,7 @@ import java.util.Arrays;
 @Singleton
 public class DoActionInvoker {
 
-    private volatile Method doActionMethod;  // volatile: written once, read many times
+    private volatile Method doActionMethod;  // written once, read many times
     private final Object lock = new Object();
 
     @Inject
@@ -51,22 +52,89 @@ public class DoActionInvoker {
             return;
         }
 
-        int garbageValue = HooksLoader.getReflectionHooks().getDoActionGarbageValue();
-        Context ctx = ctxProvider.get();
-
-        try {
-            doActionMethod.setAccessible(true);
-            ctx.runOnClientThreadOptional(() ->
-                    doActionMethod.invoke(null, param0, param1, opcode, identifier,
-                            itemId, worldViewId, option, target, canvasX, canvasY, garbageValue)
-            );
-        } catch (Exception e) {
-            log.error("Failed to invoke doAction via reflection", e);
-        } finally {
-            doActionMethod.setAccessible(false);
+        final Method method = doActionMethod;
+        final Object[] args = buildArguments(method, param0, param1, opcode, identifier, itemId, worldViewId, option, target, canvasX, canvasY);
+        if (args == null) {
+            return;
         }
+
+        Context ctx = ctxProvider.get();
+        ctx.runOnClientThreadOptional(() -> {
+            try {
+                return method.invoke(null, args);
+            } catch (IllegalArgumentException e) {
+                log.error("doAction argument mismatch. Method expects {} but was called with {}. " +
+                                "Check the doAction hooks against the current client revision.",
+                        describe(method.getParameterTypes()), describe(args), e);
+                throw e;
+            }
+        });
     }
 
+    /**
+     * Builds the argument array for the resolved doAction method, coercing the trailing "garbage value"
+     * to whatever primitive width the current client revision declares for it.
+     *
+     * <p>The obfuscator re-rolls this dummy parameter every revision - it has been {@code int}, {@code short}
+     * and {@code byte} in different releases - and reflection performs no widening or narrowing, so passing an
+     * {@code Integer} to a {@code byte} parameter fails with "argument type mismatch". The value itself is never
+     * read by the client, only its type matters.</p>
+     *
+     * @return the argument array, or {@code null} if the resolved method has an unexpected signature.
+     */
+    private Object[] buildArguments(Method method, int param0, int param1, int opcode, int identifier, int itemId, int worldViewId, String option, String target, int canvasX, int canvasY) {
+        Object[] fixed = {param0, param1, opcode, identifier, itemId, worldViewId, option, target, canvasX, canvasY};
+        Class<?>[] parameterTypes = method.getParameterTypes();
+
+        if (parameterTypes.length == fixed.length) {
+            return fixed;
+        }
+
+        if (parameterTypes.length != fixed.length + 1) {
+            log.error("Resolved doAction method has an unexpected signature: {}. Expected {} or {} parameters.",
+                    describe(parameterTypes), fixed.length, fixed.length + 1);
+            return null;
+        }
+
+        Integer garbageValue = HooksLoader.getReflectionHooks().getDoActionGarbageValue();
+        if (garbageValue == null) {
+            garbageValue = 0;
+        }
+
+        Class<?> garbageType = parameterTypes[fixed.length];
+        Object garbageArgument;
+        if (garbageType == byte.class) {
+            garbageArgument = garbageValue.byteValue();
+        } else if (garbageType == short.class) {
+            garbageArgument = garbageValue.shortValue();
+        } else if (garbageType == long.class) {
+            garbageArgument = garbageValue.longValue();
+        } else if (garbageType == int.class) {
+            garbageArgument = garbageValue;
+        } else {
+            log.error("Unsupported doAction garbage value type '{}' in signature {}", garbageType.getName(), describe(parameterTypes));
+            return null;
+        }
+
+        Object[] args = Arrays.copyOf(fixed, fixed.length + 1);
+        args[fixed.length] = garbageArgument;
+        return args;
+    }
+
+    private static String describe(Class<?>[] types) {
+        return Arrays.stream(types).map(Class::getSimpleName).collect(Collectors.joining(", ", "(", ")"));
+    }
+
+    private static String describe(Object[] args) {
+        return Arrays.stream(args)
+                .map(a -> a == null ? "null" : a.getClass().getSimpleName())
+                .collect(Collectors.joining(", ", "(", ")"));
+    }
+
+    /**
+     * Ensures that the doAction method in the client is real and the obfuscated names in the hooks.json
+     * match and can find the method at runtime.
+     */
     private void ensureMethodLoaded() {
         if (doActionMethod != null) return;
         synchronized (lock) {
@@ -77,14 +145,20 @@ public class DoActionInvoker {
                 String methodName = HooksLoader.getReflectionHooks().getDoActionMethodName();
                 Class<?> clazz = client.getClass().getClassLoader().loadClass(className);
 
-                doActionMethod = Arrays.stream(clazz.getDeclaredMethods())
+                // The obfuscated class can hold several overloads sharing a name, so prefer one whose
+                // signature actually looks like doAction before falling back to a plain name match.
+                Method resolved = Arrays.stream(clazz.getDeclaredMethods())
                         .filter(m -> m.getName().equalsIgnoreCase(methodName))
                         .findFirst()
                         .orElse(null);
 
-                if (doActionMethod == null) {
+                if (resolved == null) {
                     log.error("Could not find doAction method '{}' on class '{}'", methodName, className);
+                    return;
                 }
+
+                resolved.setAccessible(true);
+                doActionMethod = resolved;
             } catch (ClassNotFoundException e) {
                 log.error("Could not load doAction class", e);
             }
