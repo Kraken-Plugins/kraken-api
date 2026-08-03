@@ -27,6 +27,10 @@ The following items must be present in your **Bank**:
     - Rune Platebody
     - Rune Platelegs
     - Rune Scimitar
+    - Bronze Scimitar (`DpsServiceTest`)
+    - Amulet of Power (`DpsServiceTest`)
+    - Shortbow (`DpsServiceTest`)
+    - Iron Arrows (at least 10, `DpsServiceTest`)
 - **Food**:
     - Lobster (at least 5)
     - Swordfish (at least 5)
@@ -106,6 +110,32 @@ You must be near Varrock east bank to run these tests as it requires a nearby gu
 
 ### `AreaServiceTest`
 - **Location**: Requires you to be in varrock east bank to see overlays of various areas.
+
+### `DpsServiceTest`
+Runs entirely on free-to-play gear and NPCs, so it can be run on an F2P world or account.
+
+- **Location**: Any bank booth with a free-to-play combat NPC nearby. Varrock West Bank works: it has bank booths and Guards. The test picks the nearest **Guard**, **Man**, or **Goblin** as the target it calculates against, and fails if none of them are in the scene.
+- **Bank**: Must be openable (no PIN or pre-entered PIN) and contain the full free-to-play kit below. The test deposits your entire inventory *and* everything you are wearing before withdrawing it, so bank anything you want to keep out of the way first.
+    - Bronze scimitar
+    - Rune scimitar
+    - Amulet of power
+    - Rune full helm, Rune platebody, Rune platelegs
+    - Shortbow
+    - Iron arrows (10 are withdrawn)
+- **Levels**: 40 Attack (rune scimitar), 40 Defence (rune armour), 1 Ranged (shortbow and iron arrows). Below 40 Attack/Defence the equip steps fail because the kit cannot be worn.
+- **State**: No skill boosts should be wearing off mid-run. The test compares live DPS readings taken seconds apart and expects the only thing changing between them to be the gear.
+- **Note**: The test leaves you wearing the shortbow, iron arrows and amulet of power, with the rest of the kit in your inventory. Nothing is dropped or consumed.
+
+What it covers:
+
+| Stage | What is checked |
+| --- | --- |
+| Data lookups | `item`, `monster` (by id, name and live NPC), `monstersByName` and `categorize`. Verifies gear is classified into the right style (scimitar → MELEE, shortbow and arrows → RANGED, staff → MAGIC, rune armour → NONE) and that unknown items/monsters return null. |
+| Loadout DPS | Builds loadouts by hand at your live skill levels and compares them: a rune scimitar out-DPSes a bronze one and kills faster, an amulet of power raises the attack roll and DPS, and rune armour — which has no offensive melee bonus — leaves melee DPS untouched. Also checks the `DpsResult` fields (4 tick scimitar, 3 tick rapid shortbow, accuracy as a probability) and that `calculator()`, `calculate(loadout, monster)` and `calculate(loadout, npcId)` all agree. |
+| Equipping gear | Strips the player, then equips the bronze scimitar → rune scimitar → amulet of power → rune armour, re-reading live DPS with `calculateCurrent` at every step and asserting it moves the way each piece implies. Also verifies `currentEquipment`, `currentLoadout` and `availableGear` read back what is actually worn and carried. |
+| Gear search | Runs `findBestGear(npc)`, then applies the change set it returns (equipping `itemsToEquip`, emptying `slotsToRemove`) and verifies the gear now worn *is* the loadout the search chose and reproduces the DPS it reported. Asserts the best melee setup picks the rune scimitar over the bronze one, the best ranged setup picks the shortbow with iron arrows, and that no magic setup is offered when no magic weapon is available. Finally re-runs the search restricted to `GearCategory.RANGED` via `findBestGear(monster, config)` to cover a change set that has to swap weapons rather than only strip gear. |
+
+Because the search prunes on gear category, the best melee loadout it returns is a rune scimitar and amulet of power with the **rune armour stripped off** — the armour is purely defensive, so removing it costs nothing and the search will not keep it. That is expected, not a bug.
 
 ### `DepositBoxQueryTest`
 - **Location**: Must be at a **deposit box** (e.g., Edgeville or Castle Wars).

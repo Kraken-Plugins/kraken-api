@@ -138,7 +138,8 @@ public class ApiTestPlugin extends Plugin {
             CameraServiceTest cameraServiceTest, PathfinderServiceTest pathfinderServiceTest, WorldQueryTest worldQueryTest,
             GlobalPathfinderTest globalPathfinderTest,
             TaskChainTest taskChainTest, MouseTest mouseTest, DialogueServiceTest dialogueServiceTest, ProcessingServiceTest processingServiceTest,
-            AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest, WidgetTargetNpcTest widgetTargetNpcTest,
+            AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest,
+            DpsServiceTest dpsServiceTest, WidgetTargetNpcTest widgetTargetNpcTest,
             WidgetTargetGameObjectTest widgetTargetGameObjectTest, WidgetTargetWidgetTest widgetTargetWidgetTest, WidgetSubActionTest widgetSubActionTest,
             WidgetActionTest widgetActionTest
     ) {
@@ -166,6 +167,7 @@ public class ApiTestPlugin extends Plugin {
         registerTest("enableGrandExchangeService", "GrandExchangeService", config::enableGrandExchangeService, grandExchangeServiceTest::executeTest);
         registerTest("enableBankServiceTests", "BankService", config::enableBankServiceTests, bankServiceTest::executeTest);
         registerTest("enableDepositBoxService", "DepositBoxService", config::enableDepositBoxService, depositBoxServiceTest::executeTest);
+        registerTest("enableDpsService", "DpsService", config::enableDpsService, dpsServiceTest::executeTest);
         registerTest("enableDepositBoxQuery", "DepositBoxQuery", config::enableDepositBoxQuery, depositBoxQuery::executeTest);
         registerTest("widgetTargetOnNpc", "WidgetNpcTargetTest", config::widgetTargetOnNpc, widgetTargetNpcTest::executeTest);
         registerTest("widgetTargetOnGameObject", "WidgetGameObjectTargetTest", config::widgetTargetOnGameObject, widgetTargetGameObjectTest::executeTest);
