@@ -16,9 +16,6 @@ public class DialogueServiceTest extends BaseApiTest {
     @Inject
     private DialogueService dialogueService;
 
-    @Inject
-    private SleepService sleepService;
-
     @Override
     protected boolean runTest(Context ctx) throws Exception {
         // Setup by talking to the banker
@@ -32,8 +29,7 @@ public class DialogueServiceTest extends BaseApiTest {
             npc.interact("Talk-to");
         }
 
-        log.info("Sleeping...");
-        sleepService.sleep(3000, 5000);
+        SleepService.sleep(1200, 1800);
 
         if(!dialogueService.isDialoguePresent()) {
             log.error("Dialogue is not present after talking to the banker.");
@@ -51,16 +47,15 @@ public class DialogueServiceTest extends BaseApiTest {
             return false;
         }
 
-        sleepService.sleep(1000, 3000);
+        SleepService.sleep(600, 1200);
 
         if(dialogueService.getDialogueText().equals("Good day, how may I help you?")) {
             log.error("Dialogue text is not correct after continuing the dialogue, got: {}", dialogueService.getDialogueText());
             return false;
         }
 
-        // Selects "What is this place?"
         dialogueService.selectOption(5);
-        sleepService.sleep(1000, 3000);
+        SleepService.sleep(600, 1200);
 
         // --- Step 1: Player asks "What is this place?" ---
         if (!dialogueService.getDialogueHeader().equals("Player")) {
@@ -74,7 +69,7 @@ public class DialogueServiceTest extends BaseApiTest {
         }
 
         dialogueService.continueDialogue();
-        sleepService.sleep(3000, 5000);
+        SleepService.sleep(600, 1200);
 
         // --- Step 2: Banker explains "This is a branch..." ---
         // Note: checking 'contains' is safer for long strings to avoid issues with punctuation/spacing
@@ -84,7 +79,7 @@ public class DialogueServiceTest extends BaseApiTest {
         }
 
         dialogueService.continueDialogue();
-        sleepService.sleep(3000, 5000);
+        SleepService.sleep(600, 1200);
 
         // --- Step 3: Player asks "And what do you do?" ---
         if (!dialogueService.getDialogueHeader().equals("Player")) {
@@ -97,7 +92,7 @@ public class DialogueServiceTest extends BaseApiTest {
         }
 
         dialogueService.continueDialogue();
-        sleepService.sleep(3000, 5000);
+        SleepService.sleep(600, 1200);
 
         // --- Step 4: Banker explains "We will look after..." ---
         if (!dialogueService.getDialogueText().contains("We will look after your items and money")) {
@@ -106,7 +101,7 @@ public class DialogueServiceTest extends BaseApiTest {
         }
 
         dialogueService.continueDialogue();
-        sleepService.sleep(3000, 5000);
+        SleepService.sleep(600, 1200);
 
         // --- Step 5: Verify Dialogue Closed ---
         if (dialogueService.isDialoguePresent()) {

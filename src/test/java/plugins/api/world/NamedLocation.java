@@ -54,7 +54,7 @@ public enum NamedLocation {
     VARROCK_SQUARE_FOUNTAIN(
             "Varrock Square fountain",
             new WorldPoint(3253, 3433, 0),
-            new WorldArea(3248, 3428, 11, 11, 0),
+            new WorldArea(3235, 3430, 9, 9, 0),
             6,
             EnumSet.of(Facility.WATER_SOURCE, Facility.COMBAT_NPCS_F2P, Facility.OTHER_PLAYERS)),
 
