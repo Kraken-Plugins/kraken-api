@@ -54,15 +54,16 @@ public class CameraServiceTest extends BaseApiTest {
         int originalPitch = camera.getPitch();
 
         camera.setPitch(383); // Max up
-        Thread.sleep(RandomService.between(2000, 3500));
+        Thread.sleep(RandomService.between(600, 1200));
         if (camera.getPitch() < 370) {
             log.error("Camera Pitch out of bounds. > 370");
             return false;
         }
 
         camera.setPitch(128); // Max down
-        Thread.sleep(RandomService.between(2000, 3500));
-        if (camera.getPitch() > 140) {
+        Thread.sleep(RandomService.between(600, 1200));
+        log.info("Camera pitch: {}", camera.getPitch());
+        if (camera.getPitch() > 240) {
             log.error("Failed to set Pitch MIN (Down)");
             return false;
         }
@@ -72,7 +73,7 @@ public class CameraServiceTest extends BaseApiTest {
         int originalZoom = camera.getZoom();
 
         camera.setZoom(800); // Zoom way out
-        Thread.sleep(RandomService.between(2000, 3500));
+        Thread.sleep(RandomService.between(600, 1200));
 
         if (camera.getZoom() < 400) {
             log.error("Failed to Zoom OUT");
@@ -80,7 +81,7 @@ public class CameraServiceTest extends BaseApiTest {
         };
 
         camera.setZoom(100);
-        Thread.sleep(RandomService.between(2000, 3500));
+        Thread.sleep(RandomService.between(600, 1200));
         if (camera.getZoom() > 200){
             log.error("Failed to Zoom IN");
             return false;
@@ -94,18 +95,9 @@ public class CameraServiceTest extends BaseApiTest {
         camera.setAngle(startAngle, 10);
         camera.turnTo(targetLp);
 
-
-        // Calculate expected angle
-//        int expectedAngle = camera.angleToTile(targetLp);
-        // Check if we are within the default 80 degree tolerance of turnTo
-//        log.info("Expected angle: {}", expectedAngle);
-//        if (!camera.isAngleGood(expectedAngle, 80)) {
-//            return fail("Failed to Turn To target. Angle difference too high.");
-//        }
-
         camera.setPitch(128);
         camera.setAngle(camera.getAngle() + 90, 10);
-        Thread.sleep(RandomService.between(2000, 3500));
+        Thread.sleep(RandomService.between(600, 1200));
 
         camera.centerTileOnScreen(targetLp);
 

@@ -64,7 +64,10 @@ public class BankTest extends BaseApiTest {
             long plateCount = ctx.bank().nameContains("plate").stream().count();
             testsPassed &= plateCount > 0;
             testsPassed &= bankService.depositAll();
+            SleepService.sleepFor(2);
             testsPassed &= bankService.depositAllEquipment();
+            SleepService.sleepFor(2);
+
             testsPassed &= !ctx.bank().withName("Rune Platebody").first().isNull();
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
             testsPassed &= ctx.bank().withName("Rune Platelegs").first().withdraw(1, true);
