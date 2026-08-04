@@ -286,7 +286,7 @@ public class SelfCheckTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Self Check";
     }
 }

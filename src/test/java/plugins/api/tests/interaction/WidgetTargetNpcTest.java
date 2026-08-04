@@ -28,7 +28,7 @@ public class WidgetTargetNpcTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Widget NPC";
     }
 }

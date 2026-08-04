@@ -113,7 +113,7 @@ public class PathfinderServiceTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Pathfinder Test";
     }
 }

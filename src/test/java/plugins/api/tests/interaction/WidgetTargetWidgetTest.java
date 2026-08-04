@@ -33,7 +33,7 @@ public class WidgetTargetWidgetTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Widget Target";
     }
 }

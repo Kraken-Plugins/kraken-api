@@ -10,9 +10,10 @@ import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 import plugins.api.ApiTestConfig;
 import plugins.api.TestResultManager;
+import plugins.api.suite.SuiteProgress;
 
 import java.awt.*;
-import java.util.Map;
+import java.time.Duration;
 
 public class InfoPanelOverlay extends OverlayPanel {
 
@@ -42,7 +43,7 @@ public class InfoPanelOverlay extends OverlayPanel {
                     .build());
 
             // Add test results if manager is available
-            if (!testResultManager.getAllTestResults().isEmpty()) {
+            if (!testResultManager.resultsInOrder().isEmpty()) {
                 addTestResults();
             }
 
@@ -64,67 +65,65 @@ public class InfoPanelOverlay extends OverlayPanel {
 
     private void addTestResults() {
         try {
-            // Overall status
+            SuiteProgress progress = testResultManager.getProgress();
+
             panelComponent.getChildren().add(LineComponent.builder()
                     .left("Test Status:")
                     .right(testResultManager.getOverallStatus())
                     .rightColor(getOverallStatusColor())
                     .build());
 
-            // Test counts summary
-            int passed = testResultManager.getPassedTestCount();
-            int failed = testResultManager.getFailedTestCount();
-            int running = testResultManager.getRunningTestCount();
-
-            if (running > 0) {
+            // While a run is going the useful information is where it is up to and what it is doing.
+            // A long walk between locations is otherwise indistinguishable from a hang.
+            if (progress.isRunning()) {
                 panelComponent.getChildren().add(LineComponent.builder()
-                        .left("Running:")
-                        .right(String.valueOf(running))
+                        .left("Progress:")
+                        .right(progress.describePosition() + "  " + formatElapsed(progress.getElapsed()))
                         .rightColor(Color.YELLOW)
                         .build());
+
+                if (progress.getCurrentPhase() != null) {
+                    panelComponent.getChildren().add(LineComponent.builder()
+                            .left("  " + truncate(progress.getCurrentPhase(), 34))
+                            .build());
+                }
             }
 
-            if (passed > 0 || failed > 0) {
+            if (progress.getPassed() + progress.getFailed() + progress.getSkipped() > 0) {
                 panelComponent.getChildren().add(LineComponent.builder()
                         .left("Results:")
-                        .right(String.format("✓%d ✗%d", passed, failed))
-                        .rightColor(Color.WHITE)
+                        .right(String.format("%dP %dF %dS", progress.getPassed(), progress.getFailed(),
+                                progress.getSkipped()))
+                        .rightColor(progress.getFailed() > 0 ? Color.RED : Color.WHITE)
                         .build());
             }
 
-            // Individual test results
-            Map<String, TestResultManager.TestResult> results = testResultManager.getAllTestResults();
+            // Rows are in registration order, so they no longer shuffle between frames.
+            for (TestResultManager.TestResult result : testResultManager.resultsInOrder()) {
+                if (result.getStatus() == TestResultManager.TestStatus.NOT_STARTED) {
+                    continue;
+                }
 
-            for (TestResultManager.TestResult result : results.values()) {
-                Color statusColor = getStatusColor(result.getStatus());
                 String statusText = result.getStatus().getDisplayName();
-
-                // Add execution time for completed tests
-                if (result.getStatus() == TestResultManager.TestStatus.PASSED ||
-                        result.getStatus() == TestResultManager.TestStatus.FAILED) {
+                if (result.getExecutionTimeMs() > 0) {
                     statusText += String.format(" (%dms)", result.getExecutionTimeMs());
                 }
 
                 panelComponent.getChildren().add(LineComponent.builder()
                         .left(result.getTestName() + ":")
                         .right(statusText)
-                        .rightColor(statusColor)
+                        .rightColor(getStatusColor(result.getStatus()))
                         .build());
 
-                // Show error message for failed tests if debug is enabled
-                if (config.showDebugInfo() &&
-                        result.getStatus() == TestResultManager.TestStatus.FAILED &&
-                        result.getErrorMessage() != null) {
+                // A skip reason is always worth showing: it is the difference between "your bank is
+                // missing an item" and "the API broke".
+                boolean explain = result.getStatus() == TestResultManager.TestStatus.SKIPPED
+                        || (config.showDebugInfo() && result.isFailure());
 
-                    String errorMsg = result.getErrorMessage();
-                    if (errorMsg.length() > 30) {
-                        errorMsg = errorMsg.substring(0, 27) + "...";
-                    }
-
+                if (explain && result.getMessage() != null) {
                     panelComponent.getChildren().add(LineComponent.builder()
-                            .left("  Error:")
-                            .right(errorMsg)
-                            .rightColor(Color.RED)
+                            .left("  " + truncate(result.getMessage(), 34))
+                            .leftColor(result.isFailure() ? Color.RED : Color.ORANGE)
                             .build());
                 }
             }
@@ -138,21 +137,41 @@ public class InfoPanelOverlay extends OverlayPanel {
         }
     }
 
+    /**
+     * Shortens a message to fit the overlay.
+     *
+     * @param text the text to shorten
+     * @param maximum the longest acceptable length
+     * @return the text, truncated with an ellipsis when too long
+     */
+    private String truncate(String text, int maximum) {
+        return text.length() <= maximum ? text : text.substring(0, maximum - 3) + "...";
+    }
+
+    /**
+     * Formats a run duration as minutes and seconds.
+     *
+     * @param elapsed how long the run has been going
+     * @return a mm:ss string
+     */
+    private String formatElapsed(Duration elapsed) {
+        long seconds = elapsed == null ? 0 : elapsed.getSeconds();
+        return String.format("%d:%02d", seconds / 60, seconds % 60);
+    }
+
     private Color getOverallStatusColor() {
-        if (testResultManager.areAnyTestsRunning()) {
+        if (testResultManager.isRunning()) {
             return Color.YELLOW;
         }
 
-        int failed = testResultManager.getFailedTestCount();
-        int passed = testResultManager.getPassedTestCount();
+        int failed = testResultManager.count(TestResultManager.TestStatus.FAILED);
+        int passed = testResultManager.count(TestResultManager.TestStatus.PASSED);
 
-        if (failed == 0 && passed > 0) {
-            return Color.GREEN;
-        } else if (failed > 0) {
+        if (failed > 0) {
             return Color.RED;
-        } else {
-            return Color.WHITE;
         }
+
+        return passed > 0 ? Color.GREEN : Color.WHITE;
     }
 
     private Color getStatusColor(TestResultManager.TestStatus status) {
@@ -163,7 +182,11 @@ public class InfoPanelOverlay extends OverlayPanel {
                 return Color.RED;
             case RUNNING:
                 return Color.YELLOW;
-            case DISABLED:
+            case SKIPPED:
+                // Deliberately not red: a skip means the environment was not ready, not that the API
+                // regressed, and conflating the two makes a run impossible to read at a glance.
+                return Color.ORANGE;
+            case CANCELLED:
                 return Color.GRAY;
             case NOT_STARTED:
             default:

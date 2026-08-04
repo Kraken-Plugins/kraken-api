@@ -74,7 +74,7 @@ public class DepositBoxServiceTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Deposit Box Service";
     }
 }

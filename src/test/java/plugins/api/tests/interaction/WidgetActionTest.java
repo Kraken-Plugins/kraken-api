@@ -9,29 +9,25 @@ import plugins.api.tests.BaseApiTest;
 @Slf4j
 @Singleton
 public class WidgetActionTest extends BaseApiTest {
-    private static final int WIDGET_SPECIAL_ATTACK_ORB = 10485796;
+//    private static final int WIDGET_SPECIAL_ATTACK_ORB = 10485796;
+    private static final int WIDGET_RUN_ENERGY = 10485788;
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        Widget w = ctx.runOnClientThread(() -> ctx.getClient().getWidget(WIDGET_SPECIAL_ATTACK_ORB));
+        Widget w = ctx.runOnClientThread(() -> ctx.getClient().getWidget(WIDGET_RUN_ENERGY));
 
         if(w == null) return false;
 
-        // Spec should be disabled at the start
-        if(ctx.players().local().isSpecEnabled()) {
-            log.info("Spec is already enabled, run this test with spec disabled.");
-            return false;
-        }
+        boolean runEnabled = ctx.players().local().isRunEnabled();
 
-        ctx.runOnClientThread(() -> ctx.getInteractionManager().interact(w, "Use"));
+        ctx.runOnClientThread(() -> ctx.getInteractionManager().interact(w, "Toggle"));
         Thread.sleep(600);
 
-        log.info("Is spec enabled: {}", ctx.players().local().isSpecEnabled());
-        return ctx.players().local().isSpecEnabled();
+        return runEnabled != ctx.players().local().isRunEnabled();
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Widget Action";
     }
 }

@@ -116,7 +116,7 @@ public class GlobalPathfinderTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Global Pathfinder Test";
     }
 }

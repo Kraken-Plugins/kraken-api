@@ -9,6 +9,8 @@ import net.runelite.api.Client;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import plugins.api.ApiTestPlugin;
+import plugins.api.requirements.TargetTile;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
 
 @Slf4j
@@ -22,6 +24,13 @@ public class CameraServiceTest extends BaseApiTest {
 
     @Inject
     private ApiTestPlugin examplePlugin;
+
+    @Override
+    public TestRequirements requirements() {
+        return TestRequirements.builder()
+                .targetTile(TargetTile.relativeToPlayer(3, 3))
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
@@ -42,8 +51,6 @@ public class CameraServiceTest extends BaseApiTest {
 
         log.info("Target selected: {}. Running camera service tests...", target);
 
-        // 2. Test Pitch
-        log.info("--- Testing Pitch ---");
         int originalPitch = camera.getPitch();
 
         camera.setPitch(383); // Max up
@@ -54,11 +61,8 @@ public class CameraServiceTest extends BaseApiTest {
         Thread.sleep(RandomService.between(2000, 3500));
         if (camera.getPitch() > 140) return fail("Failed to set Pitch MIN (Down)");
 
-        // Reset Pitch
         camera.setPitch(originalPitch);
 
-        // 3. Test Zoom
-        log.info("--- Testing Zoom ---");
         int originalZoom = camera.getZoom();
 
         camera.setZoom(800); // Zoom way out
@@ -73,8 +77,6 @@ public class CameraServiceTest extends BaseApiTest {
         // Reset Zoom
         camera.setZoom(originalZoom);
 
-        // 4. Test Rotation (Turn To)
-        log.info("--- Testing Turn To ---");
         // Randomly offset camera first so we know we actually moved
         int startAngle = camera.angleToTile(target) + 100;
         camera.setAngle(startAngle, 10);
@@ -89,7 +91,6 @@ public class CameraServiceTest extends BaseApiTest {
 //            return fail("Failed to Turn To target. Angle difference too high.");
 //        }
 
-        log.info("--- Testing Centering ---");
         camera.setPitch(128);
         camera.setAngle(camera.getAngle() + 90, 10);
         Thread.sleep(RandomService.between(2000, 3500));
@@ -99,7 +100,8 @@ public class CameraServiceTest extends BaseApiTest {
         if (!camera.isTileCenteredOnScreen(targetLp)) {
             camera.centerTileOnScreen(targetLp);
             if (!camera.isTileCenteredOnScreen(targetLp)) {
-                return fail("Failed to center tile on screen.");
+                log.error("Failed to center tile on screen.");
+                return false;
             }
         }
 
@@ -117,12 +119,11 @@ public class CameraServiceTest extends BaseApiTest {
     }
 
     private boolean fail(String reason) {
-        log.error("TEST FAILED: {}", reason);
         return false;
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Camera Service";
     }
 }

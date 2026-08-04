@@ -11,6 +11,37 @@ and dump output into the console and the overlay for PASS/FAIL.
 Most of the tests are fully self-sufficient; that is, they set themselves up with the necessary in game items before running the tests. However,
 there are a few conditions listed below.
 
+## Running the whole suite
+
+Stand at **Varrock East Bank** and tick **Run All Tests** in the General section. The runner:
+
+1. Orders the tests to minimise walking — everything that works anywhere runs first, then each
+   location is visited once, and within a location the tests that teleport or move you run last.
+2. Establishes each test's declared preconditions before running it: travelling, opening the bank,
+   depositing, withdrawing, equipping.
+3. Records anything it cannot set up as **Skipped, with the reason** — "Rune platebody is not in the
+   bank" — and carries on.
+
+**A red result therefore always means a genuine regression.** Orange means your environment was not
+ready. That distinction is the whole point of the run.
+
+Other controls in the General section:
+
+| Control | What it does |
+| --- | --- |
+| **Run Group** | Runs one category only (Query / Service / Interaction / Input). Much faster when chasing a regression in one area. |
+| **Stop Run** | Cancels the run in progress. Interrupts the worker, so it stops mid-walk rather than finishing the current test. |
+| **Establish Preconditions** | On by default. Turn it off to run a test exactly as it stands — the fastest way to tell whether a red is a real regression or the setup putting the world in the wrong state. |
+| **Bank PIN** | Needed for automated setup if you have one; otherwise every bank test is skipped rather than hanging on the keypad. |
+
+Ticking any individual test's checkbox still runs just that test, now with its preconditions
+established too.
+
+**The suite banks everything you are carrying and worn** — deterministic setup is only reachable from
+a known-empty state. Bank anything you care about first. A full pass takes roughly 25–45 minutes;
+`WorldQueryTest` and `GrandExchangeServiceTest` are excluded from bulk runs because they hop worlds
+and spend real coins respectively, and stay available individually.
+
 ## Start here after a client update: `SelfCheckTest`
 
 Run **Self Check** (General section) before anything else. The harness drives the client using the very

@@ -108,7 +108,7 @@ public class SpellServiceTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Spell Service";
     }
 }

@@ -34,15 +34,12 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
 import plugins.api.overlay.InfoPanelOverlay;
 import plugins.api.overlay.SceneOverlay;
-import plugins.api.tests.SelfCheckTest;
-import plugins.api.tests.input.MouseTest;
-import plugins.api.tests.interaction.*;
-import plugins.api.tests.query.*;
-import plugins.api.tests.service.*;
+import plugins.api.suite.*;
 
-import java.util.*;
-import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 @Slf4j
 @Singleton
@@ -106,13 +103,16 @@ public class ApiTestPlugin extends Plugin {
     private MouseRecorder mouseRecorder;
 
     @Inject
-    private GrandExchangeServiceTest grandExchangeServiceTest;
-
-    @Inject
     private BreakManager breakManager;
 
     @Inject
     private TargetTileProvider targetTileProvider;
+
+    @Inject
+    private TestRunner testRunner;
+
+    @Inject
+    private TestRegistry testRegistry;
 
     @Getter
     private List<WorldPoint> currentPath = new ArrayList<>();
@@ -128,60 +128,6 @@ public class ApiTestPlugin extends Plugin {
 
     private WorldPoint trueTile;
     private static final String TARGET_TILE = ColorUtil.wrapWithColorTag("Target Tile", JagexColors.CHAT_PRIVATE_MESSAGE_TEXT_TRANSPARENT_BACKGROUND);
-    private final Map<String, TestExecution> testExecutions = new HashMap<>();
-
-    @Inject
-    private void initializeTests(
-            PrayerServiceTest prayerServiceTest, BankTest bankQueryTest, EquipmentTest equipmentQueryTest,
-            InventoryTest inventoryQueryTest, BankInventoryTest bankInventoryQueryTest, GameObjectTest gameObjectQueryTest,
-            NpcTest npcQueryTest, GroundObjectTest groundObjectQueryTest, PlayerTest playerQueryTest,
-            WidgetTest widgetQueryTest, DepositBoxTest depositBoxQuery, SpellServiceTest spellServiceTest, MovementServiceTest movementServiceTest,
-            CameraServiceTest cameraServiceTest, PathfinderServiceTest pathfinderServiceTest, WorldQueryTest worldQueryTest,
-            GlobalPathfinderTest globalPathfinderTest,
-            TaskChainTest taskChainTest, MouseTest mouseTest, DialogueServiceTest dialogueServiceTest, ProcessingServiceTest processingServiceTest,
-            AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest,
-            DpsServiceTest dpsServiceTest, WidgetTargetNpcTest widgetTargetNpcTest,
-            WidgetTargetGameObjectTest widgetTargetGameObjectTest, WidgetTargetWidgetTest widgetTargetWidgetTest, WidgetSubActionTest widgetSubActionTest,
-            WidgetActionTest widgetActionTest, SelfCheckTest selfCheckTest
-    ) {
-        registerTest("enableSelfCheck", "SelfCheck", config::enableSelfCheck, selfCheckTest::executeTest);
-        registerTest("enablePrayer", "PrayerServiceTest", config::enablePrayerTests, prayerServiceTest::executeTest);
-        registerTest("enableBankQuery", "BankQuery", config::enableBankQuery, bankQueryTest::executeTest);
-        registerTest("enableInventoryQuery", "InventoryQuery", config::enableInventoryQuery, inventoryQueryTest::executeTest);
-        registerTest("enableBankInventoryQuery", "BankInventoryTest", config::enableBankInventoryQuery, bankInventoryQueryTest::executeTest);
-        registerTest("enableEquipmentQuery", "EquipmentQuery", config::enableEquipmentQuery, equipmentQueryTest::executeTest);
-        registerTest("enableGameObjectQuery", "GameObjectQuery", config::enableGameObjectQuery, gameObjectQueryTest::executeTest);
-        registerTest("enableGroundObjectQuery", "GroundObjectQuery", config::enableGroundObjectQuery, groundObjectQueryTest::executeTest);
-        registerTest("enableNpcQuery", "NpcQuery", config::enableNpcQuery, npcQueryTest::executeTest);
-        registerTest("enablePlayerQuery", "PlayerQuery", config::enablePlayerQuery, playerQueryTest::executeTest);
-        registerTest("enableWidgetQuery", "WidgetQuery", config::enableWidgetQuery, widgetQueryTest::executeTest);
-        registerTest("enableMovement", "MovementService", config::enableMovementTests, movementServiceTest::executeTest);
-        registerTest("enableSpell", "MagicService", config::enableSpellTests, spellServiceTest::executeTest);
-        registerTest("enableCamera", "CameraService", config::enableCameraTests, cameraServiceTest::executeTest);
-        registerTest("enablePathfinder", "PathfinderService", config::enablePathfinder, pathfinderServiceTest::executeTest);
-        registerTest("enableGlobalPathfinder", "GlobalPathfinder", config::enableGlobalPathfinder, globalPathfinderTest::executeTest);
-        registerTest("enableWorldQuery", "WorldQuery", config::enableWorldQuery, worldQueryTest::executeTest);
-        registerTest("enableTaskChain", "TaskChain", config::enableTaskChain, taskChainTest::executeTest);
-        registerTest("enableMouseTest", "VirtualMouse", config::enableMouseTest, mouseTest::executeTest);
-        registerTest("enableDialogueService", "DialogueService", config::enableDialogueService, dialogueServiceTest::executeTest);
-        registerTest("enableProcessingService", "ProcessingService", config::enableProcessService, processingServiceTest::executeTest);
-        registerTest("enableAreaService", "AreaService", config::enableAreaService, areaServiceTest::executeTest);
-        registerTest("enableGrandExchangeService", "GrandExchangeService", config::enableGrandExchangeService, grandExchangeServiceTest::executeTest);
-        registerTest("enableBankServiceTests", "BankService", config::enableBankServiceTests, bankServiceTest::executeTest);
-        registerTest("enableDepositBoxService", "DepositBoxService", config::enableDepositBoxService, depositBoxServiceTest::executeTest);
-        registerTest("enableDpsService", "DpsService", config::enableDpsService, dpsServiceTest::executeTest);
-        registerTest("enableDepositBoxQuery", "DepositBoxQuery", config::enableDepositBoxQuery, depositBoxQuery::executeTest);
-        registerTest("widgetTargetOnNpc", "WidgetNpcTargetTest", config::widgetTargetOnNpc, widgetTargetNpcTest::executeTest);
-        registerTest("widgetTargetOnGameObject", "WidgetGameObjectTargetTest", config::widgetTargetOnGameObject, widgetTargetGameObjectTest::executeTest);
-        registerTest("widgetTargetOnWidget", "WidgetWidgetTargetTest", config::widgetTargetOnWidget, widgetTargetWidgetTest::executeTest);
-        registerTest("widgetSubAction", "WidgetSubActionTargetTest", config::widgetSubAction, widgetSubActionTest::executeTest);
-        registerTest("widgetAction", "WidgetActionTest", config::widgetAction, widgetActionTest::executeTest);
-    }
-
-    private void registerTest(String configKey, String testName, BooleanSupplier enabled, Supplier<java.util.concurrent.CompletableFuture<Boolean>> test) {
-        testExecutions.put(configKey, new TestExecution(testName, enabled, test));
-        testResultManager.registerTest(testName);
-    }
 
     @Provides
     ApiTestConfig provideConfig(final ConfigManager configManager) {
@@ -247,20 +193,58 @@ public class ApiTestPlugin extends Plugin {
 
         if (key.equals("clearTests") && config.clearTests()) {
             testResultManager.clearAllResults();
-        } else {
-            TestExecution execution = testExecutions.get(key);
-            if (execution != null) {
-                if (execution.getEnabled().getAsBoolean()) {
-                    testResultManager.startTest(execution.getTestName(), execution.getTest().get());
-                } else {
-                    testResultManager.cancelTest(execution.getTestName());
-                }
-            }
+            return;
         }
+
+        if (key.equals("runAllTests") && config.runAllTests()) {
+            testRunner.runAll(currentOptions());
+            return;
+        }
+
+        if (key.equals("stopRun") && config.stopRun()) {
+            testRunner.cancel();
+            return;
+        }
+
+        if (key.equals("runGroup")) {
+            TestGroup group = config.runGroup();
+            if (group != null) {
+                testRunner.runGroup(group, currentOptions());
+            }
+            return;
+        }
+
+        // A per-test toggle starts just that test, preconditions and all. Reading the event's new
+        // value means only ticking a box starts a run; un-ticking one no longer re-triggers it.
+        if (!"true".equalsIgnoreCase(event.getNewValue())) {
+            return;
+        }
+
+        testRegistry.byConfigKey(key)
+                .ifPresent(test -> testRunner.runSingle(test, currentOptions()));
+    }
+
+    /**
+     * Builds run options from the current plugin settings.
+     *
+     * @return the options for a run started right now
+     */
+    private SuiteOptions currentOptions() {
+        return SuiteOptions.builder()
+                .establishPreconditions(config.establishPreconditions())
+                .build();
     }
 
     @Override
     protected void startUp() {
+        // Built here rather than by constructor injection: the tests need ApiTestConfig, which RuneLite
+        // binds in the child injector it creates for this plugin. getInjector() is that injector;
+        // the one Guice would inject into a @Singleton is the root, which cannot see the config.
+        testRegistry.initialize(getInjector());
+        for (RegisteredTest test : testRegistry.all()) {
+            testResultManager.registerTest(test.getId(), test.getDisplayName());
+        }
+
         exampleScript.start();
 
         overlayManager.add(overlay);
@@ -293,7 +277,7 @@ public class ApiTestPlugin extends Plugin {
 
     @Override
     protected void shutDown() {
-        testResultManager.cancelAllTests();
+        testRunner.cancel();
         exampleScript.stop();
 
         overlayManager.remove(overlay);
@@ -324,9 +308,9 @@ public class ApiTestPlugin extends Plugin {
      */
     @Subscribe
     private void onGameStateChanged(final GameStateChanged event) {
-        if (event.getGameState() == GameState.LOGIN_SCREEN && testResultManager.areAnyTestsRunning()) {
-            log.warn("Returned to the login screen with tests running, cancelling them.");
-            testResultManager.cancelAllTests();
+        if (event.getGameState() == GameState.LOGIN_SCREEN && testRunner.isRunning()) {
+            log.warn("Returned to the login screen with a run in progress, cancelling it.");
+            testRunner.cancel();
         }
     }
 
@@ -420,16 +404,4 @@ public class ApiTestPlugin extends Plugin {
         return null;
     }
 
-    @Getter
-    private static class TestExecution {
-        private final String testName;
-        private final BooleanSupplier enabled;
-        private final Supplier<java.util.concurrent.CompletableFuture<Boolean>> test;
-
-        public TestExecution(String testName, BooleanSupplier enabled, Supplier<java.util.concurrent.CompletableFuture<Boolean>> test) {
-            this.testName = testName;
-            this.enabled = enabled;
-            this.test = test;
-        }
-    }
 }

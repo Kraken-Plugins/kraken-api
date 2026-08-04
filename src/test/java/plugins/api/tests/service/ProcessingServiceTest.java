@@ -149,7 +149,7 @@ public class ProcessingServiceTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Processing Service";
     }
 }

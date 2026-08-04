@@ -645,7 +645,7 @@ public class DpsServiceTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "DPS Service";
     }
 

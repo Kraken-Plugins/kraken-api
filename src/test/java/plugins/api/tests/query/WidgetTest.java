@@ -91,7 +91,7 @@ public class WidgetTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Widget";
     }
 }

@@ -7,6 +7,7 @@ import plugins.api.requirements.NpcRequirement;
 import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
 import plugins.api.world.Facility;
+import plugins.api.world.NamedLocation;
 
 @Slf4j
 public class NpcTest extends BaseApiTest {
@@ -16,6 +17,7 @@ public class NpcTest extends BaseApiTest {
         // Reads the scene and attacks a guard; needs no items and changes nothing that outlives it.
         return TestRequirements.builder()
                 .facility(Facility.COMBAT_NPCS_F2P)
+                .location(NamedLocation.VARROCK_EAST_BANK)
                 .nearbyNpc(NpcRequirement.named("Guard"))
                 .build();
     }
@@ -27,9 +29,9 @@ public class NpcTest extends BaseApiTest {
         try {
             // 2. Attackable Filter: Verify logic on Guards
             // Guards should be attackable
-            boolean guardsFound = !ctx.npcs().withName("Guard").first().isNull();
+            boolean guardsFound = ctx.npcs().withName("Guard").isPresent();
             if (guardsFound) {
-                boolean guardIsAttackable = !ctx.npcs().withName("Guard").attackable().first().isNull();
+                boolean guardIsAttackable = ctx.npcs().withName("Guard").attackable().isPresent();
                 if (!guardIsAttackable) {
                     log.error("Found 'Guard' but attackable() filter excluded them.");
                     testsPassed = false;
@@ -85,7 +87,7 @@ public class NpcTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "NPC";
     }
 }

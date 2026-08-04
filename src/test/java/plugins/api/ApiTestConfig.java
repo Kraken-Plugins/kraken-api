@@ -29,6 +29,44 @@ public interface ApiTestConfig extends Config {
     }
 
     @ConfigItem(
+            name = "Run All Tests",
+            keyName = "runAllTests",
+            description = "Run the whole suite in one go, ordered to minimise walking. <br>" +
+                    "Each test's preconditions are established first, and anything that cannot be set up <br>" +
+                    "is skipped with a reason rather than failed. <br>" +
+                    "Start at Varrock East Bank. Expect this to take a while.",
+            position = -998,
+            section = general
+    )
+    default boolean runAllTests() {
+        return false;
+    }
+
+    @ConfigItem(
+            name = "Run Group",
+            keyName = "runGroup",
+            description = "Run only one category of tests. Much faster than a full pass when you are <br>" +
+                    "chasing a regression in one area.",
+            position = -997,
+            section = general
+    )
+    default plugins.api.suite.TestGroup runGroup() {
+        return plugins.api.suite.TestGroup.QUERY;
+    }
+
+    @ConfigItem(
+            name = "Stop Run",
+            keyName = "stopRun",
+            description = "Cancel the run in progress. Interrupts the worker, so it stops mid-walk <br>" +
+                    "rather than finishing the current test first.",
+            position = -996,
+            section = general
+    )
+    default boolean stopRun() {
+        return false;
+    }
+
+    @ConfigItem(
             name = "Bank PIN",
             keyName = "bankPin",
             description = "Your four digit bank pin, used to get past the keypad during automated setup. <br>" +

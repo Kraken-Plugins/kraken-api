@@ -162,7 +162,7 @@ public class TaskChainTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Task Chain";
     }
 }

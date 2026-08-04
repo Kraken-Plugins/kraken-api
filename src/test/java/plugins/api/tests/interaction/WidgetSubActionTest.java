@@ -85,7 +85,7 @@ public class WidgetSubActionTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Widget Sub";
     }
 }

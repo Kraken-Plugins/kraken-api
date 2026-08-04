@@ -25,24 +25,45 @@ public abstract class BaseApiTest {
     public CompletableFuture<Boolean> executeTest() {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                log.info("Starting {} test...", getTestName());
-                onStart();
-                invokeAnnotatedMethods(Before.class);
-                boolean result = runTest(ctx);
-                log.info("{} test completed with result: {}", getTestName(), result ? "PASSED" : "FAILED");
-                return result;
+                return runSynchronously();
             } catch (Exception e) {
                 log.error("{} test failed with exception", getTestName(), e);
                 return false;
-            } finally {
-                try {
-                    invokeAnnotatedMethods(After.class);
-                    onFinish();
-                } catch (Exception e) {
-                    log.error("Error during test teardown for {}", getTestName(), e);
-                }
             }
         });
+    }
+
+    /**
+     * Runs the full lifecycle on the <em>calling</em> thread: {@link #onStart()}, {@link Before}
+     * methods, {@link #runTest(Context)}, then {@link After} methods and {@link #onFinish()}.
+     *
+     * <p>The caller must not be the client thread — test bodies block on {@code SleepService}, which
+     * no-ops there. Running on the caller's thread rather than a pool is what makes a run genuinely
+     * interruptible: {@code SleepService} checks {@code Thread.isInterrupted()} in every wait loop, so
+     * interrupting the worker aborts the test promptly, which {@code CompletableFuture.cancel} could
+     * never do.</p>
+     *
+     * @return true if the test passed
+     * @throws InterruptedException if the thread was interrupted, i.e. the run was cancelled
+     * @throws Exception if the test body or its lifecycle hooks threw
+     */
+    public boolean runSynchronously() throws Exception {
+        try {
+            log.info("Starting {} test...", getTestName());
+            onStart();
+            invokeAnnotatedMethods(Before.class);
+            boolean result = runTest(ctx);
+            log.info("{} test completed with result: {}", getTestName(), result ? "PASSED" : "FAILED");
+            return result;
+        } finally {
+            try {
+                invokeAnnotatedMethods(After.class);
+                onFinish();
+            } catch (Exception e) {
+                // Teardown problems must not mask the real outcome, so they are logged and swallowed.
+                log.error("Error during test teardown for {}", getTestName(), e);
+            }
+        }
     }
 
     private void invokeAnnotatedMethods(Class<? extends java.lang.annotation.Annotation> annotationClass) throws Exception {
@@ -91,10 +112,10 @@ public abstract class BaseApiTest {
     protected abstract boolean runTest(Context ctx) throws Exception;
 
     /**
-     * Returns the name of this test for logging purposes
+     * Returns the name of this test, used for logging and as its display name in the registry.
      * @return test name
      */
-    protected abstract String getTestName();
+    public abstract String getTestName();
 
     /**
      * Called before the test runs. Override this to perform setup.
