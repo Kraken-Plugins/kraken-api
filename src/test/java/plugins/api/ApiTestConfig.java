@@ -29,6 +29,33 @@ public interface ApiTestConfig extends Config {
     }
 
     @ConfigItem(
+            name = "Bank PIN",
+            keyName = "bankPin",
+            description = "Your four digit bank pin, used to get past the keypad during automated setup. <br>" +
+                    "Leave blank if you have no pin, or if you prefer to enter it yourself before starting a run. <br>" +
+                    "Without this, every test that needs the bank is skipped rather than hanging on the keypad.",
+            position = -997,
+            section = general,
+            secret = true
+    )
+    default String bankPin() {
+        return "";
+    }
+
+    @ConfigItem(
+            name = "Establish Preconditions",
+            keyName = "establishPreconditions",
+            description = "Let the runner set up the world before each test: travel, bank, withdraw. <br>" +
+                    "Turn this off to run a test exactly as it stands, which is the quickest way to tell <br>" +
+                    "whether a failure is a real regression or the setup putting the world in the wrong state.",
+            position = -996,
+            section = general
+    )
+    default boolean establishPreconditions() {
+        return true;
+    }
+
+    @ConfigItem(
             name = "Self Check",
             keyName = "enableSelfCheck",
             description = "Verify the API primitives every other test's setup depends on: <br>" +

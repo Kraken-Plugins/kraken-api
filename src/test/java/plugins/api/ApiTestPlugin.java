@@ -111,8 +111,8 @@ public class ApiTestPlugin extends Plugin {
     @Inject
     private BreakManager breakManager;
 
-    @Getter
-    private WorldPoint targetTile;
+    @Inject
+    private TargetTileProvider targetTileProvider;
 
     @Getter
     private List<WorldPoint> currentPath = new ArrayList<>();
@@ -332,9 +332,10 @@ public class ApiTestPlugin extends Plugin {
 
     @Subscribe
     public void onGameTick(GameTick event) {
-        if (targetTile != null) {
-            this.targetArea = new WorldArea(targetTile, 5, 5);
-            this.currentPath = pathfinder.findPath(client.getLocalPlayer().getWorldLocation(), this.targetTile);
+        WorldPoint target = getTargetTile();
+        if (target != null) {
+            this.targetArea = new WorldArea(target, 5, 5);
+            this.currentPath = pathfinder.findPath(client.getLocalPlayer().getWorldLocation(), target);
         }
     }
 
@@ -368,7 +369,7 @@ public class ApiTestPlugin extends Plugin {
                     .setType(MenuAction.RUNELITE)
                     .onClick(e -> {
                         if(e.getOption().equalsIgnoreCase("Set")) {
-                            targetTile = wp;
+                            targetTileProvider.setManualTile(wp);
                         }
                     });
         }
@@ -392,8 +393,20 @@ public class ApiTestPlugin extends Plugin {
 
     private void onMenuOptionClicked(MenuEntry entry) {
         if (entry.getOption().equals("Set") && entry.getTarget().equals(TARGET_TILE)) {
-            targetTile = trueTile;
+            targetTileProvider.setManualTile(trueTile);
         }
+    }
+
+    /**
+     * The tile the movement, camera and pathfinder tests should act on.
+     *
+     * <p>Delegates to {@link TargetTileProvider} so a running suite can supply a tile programmatically
+     * while manual shift click selection keeps working when no suite is active.</p>
+     *
+     * @return the destination tile, or null when none has been selected
+     */
+    public WorldPoint getTargetTile() {
+        return targetTileProvider.get();
     }
 
     private WorldPoint getSelectedWorldPoint() {
