@@ -34,6 +34,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
 import plugins.api.overlay.InfoPanelOverlay;
 import plugins.api.overlay.SceneOverlay;
+import plugins.api.tests.SelfCheckTest;
 import plugins.api.tests.input.MouseTest;
 import plugins.api.tests.interaction.*;
 import plugins.api.tests.query.*;
@@ -141,8 +142,9 @@ public class ApiTestPlugin extends Plugin {
             AreaServiceTest areaServiceTest, BankServiceTest bankServiceTest, DepositBoxServiceTest depositBoxServiceTest,
             DpsServiceTest dpsServiceTest, WidgetTargetNpcTest widgetTargetNpcTest,
             WidgetTargetGameObjectTest widgetTargetGameObjectTest, WidgetTargetWidgetTest widgetTargetWidgetTest, WidgetSubActionTest widgetSubActionTest,
-            WidgetActionTest widgetActionTest
+            WidgetActionTest widgetActionTest, SelfCheckTest selfCheckTest
     ) {
+        registerTest("enableSelfCheck", "SelfCheck", config::enableSelfCheck, selfCheckTest::executeTest);
         registerTest("enablePrayer", "PrayerServiceTest", config::enablePrayerTests, prayerServiceTest::executeTest);
         registerTest("enableBankQuery", "BankQuery", config::enableBankQuery, bankQueryTest::executeTest);
         registerTest("enableInventoryQuery", "InventoryQuery", config::enableInventoryQuery, inventoryQueryTest::executeTest);
@@ -174,8 +176,6 @@ public class ApiTestPlugin extends Plugin {
         registerTest("widgetTargetOnWidget", "WidgetWidgetTargetTest", config::widgetTargetOnWidget, widgetTargetWidgetTest::executeTest);
         registerTest("widgetSubAction", "WidgetSubActionTargetTest", config::widgetSubAction, widgetSubActionTest::executeTest);
         registerTest("widgetAction", "WidgetActionTest", config::widgetAction, widgetActionTest::executeTest);
-
-        testResultManager.clearAllResults();
     }
 
     private void registerTest(String configKey, String testName, BooleanSupplier enabled, Supplier<java.util.concurrent.CompletableFuture<Boolean>> test) {
@@ -309,12 +309,24 @@ public class ApiTestPlugin extends Plugin {
 //        }
     }
 
+    /**
+     * Cancels any in-flight tests when the player ends up back at the login screen, since a test cannot
+     * make meaningful assertions about a world it is no longer in.
+     *
+     * <p>This deliberately does not call {@link #startUp()} or {@link #shutDown()}. RuneLite already
+     * invokes those when the plugin is enabled and disabled, and driving them from here re-registered
+     * every overlay on each login, wiped all recorded results via {@code clearAllResults()}, and — because
+     * {@code HOPPING} was treated as a shutdown — cancelled the whole run whenever a test hopped worlds.
+     * {@code HOPPING} is intentionally ignored: it is transient and the client returns to a logged in
+     * state on its own.</p>
+     *
+     * @param event the game state transition published by the client
+     */
     @Subscribe
     private void onGameStateChanged(final GameStateChanged event) {
-        if (event.getGameState() == GameState.LOGGED_IN) {
-            startUp();
-        } else if (event.getGameState() == GameState.LOGIN_SCREEN || event.getGameState() == GameState.HOPPING) {
-            shutDown();
+        if (event.getGameState() == GameState.LOGIN_SCREEN && testResultManager.areAnyTestsRunning()) {
+            log.warn("Returned to the login screen with tests running, cancelling them.");
+            testResultManager.cancelAllTests();
         }
     }
 

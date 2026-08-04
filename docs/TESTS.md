@@ -11,6 +11,29 @@ and dump output into the console and the overlay for PASS/FAIL.
 Most of the tests are fully self-sufficient; that is, they set themselves up with the necessary in game items before running the tests. However,
 there are a few conditions listed below.
 
+## Start here after a client update: `SelfCheckTest`
+
+Run **Self Check** (General section) before anything else. The harness drives the client using the very
+API it is testing, so when a primitive like `interact` regresses, every test fails during its own setup
+and the results tell you nothing useful. Self Check verifies just those primitives, cheapest first, and
+reports the earliest one that broke:
+
+1. The local player and its world location are readable from a non-client thread.
+2. `gameObjects().withAction("Bank")` (or `npcs().withAction("Bank")`) resolves a bank.
+3. `interact("Bank")` actually opens the bank interface.
+4. The bank and inventory containers agree: one item is withdrawn, the inventory count is observed to
+   rise, and the item is deposited straight back.
+5. The bank interface closes again.
+6. The player walks to a nearby tile that `reachableTiles()` already reported as reachable.
+
+**If Self Check fails, treat every other failure in that run as unexplained** — fix the underlying API
+first. If it passes, the harness can drive the client and other failures are real signal.
+
+- **Location**: any bank booth or banker (Varrock West Bank works).
+- **Bank**: at least one item in the bank, and no PIN (or pre-entered).
+- **Inventory**: at least one free slot.
+- **Note**: non-destructive. The withdrawn item is deposited back and the player moves a few tiles.
+
 ## General Requirements
 
 - **Location**: Most of the tests are designed to be run from **Varrock West Bank**.

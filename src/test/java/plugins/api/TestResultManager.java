@@ -63,6 +63,16 @@ public class TestResultManager {
         public void setDisabled() {
             this.status = TestStatus.DISABLED;
         }
+
+        /**
+         * Returns this result to its pre-run state, discarding any error recorded by a cancellation.
+         * The previous run time and duration are kept so the panel can still show when the test last
+         * produced a real result.
+         */
+        public void setNotStarted() {
+            this.status = TestStatus.NOT_STARTED;
+            this.errorMessage = null;
+        }
     }
 
     private final Map<String, TestResult> testResults = new ConcurrentHashMap<>();
@@ -113,14 +123,39 @@ public class TestResultManager {
         return !runningTests.isEmpty();
     }
 
+    /**
+     * Cancels a running test and returns it to {@link TestStatus#NOT_STARTED}.
+     *
+     * <p>The status reset is applied <em>after</em> the future is cancelled, and the future is removed
+     * from {@code runningTests} first. Both matter: {@link CompletableFuture#cancel(boolean)} completes
+     * the future exceptionally, which synchronously fires the {@code whenComplete} callback registered
+     * in {@link #startTest(String, CompletableFuture)} and marks the test FAILED. Resetting afterwards
+     * is what makes an un-ticked checkbox read "Not Started" instead of "Failed".</p>
+     *
+     * <p>Note that {@code cancel(true)} cannot interrupt a {@link CompletableFuture} that is already
+     * executing — the supplier keeps running to completion on its pool thread, orphaned. Its late
+     * completion is harmless because it no longer appears in {@code runningTests}, but a genuinely
+     * interruptible test run needs a dedicated worker thread rather than the common pool.</p>
+     *
+     * @param testName the registered display name of the test to cancel
+     */
     public void cancelTest(String testName) {
         CompletableFuture<Boolean> future = runningTests.remove(testName);
-        if (future != null) {
-            future.cancel(true);
+        if (future == null) {
+            // Nothing in flight: the test either never started or completed on its own, in which case
+            // its recorded PASSED/FAILED result must be left alone.
+            return;
         }
+
+        // cancel() returns false when the future had already completed, meaning whenComplete has
+        // recorded a genuine result. Only a cancellation we actually won may reset the status.
+        if (!future.cancel(true)) {
+            return;
+        }
+
         TestResult result = testResults.get(testName);
-        if (result != null && result.getStatus() == TestStatus.RUNNING) {
-            result.status = TestStatus.NOT_STARTED;
+        if (result != null) {
+            result.setNotStarted();
         }
     }
 

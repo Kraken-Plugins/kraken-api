@@ -29,6 +29,20 @@ public interface ApiTestConfig extends Config {
     }
 
     @ConfigItem(
+            name = "Self Check",
+            keyName = "enableSelfCheck",
+            description = "Verify the API primitives every other test's setup depends on: <br>" +
+                    "object queries, interaction dispatch, the bank container and movement. <br>" +
+                    "Run this first after a client update. If it fails, other failures are not meaningful. <br>" +
+                    "Requires a nearby bank, one item in the bank and a free inventory slot.",
+            position = -998,
+            section = general
+    )
+    default boolean enableSelfCheck() {
+        return false;
+    }
+
+    @ConfigItem(
             keyName = "showDebugInfo",
             name = "Show Debug Info",
             description = "Display additional debug information in overlays and within the logs.",
