@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.kraken.api.Context;
 import lombok.extern.slf4j.Slf4j;
 import plugins.api.ApiTestConfig;
+import plugins.api.requirements.TestRequirements;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
@@ -64,6 +65,23 @@ public abstract class BaseApiTest {
         for (Method method : methodsToRun) {
             method.invoke(this);
         }
+    }
+
+    /**
+     * Declares the world state this test needs before {@link #runTest(Context)} is called.
+     *
+     * <p>Overriding this lets the runner establish the state itself — travelling, banking, withdrawing
+     * — and report an unmeetable requirement as a skip with a reason rather than as a failure. A test
+     * that does not override it keeps whatever setup it performs inline, so migration is per test and
+     * nothing changes until a test opts in.</p>
+     *
+     * <p>Implementations must be pure. This is called off the client thread, possibly before login,
+     * and the result is cached, so it must not read game state.</p>
+     *
+     * @return the declared preconditions; {@link TestRequirements#NONE} when none are declared
+     */
+    public TestRequirements requirements() {
+        return TestRequirements.NONE;
     }
 
     /**

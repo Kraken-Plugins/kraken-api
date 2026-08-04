@@ -8,7 +8,12 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
+import plugins.api.requirements.BankState;
+import plugins.api.requirements.ItemRequirement;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.world.Facility;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -16,6 +21,24 @@ public class BankTest extends BaseApiTest {
 
     @Inject
     BankService bankService;
+
+    @Override
+    public TestRequirements requirements() {
+        // Everything here is bank stock rather than an inventory requirement: the test deposits the
+        // whole inventory first and then withdraws for itself, so the runner only has to guarantee the
+        // items exist in the bank before the player is stripped.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .bankState(BankState.OPEN)
+                .bankStock(ItemRequirement.of("Rune platebody"))
+                .bankStock(ItemRequirement.of("Rune platelegs"))
+                .bankStock(ItemRequirement.of("Rune full helm"))
+                .bankStock(ItemRequirement.of(373, 4))
+                .bankStock(ItemRequirement.of("Lobster", 13))
+                .sideEffect(SideEffect.EMPTIES_INVENTORY)
+                .sideEffect(SideEffect.STRIPS_EQUIPMENT)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) {

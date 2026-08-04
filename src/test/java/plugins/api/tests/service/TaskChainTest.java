@@ -9,6 +9,10 @@ import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.service.util.TaskChain;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.requirements.BankState;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
+import plugins.api.world.Facility;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
@@ -39,6 +43,16 @@ public class TaskChainTest extends BaseApiTest {
 
     @Inject
     private LocalPathfinder localPathfinder;
+
+    @Override
+    public TestRequirements requirements() {
+        // Asserts it can open the bank, so like BankServiceTest it must start with the bank closed.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .bankState(BankState.CLOSED)
+                .sideEffect(SideEffect.MOVES_PLAYER)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

@@ -8,6 +8,9 @@ import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.requirements.ItemRequirement;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
 
 /**
  * Exercises a nested widget sub action: an item menu option that resolves to a second level choice.
@@ -39,6 +42,18 @@ public class WidgetSubActionTest extends BaseApiTest {
 
     @Inject
     private Context context;
+
+    @Override
+    public TestRequirements requirements() {
+        // Teleports to Al Kharid, so it is ordered last within its group and the runner walks or
+        // teleports back afterwards.
+        return TestRequirements.builder()
+                .inventoryItem(ItemRequirement.of(RING_OF_DUELING))
+                .sideEffect(SideEffect.TELEPORTS)
+                .sideEffect(SideEffect.CONSUMES_ITEMS)
+                .orderHint(100)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

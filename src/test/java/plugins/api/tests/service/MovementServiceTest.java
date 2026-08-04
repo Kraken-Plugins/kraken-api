@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.coords.WorldPoint;
 import plugins.api.ApiTestPlugin;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TargetTile;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
 
 @Slf4j
@@ -23,6 +26,18 @@ public class MovementServiceTest extends BaseApiTest {
 
     @Inject
     private ApiTestPlugin examplePlugin;
+
+    @Override
+    public TestRequirements requirements() {
+        // Declaring a target tile is what makes this test runnable unattended. The body polls for a
+        // tile the user picked by shift right clicking "Set" and gives up after thirty seconds; with a
+        // tile published ahead of time that poll returns immediately, and the manual pathway still
+        // works whenever no suite is running.
+        return TestRequirements.builder()
+                .targetTile(TargetTile.relativeToPlayer(6, 6))
+                .sideEffect(SideEffect.MOVES_PLAYER)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

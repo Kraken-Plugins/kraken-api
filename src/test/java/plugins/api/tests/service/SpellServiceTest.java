@@ -5,11 +5,20 @@ import com.kraken.api.Context;
 import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.magic.MagicService;
+import com.kraken.api.service.magic.spellbook.Spellbook;
 import com.kraken.api.service.magic.spellbook.Standard;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
+import plugins.api.requirements.BankState;
+import plugins.api.requirements.ItemRequirement;
+import plugins.api.requirements.NpcRequirement;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.SkillRequirement;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.world.Facility;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Skill;
 
 @Slf4j
 public class SpellServiceTest extends BaseApiTest {
@@ -19,6 +28,30 @@ public class SpellServiceTest extends BaseApiTest {
 
     @Inject
     private BankService bankService;
+
+    @Override
+    public TestRequirements requirements() {
+        // Part of this test asserts hasRequiredRunes returns false before the law rune is withdrawn, so
+        // it must start with an empty inventory as well as an open bank.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .facility(Facility.COMBAT_NPCS_F2P)
+                .bankState(BankState.OPEN)
+                .bankStock(ItemRequirement.of("Mind rune", 10))
+                .bankStock(ItemRequirement.of("Fire rune", 50))
+                .bankStock(ItemRequirement.of("Air rune", 5))
+                .bankStock(ItemRequirement.of("Law rune", 1))
+                .nearbyNpc(NpcRequirement.named("Guard"))
+                .skill(SkillRequirement.of(Skill.MAGIC, 25))
+                .spellbook(Spellbook.STANDARD)
+                .sideEffect(SideEffect.EMPTIES_INVENTORY)
+                .sideEffect(SideEffect.CONSUMES_ITEMS)
+                .sideEffect(SideEffect.TELEPORTS)
+                // Ends with a Varrock teleport, which lands next to the hub, so it costs almost nothing
+                // to recover from provided it runs late in the group.
+                .orderHint(50)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) {

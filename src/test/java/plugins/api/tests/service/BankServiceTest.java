@@ -6,7 +6,11 @@ import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
+import plugins.api.requirements.BankState;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.world.Facility;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -15,6 +19,19 @@ public class BankServiceTest extends BaseApiTest {
 
     @Inject
     private BankService bankService;
+
+    @Override
+    public TestRequirements requirements() {
+        // Asserts it can open the bank itself, so it must start closed. This is the direct opposite of
+        // SpellServiceTest, which needs the bank already open — running them in sequence used to fail
+        // whichever went second.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .bankState(BankState.CLOSED)
+                .sideEffect(SideEffect.EMPTIES_INVENTORY)
+                .sideEffect(SideEffect.STRIPS_EQUIPMENT)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

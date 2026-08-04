@@ -2,11 +2,21 @@ package plugins.api.tests.query;
 
 import com.kraken.api.Context;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.requirements.TestRequirements;
+import plugins.api.world.Facility;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
 @Slf4j
 public class GameObjectTest extends BaseApiTest {
+
+    @Override
+    public TestRequirements requirements() {
+        // Read only: queries bank booths and touches nothing.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

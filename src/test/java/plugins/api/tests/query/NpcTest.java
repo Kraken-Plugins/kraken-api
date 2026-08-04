@@ -3,10 +3,22 @@ package plugins.api.tests.query;
 import com.kraken.api.Context;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
+import plugins.api.requirements.NpcRequirement;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.world.Facility;
 
 @Slf4j
 public class NpcTest extends BaseApiTest {
+
+    @Override
+    public TestRequirements requirements() {
+        // Reads the scene and attacks a guard; needs no items and changes nothing that outlives it.
+        return TestRequirements.builder()
+                .facility(Facility.COMBAT_NPCS_F2P)
+                .nearbyNpc(NpcRequirement.named("Guard"))
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

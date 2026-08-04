@@ -8,6 +8,11 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.requirements.ItemRequirement;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
+import plugins.api.world.Facility;
+import plugins.api.world.NamedLocation;
 
 /**
  * Exercises using an inventory item on a game object, by filling a bucket at a fountain.
@@ -30,6 +35,17 @@ public class WidgetTargetGameObjectTest extends BaseApiTest {
     private static final String BUCKET_OF_WATER = "Bucket of water";
 
     private static final int FILL_TIMEOUT_MS = 6000;
+
+    @Override
+    public TestRequirements requirements() {
+        // Runs at the fountain but collects its bucket from the hub bank beforehand.
+        return TestRequirements.builder()
+                .facility(Facility.WATER_SOURCE)
+                .stagingLocation(NamedLocation.VARROCK_EAST_BANK)
+                .inventoryItem(ItemRequirement.of(BUCKET))
+                .sideEffect(SideEffect.CONSUMES_ITEMS)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

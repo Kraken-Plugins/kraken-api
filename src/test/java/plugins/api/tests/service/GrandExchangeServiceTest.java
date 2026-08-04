@@ -9,7 +9,13 @@ import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.grandexchange.GrandExchangeService;
 import com.kraken.api.service.grandexchange.GrandExchangeSlot;
 import com.kraken.api.service.util.SleepService;
+import plugins.api.requirements.BankState;
+import plugins.api.requirements.CustomRequirement;
+import plugins.api.requirements.ItemRequirement;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.world.NamedLocation;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -24,6 +30,26 @@ public class GrandExchangeServiceTest extends BaseApiTest {
 
     @Inject
     private GrandExchangeService grandExchangeService;
+
+    @Override
+    public TestRequirements requirements() {
+        // Marked destructive because it places live orders and deliberately sells at a loss. It is
+        // excluded from bulk runs by default and must be opted into.
+        //
+        // The free slot is the archetypal custom check: the runner can see whether one exists but must
+        // never establish one, since that would mean cancelling somebody's real offers.
+        return TestRequirements.builder()
+                .location(NamedLocation.GRAND_EXCHANGE)
+                .bankState(BankState.CLOSED)
+                .bankStock(ItemRequirement.of("Fire rune", 3))
+                .customCheck(CustomRequirement.of("a free Grand Exchange slot",
+                        context -> context.getService(GrandExchangeService.class).getFirstFreeSlot() != null))
+                .destructive(true)
+                .sideEffect(SideEffect.TRADES_ON_GE)
+                .sideEffect(SideEffect.CONSUMES_ITEMS)
+                .sideEffect(SideEffect.LEAVES_INTERFACE_OPEN)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

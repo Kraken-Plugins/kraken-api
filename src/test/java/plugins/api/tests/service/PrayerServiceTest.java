@@ -4,15 +4,29 @@ import com.google.inject.Inject;
 import com.kraken.api.Context;
 import com.kraken.api.service.prayer.PrayerService;
 import com.kraken.api.service.util.SleepService;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.SkillRequirement;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Prayer;
+import net.runelite.api.Skill;
 
 @Slf4j
 public class PrayerServiceTest extends BaseApiTest {
 
     @Inject
     private PrayerService prayer;
+
+    @Override
+    public TestRequirements requirements() {
+        // Protect from Melee unlocks at 43 Prayer; without it the toggle silently does nothing and the
+        // isActive assertions fail for a reason that has nothing to do with the API.
+        return TestRequirements.builder()
+                .skill(SkillRequirement.of(Skill.PRAYER, 43))
+                .sideEffect(SideEffect.TOGGLES_PRAYER)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) {

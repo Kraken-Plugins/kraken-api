@@ -7,6 +7,12 @@ import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.ui.processing.ProcessingService;
 import com.kraken.api.service.util.SleepService;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.requirements.ItemRequirement;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.SkillRequirement;
+import plugins.api.requirements.TestRequirements;
+import plugins.api.world.Facility;
+import net.runelite.api.Skill;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -47,6 +53,19 @@ public class ProcessingServiceTest extends BaseApiTest {
 
     @Inject
     private ProcessingService processingService;
+
+    @Override
+    public TestRequirements requirements() {
+        // Needs a bank only so the runner can hand it a chisel and a gem; the crafting itself happens
+        // wherever the player is standing.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .inventoryItem(ItemRequirement.of(CHISEL))
+                .inventoryItem(ItemRequirement.of(UNCUT_SAPPHIRE, 1))
+                .skill(SkillRequirement.of(Skill.CRAFTING, 20))
+                .sideEffect(SideEffect.CONSUMES_ITEMS)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {

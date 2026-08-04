@@ -12,6 +12,8 @@ import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
+import plugins.api.requirements.TestRequirements;
+import plugins.api.world.Facility;
 
 import java.util.List;
 
@@ -51,6 +53,15 @@ public class SelfCheckTest extends BaseApiTest {
 
     @Inject
     private LocalPathfinder localPathfinder;
+
+    @Override
+    public TestRequirements requirements() {
+        // Deliberately minimal. This test validates the primitives the precondition engine itself is
+        // built from, so it must not depend on that engine doing anything beyond putting it at a bank.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
