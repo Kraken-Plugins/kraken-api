@@ -17,56 +17,6 @@ public interface ApiTestConfig extends Config {
     String general = "general";
 
     @ConfigItem(
-            name = "Clear Tests",
-            keyName = "clearTests",
-            description = "clear the execution of the configured tests. <br>" +
-                    "This produces a clean slate for running or re-running tests.",
-            position = -999,
-            section = general
-    )
-    default boolean clearTests() {
-        return false;
-    }
-
-    @ConfigItem(
-            name = "Run All Tests",
-            keyName = "runAllTests",
-            description = "Run the whole suite in one go, ordered to minimise walking. <br>" +
-                    "Each test's preconditions are established first, and anything that cannot be set up <br>" +
-                    "is skipped with a reason rather than failed. <br>" +
-                    "Start at Varrock East Bank. Expect this to take a while.",
-            position = -998,
-            section = general
-    )
-    default boolean runAllTests() {
-        return false;
-    }
-
-    @ConfigItem(
-            name = "Run Group",
-            keyName = "runGroup",
-            description = "Run only one category of tests. Much faster than a full pass when you are <br>" +
-                    "chasing a regression in one area.",
-            position = -997,
-            section = general
-    )
-    default plugins.api.suite.TestGroup runGroup() {
-        return plugins.api.suite.TestGroup.QUERY;
-    }
-
-    @ConfigItem(
-            name = "Stop Run",
-            keyName = "stopRun",
-            description = "Cancel the run in progress. Interrupts the worker, so it stops mid-walk <br>" +
-                    "rather than finishing the current test first.",
-            position = -996,
-            section = general
-    )
-    default boolean stopRun() {
-        return false;
-    }
-
-    @ConfigItem(
             name = "Bank PIN",
             keyName = "bankPin",
             description = "Your four digit bank pin, used to get past the keypad during automated setup. <br>" +
@@ -81,7 +31,7 @@ public interface ApiTestConfig extends Config {
     }
 
     @ConfigItem(
-            name = "Establish Preconditions",
+            name = "Establish Requirements",
             keyName = "establishPreconditions",
             description = "Let the runner set up the world before each test: travel, bank, withdraw. <br>" +
                     "Turn this off to run a test exactly as it stands, which is the quickest way to tell <br>" +
@@ -94,17 +44,29 @@ public interface ApiTestConfig extends Config {
     }
 
     @ConfigItem(
-            name = "Self Check",
-            keyName = "enableSelfCheck",
-            description = "Verify the API primitives every other test's setup depends on: <br>" +
-                    "object queries, interaction dispatch, the bank container and movement. <br>" +
-                    "Run this first after a client update. If it fails, other failures are not meaningful. <br>" +
-                    "Requires a nearby bank, one item in the bank and a free inventory slot.",
-            position = -998,
+            name = "Include Destructive Tests",
+            keyName = "includeDestructive",
+            description = "Destructive tests are tests which have side effects mutating the world. i.e." +
+                    "G.E. Test is destructive because it costs gold and fire runes to execute. <br>" +
+                    "Movement tests are considered non-destructive because it costs nothing to move to a tile.",
+            position = -995,
             section = general
     )
-    default boolean enableSelfCheck() {
-        return false;
+    default boolean includeDestructive() {
+        return true;
+    }
+
+    @Units(Units.SECONDS)
+    @ConfigItem(
+            name = "Test Timeout",
+            keyName = "testTimeout",
+            description = "The timeout in seconds for a test. If a test exceeds this value <br>" +
+                    "it will be cancelled and considered failed.",
+            position = -994,
+            section = general
+    )
+    default int timeout() {
+        return 25;
     }
 
     @ConfigItem(
@@ -157,413 +119,6 @@ public interface ApiTestConfig extends Config {
         return false;
     }
 
-    // =========== Widget Actions Section ================
-    @ConfigSection(
-            name = "Widget Actions",
-            description = "Tests for using widgets on various game entities. <br>" +
-                    "I.e. spell on npc, chisel on gemstone, bucket on fountain",
-            position = 98
-    )
-    String widgetActions = "Widget Actions";
-
-    @ConfigItem(
-            name = "Widget Target NPC",
-            keyName = "widgetTargetOnNpc",
-            description = "Targets a Guard in Varrock with fire strike.",
-            position = 1,
-            section = widgetActions
-    )
-    default boolean widgetTargetOnNpc() {
-        return false;
-    }
-
-    @ConfigItem(
-            name = "Widget Target Game Object",
-            keyName = "widgetTargetOnGameObject",
-            description = "Targets an empty bucket to be used on a fountain in Varrock",
-            position = 2,
-            section = widgetActions
-    )
-    default boolean widgetTargetOnGameObject() {
-        return false;
-    }
-
-    @ConfigItem(
-            name = "Widget Target Widget",
-            keyName = "widgetTargetOnWidget",
-            description = "Targets a chisel to be used on a sapphire. <br>" +
-                    "Have a chisel and uncut sapphire in your inventory",
-            position = 3,
-            section = widgetActions
-    )
-    default boolean widgetTargetOnWidget() {
-        return false;
-    }
-
-    @ConfigItem(
-            name = "Widget Sub Action",
-            keyName = "widgetSubAction",
-            description = "Targets a sub action of the ring of dueling teleport.",
-            position = 4,
-            section = widgetActions
-    )
-    default boolean widgetSubAction() {
-        return false;
-    }
-
-    @ConfigItem(
-            name = "Widget Action",
-            keyName = "widgetAction",
-            description = "Uses a standard cc op widget action (clicking on spec orb).",
-            position = 5,
-            section = widgetActions
-    )
-    default boolean widgetAction() {
-        return false;
-    }
-
-    // =========== Pathfinding Section ================
-    @ConfigSection(
-            name = "Pathfinding Tests",
-            description = "Settings for enabling and testing pathfinding across the world",
-            position = 99
-    )
-    String pathfinding = "pathfinding";
-
-    /**
-     * Defines the pathfinder test target in world coordinates.
-     *
-     * @return Target coordinates in the format x,y,z. Leave blank to use a selected tile.
-     */
-    @ConfigItem(
-            name = "Local Pathfinder Target",
-            keyName = "pathfinderTestTarget",
-            description = "Target coordinates for the pathfinder service test in the format: x,y,z.",
-            position = 2,
-            section = pathfinding
-    )
-    default String pathfinderTestTarget() {
-        return "";
-    }
-
-    @ConfigItem(
-            keyName = "enablePathfinder",
-            name = "Start Local Pathfinder",
-            description = "Enable pathfinder service tests",
-            section = pathfinding,
-            position = 3
-    )
-    default boolean enablePathfinder() {
-        return true;
-    }
-
-    @ConfigItem(
-            name = "Global Pathfinder Target",
-            keyName = "globalPathfinderTarget",
-            description = "Target coordinates for the global pathfinder test in the format: x,y,z. Leave blank to use the selected tile.",
-            position = 4,
-            section = pathfinding
-    )
-    default String globalPathfinderTarget() {
-        return "";
-    }
-
-    @ConfigItem(
-            keyName = "enableGlobalPathfinder",
-            name = "Start Global Pathfinder",
-            description = "Run the global pathfinder service test using the shortest-path transport graph.",
-            section = pathfinding,
-            position = 5
-    )
-    default boolean enableGlobalPathfinder() {
-        return false;
-    }
-
-    @ConfigItem(
-            keyName = "showGlobalPathfinderOverlay",
-            name = "Show Global Path Overlay",
-            description = "Render the most recently computed global path and any transport hops on the scene and world map.",
-            section = pathfinding,
-            position = 6
-    )
-    default boolean showGlobalPathfinderOverlay() {
-        return false;
-    }
-
-    // =========== Tests Section ================
-    @ConfigSection(
-            name = "Query Tests",
-            description = "Settings for enabling specific API query tests.",
-            position = 100
-    )
-    String tests = "Query Tests";
-
-    @ConfigItem(
-            keyName = "enableBankQuery",
-            name = "Start Bank Tests",
-            description = "Enable Bank Query Tests",
-            section = tests,
-            position = 2
-    )
-    default boolean enableBankQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableInventoryQuery",
-            name = "Start Inventory Tests",
-            description = "Enable Inventory Query Tests",
-            section = tests,
-            position = 3
-    )
-    default boolean enableInventoryQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableBankInventoryQuery",
-            name = "Start Bank Inventory Tests",
-            description = "Enable Bank inventory Query Tests",
-            section = tests,
-            position = 4
-    )
-    default boolean enableBankInventoryQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableEquipmentQuery",
-            name = "Start Equipment Tests",
-            description = "Enable Equipment Query Tests",
-            section = tests,
-            position = 5
-    )
-    default boolean enableEquipmentQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableGameObjectQuery",
-            name = "Start Game Object Tests",
-            description = "Enable game object query tests",
-            section = tests,
-            position = 6
-    )
-    default boolean enableGameObjectQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableGroundObjectQuery",
-            name = "Start Ground Object Tests",
-            description = "Enable Ground object query tests",
-            section = tests,
-            position = 6
-    )
-    default boolean enableGroundObjectQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableNpcQuery",
-            name = "Start Npc Tests",
-            description = "Enable Npc object query tests",
-            section = tests,
-            position = 7
-    )
-    default boolean enableNpcQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enablePlayerQuery",
-            name = "Start Player Tests",
-            description = "Enable Player object query tests",
-            section = tests,
-            position = 8
-    )
-    default boolean enablePlayerQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableWidgetQuery",
-            name = "Start Widget Tests",
-            description = "Enable Widget object query tests",
-            section = tests,
-            position = 9
-    )
-    default boolean enableWidgetQuery() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableWorldQuery",
-            name = "Start World Tests",
-            description = "Enable World object query tests",
-            section = tests,
-            position = 10
-    )
-    default boolean enableWorldQuery() {
-        return true;
-    }
-
-
-    @ConfigItem(
-            keyName = "enableDepositBoxQuery",
-            name = "Start Deposit Box Query Tests",
-            description = "Enable Deposit Box query tests",
-            section = tests,
-            position = 11
-    )
-    default boolean enableDepositBoxQuery() {
-        return true;
-    }
-
-
-    // ==============================================
-    // ========== SERVICE TEST SETTINGS ==========
-    // ==============================================
-    @ConfigSection(
-            name = "Service Tests",
-            description = "Options for configuring service class tests",
-            position = 101
-    )
-    String serviceTests = "Service Tests";
-
-    @ConfigItem(
-            keyName = "enablePrayer",
-            name = "Start Prayer Service Tests",
-            description = "Enable Prayer tests",
-            section = serviceTests,
-            position = 1
-    )
-    default boolean enablePrayerTests() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableMovement",
-            name = "Start Movement Service Tests",
-            description = "Enable movement service tests",
-            section = serviceTests,
-            position = 2
-    )
-    default boolean enableMovementTests() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableSpell",
-            name = "Start Spell Service Tests",
-            description = "Enable spell service tests",
-            section = serviceTests,
-            position = 3
-    )
-    default boolean enableSpellTests() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableCamera",
-            name = "Start Camera Service Tests",
-            description = "Enable camera service tests",
-            section = serviceTests,
-            position = 4
-    )
-    default boolean enableCameraTests() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableTaskChain",
-            name = "Start Task Chain Tests",
-            description = "Enable task chain tests",
-            section = serviceTests,
-            position = 6
-    )
-    default boolean enableTaskChain() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableDialogueService",
-            name = "Start Dialogue Service Tests",
-            description = "Enable dialogue service tests",
-            section = serviceTests,
-            position = 7
-    )
-    default boolean enableDialogueService() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableProcessingService",
-            name = "Start Process Service Tests",
-            description = "Enable process service tests",
-            section = serviceTests,
-            position = 8
-    )
-    default boolean enableProcessService() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableAreaService",
-            name = "Start Area Service Tests",
-            description = "Enable area service tests",
-            section = serviceTests,
-            position = 9
-    )
-    default boolean enableAreaService() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableGrandExchangeService",
-            name = "Start GE Tests",
-            description = "Enable grand exchange tests",
-            section = serviceTests,
-            position = 10
-    )
-    default boolean enableGrandExchangeService() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableBankServiceTests",
-            name = "Start Bank Service Tests",
-            description = "Enable Bank service tests",
-            section = serviceTests,
-            position = 11
-    )
-    default boolean enableBankServiceTests() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableDepositBoxService",
-            name = "Start Deposit Box Service Tests",
-            description = "Enable Deposit Box service tests",
-            section = serviceTests,
-            position = 12
-    )
-    default boolean enableDepositBoxService() {
-        return true;
-    }
-
-    @ConfigItem(
-            keyName = "enableDpsService",
-            name = "Start DPS Service Tests",
-            description = "Enable DPS service tests. Requires the free to play kit listed in docs/TESTS.md " +
-                    "to be in the bank and a nearby guard, man or goblin.",
-            section = serviceTests,
-            position = 13
-    )
-    default boolean enableDpsService() {
-        return true;
-    }
-
     // ==============================================
     // ========== MOUSE SETTINGS ==========
     // ==============================================
@@ -595,17 +150,6 @@ public interface ApiTestConfig extends Config {
     )
     default MouseMovementStrategy mouseStrategy() {
         return MouseMovementStrategy.NO_MOVEMENT;
-    }
-
-    @ConfigItem(
-            keyName = "enableMouseTest",
-            name = "Start Mouse Test",
-            description = "Starts the mouse movement test, using the \"test\" recording data",
-            section = mouseSettings,
-            position = 3
-    )
-    default boolean enableMouseTest() {
-        return true;
     }
 
 

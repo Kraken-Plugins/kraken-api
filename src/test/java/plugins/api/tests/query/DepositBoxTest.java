@@ -9,9 +9,11 @@ import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.EquipmentInventorySlot;
+import plugins.api.requirements.ItemRequirement;
 import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
 import plugins.api.world.Facility;
+import plugins.api.world.NamedLocation;
 
 @Slf4j
 @Singleton
@@ -24,6 +26,11 @@ public class DepositBoxTest extends BaseApiTest {
     public TestRequirements requirements() {
         return TestRequirements.builder()
                 .facility(Facility.DEPOSIT_BOX)
+                .location(NamedLocation.VARROCK_WEST_BANK)
+                .inventoryItem(ItemRequirement.of("Coins", 500))
+                .inventoryItem(ItemRequirement.builder().name("Swordfish").quantity(6).noted(ItemRequirement.Noted.NOTED).build())
+                .inventoryItem(ItemRequirement.builder().name("Lobster").quantity(20).noted(ItemRequirement.Noted.NOTED).build())
+                .inventoryItem(ItemRequirement.of("Fire Rune", 50))
                 .build();
     }
 

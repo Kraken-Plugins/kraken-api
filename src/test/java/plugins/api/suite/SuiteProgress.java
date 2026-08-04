@@ -43,11 +43,6 @@ public class SuiteProgress {
     int skipped;
     int cancelled;
 
-    /** A progress snapshot representing "no run in progress". */
-    public static SuiteProgress idle() {
-        return SuiteProgress.builder().elapsed(Duration.ZERO).build();
-    }
-
     /**
      * Renders the run's position for a compact display.
      *

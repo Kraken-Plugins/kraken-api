@@ -72,7 +72,7 @@ public class TestOrderPlanner {
         List<PlannedStep> plan = new ArrayList<>();
 
         if (selfCheck != null) {
-            plan.add(new PlannedStep(plan.size(), selfCheck, NamedLocation.ANYWHERE, RANK_READ_ONLY,
+            plan.add(new PlannedStep(0, selfCheck, NamedLocation.ANYWHERE, RANK_READ_ONLY,
                     "Runs first: gates the rest of the run on the harness being able to drive the client"));
         }
 

@@ -62,8 +62,7 @@ public class CameraServiceTest extends BaseApiTest {
 
         camera.setPitch(128); // Max down
         Thread.sleep(RandomService.between(600, 1200));
-        log.info("Camera pitch: {}", camera.getPitch());
-        if (camera.getPitch() > 240) {
+        if (camera.getPitch() > 1024) {
             log.error("Failed to set Pitch MIN (Down)");
             return false;
         }

@@ -8,10 +8,8 @@ import com.kraken.api.core.script.breakhandler.BreakConditions;
 import com.kraken.api.core.script.breakhandler.BreakManager;
 import com.kraken.api.core.script.breakhandler.BreakProfile;
 import com.kraken.api.input.mouse.MouseRecorder;
-import com.kraken.api.overlay.GlobalPathfinderOverlay;
 import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.service.map.WorldMapService;
-import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.ui.login.LoginService;
 import lombok.Getter;
@@ -35,10 +33,13 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.ImageUtil;
-import plugins.api.ui.ApiTestPanel;
 import plugins.api.overlay.InfoPanelOverlay;
 import plugins.api.overlay.SceneOverlay;
-import plugins.api.suite.*;
+import plugins.api.suite.RegisteredTest;
+import plugins.api.suite.SuiteOptions;
+import plugins.api.suite.TestRegistry;
+import plugins.api.suite.TestRunner;
+import plugins.api.ui.ApiTestPanel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,13 +87,7 @@ public class ApiTestPlugin extends Plugin {
     private MouseOverlay mouseOverlay;
 
     @Inject
-    private GlobalPathfinderOverlay globalPathfinderOverlay;
-
-    @Inject
     private LocalPathfinder pathfinder;
-
-    @Inject
-    private GlobalPathfinder globalPathfinder;
 
     @Inject
     private WorldMapService worldMapService;
@@ -128,12 +123,6 @@ public class ApiTestPlugin extends Plugin {
     private List<WorldPoint> currentPath = new ArrayList<>();
 
     @Getter
-    private final List<WorldPoint> scriptPath = new ArrayList<>(); // The path used by the script
-
-    @Getter
-    private final List<WorldPoint> pathfinderTestPath = new ArrayList<>();
-
-    @Getter
     private WorldArea targetArea;
 
     private WorldPoint trueTile;
@@ -147,7 +136,7 @@ public class ApiTestPlugin extends Plugin {
     @Subscribe
     private void onMenuOptionClicked(MenuOptionClicked event) {
         if (config.showDebugInfo()) {
-            log.info("Evt: Param0={}, Param1={}, MenuAction={}, ItemId={}, id={}, Option={}, Target={}, itemOp={}",
+            log.info("MouseEvent(Param0={}, Param1={}, MenuAction={}, ItemId={}, id={}, Option={}, Target={}, itemOp={})",
                     event.getParam0(), event.getParam1(), event.getMenuAction().name(), event.getItemId(),
                     event.getId(), event.getMenuOption(), event.getMenuTarget(), event.getItemOp());
         }
@@ -193,37 +182,6 @@ public class ApiTestPlugin extends Plugin {
             }
         }
 
-        if (key.equalsIgnoreCase("showGlobalPathfinderOverlay")) {
-            if (config.showGlobalPathfinderOverlay()) {
-                overlayManager.add(globalPathfinderOverlay);
-            } else {
-                overlayManager.remove(globalPathfinderOverlay);
-            }
-        }
-
-        if (key.equals("clearTests") && config.clearTests()) {
-            testResultManager.clearAllResults();
-            return;
-        }
-
-        if (key.equals("runAllTests") && config.runAllTests()) {
-            testRunner.runAll(currentOptions());
-            return;
-        }
-
-        if (key.equals("stopRun") && config.stopRun()) {
-            testRunner.cancel();
-            return;
-        }
-
-        if (key.equals("runGroup")) {
-            TestGroup group = config.runGroup();
-            if (group != null) {
-                testRunner.runGroup(group, currentOptions());
-            }
-            return;
-        }
-
         // A per-test toggle starts just that test, preconditions and all. Reading the event's new
         // value means only ticking a box starts a run; un-ticking one no longer re-triggers it.
         if (!"true".equalsIgnoreCase(event.getNewValue())) {
@@ -242,6 +200,8 @@ public class ApiTestPlugin extends Plugin {
     private SuiteOptions currentOptions() {
         return SuiteOptions.builder()
                 .establishPreconditions(config.establishPreconditions())
+                .includeDestructive(config.includeDestructive())
+                .perTestTimeoutMs(config.timeout())
                 .build();
     }
 
@@ -264,9 +224,6 @@ public class ApiTestPlugin extends Plugin {
         overlayManager.add(sceneOverlay);
         if (config.showMouse()) {
             overlayManager.add(mouseOverlay);
-        }
-        if (config.showGlobalPathfinderOverlay()) {
-            overlayManager.add(globalPathfinderOverlay);
         }
 
         breakManager.initialize();
@@ -329,8 +286,6 @@ public class ApiTestPlugin extends Plugin {
         overlayManager.remove(infoPanelOverlay);
         overlayManager.remove(sceneOverlay);
         overlayManager.remove(mouseOverlay);
-        overlayManager.remove(globalPathfinderOverlay);
-        globalPathfinder.clearLastResult();
 
         // TODO Find out how you want to test this
 //        if (!breakManager.isOnBreak()) {

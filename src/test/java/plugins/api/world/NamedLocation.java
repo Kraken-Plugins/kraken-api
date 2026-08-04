@@ -36,6 +36,14 @@ public enum NamedLocation {
             EnumSet.of(Facility.BANK_BOOTH, Facility.BANKER_NPC,
                     Facility.COMBAT_NPCS_F2P, Facility.OTHER_PLAYERS)),
 
+
+    VARROCK_WEST_BANK(
+            "Varrock West Bank",
+            new WorldPoint(3182, 3438, 0),
+            new WorldArea(3179, 3433, 12, 15, 0),
+            6,
+            EnumSet.of(Facility.BANK_BOOTH, Facility.BANKER_NPC, Facility.DEPOSIT_BOX, Facility.OTHER_PLAYERS)),
+
     VARROCK_EAST_GUARDS(
             "Varrock East Guards",
             new WorldPoint(3271, 3428, 0),

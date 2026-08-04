@@ -57,8 +57,6 @@ public class TestRunner {
             });
 
     private final AtomicBoolean running = new AtomicBoolean(false);
-
-    private volatile Thread worker;
     private volatile CancellationToken token;
 
     /**
