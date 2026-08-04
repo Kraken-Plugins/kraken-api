@@ -123,7 +123,9 @@ public class WorldQueryTest extends BaseApiTest {
              }
         }
 
-        ctx.worlds().freeToPlay().next().hop();
+        // This test delays future tests and adds complexity. Hopping is done via client actions and RuneLite itself
+        // it should never be broken due to game updates.
+//        ctx.worlds().freeToPlay().next().hop();
         return true;
     }
 

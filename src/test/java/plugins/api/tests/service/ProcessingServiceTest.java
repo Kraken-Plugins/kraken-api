@@ -124,28 +124,20 @@ public class ProcessingServiceTest extends BaseApiTest {
     private boolean craftOneSapphire(Context ctx, long cutBefore) {
         String usedAction = null;
 
-        for (String action : CRAFT_ACTIONS) {
-            if (!processingService.isOpen()) {
-                break;
-            }
+        if (!processingService.isOpen()) {
+            log.error("Processing service test: the make-X interface is not open");
+            return false;
+        }
 
-            if (processingService.process(action, UNCUT_SAPPHIRE)) {
-                usedAction = action;
-                if (SleepService.sleepUntilTrue(
-                        () -> ctx.inventory().withId(SAPPHIRE).count() > cutBefore, CRAFT_TIMEOUT_MS)) {
-                    log.info("Processing service test: crafted a sapphire using the '{}' action", action);
-                    return true;
-                }
+        if (processingService.process("Cut", UNCUT_SAPPHIRE)) {
+            if (SleepService.sleepUntilTrue(
+                    () -> ctx.inventory().withId(SAPPHIRE).count() > cutBefore, CRAFT_TIMEOUT_MS)) {
+                log.info("Processing service test: crafted a sapphire using the 'Cut' action");
+                return true;
             }
         }
 
-        if (usedAction == null) {
-            return assertThat(false, "Processing service test: the make-X interface is open but does not "
-                    + "offer a uncut sapphire (item " + UNCUT_SAPPHIRE + ") under any of the expected actions");
-        }
-
-        return assertThat(false, "Processing service test: selected the cut sapphire with '" + usedAction
-                + "' but no sapphire appeared in the inventory. Check the Crafting level is at least 20");
+        return assertThat(false, "Processing service test: selected the cut sapphire with 'Cut' but no sapphire appeared in the inventory. Check the Crafting level is at least 20");
     }
 
     @Override

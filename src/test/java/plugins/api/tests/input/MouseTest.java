@@ -39,14 +39,14 @@ public class MouseTest extends BaseApiTest {
         log.info("Moving to random game object: {}", gameObject.getName());
         mouse.move(gameObject.raw());
 
-        Thread.sleep(RandomService.between(3000, 5000));
+        Thread.sleep(RandomService.between(600, 1200));
 
         // Find a random NPC, move mouse to it
         NpcEntity npc = ctx.npcs().within(10).random();
         log.info("Moving to random NPC: {}", npc.getName());
         mouse.move(npc.raw());
 
-        Thread.sleep(RandomService.between(3000, 5000));
+        Thread.sleep(RandomService.between(600, 1200));
 
 
         // Find a random player (if nearby)
@@ -58,7 +58,7 @@ public class MouseTest extends BaseApiTest {
             log.info("No nearby players found.");
         }
 
-        Thread.sleep(RandomService.between(3000, 5000));
+        Thread.sleep(RandomService.between(600, 1200));
 
         // Find a random world point
         WorldPoint pt = ctx.players().local().location();
@@ -66,8 +66,6 @@ public class MouseTest extends BaseApiTest {
         int y = pt.getY() + RandomService.between(1, 10);
         log.info("Moving to random world point: ({}, {})", x, y);
         mouse.move(new WorldPoint(x, y, 0));
-
-        Thread.sleep(RandomService.between(3000, 5000));
         return true;
     }
 

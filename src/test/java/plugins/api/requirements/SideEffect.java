@@ -43,9 +43,6 @@ public enum SideEffect {
     /** Turns prayers on. */
     TOGGLES_PRAYER,
 
-    /** Enables the special attack. */
-    ENABLES_SPEC,
-
     /** Places real orders on the Grand Exchange, spending real coins. */
     TRADES_ON_GE
 }
