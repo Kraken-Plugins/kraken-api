@@ -1,16 +1,11 @@
 package plugins.api.world;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -22,6 +17,7 @@ import java.util.stream.Collectors;
  * few tiles from it, and one genuine outpost.</p>
  */
 @Getter
+@AllArgsConstructor
 public enum NamedLocation {
 
     /**
@@ -39,6 +35,14 @@ public enum NamedLocation {
             6,
             EnumSet.of(Facility.BANK_BOOTH, Facility.BANKER_NPC,
                     Facility.COMBAT_NPCS_F2P, Facility.OTHER_PLAYERS)),
+
+    VARROCK_EAST_GUARDS(
+            "Varrock East Guards",
+            new WorldPoint(3271, 3428, 0),
+            new WorldArea(3266, 3425, 13, 8, 0),
+            6,
+            EnumSet.of(Facility.COMBAT_NPCS_F2P)
+    ),
 
     /**
      * The Varrock Square fountain, a short walk north of the hub, used as the water source for the
@@ -76,15 +80,6 @@ public enum NamedLocation {
     private final WorldArea bounds;
     private final int defaultRadius;
     private final Set<Facility> facilities;
-
-    NamedLocation(String displayName, WorldPoint anchor, WorldArea bounds,
-                  int defaultRadius, Set<Facility> facilities) {
-        this.displayName = displayName;
-        this.anchor = anchor;
-        this.bounds = bounds;
-        this.defaultRadius = defaultRadius;
-        this.facilities = Collections.unmodifiableSet(facilities);
-    }
 
     /**
      * Reports whether this location offers every one of the given facilities.

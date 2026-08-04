@@ -29,9 +29,13 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.JagexColors;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
+import net.runelite.client.util.ImageUtil;
+import plugins.api.ui.ApiTestPanel;
 import plugins.api.overlay.InfoPanelOverlay;
 import plugins.api.overlay.SceneOverlay;
 import plugins.api.suite.*;
@@ -113,6 +117,12 @@ public class ApiTestPlugin extends Plugin {
 
     @Inject
     private TestRegistry testRegistry;
+
+    @Inject
+    private ClientToolbar clientToolbar;
+
+    private ApiTestPanel apiTestPanel;
+    private NavigationButton navigationButton;
 
     @Getter
     private List<WorldPoint> currentPath = new ArrayList<>();
@@ -245,6 +255,8 @@ public class ApiTestPlugin extends Plugin {
             testResultManager.registerTest(test.getId(), test.getDisplayName());
         }
 
+        addSidePanel();
+
         exampleScript.start();
 
         overlayManager.add(overlay);
@@ -275,9 +287,42 @@ public class ApiTestPlugin extends Plugin {
         testResultManager.clearAllResults();
     }
 
+    /**
+     * Adds the run panel to the sidebar.
+     *
+     * <p>Reuses the existing {@code kraken.png} resource rather than adding a binary asset. The panel
+     * and button are recreated per enable and removed in {@link #shutDown()}: {@code NavigationButton}
+     * compares panels by identity, so a stale button would never be considered equal to a new one and
+     * the sidebar would accumulate a duplicate every time the plugin was re-enabled.</p>
+     */
+    private void addSidePanel() {
+        if (navigationButton != null) {
+            return;
+        }
+
+        apiTestPanel = new ApiTestPanel(testRegistry, testRunner, testResultManager, this::currentOptions);
+
+        navigationButton = NavigationButton.builder()
+                .tooltip("API Tests")
+                .icon(ImageUtil.resizeImage(
+                        ImageUtil.loadImageResource(ApiTestPlugin.class, "/kraken.png"), 16, 16))
+                .priority(1)
+                .panel(apiTestPanel)
+                .build();
+
+        clientToolbar.addNavigation(navigationButton);
+    }
+
     @Override
     protected void shutDown() {
         testRunner.cancel();
+
+        if (navigationButton != null) {
+            clientToolbar.removeNavigation(navigationButton);
+            navigationButton = null;
+            apiTestPanel = null;
+        }
+
         exampleScript.stop();
 
         overlayManager.remove(overlay);

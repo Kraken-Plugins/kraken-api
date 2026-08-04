@@ -6,9 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import plugins.api.ApiTestConfig;
 import plugins.api.requirements.TestRequirements;
 
-import java.lang.reflect.Method;
-import java.util.concurrent.CompletableFuture;
-
 @Slf4j
 public abstract class BaseApiTest {
 
@@ -19,23 +16,8 @@ public abstract class BaseApiTest {
     private Context ctx;
 
     /**
-     * Executes the test in a separate thread and returns a CompletableFuture with the result
-     * @return CompletableFuture - true if test passed, false if failed
-     */
-    public CompletableFuture<Boolean> executeTest() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return runSynchronously();
-            } catch (Exception e) {
-                log.error("{} test failed with exception", getTestName(), e);
-                return false;
-            }
-        });
-    }
-
-    /**
-     * Runs the full lifecycle on the <em>calling</em> thread: {@link #onStart()}, {@link Before}
-     * methods, {@link #runTest(Context)}, then {@link After} methods and {@link #onFinish()}.
+     * Runs the full lifecycle on the <em>calling</em> thread: {@link #onStart()},
+     * {@link #runTest(Context)}, then {@link #onFinish()}.
      *
      * <p>The caller must not be the client thread — test bodies block on {@code SleepService}, which
      * no-ops there. Running on the caller's thread rather than a pool is what makes a run genuinely
@@ -51,40 +33,16 @@ public abstract class BaseApiTest {
         try {
             log.info("Starting {} test...", getTestName());
             onStart();
-            invokeAnnotatedMethods(Before.class);
             boolean result = runTest(ctx);
             log.info("{} test completed with result: {}", getTestName(), result ? "PASSED" : "FAILED");
             return result;
         } finally {
             try {
-                invokeAnnotatedMethods(After.class);
                 onFinish();
             } catch (Exception e) {
                 // Teardown problems must not mask the real outcome, so they are logged and swallowed.
                 log.error("Error during test teardown for {}", getTestName(), e);
             }
-        }
-    }
-
-    private void invokeAnnotatedMethods(Class<? extends java.lang.annotation.Annotation> annotationClass) throws Exception {
-        java.util.List<Method> methodsToRun = new java.util.ArrayList<>();
-        Class<?> clazz = this.getClass();
-        while (clazz != Object.class) {
-            for (Method method : clazz.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(annotationClass)) {
-                    method.setAccessible(true);
-                    methodsToRun.add(method);
-                }
-            }
-            clazz = clazz.getSuperclass();
-        }
-
-        if (annotationClass.equals(Before.class)) {
-            java.util.Collections.reverse(methodsToRun);
-        }
-
-        for (Method method : methodsToRun) {
-            method.invoke(this);
         }
     }
 
@@ -120,14 +78,12 @@ public abstract class BaseApiTest {
     /**
      * Called before the test runs. Override this to perform setup.
      */
-    protected void onStart() throws Exception {
-    }
+    protected void onStart() throws Exception {}
 
     /**
      * Called after the test runs. Override this to perform cleanup.
      */
-    protected void onFinish() throws Exception {
-    }
+    protected void onFinish() throws Exception {}
 
     /**
      * Helper method to perform assertion-style checks

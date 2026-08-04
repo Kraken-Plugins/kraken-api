@@ -98,34 +98,19 @@ public class InfoPanelOverlay extends OverlayPanel {
                         .build());
             }
 
-            // Rows are in registration order, so they no longer shuffle between frames.
+            // The per-test breakdown lives in the sidebar panel, which is scrollable and clickable.
+            // Only failures are worth putting over the game canvas: while a run is going you are
+            // watching the player walk, and a thirty row list would bury the one thing that matters.
             for (TestResultManager.TestResult result : testResultManager.resultsInOrder()) {
-                if (result.getStatus() == TestResultManager.TestStatus.NOT_STARTED) {
+                if (!result.isFailure()) {
                     continue;
                 }
 
-                String statusText = result.getStatus().getDisplayName();
-                if (result.getExecutionTimeMs() > 0) {
-                    statusText += String.format(" (%dms)", result.getExecutionTimeMs());
-                }
-
                 panelComponent.getChildren().add(LineComponent.builder()
-                        .left(result.getTestName() + ":")
-                        .right(statusText)
-                        .rightColor(getStatusColor(result.getStatus()))
+                        .left(result.getTestName())
+                        .right("Failed")
+                        .rightColor(Color.RED)
                         .build());
-
-                // A skip reason is always worth showing: it is the difference between "your bank is
-                // missing an item" and "the API broke".
-                boolean explain = result.getStatus() == TestResultManager.TestStatus.SKIPPED
-                        || (config.showDebugInfo() && result.isFailure());
-
-                if (explain && result.getMessage() != null) {
-                    panelComponent.getChildren().add(LineComponent.builder()
-                            .left("  " + truncate(result.getMessage(), 34))
-                            .leftColor(result.isFailure() ? Color.RED : Color.ORANGE)
-                            .build());
-                }
             }
 
         } catch (Exception e) {
@@ -174,25 +159,6 @@ public class InfoPanelOverlay extends OverlayPanel {
         return passed > 0 ? Color.GREEN : Color.WHITE;
     }
 
-    private Color getStatusColor(TestResultManager.TestStatus status) {
-        switch (status) {
-            case PASSED:
-                return Color.GREEN;
-            case FAILED:
-                return Color.RED;
-            case RUNNING:
-                return Color.YELLOW;
-            case SKIPPED:
-                // Deliberately not red: a skip means the environment was not ready, not that the API
-                // regressed, and conflating the two makes a run impossible to read at a glance.
-                return Color.ORANGE;
-            case CANCELLED:
-                return Color.GRAY;
-            case NOT_STARTED:
-            default:
-                return Color.WHITE;
-        }
-    }
 
     private void addDebugInfo() {
         try {

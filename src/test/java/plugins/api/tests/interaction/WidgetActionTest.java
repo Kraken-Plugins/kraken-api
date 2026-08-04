@@ -2,6 +2,7 @@ package plugins.api.tests.interaction;
 
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.widgets.Widget;
 import plugins.api.tests.BaseApiTest;
@@ -9,7 +10,8 @@ import plugins.api.tests.BaseApiTest;
 @Slf4j
 @Singleton
 public class WidgetActionTest extends BaseApiTest {
-//    private static final int WIDGET_SPECIAL_ATTACK_ORB = 10485796;
+    // Using run over spec to keep things F2P
+    // private static final int WIDGET_SPECIAL_ATTACK_ORB = 10485796;
     private static final int WIDGET_RUN_ENERGY = 10485788;
 
     @Override
@@ -20,8 +22,8 @@ public class WidgetActionTest extends BaseApiTest {
 
         boolean runEnabled = ctx.players().local().isRunEnabled();
 
-        ctx.runOnClientThread(() -> ctx.getInteractionManager().interact(w, "Toggle"));
-        Thread.sleep(600);
+        ctx.runOnClientThread(() -> ctx.getInteractionManager().interact(w, "Toggle Run"));
+        SleepService.sleepFor(1);
 
         return runEnabled != ctx.players().local().isRunEnabled();
     }

@@ -17,73 +17,53 @@ public class NpcTest extends BaseApiTest {
         // Reads the scene and attacks a guard; needs no items and changes nothing that outlives it.
         return TestRequirements.builder()
                 .facility(Facility.COMBAT_NPCS_F2P)
-                .location(NamedLocation.VARROCK_EAST_BANK)
+                .location(NamedLocation.VARROCK_EAST_GUARDS)
                 .nearbyNpc(NpcRequirement.named("Guard"))
                 .build();
     }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        boolean testsPassed = true;
-
         try {
-            // 2. Attackable Filter: Verify logic on Guards
-            // Guards should be attackable
-            boolean guardsFound = ctx.npcs().withName("Guard").isPresent();
-            if (guardsFound) {
-                boolean guardIsAttackable = ctx.npcs().withName("Guard").attackable().isPresent();
-                if (!guardIsAttackable) {
+            // Note there is a guard by the gate that is not attackable (annoying I know)
+            if (ctx.npcs().filter(n -> n.getId() != 1147).withName("Guard").isPresent()) {
+                if (ctx.npcs().filter(n -> n.getId() != 1147).withName("Guard").attackable().isEmpty()) {
                     log.error("Found 'Guard' but attackable() filter excluded them.");
-                    testsPassed = false;
+                    return false;
                 }
             } else {
                 log.warn("Skipping Guard attackable test (No Guards nearby)");
             }
 
-            boolean aliveCheck = !ctx.npcs().alive().first().isNull();
-            if (!aliveCheck) {
+            if (ctx.npcs().alive().isEmpty()) {
                 log.error("Failed to find any 'alive' NPCs");
-                testsPassed = false;
+                return false;
             }
 
-            // Area Query (.withinArea)
-            // Define a box around the player and ensure we find NPCs inside it
             WorldPoint playerLoc = ctx.players().local().location();
             WorldPoint min = new WorldPoint(playerLoc.getX() - 15, playerLoc.getY() - 15, playerLoc.getPlane());
             WorldPoint max = new WorldPoint(playerLoc.getX() + 15, playerLoc.getY() + 15, playerLoc.getPlane());
 
-            boolean npcsInArea = !ctx.npcs().withinArea(min, max).first().isNull();
-            if (!npcsInArea) {
+            if (ctx.npcs().withinArea(min, max).isEmpty()) {
                 log.error("withinArea() returned no NPCs despite loose bounds (15 tiles)");
-                testsPassed = false;
+                return false;
             }
 
-            // Reachability
-            // Ensure at least some NPCs are reachable (e.g., other players' pets, guards, or men)
-            // Note: Bankers behind booths might return false for reachability depending on exact tile logic
-            boolean anyReachable = !ctx.npcs().reachable().first().isNull();
-            if (!anyReachable) {
+            if (ctx.npcs().reachable().isEmpty()) {
                 log.error("No NPCs marked as reachable found");
-                testsPassed = false;
+                return false;
             }
 
-            // Interaction Chain (Optional Smoke Test)
-            // Only run if we found a guard, try to hover or check interaction logic (without clicking)
-            if (guardsFound) {
-                var guard = ctx.npcs().withName("Guard").nearest();
-                if (guard.isNull()) {
-                    log.error("Guard found previously but failed to retrieve in Interaction test");
-                    testsPassed = false;
-                }
-                guard.attack();
+            if(ctx.npcs().filter(n -> n.getId() != 1147).withName("Guard").nearest().isPresent()) {
+                ctx.npcs().filter(n -> n.getId() != 1147).withName("Guard").nearest().attack();
+                return true;
             }
-
         } catch (Exception e) {
             log.error("Failed to run NPC test", e);
             return false;
         }
 
-        return testsPassed;
+        return false;
     }
 
     @Override

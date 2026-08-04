@@ -13,7 +13,27 @@ there are a few conditions listed below.
 
 ## Running the whole suite
 
-Stand at **Varrock East Bank** and tick **Run All Tests** in the General section. The runner:
+Open the **API Tests** panel from the RuneLite sidebar (the Kraken icon), stand at **Varrock East
+Bank**, and press **Run All**.
+
+| Panel control | What it does |
+| --- | --- |
+| **Run All** | Runs everything, or just the category picked in the dropdown below the buttons. |
+| **Stop** | Cancels the run in progress, interrupting mid-walk rather than waiting for the current test. |
+| **Re-run Failed** | Re-runs only the tests that *failed*. Skipped tests are excluded on purpose — a skip means the environment needs fixing, so re-running it unchanged would just skip again. |
+| **Clear** | Clears recorded results. |
+| **▶** on a row | Runs that one test, preconditions and all. |
+
+Each row shows its status by colour — green passed, red failed, **orange skipped**, grey cancelled —
+with the duration and, for anything that failed or was skipped, the reason underneath. The footer
+shows position, elapsed time, counts, and what the runner is doing right now, so a long walk between
+locations is distinguishable from a hang.
+
+The old in-game overlay is still there but now only shows the run summary and any failures; the full
+breakdown lives in the panel.
+
+The same controls exist as config toggles (**Run All Tests**, **Run Group**, **Stop Run**) if you
+prefer them. The runner:
 
 1. Orders the tests to minimise walking — everything that works anywhere runs first, then each
    location is visited once, and within a location the tests that teleport or move you run last.

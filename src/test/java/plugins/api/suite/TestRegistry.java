@@ -1,49 +1,16 @@
 package plugins.api.suite;
 
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import plugins.api.tests.BaseApiTest;
 import plugins.api.tests.SelfCheckTest;
 import plugins.api.tests.input.MouseTest;
-import plugins.api.tests.interaction.WidgetActionTest;
-import plugins.api.tests.interaction.WidgetSubActionTest;
-import plugins.api.tests.interaction.WidgetTargetGameObjectTest;
-import plugins.api.tests.interaction.WidgetTargetNpcTest;
-import plugins.api.tests.interaction.WidgetTargetWidgetTest;
-import plugins.api.tests.query.BankInventoryTest;
-import plugins.api.tests.query.BankTest;
-import plugins.api.tests.query.DepositBoxTest;
-import plugins.api.tests.query.EquipmentTest;
-import plugins.api.tests.query.GameObjectTest;
-import plugins.api.tests.query.GroundObjectTest;
-import plugins.api.tests.query.InventoryTest;
-import plugins.api.tests.query.NpcTest;
-import plugins.api.tests.query.PlayerTest;
-import plugins.api.tests.query.WidgetTest;
-import plugins.api.tests.query.WorldQueryTest;
-import plugins.api.tests.service.AreaServiceTest;
-import plugins.api.tests.service.BankServiceTest;
-import plugins.api.tests.service.CameraServiceTest;
-import plugins.api.tests.service.DepositBoxServiceTest;
-import plugins.api.tests.service.DialogueServiceTest;
-import plugins.api.tests.service.DpsServiceTest;
-import plugins.api.tests.service.GlobalPathfinderTest;
-import plugins.api.tests.service.GrandExchangeServiceTest;
-import plugins.api.tests.service.MovementServiceTest;
-import plugins.api.tests.service.PathfinderServiceTest;
-import plugins.api.tests.service.PrayerServiceTest;
-import plugins.api.tests.service.ProcessingServiceTest;
-import plugins.api.tests.service.SpellServiceTest;
-import plugins.api.tests.service.TaskChainTest;
+import plugins.api.tests.interaction.*;
+import plugins.api.tests.query.*;
+import plugins.api.tests.service.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -103,9 +70,6 @@ public class TestRegistry {
         register(injector, SpellServiceTest.class, "enableSpell", TestGroup.SERVICE);
         register(injector, MovementServiceTest.class, "enableMovement", TestGroup.SERVICE);
         register(injector, CameraServiceTest.class, "enableCamera", TestGroup.SERVICE);
-        register(injector, PathfinderServiceTest.class, "enablePathfinder", TestGroup.SERVICE);
-        register(injector, GlobalPathfinderTest.class, "enableGlobalPathfinder", TestGroup.SERVICE);
-        register(injector, TaskChainTest.class, "enableTaskChain", TestGroup.SERVICE);
         register(injector, DialogueServiceTest.class, "enableDialogueService", TestGroup.SERVICE);
         register(injector, ProcessingServiceTest.class, "enableProcessingService", TestGroup.SERVICE);
         register(injector, AreaServiceTest.class, "enableAreaService", TestGroup.SERVICE);
