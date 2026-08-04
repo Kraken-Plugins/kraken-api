@@ -471,12 +471,12 @@ public class SceneOverlay extends Overlay {
     }
 
     private void renderAreaService(Graphics2D graphics) {
-        if (areaServiceTest.bankReachabilityArea != null) {
+        if (areaServiceTest.reachableArea != null) {
             Color reachColor = new Color(0, 255, 0, 80);
-            areaServiceTest.bankReachabilityArea.render(ctx.getClient(), graphics, reachColor, false);
-            areaServiceTest.bankReachabilityArea.render(ctx.getClient(), graphics, Color.GREEN, true);
+            areaServiceTest.reachableArea.render(ctx.getClient(), graphics, reachColor, false);
+            areaServiceTest.reachableArea.render(ctx.getClient(), graphics, Color.GREEN, true);
 
-            GameArea area = areaServiceTest.bankReachabilityArea;
+            GameArea area = areaServiceTest.reachableArea;
             if (!area.getTiles().isEmpty()) {
                 WorldPoint first = area.getTiles().iterator().next();
                 LocalPoint lp = LocalPoint.fromWorld(ctx.getClient(), first);
@@ -493,10 +493,10 @@ public class SceneOverlay extends Overlay {
             areaServiceTest.radiusArea.render(ctx.getClient(), graphics, Color.RED, true);
         }
 
-        if (areaServiceTest.complexBuildingArea != null) {
+        if (areaServiceTest.polygonArea != null) {
             Color polyColor = new Color(255, 0, 255, 100);
-            areaServiceTest.complexBuildingArea.render(ctx.getClient(), graphics, polyColor, false);
-            areaServiceTest.complexBuildingArea.render(ctx.getClient(), graphics, Color.MAGENTA, true);
+            areaServiceTest.polygonArea.render(ctx.getClient(), graphics, polyColor, false);
+            areaServiceTest.polygonArea.render(ctx.getClient(), graphics, Color.MAGENTA, true);
         }
     }
 

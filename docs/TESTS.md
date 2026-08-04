@@ -29,17 +29,38 @@ reports the earliest one that broke:
 **If Self Check fails, treat every other failure in that run as unexplained** — fix the underlying API
 first. If it passes, the harness can drive the client and other failures are real signal.
 
-- **Location**: any bank booth or banker (Varrock West Bank works).
+- **Location**: any bank booth or banker (the hub bank works).
 - **Bank**: at least one item in the bank, and no PIN (or pre-entered).
 - **Inventory**: at least one free slot.
 - **Note**: non-destructive. The withdrawn item is deposited back and the player moves a few tiles.
 
+## Where to stand
+
+The suite is deliberately concentrated into **two locations** so that sequenced runs spend as little
+time walking as possible:
+
+| Stop | Covers |
+| --- | --- |
+| **Varrock East Bank** (the hub) | Everything except the three below. Bank booths, bankers, guards and men for combat/NPC tests, and the Varrock Square fountain a few tiles north for `WidgetTargetGameObjectTest`. The Varrock teleport also lands here, so `SpellServiceTest` returns to the hub on its own. |
+| **Grand Exchange** (~90 tiles north west) | `GrandExchangeServiceTest`, plus `DepositBoxTest` and `DepositBoxServiceTest` — the GE has bankers, clerks *and* a deposit box, so all three share one trip. |
+
+Several tests used to require their own location for reasons unrelated to what they actually verify.
+Those dependencies have been removed rather than automated around:
+
+- `TaskChainTest` no longer walks to the **Lumbridge** canoe station (~250 tiles). It exercises the
+  same `TaskChain` primitives against a bank booth. No axe needed.
+- `ProcessingServiceTest` no longer needs the **Barbarian Village fire** (~150 tiles). It drives the
+  same make-X interface by cutting a gem at the bank. No raw fish, no Cooking requirement.
+- `AreaServiceTest` no longer uses hardcoded Varrock East coordinates; it builds every area relative
+  to wherever the player is standing and runs anywhere.
+- `GameObjectTest` no longer needs an Oak tree nearby.
+
 ## General Requirements
 
-- **Location**: Most of the tests are designed to be run from **Varrock West Bank**.
-- **NPCs**: Nearby "Guard" NPCs must be present (Varrock West Bank has them).
+- **Location**: Start at **Varrock East Bank** unless a test below says otherwise.
+- **NPCs**: Nearby "Guard" NPCs must be present (Varrock Square has them).
 - **Players**: Some tests require other players to be nearby (e.g., `PlayerTest`).
-- **Bank**: The player must be near a bank booth (Varrock West Bank) and have either no PIN set or have pre-entered their bank pin unless otherwise specified in the test docs below.
+- **Bank**: The player must be near a bank booth and have either no PIN set or have pre-entered their bank pin unless otherwise specified in the test docs below.
 
 ## Inventory & Bank Requirements
 
@@ -57,49 +78,46 @@ The following items must be present in your **Bank**:
 - **Food**:
     - Lobster (at least 5)
     - Swordfish (at least 5)
-    - Raw Salmon (at least 2)
-    - Raw Trout (at least 2)
 - **Runes**:
     - Law runes (at least 1)
     - Fire runes (at least 4 but preferably more)
     - Air runes (at least 3)
+    - Mind runes (at least 10)
+- **Tools & misc**:
+    - Chisel (`ProcessingServiceTest`, `WidgetTargetWidgetTest`)
+    - Uncut sapphires, at least 2 (`ProcessingServiceTest` consumes one, `WidgetTargetWidgetTest` uses one)
+    - Empty bucket (`WidgetTargetGameObjectTest`)
+    - Ring of dueling (`WidgetSubActionTest`)
 
 ## Skill & Spellbook Requirements
 
 - **Prayer**: Protect from Melee prayer must be unlocked at level 43 prayer.
 - **Spellbook**: Must be on the **Standard Spellbook**.
 - **Magic Level**: High enough to cast Varrock Teleport (Level 25).
-- **Cooking Level**: Cooking level of 25 to cook salmon.
-
-
-## Widget Action Test Requirements
-
-Widget actions require that you have the following items in your inventory:
-- Empty bucket
-- Uncut sapphire
-- Chisel
-- Air, Mind, and Fire runes
-
-You must be near Varrock east bank to run these tests as it requires a nearby guard and fountain.
+- **Crafting Level**: Level 20 to cut a sapphire (`ProcessingServiceTest`).
 
 ## Specific Test Requirements
 
 ### `ProcessingServiceTest`
-- **Location**: Must be near the **Barbarian Village fire** (permanent fire).
-- **Inventory**: Requires at least 2 Raw Salmon and 2 Raw Trout in inventory.
+- **Location**: At the hub bank. No fire or range needed.
+- **Inventory**: A chisel and at least one uncut sapphire, plus a free inventory slot.
+- **Level**: 20 Crafting.
+- **Note**: Consumes one uncut sapphire. Asserts the make-X interface opens, that the quantity varc
+  round trips, and that a cut sapphire actually appears — none of which the old cooking version checked.
 
 ### `InventoryTest`
 - **Location**: Any bank which is currently open
 - **Inventory**: You cannot have a gold bar or a sapphire in your inventory
 
 ### `TaskChainTest`
-- **Location**: Expects to run near **Lumbridge**.
-- **Requirements**:
-    - Must be able to chop a tree (Axe in inventory or equipped).
-    - Must be near a "Canoe Station" (Lumbridge has one).
+- **Location**: At the hub bank, with a few tiles of open ground to walk on.
+- **State**: Start with the bank **closed** — the chain asserts that it can open it. If it is open the
+  test closes it first.
+- **Note**: Walks a short distance, opens the bank and closes it again, then verifies the world really
+  matches what `TaskChain.execute()` reported.
 
 ### `DialogueServiceTest`
-- **Location**: Near a Banker (Varrock West Bank works).
+- **Location**: Near a Banker (the hub bank works).
 - **State**: Ensure no dialogue is currently open before starting.
 
 ### `MouseTest`
@@ -132,12 +150,26 @@ You must be near Varrock east bank to run these tests as it requires a nearby gu
 - **Bank**: Requires at least three fire runes. This will sell the fire runes at a loss and by fire runes for 15 gp each (to test instabuy).
 
 ### `AreaServiceTest`
-- **Location**: Requires you to be in varrock east bank to see overlays of various areas.
+- **Location**: Anywhere with open, walkable ground — every area is built relative to the player, so
+  the rendered overlays follow you rather than sitting at fixed Varrock East coordinates.
+- **Note**: Enable the area overlay in Overlay Settings to see the reachable, polygon and radius areas.
+
+### Widget interaction tests
+
+These cover the four shapes of widget interaction. All except `WidgetSubActionTest` run at the hub.
+
+| Test | Needs | Behaviour |
+| --- | --- | --- |
+| `WidgetActionTest` | A weapon with a special attack | Clicks the spec orb. Fails if spec is *already* enabled, so start with it off. |
+| `WidgetTargetWidgetTest` | Chisel + uncut sapphire | Item on item. |
+| `WidgetTargetGameObjectTest` | Empty bucket, Varrock Square fountain | Item on object. Asserts a **Bucket of water** actually appears. |
+| `WidgetTargetNpcTest` | Air/Mind/Fire runes, nearby Guard | Casts Fire Strike on an NPC. |
+| `WidgetSubActionTest` | Ring of dueling | Nested sub action. **Teleports you to Emir's Arena** in Al Kharid, so run it last. Previously targeted Fortis Colosseum, which is members only. |
 
 ### `DpsServiceTest`
 Runs entirely on free-to-play gear and NPCs, so it can be run on an F2P world or account.
 
-- **Location**: Any bank booth with a free-to-play combat NPC nearby. Varrock West Bank works: it has bank booths and Guards. The test picks the nearest **Guard**, **Man**, or **Goblin** as the target it calculates against, and fails if none of them are in the scene.
+- **Location**: Any bank booth with a free-to-play combat NPC nearby. The hub bank works: it has bank booths and Guards. The test picks the nearest **Guard**, **Man**, or **Goblin** as the target it calculates against, and fails if none of them are in the scene.
 - **Bank**: Must be openable (no PIN or pre-entered PIN) and contain the full free-to-play kit below. The test deposits your entire inventory *and* everything you are wearing before withdrawing it, so bank anything you want to keep out of the way first.
     - Bronze scimitar
     - Rune scimitar
@@ -161,7 +193,8 @@ What it covers:
 Because the search prunes on gear category, the best melee loadout it returns is a rune scimitar and amulet of power with the **rune armour stripped off** — the armour is purely defensive, so removing it costs nothing and the search will not keep it. That is expected, not a bug.
 
 ### `DepositBoxQueryTest`
-- **Location**: Must be at a **deposit box** (e.g., Edgeville or Castle Wars).
+- **Location**: Must be at a **deposit box**. Use the **Grand Exchange** one so this shares a trip with
+  `GrandExchangeServiceTest` and `DepositBoxServiceTest`.
 - **State**: The deposit box interface must be open before the test runs.
 - **Equipment**: You must be wearing an item in your head slot like a coif, full helm etc...
 - **Inventory**: The following items must be in your **inventory** before opening the deposit box:
