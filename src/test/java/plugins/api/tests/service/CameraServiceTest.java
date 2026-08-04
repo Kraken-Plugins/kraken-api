@@ -55,11 +55,17 @@ public class CameraServiceTest extends BaseApiTest {
 
         camera.setPitch(383); // Max up
         Thread.sleep(RandomService.between(2000, 3500));
-        if (camera.getPitch() < 370) return fail("Failed to set Pitch MAX (Up)");
+        if (camera.getPitch() < 370) {
+            log.error("Camera Pitch out of bounds. > 370");
+            return false;
+        }
 
         camera.setPitch(128); // Max down
         Thread.sleep(RandomService.between(2000, 3500));
-        if (camera.getPitch() > 140) return fail("Failed to set Pitch MIN (Down)");
+        if (camera.getPitch() > 140) {
+            log.error("Failed to set Pitch MIN (Down)");
+            return false;
+        }
 
         camera.setPitch(originalPitch);
 
@@ -68,11 +74,17 @@ public class CameraServiceTest extends BaseApiTest {
         camera.setZoom(800); // Zoom way out
         Thread.sleep(RandomService.between(2000, 3500));
 
-        if (camera.getZoom() < 400) return fail("Failed to Zoom OUT");
+        if (camera.getZoom() < 400) {
+            log.error("Failed to Zoom OUT");
+            return false;
+        };
 
         camera.setZoom(100);
         Thread.sleep(RandomService.between(2000, 3500));
-        if (camera.getZoom() > 200) return fail("Failed to Zoom IN");
+        if (camera.getZoom() > 200){
+            log.error("Failed to Zoom IN");
+            return false;
+        }
 
         // Reset Zoom
         camera.setZoom(originalZoom);
@@ -116,10 +128,6 @@ public class CameraServiceTest extends BaseApiTest {
             timeout++;
         }
         return examplePlugin.getTargetTile();
-    }
-
-    private boolean fail(String reason) {
-        return false;
     }
 
     @Override

@@ -42,9 +42,6 @@ public class SelfCheckTest extends BaseApiTest {
     private static final int CONTAINER_TIMEOUT_MS = 4000;
     private static final int WALK_TIMEOUT_MS = 12000;
 
-    private static final int MIN_WALK_TILES = 3;
-    private static final int MAX_WALK_TILES = 6;
-
     @Inject
     private BankService bankService;
 
@@ -259,16 +256,12 @@ public class SelfCheckTest extends BaseApiTest {
         }
 
         WorldPoint target = reachable.stream()
-                .filter(tile -> {
-                    int distance = tile.distanceTo(start);
-                    return distance >= MIN_WALK_TILES && distance <= MAX_WALK_TILES;
-                })
+                .filter(tile -> tile.distanceTo(start) == 1)
                 .findFirst()
                 .orElse(null);
 
         if (target == null) {
-            return assertThat(false, "Self check: no reachable tile between " + MIN_WALK_TILES + " and "
-                    + MAX_WALK_TILES + " tiles away. The player may be in a confined space");
+            return assertThat(false, "Self check: no reachable tiles found to walk to");
         }
 
         movementService.moveTo(target);

@@ -61,7 +61,7 @@ public class ProcessingServiceTest extends BaseApiTest {
         return TestRequirements.builder()
                 .facility(Facility.BANK_BOOTH)
                 .inventoryItem(ItemRequirement.of(CHISEL))
-                .inventoryItem(ItemRequirement.of(UNCUT_SAPPHIRE, 1))
+                .inventoryItem(ItemRequirement.of(UNCUT_SAPPHIRE, 5)) // Must be greater than 1 or it just crafts it instantly
                 .skill(SkillRequirement.of(Skill.CRAFTING, 20))
                 .sideEffect(SideEffect.CONSUMES_ITEMS)
                 .build();
@@ -129,7 +129,7 @@ public class ProcessingServiceTest extends BaseApiTest {
                 break;
             }
 
-            if (processingService.process(action, SAPPHIRE)) {
+            if (processingService.process(action, UNCUT_SAPPHIRE)) {
                 usedAction = action;
                 if (SleepService.sleepUntilTrue(
                         () -> ctx.inventory().withId(SAPPHIRE).count() > cutBefore, CRAFT_TIMEOUT_MS)) {
@@ -141,7 +141,7 @@ public class ProcessingServiceTest extends BaseApiTest {
 
         if (usedAction == null) {
             return assertThat(false, "Processing service test: the make-X interface is open but does not "
-                    + "offer a cut sapphire (item " + SAPPHIRE + ") under any of the expected actions");
+                    + "offer a uncut sapphire (item " + UNCUT_SAPPHIRE + ") under any of the expected actions");
         }
 
         return assertThat(false, "Processing service test: selected the cut sapphire with '" + usedAction
