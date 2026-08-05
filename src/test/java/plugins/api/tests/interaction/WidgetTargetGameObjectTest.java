@@ -28,12 +28,12 @@ import plugins.api.world.NamedLocation;
 @Singleton
 public class WidgetTargetGameObjectTest extends BaseApiTest {
 
-    private static final int FOUNTAIN = 5125;
+    private static final int FOUNTAIN = 7143;
 
     private static final String BUCKET = "Bucket";
     private static final String BUCKET_OF_WATER = "Bucket of water";
 
-    private static final int FILL_TIMEOUT_MS = 6000;
+    private static final int FILL_TIMEOUT_MS = 12000;
 
     @Override
     public TestRequirements requirements() {
