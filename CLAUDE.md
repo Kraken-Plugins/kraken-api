@@ -87,6 +87,7 @@ RuneLite, guice, guava, gson, slf4j, and lombok are `compileOnly` on purpose —
 - Never hand-edit `build/**` or `docs/kraken-api/**` (generated).
 - Commits: sign off with `git commit -s`. Project policy is that AI agents are **never** listed as commit co-authors — omit any `Co-Authored-By` trailer naming an AI.
 - Versioning is automated: CI bumps the patch on merge to `master`; bump `version.txt` manually for a minor/major base.
+- Don't include comments like `// ------------- Something here ---------------` that doesn't add anything meaningful to the codebase
 - Any public methods should have their respective javadocs with `@param` and `@return` defined. Any private methods which are more complex than some simple conditional logic should also be documented inline with block level comments.
 - When writing documentation be sure to include `@param` and `@return` for any parameters and return values like:
 

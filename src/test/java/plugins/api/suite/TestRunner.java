@@ -57,7 +57,12 @@ public class TestRunner {
             });
 
     private final AtomicBoolean running = new AtomicBoolean(false);
+
+    /** Set by the watchdog so a timeout can be told apart from a Stop press. */
+    private final AtomicBoolean timedOut = new AtomicBoolean(false);
+
     private volatile CancellationToken token;
+    private volatile boolean userCancelled;
 
     /**
      * Runs every eligible registered test.
@@ -114,6 +119,8 @@ public class TestRunner {
 
         CancellationToken runToken = new CancellationToken();
         this.token = runToken;
+        this.userCancelled = false;
+        this.timedOut.set(false);
 
         Thread thread = new Thread(() -> {
             runToken.bind(Thread.currentThread());
@@ -147,6 +154,7 @@ public class TestRunner {
         CancellationToken active = token;
         if (active != null) {
             log.info("Cancelling the current run");
+            userCancelled = true;
             active.cancel();
         }
     }
@@ -160,18 +168,6 @@ public class TestRunner {
         return running.get();
     }
 
-    /**
-     * Previews the itinerary without running anything.
-     *
-     * @param tests the tests to order
-     * @param includeDestructive whether to keep tests marked destructive
-     * @return the ordered plan
-     */
-    public List<PlannedStep> preview(List<RegisteredTest> tests, boolean includeDestructive) {
-        return planner.plan(tests, playerLocation(), includeDestructive);
-    }
-
-    // ---------- worker ----------
 
     /**
      * The body of a run, executed on the worker thread.
@@ -244,13 +240,27 @@ public class TestRunner {
             results.complete(test.getId(), passed, System.currentTimeMillis() - startedAt);
             return passed;
 
-        } catch (TestCancelledException e) {
+        } catch (TestCancelledException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+
+            // A timeout and a Stop press both arrive as a cancelled token, but they mean opposite
+            // things. Stopping should end the run; one test running long should not cost you the
+            // other thirty, and a hung test is a genuine defect rather than something skipped.
+            if (timedOut.get() && !userCancelled) {
+                long elapsed = System.currentTimeMillis() - startedAt;
+                results.fail(test.getId(),
+                        new IllegalStateException("exceeded its " + timeoutFor(test, options) + "ms budget"),
+                        elapsed);
+                recoverFromTimeout(runToken);
+                return false;
+            }
+
             results.markCancelled(test.getId());
-            throw e;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            results.markCancelled(test.getId());
-            throw new TestCancelledException("Interrupted during " + test.getId());
+            throw e instanceof TestCancelledException
+                    ? (TestCancelledException) e
+                    : new TestCancelledException("Interrupted during " + test.getId());
         } catch (Exception e) {
             log.error("Test {} threw", test.getId(), e);
             results.fail(test.getId(), e, System.currentTimeMillis() - startedAt);
@@ -264,6 +274,18 @@ public class TestRunner {
                 log.warn("Cleanup after {} failed", test.getId(), e);
             }
         }
+    }
+
+    /**
+     * The effective timeout for a test.
+     *
+     * @param test the test being run
+     * @param options the run configuration
+     * @return the test's own budget when it declared one, otherwise the run default
+     */
+    private long timeoutFor(RegisteredTest test, SuiteOptions options) {
+        long declared = test.requirements().getTimeoutMs();
+        return declared > 0 ? declared : options.getPerTestTimeoutMs();
     }
 
     /**
@@ -283,8 +305,11 @@ public class TestRunner {
         long declared = test.requirements().getTimeoutMs();
         long timeout = declared > 0 ? declared : options.getPerTestTimeoutMs();
 
+        timedOut.set(false);
+
         ScheduledFuture<?> watchdog = timeoutScheduler.schedule(() -> {
             log.error("Test {} exceeded its {}ms budget, cancelling it", test.getId(), timeout);
+            timedOut.set(true);
             runToken.cancel();
         }, timeout, TimeUnit.MILLISECONDS);
 
@@ -293,6 +318,23 @@ public class TestRunner {
         } finally {
             watchdog.cancel(false);
         }
+    }
+
+    /**
+     * Recovers the run after a per-test timeout so the remaining tests still get their turn.
+     *
+     * <p>The watchdog can only stop a blocked worker by cancelling the token, which is the same
+     * mechanism the Stop button uses — so once it fires, the run-wide token is cancelled and the
+     * thread carries an interrupt. Both have to be cleared, or every subsequent wait would abort
+     * immediately and the rest of the suite would fall over one test running long.</p>
+     *
+     * @param runToken the run's cancellation token, re-armed for the next test
+     */
+    private void recoverFromTimeout(CancellationToken runToken) {
+        Thread.interrupted();
+        runToken.reset();
+        runToken.bind(Thread.currentThread());
+        timedOut.set(false);
     }
 
     /**

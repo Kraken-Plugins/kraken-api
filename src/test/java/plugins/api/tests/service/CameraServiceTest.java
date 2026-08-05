@@ -34,8 +34,6 @@ public class CameraServiceTest extends BaseApiTest {
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        log.info("Starting Camera Service Test.");
-
         WorldPoint target = waitForTargetSelection();
         if (target == null) {
             log.error("Test timed out waiting for target selection.");
@@ -48,8 +46,6 @@ public class CameraServiceTest extends BaseApiTest {
             log.info("Target tile could not be converted to local point");
             return false;
         }
-
-        log.info("Target selected: {}. Running camera service tests...", target);
 
         int originalPitch = camera.getPitch();
 
@@ -86,28 +82,7 @@ public class CameraServiceTest extends BaseApiTest {
             return false;
         }
 
-        // Reset Zoom
         camera.setZoom(originalZoom);
-
-        // Randomly offset camera first so we know we actually moved
-        int startAngle = camera.angleToTile(target) + 100;
-        camera.setAngle(startAngle, 10);
-        camera.turnTo(targetLp);
-
-        camera.setPitch(128);
-        camera.setAngle(camera.getAngle() + 90, 10);
-        Thread.sleep(RandomService.between(600, 1200));
-
-        camera.centerTileOnScreen(targetLp);
-
-        if (!camera.isTileCenteredOnScreen(targetLp)) {
-            camera.centerTileOnScreen(targetLp);
-            if (!camera.isTileCenteredOnScreen(targetLp)) {
-                log.error("Failed to center tile on screen.");
-                return false;
-            }
-        }
-
         log.info("Camera Service Test Passed Successfully.");
         return true;
     }

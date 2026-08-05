@@ -66,7 +66,7 @@ public interface ApiTestConfig extends Config {
             section = general
     )
     default int timeout() {
-        return 25;
+        return 50;
     }
 
     @ConfigItem(

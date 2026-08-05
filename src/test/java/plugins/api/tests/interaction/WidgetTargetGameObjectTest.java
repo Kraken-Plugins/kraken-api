@@ -1,16 +1,15 @@
 package plugins.api.tests.interaction;
 
-import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
-import plugins.api.tests.BaseApiTest;
 import plugins.api.requirements.ItemRequirement;
 import plugins.api.requirements.SideEffect;
 import plugins.api.requirements.TestRequirements;
+import plugins.api.tests.BaseApiTest;
 import plugins.api.world.Facility;
 import plugins.api.world.NamedLocation;
 
@@ -41,7 +40,7 @@ public class WidgetTargetGameObjectTest extends BaseApiTest {
         // Runs at the fountain but collects its bucket from the hub bank beforehand.
         return TestRequirements.builder()
                 .facility(Facility.WATER_SOURCE)
-                .stagingLocation(NamedLocation.VARROCK_EAST_BANK)
+                .stagingLocation(NamedLocation.VARROCK_WEST_BANK)
                 .inventoryItem(ItemRequirement.of(BUCKET))
                 .sideEffect(SideEffect.CONSUMES_ITEMS)
                 .build();

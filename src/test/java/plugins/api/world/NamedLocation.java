@@ -40,9 +40,9 @@ public enum NamedLocation {
 
     VARROCK_SQUARE_FOUNTAIN(
             "Varrock Square fountain",
-            new WorldPoint(3238, 3434, 0),
-            new WorldArea(3235, 3430, 9, 9, 0),
-            3,
+            new WorldPoint(3212, 3428, 0),
+            new WorldArea(3208, 3425, 9, 8, 0),
+            6,
             EnumSet.of(Facility.WATER_SOURCE, Facility.OTHER_PLAYERS)),
 
     GRAND_EXCHANGE(

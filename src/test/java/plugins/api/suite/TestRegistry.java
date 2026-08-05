@@ -133,6 +133,19 @@ public class TestRegistry {
     }
 
     /**
+     * How many tests are catalogued.
+     *
+     * <p>Exists so callers that only need the count do not pay for the defensive copy {@link #all()}
+     * makes. The panel checks this on every refresh to decide whether its rows are still current, four
+     * times a second while it is open.</p>
+     *
+     * @return the number of registered tests
+     */
+    public synchronized int size() {
+        return tests.size();
+    }
+
+    /**
      * Every test in a category, in registration order.
      *
      * @param group the category to filter by

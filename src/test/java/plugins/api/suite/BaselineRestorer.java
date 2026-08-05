@@ -25,9 +25,6 @@ import plugins.api.requirements.TestRequirements;
 @Singleton
 public class BaselineRestorer {
 
-    /** Special attack orb, matching the id the widget action test drives. */
-    private static final int WIDGET_SPECIAL_ATTACK_ORB = 10485796;
-
     @Inject
     private Context ctx;
 
@@ -63,6 +60,12 @@ public class BaselineRestorer {
                 prayerService.deactivateAll();
             } catch (Exception e) {
                 log.warn("Could not turn prayers off after {}", justRan.getId(), e);
+            }
+        }
+
+        if(requirements.hasSideEffect(SideEffect.TOGGLES_RUN)) {
+            if(!ctx.players().local().isRunEnabled()) {
+                ctx.players().local().activateRun();
             }
         }
     }

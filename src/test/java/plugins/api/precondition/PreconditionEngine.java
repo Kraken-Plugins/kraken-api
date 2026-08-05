@@ -5,11 +5,11 @@ import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.container.bank.BankEntity;
+import com.kraken.api.query.container.bank.BankInventoryEntity;
 import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.query.equipment.EquipmentEntity;
 import com.kraken.api.query.npc.NpcQuery;
 import com.kraken.api.service.bank.BankService;
-import com.kraken.api.service.bank.DepositBoxService;
 import com.kraken.api.service.magic.spellbook.Spellbook;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
@@ -55,9 +55,6 @@ public class PreconditionEngine {
 
     @Inject
     private BankService bankService;
-
-    @Inject
-    private DepositBoxService depositBoxService;
 
     @Inject
     private BankHelper bankHelper;
@@ -319,9 +316,9 @@ public class PreconditionEngine {
             }
 
             token.throwIfCancelled("banking a forbidden item");
-            InventoryEntity carried = findInBankInventory(forbidden);
+            BankInventoryEntity carried = findInBankInventory(forbidden);
             if (carried != null) {
-                carried.interact("Deposit-All");
+                carried.depositAll();
                 waiter.until(() -> inventoryQuantity(forbidden) <= 0, CONTAINER_TIMEOUT_MS, token,
                         forbidden.describe() + " to be banked");
             }
@@ -349,7 +346,14 @@ public class PreconditionEngine {
     private PreconditionResult withdrawDeclaredItems(TestRequirements requirements, CancellationToken token,
                                                      Consumer<String> onPhase, List<String> steps) {
         List<ItemRequirement> wanted = new ArrayList<>(requirements.getInventoryItems());
-        wanted.addAll(requirements.getEquippedItems());
+
+        // Gear the player is already wearing needs no withdrawal. Without this check its carried count
+        // reads as zero and a second copy is pulled out of the bank for no reason.
+        for (ItemRequirement item : requirements.getEquippedItems()) {
+            if (!isWearing(item)) {
+                wanted.add(item);
+            }
+        }
 
         if (wanted.isEmpty()) {
             return null;
@@ -721,13 +725,21 @@ public class PreconditionEngine {
     }
 
     /**
-     * Finds an item in the bank-side inventory view, which is the correct container while banking.
+     * Finds a carried item through the bank-side inventory view.
+     *
+     * <p>This is a different container from {@link #findInInventory}, not a synonym: while the bank is
+     * open the inventory is drawn under a different parent widget, and depositing has to go through
+     * this view to resolve the right widget actions.</p>
      *
      * @param item the requirement to resolve
-     * @return the inventory entity, or null when absent
+     * @return the bank-side inventory entity, or null when the item is not carried
      */
-    private InventoryEntity findInBankInventory(ItemRequirement item) {
-        return findInInventory(item);
+    private BankInventoryEntity findInBankInventory(ItemRequirement item) {
+        BankInventoryEntity entity = item.byId()
+                ? ctx.bankInventory().withId(item.getId()).first()
+                : ctx.bankInventory().withName(item.getName()).first();
+
+        return entity == null || entity.isNull() ? null : entity;
     }
 
     /**

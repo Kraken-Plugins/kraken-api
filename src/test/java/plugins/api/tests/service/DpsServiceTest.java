@@ -265,7 +265,7 @@ public class DpsServiceTest extends BaseApiTest {
             }
 
             booth.interact("Bank");
-            SleepService.sleepUntil(bankService::isOpen, 5000);
+            SleepService.sleepUntil(bankService::isOpen, 3000);
         }
 
         if (!bankService.isOpen()) {
@@ -275,9 +275,9 @@ public class DpsServiceTest extends BaseApiTest {
 
         log.info("Stripping the player so dps is measured from a known state.");
         bankService.depositAll();
-        SleepService.sleepFor(2);
+        SleepService.sleepFor(1);
         bankService.depositAllEquipment();
-        SleepService.sleepFor(2);
+        SleepService.sleepFor(1);
         bankService.setWithdrawMode(false);
         SleepService.sleepFor(1);
 
@@ -292,11 +292,11 @@ public class DpsServiceTest extends BaseApiTest {
                 log.error("Failed to withdraw {} x {}", item.quantity, item.name);
                 return false;
             }
-            SleepService.sleepFor(2);
+            SleepService.sleepFor(1);
         }
 
         bankService.close();
-        SleepService.sleepWhile(bankService::isOpen, 5000);
+        SleepService.sleepWhile(bankService::isOpen, 3000);
 
         for (SetupItem item : SETUP_ITEMS) {
             if (!ctx.inventory().hasItem(item.id)) {

@@ -114,8 +114,6 @@ public class ApiTestPanel extends PluginPanel {
         refreshTimer.stop();
     }
 
-    // ---------- construction ----------
-
     /**
      * Builds the sticky header: title, controls, and the group filter.
      *
@@ -215,8 +213,6 @@ public class ApiTestPanel extends PluginPanel {
         return footer;
     }
 
-    // ---------- state ----------
-
     /**
      * Creates a row per registered test, grouped under category headings.
      *
@@ -266,9 +262,15 @@ public class ApiTestPanel extends PluginPanel {
      * <p>Always called on the event dispatch thread, either from the timer or from a button handler.
      * Rows early-return when nothing they display has changed, so a steady state tick touches no
      * components.</p>
+     *
+     * <p>The row check compares against {@link TestRegistry#size()} rather than the length of
+     * {@code all()}, which would allocate a defensive copy of the whole catalogue on every tick. The
+     * sentinel {@code -1} start value makes the first call rebuild without needing a separate
+     * condition, and it still picks up the catalogue appearing later, since the panel is constructed
+     * before the registry is populated on a fresh profile.</p>
      */
     private void refresh() {
-        if (rows.size() != registry.all().size() || renderedTestCount < 0) {
+        if (renderedTestCount != registry.size()) {
             rebuildRows();
         }
 

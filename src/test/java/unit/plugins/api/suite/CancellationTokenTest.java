@@ -137,6 +137,26 @@ class CancellationTokenTest {
     }
 
     @Test
+    void aResetTokenCanBeRearmedAndCancelledAgain() {
+        // This is what lets a run survive a per-test timeout: the watchdog cancels the shared token to
+        // unstick the worker, then the runner resets and rebinds it so the remaining tests still run.
+        CancellationToken token = new CancellationToken();
+        token.bind(Thread.currentThread());
+        token.cancel();
+
+        Thread.interrupted();
+        token.reset();
+        token.bind(Thread.currentThread());
+
+        assertFalse(token.isCancelled());
+        assertDoesNotThrow(() -> token.throwIfCancelled("next test"));
+
+        token.cancel();
+        assertTrue(token.isCancelled(), "a re-armed token must still be cancellable");
+        Thread.interrupted();
+    }
+
+    @Test
     void cancellingWithNoBoundWorkerIsSafe() {
         CancellationToken token = new CancellationToken();
 
