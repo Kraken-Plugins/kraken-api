@@ -4,9 +4,7 @@ import com.google.inject.Inject;
 import com.kraken.api.Context;
 import lombok.extern.slf4j.Slf4j;
 import plugins.api.ApiTestConfig;
-
-import java.lang.reflect.Method;
-import java.util.concurrent.CompletableFuture;
+import plugins.api.requirements.TestRequirements;
 
 @Slf4j
 public abstract class BaseApiTest {
@@ -18,52 +16,51 @@ public abstract class BaseApiTest {
     private Context ctx;
 
     /**
-     * Executes the test in a separate thread and returns a CompletableFuture with the result
-     * @return CompletableFuture - true if test passed, false if failed
+     * Runs the full lifecycle on the <em>calling</em> thread: {@link #onStart()},
+     * {@link #runTest(Context)}, then {@link #onFinish()}.
+     *
+     * <p>The caller must not be the client thread — test bodies block on {@code SleepService}, which
+     * no-ops there. Running on the caller's thread rather than a pool is what makes a run genuinely
+     * interruptible: {@code SleepService} checks {@code Thread.isInterrupted()} in every wait loop, so
+     * interrupting the worker aborts the test promptly, which {@code CompletableFuture.cancel} could
+     * never do.</p>
+     *
+     * @return true if the test passed
+     * @throws InterruptedException if the thread was interrupted, i.e. the run was cancelled
+     * @throws Exception if the test body or its lifecycle hooks threw
      */
-    public CompletableFuture<Boolean> executeTest() {
-        return CompletableFuture.supplyAsync(() -> {
+    public boolean runSynchronously() throws Exception {
+        try {
+            log.info("Starting {} test...", getTestName());
+            onStart();
+            boolean result = runTest(ctx);
+            log.info("{} test completed with result: {}", getTestName(), result ? "PASSED" : "FAILED");
+            return result;
+        } finally {
             try {
-                log.info("Starting {} test...", getTestName());
-                onStart();
-                invokeAnnotatedMethods(Before.class);
-                boolean result = runTest(ctx);
-                log.info("{} test completed with result: {}", getTestName(), result ? "PASSED" : "FAILED");
-                return result;
+                onFinish();
             } catch (Exception e) {
-                log.error("{} test failed with exception", getTestName(), e);
-                return false;
-            } finally {
-                try {
-                    invokeAnnotatedMethods(After.class);
-                    onFinish();
-                } catch (Exception e) {
-                    log.error("Error during test teardown for {}", getTestName(), e);
-                }
+                // Teardown problems must not mask the real outcome, so they are logged and swallowed.
+                log.error("Error during test teardown for {}", getTestName(), e);
             }
-        });
+        }
     }
 
-    private void invokeAnnotatedMethods(Class<? extends java.lang.annotation.Annotation> annotationClass) throws Exception {
-        java.util.List<Method> methodsToRun = new java.util.ArrayList<>();
-        Class<?> clazz = this.getClass();
-        while (clazz != Object.class) {
-            for (Method method : clazz.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(annotationClass)) {
-                    method.setAccessible(true);
-                    methodsToRun.add(method);
-                }
-            }
-            clazz = clazz.getSuperclass();
-        }
-
-        if (annotationClass.equals(Before.class)) {
-            java.util.Collections.reverse(methodsToRun);
-        }
-
-        for (Method method : methodsToRun) {
-            method.invoke(this);
-        }
+    /**
+     * Declares the world state this test needs before {@link #runTest(Context)} is called.
+     *
+     * <p>Overriding this lets the runner establish the state itself — travelling, banking, withdrawing
+     * — and report an unmeetable requirement as a skip with a reason rather than as a failure. A test
+     * that does not override it keeps whatever setup it performs inline, so migration is per test and
+     * nothing changes until a test opts in.</p>
+     *
+     * <p>Implementations must be pure. This is called off the client thread, possibly before login,
+     * and the result is cached, so it must not read game state.</p>
+     *
+     * @return the declared preconditions; {@link TestRequirements#NONE} when none are declared
+     */
+    public TestRequirements requirements() {
+        return TestRequirements.builder().build();
     }
 
     /**
@@ -73,22 +70,20 @@ public abstract class BaseApiTest {
     protected abstract boolean runTest(Context ctx) throws Exception;
 
     /**
-     * Returns the name of this test for logging purposes
+     * Returns the name of this test, used for logging and as its display name in the registry.
      * @return test name
      */
-    protected abstract String getTestName();
+    public abstract String getTestName();
 
     /**
      * Called before the test runs. Override this to perform setup.
      */
-    protected void onStart() throws Exception {
-    }
+    protected void onStart() throws Exception {}
 
     /**
      * Called after the test runs. Override this to perform cleanup.
      */
-    protected void onFinish() throws Exception {
-    }
+    protected void onFinish() throws Exception {}
 
     /**
      * Helper method to perform assertion-style checks

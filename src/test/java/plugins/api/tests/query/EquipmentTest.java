@@ -35,7 +35,7 @@ public class EquipmentTest extends BaseApiTest {
                     }
 
                     bank.interact("Bank");
-                    SleepService.sleepFor(2);
+                    SleepService.sleepFor(5);
                 }
 
                 // Setup
@@ -124,7 +124,7 @@ public class EquipmentTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Equipment";
     }
 }

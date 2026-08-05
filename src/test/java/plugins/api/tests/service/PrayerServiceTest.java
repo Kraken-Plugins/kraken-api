@@ -4,15 +4,24 @@ import com.google.inject.Inject;
 import com.kraken.api.Context;
 import com.kraken.api.service.prayer.PrayerService;
 import com.kraken.api.service.util.SleepService;
-import plugins.api.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Prayer;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
+import plugins.api.tests.BaseApiTest;
 
 @Slf4j
 public class PrayerServiceTest extends BaseApiTest {
 
     @Inject
     private PrayerService prayer;
+
+    @Override
+    public TestRequirements requirements() {
+        return TestRequirements.builder()
+                .sideEffect(SideEffect.TOGGLES_PRAYER)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) {
@@ -31,11 +40,11 @@ public class PrayerServiceTest extends BaseApiTest {
             boolean testMagic = testIsActive(Prayer.PROTECT_FROM_MAGIC);
             testsPassed &= testMagic;
 
-            SleepService.sleep(1000, 3000);
+            SleepService.sleep(600, 1200);
             log.info("Deactivating protection prayers");
             prayer.deactivateProtectionPrayers();
 
-            SleepService.sleep(1000, 3000);
+            SleepService.sleep(600, 1200);
             log.info("Deactivating all prayers");
             prayer.deactivateAll();
 
@@ -50,7 +59,7 @@ public class PrayerServiceTest extends BaseApiTest {
     private boolean testIsActive(Prayer p) {
         try {
             prayer.toggle(p, true);
-            SleepService.sleep(3000, 5000);
+            SleepService.sleep(600, 1200);
             return prayer.isActive(p);
         } catch (Exception e) {
             log.error("Error testing prayer isActive", e);
@@ -68,7 +77,7 @@ public class PrayerServiceTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Prayer Service";
     }
 }

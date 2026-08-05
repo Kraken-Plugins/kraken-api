@@ -2,6 +2,8 @@ package plugins.api.tests.query;
 
 import com.kraken.api.Context;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.requirements.TestRequirements;
+import plugins.api.world.Facility;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
@@ -9,12 +11,24 @@ import net.runelite.api.coords.WorldPoint;
 public class GameObjectTest extends BaseApiTest {
 
     @Override
+    public TestRequirements requirements() {
+        // Read only: queries bank booths and touches nothing.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .build();
+    }
+
+    @Override
     protected boolean runTest(Context ctx) throws Exception {
         boolean testsPassed = true;
 
         try {
+            // Every check below is satisfied by any bank, so this runs wherever the suite is banking.
+            // A trailing "chop the nearest Oak" call used to live at the end of this method; it
+            // asserted nothing and, when no Oak was in the scene, threw into the catch below and
+            // failed the whole test. Tree interaction is covered by the interaction tests instead.
+
             // 1. Basic Existence: Verify Bank booths exist in the query
-            // Varrock East Bank always has "Bank booth"
             boolean boothExists = !ctx.gameObjects().withName("Bank booth").first().isNull();
             if (!boothExists) {
                 log.error("Failed to find any 'Bank booth'");
@@ -66,8 +80,6 @@ public class GameObjectTest extends BaseApiTest {
                 }
             }
 
-            ctx.gameObjects().nameContains("Oak").nearest().interact("Chop down");
-
         } catch (Exception e) {
             log.error("Failed to run game object test", e);
             return false;
@@ -77,7 +89,7 @@ public class GameObjectTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Game Object";
     }
 }

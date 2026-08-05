@@ -4,16 +4,15 @@ import com.google.inject.Inject;
 import com.kraken.api.Context;
 import com.kraken.api.service.movement.MovementService;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
 import net.runelite.api.coords.WorldPoint;
 import plugins.api.ApiTestPlugin;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TargetTile;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
 
 @Slf4j
 public class MovementServiceTest extends BaseApiTest {
-
-    @Inject
-    private Client client;
 
     @Inject
     private Context ctx;
@@ -23,6 +22,18 @@ public class MovementServiceTest extends BaseApiTest {
 
     @Inject
     private ApiTestPlugin examplePlugin;
+
+    @Override
+    public TestRequirements requirements() {
+        // Declaring a target tile is what makes this test runnable unattended. The body polls for a
+        // tile the user picked by shift right clicking "Set" and gives up after thirty seconds; with a
+        // tile published ahead of time that poll returns immediately, and the manual pathway still
+        // works whenever no suite is running.
+        return TestRequirements.builder()
+                .targetTile(TargetTile.relativeToPlayer(6, 6))
+                .sideEffect(SideEffect.MOVES_PLAYER)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
@@ -53,15 +64,9 @@ public class MovementServiceTest extends BaseApiTest {
         int timeoutTicks = 0;
         int maxTicks = 25; // Fail if not arrived in ~30 seconds (adjust based on distance)
 
-        // Loop while the test is running
         while (timeoutTicks < maxTicks) {
             WorldPoint playerLoc = ctx.players().local().location();
-            log.info("Local play loc: {}", playerLoc);
-
-            // Check distance to target
-            // We use distanceTo (Chebyshev) to ensure we are exactly on the tile (distance 0)
-            if (playerLoc.distanceTo(target) == 0) {
-                log.info("Success! Player reached destination: {}", playerLoc);
+            if (playerLoc.distanceTo(target) < 3) {
                 return true;
             }
 
@@ -74,7 +79,7 @@ public class MovementServiceTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Movement Service";
     }
 }

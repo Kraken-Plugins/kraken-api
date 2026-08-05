@@ -3,12 +3,17 @@ package plugins.api.tests.query;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.DepositBoxService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
-import net.runelite.api.EquipmentInventorySlot;
-import plugins.api.tests.BaseApiTest;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.EquipmentInventorySlot;
+import plugins.api.requirements.ItemRequirement;
+import plugins.api.requirements.TestRequirements;
+import plugins.api.tests.BaseApiTest;
+import plugins.api.world.Facility;
+import plugins.api.world.NamedLocation;
 
 @Slf4j
 @Singleton
@@ -18,13 +23,40 @@ public class DepositBoxTest extends BaseApiTest {
     private DepositBoxService depositBoxService;
 
     @Override
+    public TestRequirements requirements() {
+        return TestRequirements.builder()
+                .facility(Facility.DEPOSIT_BOX)
+                .location(NamedLocation.VARROCK_WEST_BANK)
+                .inventoryItem(ItemRequirement.of("Coins", 500))
+                .inventoryItem(ItemRequirement.builder().name("Swordfish").quantity(6).noted(ItemRequirement.Noted.NOTED).build())
+                .inventoryItem(ItemRequirement.builder().name("Lobster").quantity(20).noted(ItemRequirement.Noted.NOTED).build())
+                .inventoryItem(ItemRequirement.of("Fire Rune", 50))
+                .build();
+    }
+
+    @Override
     protected boolean runTest(Context ctx) {
         boolean testsPassed = true;
 
         try {
             if (depositBoxService.isClosed()) {
-                log.error("Cannot execute deposit box query tests, deposit box is not open");
-                return false;
+                boolean boxNearby = ctx.gameObjects().withAction("Deposit").nameContains("box").isPresent();
+                if(!boxNearby) {
+                    log.error("Cannot execute deposit box query tests, deposit box is not nearby");
+                    return false;
+                }
+
+                GameObjectEntity box = ctx.gameObjects().withAction("Deposit").nameContains("box").first();
+                if(box != null) {
+                    box.interact("Deposit");
+                }
+
+                SleepService.sleepFor(8);
+
+                if(depositBoxService.isClosed()) {
+                    log.info("Deposit box found, but still closed after 8 ticks.");
+                    return false;
+                }
             }
 
             boolean notEmpty = !ctx.depositBox().isEmpty();
@@ -161,7 +193,7 @@ public class DepositBoxTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "DepositBoxQuery";
     }
 }

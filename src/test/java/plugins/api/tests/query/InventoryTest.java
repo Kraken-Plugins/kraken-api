@@ -6,7 +6,13 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.util.RandomUtils;
+import plugins.api.requirements.BankState;
+import plugins.api.requirements.ItemRequirement;
+import plugins.api.requirements.InventoryPolicy;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.world.Facility;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -14,6 +20,29 @@ public class InventoryTest extends BaseApiTest {
 
     @Inject
     private BankService bankService;
+
+    @Override
+    public TestRequirements requirements() {
+        // Two constraints here are easy to miss from reading the assertions alone.
+        //
+        // The slot checks require an empty inventory before the withdrawals: swordfish must land in
+        // slot 0 and lobster in slot 5, which only holds if nothing else is carried. EXACT is declared
+        // explicitly rather than left to AUTO so that stays true even if the item lists change.
+        //
+        // The hasItem assertions are negative — they prove the query does not report an item that is
+        // absent — so a gold bar or sapphire left over from another test would fail them.
+        return TestRequirements.builder()
+                .facility(Facility.BANK_BOOTH)
+                .bankState(BankState.OPEN)
+                .inventoryPolicy(InventoryPolicy.EXACT)
+                .bankStock(ItemRequirement.of("Swordfish", 5))
+                .bankStock(ItemRequirement.of("Lobster", 5))
+                .forbiddenItem(ItemRequirement.of("Gold bar"))
+                .forbiddenItem(ItemRequirement.of(1607, 1))
+                .sideEffect(SideEffect.DROPS_ITEMS)
+                .sideEffect(SideEffect.CONSUMES_ITEMS)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) {
@@ -76,7 +105,7 @@ public class InventoryTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Inventory";
     }
 }

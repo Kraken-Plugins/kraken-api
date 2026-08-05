@@ -135,9 +135,16 @@ public class MovementService {
      * @param densePath The dense path with which to apply variable strides.
      * @param config A variable stride configuration where the mean, min, max, and std dev can be configured
      *               to produce unique strides when traversing paths.
-     * @return A list of {@literal WorldPoint} representing the strided path.
+     * @return A list of {@literal WorldPoint} representing the strided path. An empty list is returned when
+     *         {@code densePath} is null or empty.
      */
     public List<WorldPoint> applyVariableStride(List<WorldPoint> densePath, VariableStrideConfig config) {
+        // A null or empty path has no final tile to stride toward. Without this guard the size <= 5
+        // branch below calls get(-1) and throws IndexOutOfBoundsException.
+        if (densePath == null || densePath.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         if (densePath.size() <= 5) {
             return Collections.singletonList(densePath.get(densePath.size() - 1));
         }

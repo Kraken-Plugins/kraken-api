@@ -12,10 +12,9 @@ import java.util.List;
 @Slf4j
 @Singleton
 public class WorldQueryTest extends BaseApiTest {
+
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-
-        // 1. Test fetching all worlds
         List<WorldEntity> allWorlds = ctx.worlds().list();
         if (allWorlds.isEmpty()) {
             log.warn("No worlds returned from WorldQuery. Skipping detailed checks.");
@@ -24,7 +23,6 @@ public class WorldQueryTest extends BaseApiTest {
         
         assertThat(true, "Successfully retrieved world list");
 
-        // 2. Test F2P filter
         List<WorldEntity> f2pWorlds = ctx.worlds().freeToPlay().list();
         for (WorldEntity world : f2pWorlds) {
             if (!assertThat(!world.raw().getTypes().contains(WorldType.MEMBERS),
@@ -33,7 +31,6 @@ public class WorldQueryTest extends BaseApiTest {
             }
         }
 
-        // 3. Test Members filter
         List<WorldEntity> membersWorlds = ctx.worlds().members().list();
         for (WorldEntity world : membersWorlds) {
             if (!assertThat(world.raw().getTypes().contains(WorldType.MEMBERS),
@@ -42,7 +39,6 @@ public class WorldQueryTest extends BaseApiTest {
             }
         }
 
-        // 4. Test Sorting by World Number
         List<WorldEntity> sortedWorlds = ctx.worlds().sortByWorldNumberAsc().list();
         int lastId = -1;
         for (WorldEntity world : sortedWorlds) {
@@ -52,7 +48,6 @@ public class WorldQueryTest extends BaseApiTest {
             lastId = world.getId();
         }
 
-        // 5. Test specific world lookup
         WorldEntity first = allWorlds.get(0);
         List<WorldEntity> specific = ctx.worlds().withName(String.valueOf(first.getId())).list();
         if (!assertThat(specific.size() == 1, "Should find exactly one world by ID")) {
@@ -62,7 +57,6 @@ public class WorldQueryTest extends BaseApiTest {
             return false;
         }
 
-        // 6. Test next/previous (ensure no exceptions)
         try {
             ctx.worlds().next();
             ctx.worlds().previous();
@@ -70,7 +64,6 @@ public class WorldQueryTest extends BaseApiTest {
             return assertThat(false, "next() or previous() threw exception: " + e.getMessage());
         }
 
-        // 7. Test standard world filter
         List<WorldEntity> standardWorlds = ctx.worlds().standard().list();
         for (WorldEntity world : standardWorlds) {
              if (!assertThat(!world.raw().getTypes().contains(WorldType.PVP), "Standard world should not be PVP")) {
@@ -78,12 +71,10 @@ public class WorldQueryTest extends BaseApiTest {
              }
         }
 
-        // 8. Test WorldEntity methods
         WorldEntity w = allWorlds.get(0);
         if (!assertNotNull(w.getName(), "World name should not be null")) return false;
         if (!assertThat(w.getId() > 0, "World ID should be positive")) return false;
         
-        // 9. Test withTypes
         List<WorldEntity> pvpWorlds = ctx.worlds().withTypes(WorldType.PVP).list();
         for (WorldEntity world : pvpWorlds) {
             if (!assertThat(world.raw().getTypes().contains(WorldType.PVP), "World should be PVP")) {
@@ -91,7 +82,6 @@ public class WorldQueryTest extends BaseApiTest {
             }
         }
         
-        // 10. Test nameContains
         // Find a world with 3 digits
         WorldEntity target = allWorlds.stream().filter(world -> world.getId() > 300 && world.getId() < 400).findFirst().orElse(null);
         if (target != null) {
@@ -107,12 +97,9 @@ public class WorldQueryTest extends BaseApiTest {
              }
         }
 
-        // 11. Test withActivity
-        // Find a world with activity
         WorldEntity activityWorld = allWorlds.stream().filter(world -> world.raw().getActivity() != null && !world.raw().getActivity().isEmpty()).findFirst().orElse(null);
         if (activityWorld != null) {
             String activity = activityWorld.raw().getActivity();
-            // take a part of it
             String part = activity.substring(0, Math.min(activity.length(), 4));
             List<WorldEntity> activityMatches = ctx.worlds().withActivity(part).list();
             if (!assertThat(!activityMatches.isEmpty(), "Should find worlds with activity " + part)) {
@@ -123,12 +110,14 @@ public class WorldQueryTest extends BaseApiTest {
              }
         }
 
-        ctx.worlds().freeToPlay().next().hop();
+        // This test delays future tests and adds complexity. Hopping is done via client actions and RuneLite itself
+        // it should never be broken due to game updates.
+        // ctx.worlds().freeToPlay().next().hop();
         return true;
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "WorldQuery Test";
     }
 }

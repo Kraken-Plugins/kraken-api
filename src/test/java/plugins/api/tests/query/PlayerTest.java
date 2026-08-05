@@ -102,7 +102,7 @@ public class PlayerTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Player";
     }
 }

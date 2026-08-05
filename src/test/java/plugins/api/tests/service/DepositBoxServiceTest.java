@@ -6,7 +6,12 @@ import com.kraken.api.Context;
 import com.kraken.api.service.bank.DepositBoxService;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
+import plugins.api.requirements.DepositBoxState;
+import plugins.api.requirements.SideEffect;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
+import plugins.api.world.Facility;
+import plugins.api.world.NamedLocation;
 
 @Slf4j
 @Singleton
@@ -14,6 +19,20 @@ public class DepositBoxServiceTest extends BaseApiTest {
 
     @Inject
     private DepositBoxService depositBoxService;
+
+    @Override
+    public TestRequirements requirements() {
+        // The canonical staging case: a deposit box has no bank attached, so items have to be collected
+        // at the hub before travelling here. Without a staging location this test cannot be automated at
+        // all, because there is nowhere at the destination to withdraw from.
+        return TestRequirements.builder()
+                .facility(Facility.DEPOSIT_BOX)
+                .stagingLocation(NamedLocation.VARROCK_EAST_BANK)
+                .depositBoxState(DepositBoxState.CLOSED)
+                .sideEffect(SideEffect.EMPTIES_INVENTORY)
+                .sideEffect(SideEffect.STRIPS_EQUIPMENT)
+                .build();
+    }
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
@@ -55,7 +74,7 @@ public class DepositBoxServiceTest extends BaseApiTest {
     }
 
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Deposit Box Service";
     }
 }

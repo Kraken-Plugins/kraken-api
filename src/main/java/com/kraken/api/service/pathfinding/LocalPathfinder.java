@@ -184,19 +184,20 @@ public class LocalPathfinder {
     }
 
     /**
-     * Calculates and returns a path from a starting point to a target point within the game world.
-     * If the target point is outside the scene, the method attempts to determine the edge of the
-     * scene closest to the target and calculates a path to that edge instead.
+     * Calculates and returns a dense, tile by tile path from a starting point to a target point within
+     * the currently loaded scene.
      *
-     * <p>If the target point is within the loaded scene, the method directly computes the path
-     * to the target using the {@code findScenePath} method. If the target is outside the scene,
-     * it finds the nearest edge point to the target and calculates a path to that point.</p>
+     * <p>This pathfinder is scene local. The target must lie inside the loaded scene and be reachable
+     * from {@code start}; if it is not, {@literal null} is returned rather than a partial path. Callers
+     * that need to move toward a target outside the scene should path to an intermediate point inside
+     * the scene themselves, or use {@link #findApproximatePathWithBackoff(WorldPoint, WorldPoint, int)}
+     * when an approximate destination is acceptable.</p>
      *
      * @param start {@literal @}WorldPoint representing the starting location of the path.
      * @param target {@literal @}WorldPoint representing the destination point of the path.
-     * @return A {@literal @}List of {@literal @}WorldPoint objects representing the calculated path
-     *         from the start to the target (or closest reachable edge point). If no path can be calculated,
-     *         an empty list is returned.
+     * @return A {@literal @}List of {@literal @}WorldPoint objects representing every tile from the start
+     *         to the target, or {@literal null} if the target is outside the loaded scene, is on a
+     *         different plane, or cannot be reached.
      */
     public List<WorldPoint> findPath(WorldPoint start, WorldPoint target) {
         return ctx.runOnClientThread(() -> {
@@ -547,6 +548,17 @@ public class LocalPathfinder {
         });
     }
     
+    /**
+     * Clamps a target into the bounds of the currently loaded scene.
+     *
+     * <p>The returned tile is the point inside the scene closest to {@code target} on each axis. Note
+     * that the clamp is purely geometric: the resulting tile is not checked for walkability or
+     * reachability, and scene edge tiles are frequently walls or unrendered terrain. Callers should
+     * treat the result as a direction to head in rather than a guaranteed destination.</p>
+     *
+     * @param target The {@literal @}WorldPoint to clamp, which may lie outside the loaded scene.
+     * @return A {@literal @}WorldPoint inside the loaded scene, on the scene's current plane.
+     */
     public WorldPoint findEdgeOfScene(WorldPoint target) {
         return ctx.runOnClientThread(() -> {
             WorldView wv = client.getTopLevelWorldView();

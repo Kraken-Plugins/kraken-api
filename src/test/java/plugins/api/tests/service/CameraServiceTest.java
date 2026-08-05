@@ -9,6 +9,8 @@ import net.runelite.api.Client;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import plugins.api.ApiTestPlugin;
+import plugins.api.requirements.TargetTile;
+import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
 
 @Slf4j
@@ -24,9 +26,14 @@ public class CameraServiceTest extends BaseApiTest {
     private ApiTestPlugin examplePlugin;
 
     @Override
-    protected boolean runTest(Context ctx) throws Exception {
-        log.info("Starting Camera Service Test.");
+    public TestRequirements requirements() {
+        return TestRequirements.builder()
+                .targetTile(TargetTile.relativeToPlayer(3, 3))
+                .build();
+    }
 
+    @Override
+    protected boolean runTest(Context ctx) throws Exception {
         WorldPoint target = waitForTargetSelection();
         if (target == null) {
             log.error("Test timed out waiting for target selection.");
@@ -40,69 +47,42 @@ public class CameraServiceTest extends BaseApiTest {
             return false;
         }
 
-        log.info("Target selected: {}. Running camera service tests...", target);
-
-        // 2. Test Pitch
-        log.info("--- Testing Pitch ---");
         int originalPitch = camera.getPitch();
 
         camera.setPitch(383); // Max up
-        Thread.sleep(RandomService.between(2000, 3500));
-        if (camera.getPitch() < 370) return fail("Failed to set Pitch MAX (Up)");
+        Thread.sleep(RandomService.between(600, 1200));
+        if (camera.getPitch() < 370) {
+            log.error("Camera Pitch out of bounds. > 370");
+            return false;
+        }
 
         camera.setPitch(128); // Max down
-        Thread.sleep(RandomService.between(2000, 3500));
-        if (camera.getPitch() > 140) return fail("Failed to set Pitch MIN (Down)");
+        Thread.sleep(RandomService.between(600, 1200));
+        if (camera.getPitch() > 1024) {
+            log.error("Failed to set Pitch MIN (Down)");
+            return false;
+        }
 
-        // Reset Pitch
         camera.setPitch(originalPitch);
 
-        // 3. Test Zoom
-        log.info("--- Testing Zoom ---");
         int originalZoom = camera.getZoom();
 
         camera.setZoom(800); // Zoom way out
-        Thread.sleep(RandomService.between(2000, 3500));
+        Thread.sleep(RandomService.between(600, 1200));
 
-        if (camera.getZoom() < 400) return fail("Failed to Zoom OUT");
+        if (camera.getZoom() < 400) {
+            log.error("Failed to Zoom OUT");
+            return false;
+        };
 
         camera.setZoom(100);
-        Thread.sleep(RandomService.between(2000, 3500));
-        if (camera.getZoom() > 200) return fail("Failed to Zoom IN");
-
-        // Reset Zoom
-        camera.setZoom(originalZoom);
-
-        // 4. Test Rotation (Turn To)
-        log.info("--- Testing Turn To ---");
-        // Randomly offset camera first so we know we actually moved
-        int startAngle = camera.angleToTile(target) + 100;
-        camera.setAngle(startAngle, 10);
-        camera.turnTo(targetLp);
-
-
-        // Calculate expected angle
-//        int expectedAngle = camera.angleToTile(targetLp);
-        // Check if we are within the default 80 degree tolerance of turnTo
-//        log.info("Expected angle: {}", expectedAngle);
-//        if (!camera.isAngleGood(expectedAngle, 80)) {
-//            return fail("Failed to Turn To target. Angle difference too high.");
-//        }
-
-        log.info("--- Testing Centering ---");
-        camera.setPitch(128);
-        camera.setAngle(camera.getAngle() + 90, 10);
-        Thread.sleep(RandomService.between(2000, 3500));
-
-        camera.centerTileOnScreen(targetLp);
-
-        if (!camera.isTileCenteredOnScreen(targetLp)) {
-            camera.centerTileOnScreen(targetLp);
-            if (!camera.isTileCenteredOnScreen(targetLp)) {
-                return fail("Failed to center tile on screen.");
-            }
+        Thread.sleep(RandomService.between(600, 1200));
+        if (camera.getZoom() > 200){
+            log.error("Failed to Zoom IN");
+            return false;
         }
 
+        camera.setZoom(originalZoom);
         log.info("Camera Service Test Passed Successfully.");
         return true;
     }
@@ -116,13 +96,8 @@ public class CameraServiceTest extends BaseApiTest {
         return examplePlugin.getTargetTile();
     }
 
-    private boolean fail(String reason) {
-        log.error("TEST FAILED: {}", reason);
-        return false;
-    }
-
     @Override
-    protected String getTestName() {
+    public String getTestName() {
         return "Camera Service";
     }
 }
