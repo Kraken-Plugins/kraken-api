@@ -201,7 +201,7 @@ public class ApiTestPlugin extends Plugin {
         return SuiteOptions.builder()
                 .establishPreconditions(config.establishPreconditions())
                 .includeDestructive(config.includeDestructive())
-                .perTestTimeoutMs(config.timeout())
+                .perTestTimeoutMs(config.timeout() * 1000L)
                 .build();
     }
 

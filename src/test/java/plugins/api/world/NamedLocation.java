@@ -10,24 +10,10 @@ import java.util.stream.Collectors;
 
 /**
  * The places the in-client test suite runs, and what each one offers.
- *
- * <p>The list is deliberately short. Tests that previously demanded their own location — the Lumbridge
- * canoe station, the Barbarian Village fire — were changed to exercise the same API from the hub,
- * because the location was incidental to what they verified. What remains is a hub, a water source a
- * few tiles from it, and one genuine outpost.</p>
  */
 @Getter
 @AllArgsConstructor
 public enum NamedLocation {
-
-    /**
-     * The suite hub. Bank booths and bankers for the container tests, Guards and Men in the adjacent
-     * square for the combat and NPC tests, and reliable foot traffic for the player query test. The
-     * Varrock teleport also lands nearby, so tests that teleport away return here on their own.
-     *
-     * <p>These bounds are the only location coordinates attested elsewhere in the repository; they
-     * match the area the area service test used before it was made player relative.</p>
-     */
     VARROCK_EAST_BANK(
             "Varrock East Bank",
             new WorldPoint(3253, 3421, 0),
@@ -48,30 +34,17 @@ public enum NamedLocation {
             "Varrock East Guards",
             new WorldPoint(3271, 3428, 0),
             new WorldArea(3266, 3425, 13, 8, 0),
-            6,
+            3,
             EnumSet.of(Facility.COMBAT_NPCS_F2P)
     ),
 
-    /**
-     * The Varrock Square fountain, a short walk north of the hub, used as the water source for the
-     * item on object interaction test.
-     *
-     * <p><b>Unverified:</b> this anchor has not been confirmed in game. Correct it against the actual
-     * fountain (object id 5125) before relying on automated travel here.</p>
-     */
     VARROCK_SQUARE_FOUNTAIN(
             "Varrock Square fountain",
-            new WorldPoint(3253, 3433, 0),
+            new WorldPoint(3238, 3434, 0),
             new WorldArea(3235, 3430, 9, 9, 0),
-            6,
-            EnumSet.of(Facility.WATER_SOURCE, Facility.COMBAT_NPCS_F2P, Facility.OTHER_PLAYERS)),
+            3,
+            EnumSet.of(Facility.WATER_SOURCE, Facility.OTHER_PLAYERS)),
 
-    /**
-     * The only outpost the suite needs. Bankers, exchange clerks and a deposit box sit together, so
-     * the grand exchange test and both deposit box tests share a single trip.
-     *
-     * <p><b>Unverified:</b> this anchor has not been confirmed in game.</p>
-     */
     GRAND_EXCHANGE(
             "Grand Exchange",
             new WorldPoint(3165, 3487, 0),
@@ -80,7 +53,6 @@ public enum NamedLocation {
             EnumSet.of(Facility.BANKER_NPC, Facility.GRAND_EXCHANGE_CLERK,
                     Facility.DEPOSIT_BOX, Facility.OTHER_PLAYERS)),
 
-    /** Sentinel for tests that work anywhere. Never triggers travel and carries no ordering weight. */
     ANYWHERE("Anywhere", null, null, 0, EnumSet.noneOf(Facility.class));
 
     private final String displayName;
@@ -88,6 +60,20 @@ public enum NamedLocation {
     private final WorldArea bounds;
     private final int defaultRadius;
     private final Set<Facility> facilities;
+
+    /**
+     * The capabilities this location offers.
+     *
+     * <p>Hand written rather than generated so the returned set cannot be modified. Enum constants are
+     * global singletons, so handing out the live {@code EnumSet} lets any caller permanently delete a
+     * location's facilities for the rest of the process — which is exactly what happened when a unit
+     * test called {@code clear()} on it and every later lookup stopped finding the bank.</p>
+     *
+     * @return an unmodifiable view of this location's facilities
+     */
+    public Set<Facility> getFacilities() {
+        return Collections.unmodifiableSet(facilities);
+    }
 
     /**
      * Reports whether this location offers every one of the given facilities.

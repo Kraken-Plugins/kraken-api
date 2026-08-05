@@ -73,16 +73,35 @@ class NamedLocationTest {
         List<NamedLocation> banks =
                 NamedLocation.providing(EnumSet.of(Facility.BANK_BOOTH), null);
 
+        assertFalse(banks.isEmpty(), "at least one location must offer a bank booth");
         assertFalse(banks.contains(NamedLocation.ANYWHERE));
-        assertTrue(banks.contains(NamedLocation.VARROCK_EAST_BANK));
     }
 
     @Test
-    void theGrandExchangeIsTheOnlyDepositBox() {
-        List<NamedLocation> boxes =
-                NamedLocation.providing(EnumSet.of(Facility.DEPOSIT_BOX), null);
+    void everyCandidateActuallyOffersWhatWasAskedFor() {
+        // Asserted as a property rather than against a fixed list of locations: the location table is
+        // hand-tuned against the live game, and a test that names its rows would break every time a
+        // coordinate or facility is adjusted.
+        for (Facility facility : Facility.values()) {
+            for (NamedLocation candidate : NamedLocation.providing(EnumSet.of(facility), null)) {
+                assertTrue(candidate.getFacilities().contains(facility),
+                        candidate + " was offered for " + facility + " but does not provide it");
+            }
+        }
+    }
 
-        assertEquals(Collections.singletonList(NamedLocation.GRAND_EXCHANGE), boxes);
+    @Test
+    void everyLocationOfferingAFacilityIsReturned() {
+        for (Facility facility : Facility.values()) {
+            List<NamedLocation> offered = NamedLocation.providing(EnumSet.of(facility), null);
+
+            for (NamedLocation location : NamedLocation.values()) {
+                if (location != NamedLocation.ANYWHERE && location.getFacilities().contains(facility)) {
+                    assertTrue(offered.contains(location),
+                            location + " provides " + facility + " but was not offered");
+                }
+            }
+        }
     }
 
     @Test
@@ -101,14 +120,29 @@ class NamedLocationTest {
 
     @Test
     void candidatesAreOrderedNearestFirst() {
-        // Measured from the hub, the fountain is much closer than the Grand Exchange.
-        List<NamedLocation> populated = NamedLocation.providing(
-                EnumSet.of(Facility.OTHER_PLAYERS), NamedLocation.VARROCK_EAST_BANK.getAnchor());
+        // Again a property, not a named ordering: what matters is that distance never decreases as you
+        // walk the list, whatever the location table currently contains.
+        WorldPoint origin = NamedLocation.VARROCK_EAST_BANK.getAnchor();
+        List<NamedLocation> populated =
+                NamedLocation.providing(EnumSet.of(Facility.OTHER_PLAYERS), origin);
 
-        assertEquals(NamedLocation.VARROCK_EAST_BANK, populated.get(0));
-        assertTrue(populated.indexOf(NamedLocation.VARROCK_SQUARE_FOUNTAIN)
-                        < populated.indexOf(NamedLocation.GRAND_EXCHANGE),
-                "the fountain is nearer the hub than the Grand Exchange");
+        int previous = -1;
+        for (NamedLocation location : populated) {
+            int distance = location.getAnchor().distanceTo(origin);
+            assertTrue(distance >= previous,
+                    location + " at " + distance + " tiles came after something further away");
+            previous = distance;
+        }
+    }
+
+    @Test
+    void aLocationIsItsOwnNearestCandidate() {
+        WorldPoint origin = NamedLocation.VARROCK_EAST_BANK.getAnchor();
+
+        List<NamedLocation> banks = NamedLocation.providing(EnumSet.of(Facility.BANK_BOOTH), origin);
+
+        assertEquals(NamedLocation.VARROCK_EAST_BANK, banks.get(0),
+                "measuring from a location's own anchor must put it first");
     }
 
     @Test

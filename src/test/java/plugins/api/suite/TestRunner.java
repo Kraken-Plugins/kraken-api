@@ -129,12 +129,13 @@ public class TestRunner {
                 results.clearRunningStates();
                 results.endRun();
                 running.set(false);
-                worker = null;
             }
         }, "kraken-api-test-runner");
 
+        // The thread itself is not retained: cancellation goes through the token, which holds the
+        // reference it needs to interrupt. Keeping a second handle here would just be a field that is
+        // written and never read.
         thread.setDaemon(true);
-        this.worker = thread;
         thread.start();
         return true;
     }

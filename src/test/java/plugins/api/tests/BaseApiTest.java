@@ -60,7 +60,7 @@ public abstract class BaseApiTest {
      * @return the declared preconditions; {@link TestRequirements#NONE} when none are declared
      */
     public TestRequirements requirements() {
-        return TestRequirements.NONE;
+        return TestRequirements.builder().build();
     }
 
     /**
