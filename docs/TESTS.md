@@ -16,13 +16,13 @@ there are a few conditions listed below.
 Open the **API Tests** panel from the RuneLite sidebar (the Kraken icon), stand at **Varrock East
 Bank**, and press **Run All**.
 
-| Panel control | What it does |
-| --- | --- |
-| **Run All** | Runs everything, or just the category picked in the dropdown below the buttons. |
-| **Stop** | Cancels the run in progress, interrupting mid-walk rather than waiting for the current test. |
+| Panel control     | What it does                                                                                                                                                               |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Run All**       | Runs everything, or just the category picked in the dropdown below the buttons.                                                                                            |
+| **Stop**          | Cancels the run in progress, interrupting mid-walk rather than waiting for the current test.                                                                               |
 | **Re-run Failed** | Re-runs only the tests that *failed*. Skipped tests are excluded on purpose — a skip means the environment needs fixing, so re-running it unchanged would just skip again. |
-| **Clear** | Clears recorded results. |
-| **▶** on a row | Runs that one test, preconditions and all. |
+| **Clear**         | Clears recorded results.                                                                                                                                                   |
+| **▶** on a row    | Runs that one test, preconditions and all.                                                                                                                                 |
 
 Each row shows its status by colour — green passed, red failed, **orange skipped**, grey cancelled —
 with the duration and, for anything that failed or was skipped, the reason underneath. The footer
@@ -47,12 +47,12 @@ ready. That distinction is the whole point of the run.
 
 Other controls in the General section:
 
-| Control | What it does |
-| --- | --- |
-| **Run Group** | Runs one category only (Query / Service / Interaction / Input). Much faster when chasing a regression in one area. |
-| **Stop Run** | Cancels the run in progress. Interrupts the worker, so it stops mid-walk rather than finishing the current test. |
+| Control                     | What it does                                                                                                                                                                  |
+|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Run Group**               | Runs one category only (Query / Service / Interaction / Input). Much faster when chasing a regression in one area.                                                            |
+| **Stop Run**                | Cancels the run in progress. Interrupts the worker, so it stops mid-walk rather than finishing the current test.                                                              |
 | **Establish Preconditions** | On by default. Turn it off to run a test exactly as it stands — the fastest way to tell whether a red is a real regression or the setup putting the world in the wrong state. |
-| **Bank PIN** | Needed for automated setup if you have one; otherwise every bank test is skipped rather than hanging on the keypad. |
+| **Bank PIN**                | Needed for automated setup if you have one; otherwise every bank test is skipped rather than hanging on the keypad.                                                           |
 
 Ticking any individual test's checkbox still runs just that test, now with its preconditions
 established too.
@@ -90,10 +90,11 @@ first. If it passes, the harness can drive the client and other failures are rea
 The suite is deliberately concentrated into **two locations** so that sequenced runs spend as little
 time walking as possible:
 
-| Stop | Covers |
-| --- | --- |
-| **Varrock East Bank** (the hub) | Everything except the three below. Bank booths, bankers, guards and men for combat/NPC tests, and the Varrock Square fountain a few tiles north for `WidgetTargetGameObjectTest`. The Varrock teleport also lands here, so `SpellServiceTest` returns to the hub on its own. |
-| **Grand Exchange** (~90 tiles north west) | `GrandExchangeServiceTest`, plus `DepositBoxTest` and `DepositBoxServiceTest` — the GE has bankers, clerks *and* a deposit box, so all three share one trip. |
+| Stop                                                       | Covers                                                                                                                                                                                                                                                                       |
+|------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Varrock East Bank** (the hub)                            | Everything except the three below. Bank booths, bankers, guards and men for combat/NPC tests, and the Varrock Square fountain a few tiles north for `WidgetTargetGameObjectTest`. The Varrock teleport also lands here, so `SpellServiceTest` returns to the hub on its own. |
+| **Grand Exchange** (~90 tiles north west)                  | `GrandExchangeServiceTest`, plus `DepositBoxTest` and `DepositBoxServiceTest` — the GE has bankers, clerks *and* a deposit box, so all three share one trip.                                                                                                                 |
+| **Varrock general store** (~40 tiles west, off the Square) | `ShopServiceTest`. The nearest shopkeeper to the hub that reliably stocks and buys back a cheap item.                                                                                                                                                                        |
 
 Several tests used to require their own location for reasons unrelated to what they actually verify.
 Those dependencies have been removed rather than automated around:
@@ -200,6 +201,11 @@ The following items must be present in your **Bank**:
 - **Location**: Start at the grand exchange near the bankers and clerks. This does not require that the bank be open
 - **Bank**: Requires at least three fire runes. This will sell the fire runes at a loss and by fire runes for 15 gp each (to test instabuy).
 
+### `ShopServiceTest`
+- **Location**: The **Varrock general store**, south east of Varrock Square. Any shopkeeper offering "Trade" works, but the test buys pots by name and the general store always stocks them.
+- **Inventory**: At least **1000 coins**. The test buys two pots and sells them straight back, so the only lasting cost is the shop's spread — a few coins per run.
+- **State**: The bank must be closed. The test opens the shop itself and closes it again, including after a failure.
+
 ### `AreaServiceTest`
 - **Location**: Anywhere with open, walkable ground — every area is built relative to the player, so
   the rendered overlays follow you rather than sitting at fixed Varrock East coordinates.
@@ -209,13 +215,13 @@ The following items must be present in your **Bank**:
 
 These cover the four shapes of widget interaction. All except `WidgetSubActionTest` run at the hub.
 
-| Test | Needs | Behaviour |
-| --- | --- | --- |
-| `WidgetActionTest` | A weapon with a special attack | Clicks the spec orb. Fails if spec is *already* enabled, so start with it off. |
-| `WidgetTargetWidgetTest` | Chisel + uncut sapphire | Item on item. |
-| `WidgetTargetGameObjectTest` | Empty bucket, Varrock Square fountain | Item on object. Asserts a **Bucket of water** actually appears. |
-| `WidgetTargetNpcTest` | Air/Mind/Fire runes, nearby Guard | Casts Fire Strike on an NPC. |
-| `WidgetSubActionTest` | Ring of dueling | Nested sub action. **Teleports you to Emir's Arena** in Al Kharid, so run it last. Previously targeted Fortis Colosseum, which is members only. |
+| Test                         | Needs                                 | Behaviour                                                                                                                                       |
+|------------------------------|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `WidgetActionTest`           | A weapon with a special attack        | Clicks the spec orb. Fails if spec is *already* enabled, so start with it off.                                                                  |
+| `WidgetTargetWidgetTest`     | Chisel + uncut sapphire               | Item on item.                                                                                                                                   |
+| `WidgetTargetGameObjectTest` | Empty bucket, Varrock Square fountain | Item on object. Asserts a **Bucket of water** actually appears.                                                                                 |
+| `WidgetTargetNpcTest`        | Air/Mind/Fire runes, nearby Guard     | Casts Fire Strike on an NPC.                                                                                                                    |
+| `WidgetSubActionTest`        | Ring of dueling                       | Nested sub action. **Teleports you to Emir's Arena** in Al Kharid, so run it last. Previously targeted Fortis Colosseum, which is members only. |
 
 ### `DpsServiceTest`
 Runs entirely on free-to-play gear and NPCs, so it can be run on an F2P world or account.
@@ -234,12 +240,12 @@ Runs entirely on free-to-play gear and NPCs, so it can be run on an F2P world or
 
 What it covers:
 
-| Stage | What is checked |
-| --- | --- |
-| Data lookups | `item`, `monster` (by id, name and live NPC), `monstersByName` and `categorize`. Verifies gear is classified into the right style (scimitar → MELEE, shortbow and arrows → RANGED, staff → MAGIC, rune armour → NONE) and that unknown items/monsters return null. |
-| Loadout DPS | Builds loadouts by hand at your live skill levels and compares them: a rune scimitar out-DPSes a bronze one and kills faster, an amulet of power raises the attack roll and DPS, and rune armour — which has no offensive melee bonus — leaves melee DPS untouched. Also checks the `DpsResult` fields (4 tick scimitar, 3 tick rapid shortbow, accuracy as a probability) and that `calculator()`, `calculate(loadout, monster)` and `calculate(loadout, npcId)` all agree. |
-| Equipping gear | Strips the player, then equips the bronze scimitar → rune scimitar → amulet of power → rune armour, re-reading live DPS with `calculateCurrent` at every step and asserting it moves the way each piece implies. Also verifies `currentEquipment`, `currentLoadout` and `availableGear` read back what is actually worn and carried. |
-| Gear search | Runs `findBestGear(npc)`, then applies the change set it returns (equipping `itemsToEquip`, emptying `slotsToRemove`) and verifies the gear now worn *is* the loadout the search chose and reproduces the DPS it reported. Asserts the best melee setup picks the rune scimitar over the bronze one, the best ranged setup picks the shortbow with iron arrows, and that no magic setup is offered when no magic weapon is available. Finally re-runs the search restricted to `GearCategory.RANGED` via `findBestGear(monster, config)` to cover a change set that has to swap weapons rather than only strip gear. |
+| Stage          | What is checked                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Data lookups   | `item`, `monster` (by id, name and live NPC), `monstersByName` and `categorize`. Verifies gear is classified into the right style (scimitar → MELEE, shortbow and arrows → RANGED, staff → MAGIC, rune armour → NONE) and that unknown items/monsters return null.                                                                                                                                                                                                                                                                                                                                                   |
+| Loadout DPS    | Builds loadouts by hand at your live skill levels and compares them: a rune scimitar out-DPSes a bronze one and kills faster, an amulet of power raises the attack roll and DPS, and rune armour — which has no offensive melee bonus — leaves melee DPS untouched. Also checks the `DpsResult` fields (4 tick scimitar, 3 tick rapid shortbow, accuracy as a probability) and that `calculator()`, `calculate(loadout, monster)` and `calculate(loadout, npcId)` all agree.                                                                                                                                         |
+| Equipping gear | Strips the player, then equips the bronze scimitar → rune scimitar → amulet of power → rune armour, re-reading live DPS with `calculateCurrent` at every step and asserting it moves the way each piece implies. Also verifies `currentEquipment`, `currentLoadout` and `availableGear` read back what is actually worn and carried.                                                                                                                                                                                                                                                                                 |
+| Gear search    | Runs `findBestGear(npc)`, then applies the change set it returns (equipping `itemsToEquip`, emptying `slotsToRemove`) and verifies the gear now worn *is* the loadout the search chose and reproduces the DPS it reported. Asserts the best melee setup picks the rune scimitar over the bronze one, the best ranged setup picks the shortbow with iron arrows, and that no magic setup is offered when no magic weapon is available. Finally re-runs the search restricted to `GearCategory.RANGED` via `findBestGear(monster, config)` to cover a change set that has to swap weapons rather than only strip gear. |
 
 Because the search prunes on gear category, the best melee loadout it returns is a rune scimitar and amulet of power with the **rune armour stripped off** — the armour is purely defensive, so removing it costs nothing and the search will not keep it. That is expected, not a bug.
 

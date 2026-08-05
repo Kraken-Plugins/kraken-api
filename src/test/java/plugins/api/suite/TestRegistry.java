@@ -74,6 +74,7 @@ public class TestRegistry {
         register(injector, ProcessingServiceTest.class, "enableProcessingService", TestGroup.SERVICE);
         register(injector, AreaServiceTest.class, "enableAreaService", TestGroup.SERVICE);
         register(injector, GrandExchangeServiceTest.class, "enableGrandExchangeService", TestGroup.SERVICE);
+        register(injector, ShopServiceTest.class, "enableShopService", TestGroup.SERVICE);
         register(injector, DpsServiceTest.class, "enableDpsService", TestGroup.SERVICE);
 
         register(injector, WidgetActionTest.class, "widgetAction", TestGroup.INTERACTION);

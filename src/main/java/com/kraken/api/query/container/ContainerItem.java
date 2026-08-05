@@ -30,6 +30,7 @@ public class ContainerItem {
     public enum ItemOrigin {
         INVENTORY,
         BANK_INVENTORY,
+        SHOP_INVENTORY,
         EQUIPMENT
     }
 
@@ -247,8 +248,7 @@ public class ContainerItem {
                 this.equipmentActions.add(value);
             } catch (Exception ex) {
                 this.equipmentActions.add("");
-                log.warn("Failed to get wearable action for index {} on item {}: {}", wearableActionIndexes[i], id, ex.getMessage());
-                ex.printStackTrace();
+                log.warn("Failed to get wearable action for index {} on item {}:", wearableActionIndexes[i], id, ex);
             }
         }
     }

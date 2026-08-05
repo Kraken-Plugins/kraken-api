@@ -9,6 +9,8 @@ import com.kraken.api.query.container.bank.BankInventoryQuery;
 import com.kraken.api.query.container.bank.BankQuery;
 import com.kraken.api.query.container.bank.DepositBoxQuery;
 import com.kraken.api.query.container.inventory.InventoryQuery;
+import com.kraken.api.query.container.shop.ShopInventoryQuery;
+import com.kraken.api.query.container.shop.ShopQuery;
 import com.kraken.api.query.equipment.EquipmentQuery;
 import com.kraken.api.query.gameobject.GameObjectQuery;
 import com.kraken.api.query.groundobject.GroundObjectQuery;
@@ -18,6 +20,7 @@ import com.kraken.api.query.player.PlayerQuery;
 import com.kraken.api.query.widget.WidgetQuery;
 import com.kraken.api.query.world.WorldQuery;
 import com.kraken.api.service.bank.BankService;
+import com.kraken.api.service.shop.ShopService;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -59,7 +62,8 @@ public class Context {
 
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
-                   final ItemManager itemManager, final BankService bankService, final InteractionManager interactionManager) {
+                   final ItemManager itemManager, final BankService bankService, final ShopService shopService,
+                   final InteractionManager interactionManager) {
         this.client = client;
         this.clientThread = clientThread;
         this.mouse = mouse;
@@ -68,6 +72,10 @@ public class Context {
         this.localPlayer = new LocalPlayerEntity(this);
         eventBus.register(this.localPlayer);
         eventBus.register(bankService);
+
+        // ShopService learns shop prices from the game messages the "Value" action produces, which is
+        // the only place the client ever sees them.
+        eventBus.register(shopService);
 
         // RuneLite injects some logging into doAction when a menu action can't be found by the client but is still being
         // invoked with coordinates where the menu action should appear. This simply mutes those verbose logs.
@@ -300,6 +308,30 @@ public class Context {
      */
     public BankQuery bank() {
         return new BankQuery(this);
+    }
+
+    /**
+     * Creates a new query builder for the items on an open shop's shelves. This returns nothing when no
+     * shop is open. For opening a shop, and for buying under price or coin limits, use {@code ShopService}.
+     * Usage: {@code ctx.shop().withName("Iron ore").first().buy(50);}
+     *
+     * @return ShopQuery object used to chain together predicates to select specific items the shop sells.
+     */
+    public ShopQuery shop() {
+        return new ShopQuery(this);
+    }
+
+    /**
+     * Creates a new query builder for the player's inventory as it is drawn beside an open shop. This should
+     * only be used while the shop interface is open and you are selling items to the shop, since the shop
+     * renders the inventory with its own widgets. For ordinary inventory work use {@code InventoryQuery}.
+     * Usage: {@code ctx.shopInventory().withName("Bones").first().sell(10);}
+     *
+     * @return ShopInventoryQuery object used to chain together predicates to select specific items or groups
+     * of items within the players inventory while the shop interface is open.
+     */
+    public ShopInventoryQuery shopInventory() {
+        return new ShopInventoryQuery(this);
     }
 
     /**

@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-28
+- Last updated: 2026-08-05
 - Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
@@ -103,6 +103,7 @@ This section is the working guide for AI systems and humans asking AI systems to
 - Use `bankInventory()` only while the bank interface is open, and you are depositing items from the inventory to the bank.
 - Use `bank()` only while the bank interface is open and you are withdrawing items from the bank into your inventory.
 - Use `inventory()` for ordinary inventory work and `depositBox()` for deposit box actions.
+- Use `shop()` only while a shop is open and you are reading or buying from its shelves, and `shopInventory()` only while a shop is open and you are selling to it.
 - Prefer dedicated entity methods over generic `interact()` when a helper already exists.
 
 ## Packages and naming
@@ -144,6 +145,7 @@ Do not treat these as hand-edited sources.
 
 - `docs/API.md` explains the service/query split and should be kept aligned with the code.
 - `docs/INTERACTION.md` covers packet-based interaction and runtime hook behavior.
+- `docs/SHOPS.md` covers `ShopService`, shop price discovery, and buying/selling under limits.
 - `docs/MOUSE.md` covers mouse movement strategies.
 - `docs/SCRIPTING.md` covers `Script`, `Task`, and break management.
 - `docs/SIMULATION.md` is the simulation overview; deep dives live in `docs/simulation/`
