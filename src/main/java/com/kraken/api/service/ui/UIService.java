@@ -28,16 +28,36 @@ public class UIService {
 
 
     /**
+     * Reports whether the numeric input dialogue is currently on screen.
+     *
+     * <p>The dialogue is only drawn once the server answers the click that requested it, so callers
+     * that just dispatched such a click must wait on this before assuming the dialogue exists.</p>
+     *
+     * @return true when the numeric input dialogue is open, false when it is not or the state could
+     *         not be read.
+     */
+    public static boolean isNumberDialogueOpen() {
+        return Boolean.TRUE.equals(ctx.runOnClientThread(() -> {
+            Client client = ctx.getClient();
+            return client.getWidget(WidgetInfo.CHATBOX_INPUT) != null
+                    || client.getWidget(WidgetInfo.CHATBOX_FULL_INPUT) != null;
+        }));
+    }
+
+    /**
      * Runs a client script to close the numeric input dialogue if it is open. This
      * dialogue is shown when players are prompted to enter a number like: inputting GE offers,
      * clue scroll steps, or withdrawing-X items from the bank.
+     *
+     * <p>This is a no-op when the dialogue is not open, so a caller that has just requested one must
+     * wait for {@link #isNumberDialogueOpen()} first — otherwise the dialogue arrives after the close
+     * and stays on screen to swallow the next interaction.</p>
      */
     public static void closeNumberDialogue() {
-        Client client = ctx.getClient();
         ctx.runOnClientThread(() -> {
-            Widget widgetOne = client.getWidget(WidgetInfo.CHATBOX_INPUT);
-            Widget widgetTwo = client.getWidget(WidgetInfo.CHATBOX_FULL_INPUT);
-            if(widgetOne != null || widgetTwo != null) {
+            Client client = ctx.getClient();
+            if (client.getWidget(WidgetInfo.CHATBOX_INPUT) != null
+                    || client.getWidget(WidgetInfo.CHATBOX_FULL_INPUT) != null) {
                 client.runScript(138);
             }
         });

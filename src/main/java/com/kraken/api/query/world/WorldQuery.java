@@ -48,20 +48,15 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
     }
 
     /**
-     * Expects a World name in the format: "w123"
+     * Expects a World name in the format: "123"
      * @param name The name of the object to filter for
-     * @return
+     * @return WorldQuery chainable world query after name filter has been applied.
      */
     @Override
     public WorldQuery withName(String name) {
-        if(!name.startsWith("w")) {
-            log.error("World name must start with 'w'. Example: w493");
-            return this;
-        }
-
         int worldNum;
         try {
-            worldNum = Integer.parseInt(name.substring(1, name.length() - 1));
+            worldNum = Integer.parseInt(name);
         } catch (NumberFormatException e) {
             log.error("Failed to parse world number from name: {}, expected name to be the world number.", name);
             return this;

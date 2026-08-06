@@ -61,8 +61,7 @@ public class ShopEntity extends AbstractEntity<Widget> {
             return false;
         }
 
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     /**

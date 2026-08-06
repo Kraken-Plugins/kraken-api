@@ -23,8 +23,7 @@ public class InventoryEntity extends AbstractEntity<ContainerItem> {
     public boolean interact(String action) {
         ContainerItem raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     @Override
@@ -51,8 +50,7 @@ public class InventoryEntity extends AbstractEntity<ContainerItem> {
     public boolean combineWith(ContainerItem other) {
         ContainerItem item = raw();
         if(item.getWidget() != null && other.getWidget() != null){
-            ctx.getInteractionManager().interact(item.getWidget(), other.getWidget());
-            return true;
+            return ctx.getInteractionManager().interact(item.getWidget(), other.getWidget());
         }
         return false;
     }
@@ -76,8 +74,7 @@ public class InventoryEntity extends AbstractEntity<ContainerItem> {
         ContainerItem item = raw();
 
         if(item.getWidget() != null && npc != null) {
-            ctx.getInteractionManager().interact(item.getWidget(), npc);
-            return true;
+            return ctx.getInteractionManager().interact(item.getWidget(), npc);
         }
         return false;
     }
@@ -91,8 +88,7 @@ public class InventoryEntity extends AbstractEntity<ContainerItem> {
         ContainerItem item = raw();
 
         if(item.getWidget() != null && gameObject != null) {
-            ctx.getInteractionManager().interact(item.getWidget(), gameObject);
-            return true;
+            return ctx.getInteractionManager().interact(item.getWidget(), gameObject);
         }
         return false;
     }

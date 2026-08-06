@@ -45,8 +45,7 @@ public class ShopInventoryEntity extends AbstractEntity<ContainerItem> {
             return false;
         }
 
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     /**

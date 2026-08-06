@@ -21,8 +21,7 @@ public class EquipmentEntity extends AbstractEntity<ContainerItem> {
     public boolean interact(String action) {
         ContainerItem raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     @Override
@@ -54,8 +53,7 @@ public class EquipmentEntity extends AbstractEntity<ContainerItem> {
     public boolean wieldOrWear() {
         ContainerItem raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, "wield", "wear", "equip");
-        return true;
+        return ctx.getInteractionManager().interact(raw, "wield", "wear", "equip");
     }
 
     /**

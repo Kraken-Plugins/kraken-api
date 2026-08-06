@@ -359,9 +359,9 @@ public class DialogueService {
                 return true;
             }
 
-            // When a sprite is shown
+            // When a sprite is shown.
             if (ctx.getClient().getWidget(WidgetInfo.DIALOG_SPRITE) != null) {
-                interactionManager.interact(UIService.pack(11, 0), -1);
+                interactionManager.interact(UIService.pack(WidgetID.DIALOG_SPRITE_GROUP_ID, 0), -1);
                 return true;
             }
 

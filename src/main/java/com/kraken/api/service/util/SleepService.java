@@ -10,8 +10,19 @@ import net.runelite.client.RuneLite;
 import javax.inject.Singleton;
 import java.util.concurrent.Callable;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
+/**
+ * Blocking wait helpers for script threads.
+ *
+ * <p><strong>None of these methods may be called on the client thread.</strong> Every entry point
+ * asserts this and throws {@link IllegalStateException} if the rule is broken. The client thread is
+ * the only thread that advances the game tick counter and repaints the scene, so a wait issued from
+ * it can never observe the state change it is waiting for — the wait would spin forever and take the
+ * game client down with it. Failing loudly at the call site is the only safe behaviour.</p>
+ *
+ * <p>Timeouts are always milliseconds. The one exception is {@link #sleepUntilTicks}, which is named
+ * differently precisely so that a tick budget can never be mistaken for a millisecond budget.</p>
+ */
 @Slf4j
 @Singleton
 public class SleepService {
@@ -19,84 +30,120 @@ public class SleepService {
     private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
 
     /**
-     * Waits up to 15 seconds until the specified condition is true.
-     * @param condition the condition to be met
+     * Default budget for the wait helpers that do not take an explicit timeout.
      */
-    public static void sleepUntil(Supplier<Boolean> condition) {
-        sleepUntil(condition, 15000);
+    private static final long DEFAULT_TIMEOUT_MS = 15_000L;
+
+    /**
+     * Interval between condition re-checks for the helpers that do not take an explicit one.
+     */
+    private static final int DEFAULT_POLL_INTERVAL_MS = 100;
+
+    /**
+     * Rejects any attempt to block the client thread.
+     *
+     * <p>Called at the top of every public entry point rather than only at the innermost sleep so that
+     * the resulting stack trace names the helper the caller actually invoked.</p>
+     *
+     * @throws IllegalStateException when invoked on the client thread.
+     */
+    private static void assertOffClientThread() {
+        if (ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread — "
+                    + "the client thread cannot advance the game state it would be waiting for. "
+                    + "Move this call onto a script thread, or schedule the follow-up work with "
+                    + "Context.runOnClientThread(...) instead of waiting for it.");
+        }
     }
 
     /**
-     * sleeps until the specified condition is true or the timeout is reached.
+     * Throws if the script that owns this thread has been cancelled or the thread was interrupted.
+     */
+    private static void assertNotCancelled() {
+        if (Thread.currentThread().isInterrupted() || RunnableTask.isCanceled()) {
+            throw new RuntimeException("Script stopped during sleep");
+        }
+    }
+
+    /**
+     * Waits until the specified condition is true, up to {@value #DEFAULT_TIMEOUT_MS} milliseconds.
      * @param condition the condition to be met
-     * @param timeoutMS the maximum time to sleep in milliseconds
      * @return true if the condition was met, false if the timeout was reached
      */
-    public static boolean sleepUntil(Supplier<Boolean> condition, long timeoutMS) {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
+    public static boolean sleepUntil(BooleanSupplier condition) {
+        return sleepUntil(condition, DEFAULT_TIMEOUT_MS);
+    }
+
+    /**
+     * Sleeps until the specified condition is true or the timeout is reached.
+     * @param condition the condition to be met
+     * @param timeoutMs the maximum time to wait, in milliseconds
+     * @return true if the condition was met, false if the timeout was reached
+     */
+    public static boolean sleepUntil(BooleanSupplier condition, long timeoutMs) {
+        assertOffClientThread();
 
         long start = System.currentTimeMillis();
-        while(!condition.get()) {
-            if(System.currentTimeMillis() - start > timeoutMS) {
+        while (!condition.getAsBoolean()) {
+            if (System.currentTimeMillis() - start > timeoutMs) {
                 return false;
             }
-
-            if(Thread.currentThread().isInterrupted() || RunnableTask.isCanceled()) {
-                throw new RuntimeException();
-            }
-
-            sleep(100);
+            assertNotCancelled();
+            sleep(DEFAULT_POLL_INTERVAL_MS);
         }
         return true;
     }
 
     /**
-     * sleeps until the specified condition is true or the timeout is reached.
+     * Sleeps until the specified condition is true or the given number of game ticks have elapsed.
+     *
+     * <p>Named separately from {@link #sleepUntil} so a tick budget can never be passed where a
+     * millisecond budget was intended.</p>
+     *
      * @param condition the condition to be met
-     * @param ticks the maximum time to sleep in game ticks
-     * @return true if the condition was met, false if the timeout was reached
+     * @param ticks the maximum time to wait, in game ticks
+     * @return true if the condition was met, false if the tick budget was exhausted
      */
-    public static boolean sleepUntilTicks(Supplier<Boolean> condition, int ticks) {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
+    public static boolean sleepUntilTicks(BooleanSupplier condition, int ticks) {
+        assertOffClientThread();
 
         int end = ctx.getClient().getTickCount() + ticks;
-        while(!condition.get()) {
-            if(ctx.getClient().getTickCount() >= end) {
+        while (!condition.getAsBoolean()) {
+            if (ctx.getClient().getTickCount() >= end) {
                 return false;
             }
-
-            if(Thread.currentThread().isInterrupted() || RunnableTask.isCanceled()) {
-                throw new RuntimeException();
-            }
-
-            sleep(100);
+            assertNotCancelled();
+            sleep(DEFAULT_POLL_INTERVAL_MS);
         }
         return true;
     }
 
     /**
-     * Sleeps until the local player's animation is idle.
+     * Sleeps until the local player's animation is idle, up to {@value #DEFAULT_TIMEOUT_MS} milliseconds.
+     * @return true if the player went idle, false if the timeout was reached
      */
-    public static void sleepUntilIdle() {
-        do {
-            tick();
-        } while (!ctx.players().local().isIdle());
+    public static boolean sleepUntilIdle() {
+        assertOffClientThread();
+        return sleepUntil(() -> ctx.players().local().isIdle());
     }
 
     /**
-     * Sleeps until the local player reaches the specified world tile.
+     * Sleeps until the local player reaches the specified world tile, up to
+     * {@value #DEFAULT_TIMEOUT_MS} milliseconds.
      * @param worldX the x-coordinate of the target tile
      * @param worldY the y-coordinate of the target tile
+     * @return true if the tile was reached, false if the timeout was reached
      */
-    public static void sleepUntilTile(int worldX, int worldY) {
-        Player player = ctx.players().local().raw();
-        while((player.getWorldLocation().getX() != worldX || player.getWorldLocation().getY() != worldY)) {
-            tick();
-        }
+    public static boolean sleepUntilTile(int worldX, int worldY) {
+        assertOffClientThread();
+        return sleepUntil(() -> {
+            Player player = ctx.players().local().raw();
+            if (player == null) {
+                return false;
+            }
+            return player.getWorldLocation().getX() == worldX
+                    && player.getWorldLocation().getY() == worldY;
+        });
     }
 
     /**
@@ -104,9 +151,6 @@ public class SleepService {
      * @param duration the duration to sleep in milliseconds
      */
     public static void sleep(int duration) {
-        if (ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
         sleep((long) duration);
     }
 
@@ -115,18 +159,14 @@ public class SleepService {
      * @param time the duration to sleep in milliseconds
      */
     public static void sleep(long time) {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
+        assertOffClientThread();
 
         if (time <= 0) {
             return;
         }
         long end = System.currentTimeMillis() + time;
         while (System.currentTimeMillis() < end) {
-            if (RunnableTask.isCanceled()) {
-                throw new RuntimeException("Script stopped during sleep");
-            }
+            assertNotCancelled();
             try {
                 long remaining = end - System.currentTimeMillis();
                 if (remaining > 0) {
@@ -145,15 +185,12 @@ public class SleepService {
      * @param end the maximum sleep time
      */
     public static void sleep(long start, long end) {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
+        assertOffClientThread();
 
         if (start < 0 || end < 0 || start > end) {
             throw new IllegalArgumentException("Invalid sleep range: " + start + " to " + end);
         }
-        long randomSleep = RandomService.between((int) start, (int) end);
-        sleep(randomSleep);
+        sleep(RandomService.between((int) start, (int) end));
     }
 
     /**
@@ -162,8 +199,8 @@ public class SleepService {
      * @param end the maximum sleep time
      */
     public static void sleep(int start, int end) {
-        int randomSleep = RandomService.between(start, end);
-        sleep(randomSleep);
+        assertOffClientThread();
+        sleep(RandomService.between(start, end));
     }
 
     /**
@@ -172,8 +209,8 @@ public class SleepService {
      * @param stddev the standard deviation of the sleep time
      */
     public static void sleepGaussian(int mean, int stddev) {
-        int randomSleep = RandomService.randomGaussian(mean, stddev);
-        sleep(randomSleep);
+        assertOffClientThread();
+        sleep(RandomService.randomGaussian(mean, stddev));
     }
 
     /**
@@ -186,17 +223,13 @@ public class SleepService {
      */
     @SneakyThrows
     public static <T> T sleepUntilNotNull(Callable<T> method, int timeoutMillis, int sleepMillis) {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
+        assertOffClientThread();
 
         boolean done;
         T methodResponse;
-        final long endTime = System.currentTimeMillis()+timeoutMillis;
+        final long endTime = System.currentTimeMillis() + timeoutMillis;
         do {
-            if (RunnableTask.isCanceled()) {
-                throw new RuntimeException("Script stopped");
-            }
+            assertNotCancelled();
             methodResponse = method.call();
             done = methodResponse != null;
             if (!done) {
@@ -215,69 +248,28 @@ public class SleepService {
      * @return the non-null value, or null if the timeout was reached
      */
     public static <T> T sleepUntilNotNull(Callable<T> method, int timeoutMillis) {
-        return sleepUntilNotNull(method, timeoutMillis, 100);
+        return sleepUntilNotNull(method, timeoutMillis, DEFAULT_POLL_INTERVAL_MS);
     }
 
     /**
-     * Waits until the specified condition is true, with a default timeout of 5000ms.
-     * @param awaitedCondition the condition to be met
-     * @return true if the condition was met, false if the timeout was reached
-     */
-    public static boolean sleepUntil(BooleanSupplier awaitedCondition) {
-        return sleepUntil(awaitedCondition, 5000);
-    }
-
-    /**
-     * Waits until the specified condition is true, or a timeout is reached.
-     * @param awaitedCondition the condition to be met
-     * @param time the maximum time to wait in milliseconds
-     * @return true if the condition was met, false if the timeout was reached
-     */
-    public static boolean sleepUntil(BooleanSupplier awaitedCondition, int time) {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
-
-        boolean done;
-        long startTime = System.currentTimeMillis();
-        do {
-            if (RunnableTask.isCanceled()) {
-                throw new RuntimeException("Script stopped");
-            }
-            done = awaitedCondition.getAsBoolean();
-            if (!done) {
-                sleep(100);
-            }
-        } while (!done && System.currentTimeMillis() - startTime < time);
-        return done;
-    }
-
-    /**
-     * Sleeps the current thread for one game tick
+     * Sleeps the current thread for one game tick.
      */
     public static void tick() {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
-
+        assertOffClientThread();
         sleepFor(1);
     }
 
     /**
-     * Sleeps the current thread by the specified number of game ticks
+     * Sleeps the current thread by the specified number of game ticks.
      * @param ticks ticks
      */
     public static void sleepFor(int ticks) {
-        if (ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
+        assertOffClientThread();
 
         int tick = ctx.getClient().getTickCount() + ticks;
         int start = ctx.getClient().getTickCount();
-        while(ctx.getClient().getTickCount() < tick && ctx.getClient().getTickCount() >= start) {
-            if(Thread.currentThread().isInterrupted() || RunnableTask.isCanceled()) {
-                throw new RuntimeException();
-            }
+        while (ctx.getClient().getTickCount() < tick && ctx.getClient().getTickCount() >= start) {
+            assertNotCancelled();
             sleep(20);
         }
     }
@@ -288,76 +280,67 @@ public class SleepService {
      * @param maxTicks maximum ticks to sleep
      */
     public static void sleepFor(int minTicks, int maxTicks) {
+        assertOffClientThread();
         sleepFor(RandomService.between(minTicks, maxTicks));
     }
 
     /**
-     * Waits until the specified condition is true, checking at a given interval, until a timeout is reached.
+     * Waits until the specified condition is true, re-checking at a caller-supplied interval, until a
+     * timeout is reached.
+     *
+     * <p>Equivalent to {@link #sleepUntil(BooleanSupplier, long)} apart from the configurable poll
+     * interval; prefer {@code sleepUntil} unless you specifically need to poll faster or slower than
+     * the {@value #DEFAULT_POLL_INTERVAL_MS}ms default.</p>
+     *
      * @param awaitedCondition the condition to be met
-     * @param time the time to sleep between checks in milliseconds
-     * @param timeout the maximum time to wait in milliseconds
+     * @param pollIntervalMs the time to sleep between checks in milliseconds
+     * @param timeoutMs the maximum time to wait in milliseconds
      * @return true if the condition was met, false if the timeout was reached
      */
-    public static boolean sleepUntilTrue(BooleanSupplier awaitedCondition, int time, int timeout) {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
+    public static boolean sleepUntilTrue(BooleanSupplier awaitedCondition, int pollIntervalMs, long timeoutMs) {
+        assertOffClientThread();
 
         long startTime = System.currentTimeMillis();
         do {
-            if (RunnableTask.isCanceled()) {
-                throw new RuntimeException("Script stopped");
-            }
+            assertNotCancelled();
             if (awaitedCondition.getAsBoolean()) {
                 return true;
             }
-            sleep(time);
-        } while (System.currentTimeMillis() - startTime < timeout);
+            sleep(pollIntervalMs);
+        } while (System.currentTimeMillis() - startTime < timeoutMs);
         return false;
     }
 
     /**
-     * Waits until the specified condition is true, checking every 100ms, until a timeout is reached.
+     * Waits until the specified condition is true, or a timeout is reached.
+     *
+     * <p>An alias for {@link #sleepUntil(BooleanSupplier, long)} kept for existing callers. Both take
+     * a millisecond budget and behave identically; prefer {@code sleepUntil} in new code.</p>
+     *
      * @param awaitedCondition the condition to be met
-     * @param timeout the maximum time to wait in milliseconds
+     * @param timeoutMs the maximum time to wait in milliseconds
      * @return true if the condition was met, false if the timeout was reached
      */
-    public static boolean sleepUntilTrue(BooleanSupplier awaitedCondition, int timeout) {
-        if(ctx.getClient().isClientThread()) {
-            throw new IllegalStateException("SleepService may not be called on the client thread");
-        }
-
-        long startTime = System.currentTimeMillis();
-        do {
-            if (RunnableTask.isCanceled()) {
-                throw new RuntimeException("Script stopped");
-            }
-            if (awaitedCondition.getAsBoolean()) {
-                return true;
-            }
-            sleep(100);
-        } while (System.currentTimeMillis() - startTime < timeout);
-        return false;
+    public static boolean sleepUntilTrue(BooleanSupplier awaitedCondition, long timeoutMs) {
+        return sleepUntil(awaitedCondition, timeoutMs);
     }
 
     /**
      * Sleeps while the specified condition is true or until the timeout is reached.
      * @param condition the condition to be met
-     * @param timeout the maximum time to sleep in milliseconds
+     * @param timeoutMs the maximum time to sleep in milliseconds
      * @return true if the condition became false, false if the timeout was reached
      */
-    public static boolean sleepWhile(BooleanSupplier condition, int timeout) {
+    public static boolean sleepWhile(BooleanSupplier condition, long timeoutMs) {
+        assertOffClientThread();
+
         long start = System.currentTimeMillis();
         while (condition.getAsBoolean()) {
-            if (System.currentTimeMillis() - start > timeout) {
+            if (System.currentTimeMillis() - start > timeoutMs) {
                 return false;
             }
-
-            if (Thread.currentThread().isInterrupted() || RunnableTask.isCanceled()) {
-                throw new RuntimeException();
-            }
-
-            sleep(100);
+            assertNotCancelled();
+            sleep(DEFAULT_POLL_INTERVAL_MS);
         }
         return true;
     }

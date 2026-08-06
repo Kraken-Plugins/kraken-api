@@ -32,8 +32,7 @@ public class GroundObjectEntity extends AbstractEntity<GroundItem> {
     public boolean interact(String action) {
         GroundItem raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     /**

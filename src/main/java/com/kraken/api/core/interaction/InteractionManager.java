@@ -26,6 +26,11 @@ import java.util.Optional;
 /**
  * Public API for interacting with in-game entities. Delegates all resolution
  * to {@link MenuActionResolverRegistry} and all dispatching to {@link InteractionDispatcher}.
+ *
+ * <p>Every {@code interact} overload reports whether the action was actually resolved and dispatched.
+ * A {@code false} return means the entity was null, no resolver handled its type, or the requested
+ * action does not exist on it — in every one of those cases nothing was sent to the server, so callers
+ * must not assume the interaction happened.</p>
  */
 @Slf4j
 @Singleton
@@ -47,14 +52,16 @@ public class InteractionManager {
     @Getter
     private WidgetPackets widgetPackets;
 
-    private <T> void interact(T entity, Class<T> type, String action, Point point) {
-        registry.getResolver(type)
-                .flatMap(r -> r.resolve(entity, action))
-                .ifPresentOrElse(
-                        resolved -> dispatcher.dispatch(point, action, resolved),
-                        () -> log.warn("No resolver or resolution failed for type={} action={}",
-                                type.getSimpleName(), action)
-                );
+    private <T> boolean interact(T entity, Class<T> type, String action, Point point) {
+        Optional<ResolvedMenuAction> resolved = registry.getResolver(type)
+                .flatMap(r -> r.resolve(entity, action));
+
+        if (resolved.isEmpty()) {
+            log.warn("No resolver or resolution failed for type={} action={}", type.getSimpleName(), action);
+            return false;
+        }
+
+        return dispatcher.dispatch(point, action, resolved.get());
     }
 
     /**
@@ -62,9 +69,11 @@ public class InteractionManager {
      *
      * @param npc    The NPC to interact with.
      * @param action The action to perform (e.g., "Attack", "Pickpocket").
+     * @return true if the action resolved and was dispatched, false otherwise.
      */
-    public void interact(NPC npc, String action) {
-        interact(npc, NPC.class, action, UIService.getClickbox(npc));
+    public boolean interact(NPC npc, String action) {
+        if (npc == null) return false;
+        return interact(npc, NPC.class, action, UIService.getClickbox(npc));
     }
 
     /**
@@ -72,9 +81,11 @@ public class InteractionManager {
      *
      * @param player The player to interact with.
      * @param action The action to perform (e.g., "Trade", "Follow").
+     * @return true if the action resolved and was dispatched, false otherwise.
      */
-    public void interact(Player player, String action) {
-        interact(player, Player.class, action, UIService.getClickbox(player));
+    public boolean interact(Player player, String action) {
+        if (player == null) return false;
+        return interact(player, Player.class, action, UIService.getClickbox(player));
     }
 
     /**
@@ -82,18 +93,21 @@ public class InteractionManager {
      *
      * @param object The TileObject (game object) to interact with.
      * @param action The action to perform (e.g., "Chop down", "Mine").
+     * @return true if the action resolved and was dispatched, false otherwise.
      */
-    public void interact(TileObject object, String action) {
-        interact(object, TileObject.class, action, UIService.getClickbox(object));
+    public boolean interact(TileObject object, String action) {
+        if (object == null) return false;
+        return interact(object, TileObject.class, action, UIService.getClickbox(object));
     }
 
     /**
      * Picks up a ground item. Defaults to the "Take" action.
      *
      * @param item The ground item to pick up.
+     * @return true if the action resolved and was dispatched, false otherwise.
      */
-    public void interact(GroundItem item) {
-        interact(item, "Take");
+    public boolean interact(GroundItem item) {
+        return interact(item, "Take");
     }
 
     /**
@@ -101,9 +115,11 @@ public class InteractionManager {
      *
      * @param item   The ground item to interact with.
      * @param action The action to perform (e.g., "Take", "Cast").
+     * @return true if the action resolved and was dispatched, false otherwise.
      */
-    public void interact(GroundItem item, String action) {
-        interact(item, GroundItem.class, action, UIService.getClickbox(item.getTileObject()));
+    public boolean interact(GroundItem item, String action) {
+        if (item == null) return false;
+        return interact(item, GroundItem.class, action, UIService.getClickbox(item.getTileObject()));
     }
 
     /**
@@ -111,9 +127,11 @@ public class InteractionManager {
      *
      * @param widget The widget to interact with.
      * @param action The action to perform.
+     * @return true if the action resolved and was dispatched, false otherwise.
      */
-    public void interact(Widget widget, String action) {
-        interact(widget, Widget.class, action, UIService.getClickbox(widget));
+    public boolean interact(Widget widget, String action) {
+        if (widget == null) return false;
+        return interact(widget, Widget.class, action, UIService.getClickbox(widget));
     }
 
     /**
@@ -121,9 +139,11 @@ public class InteractionManager {
      *
      * @param item   The bank item widget to interact with.
      * @param action The action to perform (e.g., "Withdraw-1", "Withdraw-All").
+     * @return true if the action resolved and was dispatched, false otherwise.
      */
-    public void interact(BankItemWidget item, String action) {
-        interact(item, BankItemWidget.class, action, UIService.getClickbox(item));
+    public boolean interact(BankItemWidget item, String action) {
+        if (item == null) return false;
+        return interact(item, BankItemWidget.class, action, UIService.getClickbox(item));
     }
 
     /**
@@ -131,14 +151,19 @@ public class InteractionManager {
      *
      * @param item   The container item to interact with.
      * @param action The action to perform (e.g., "Drop", "Wield").
+     * @return true if the action resolved and was dispatched, false otherwise.
      */
-    public void interact(ContainerItem item, String action) {
-        ctxProvider.get().runOnClientThread(() -> {
-            if (item == null) return;
+    public boolean interact(ContainerItem item, String action) {
+        if (item == null) return false;
+
+        return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
             Widget w = item.getWidget();
-            if (w == null) return;
-            interact(w, Widget.class, action, UIService.getClickbox(item));
-        });
+            if (w == null) {
+                log.error("Failed to resolve widget for item interaction: {}", item.getName());
+                return false;
+            }
+            return interact(w, Widget.class, action, UIService.getClickbox(item));
+        }));
     }
 
     /**
@@ -147,14 +172,16 @@ public class InteractionManager {
      *
      * @param item    The container item to interact with.
      * @param actions An array of actions to attempt, in order of priority.
+     * @return true if one of the actions resolved and was dispatched, false if none did.
      */
-    public void interact(ContainerItem item, String... actions) {
-        ctxProvider.get().runOnClientThread(() -> {
-            if (item == null) return;
+    public boolean interact(ContainerItem item, String... actions) {
+        if (item == null) return false;
+
+        return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
             Widget w = item.getWidget();
             if (w == null) {
                 log.error("Failed to resolve widget for item interaction: {}", item.getName());
-                return;
+                return false;
             }
 
             Point pt = UIService.getClickbox(item);
@@ -163,26 +190,30 @@ public class InteractionManager {
                         .flatMap(r -> r.resolve(w, action));
 
                 if (resolved.isPresent()) {
-                    dispatcher.dispatch(pt, action, resolved.get());
-                    return;
+                    return dispatcher.dispatch(pt, action, resolved.get());
                 }
             }
 
             log.warn("Failed to resolve any of the specified actions {} for item: {}",
                     Arrays.toString(actions), item.getName());
-        });
+            return false;
+        }));
     }
-    
+
     /**
      * Handles dialogue progression or selection using a widget's packed ID.
      *
      * @param packedWidgetId The packed ID of the dialogue widget.
      * @param option         The dialogue option to select (-1 for continue, 1-5 for choices).
+     * @return true if the action was dispatched, false if the widget could not be resolved.
      */
-    public void interact(int packedWidgetId, int option) {
-        Widget widget = ctxProvider.get().getClient().getWidget(packedWidgetId);
-        if (widget == null) return;
-        interact(widget, option);
+    public boolean interact(int packedWidgetId, int option) {
+        Widget widget = ctxProvider.get().getWidget(packedWidgetId);
+        if (widget == null) {
+            log.warn("Failed to resolve dialogue widget: packedWidgetId={}", packedWidgetId);
+            return false;
+        }
+        return interact(widget, option);
     }
 
     /**
@@ -190,9 +221,10 @@ public class InteractionManager {
      *
      * @param widget The dialogue widget.
      * @param option The dialogue option to select (-1 for continue, 1-5 for choices).
+     * @return true if the action was dispatched, false otherwise.
      */
-    public void interact(Widget widget, int option) {
-        if (widget == null) return;
+    public boolean interact(Widget widget, int option) {
+        if (widget == null) return false;
 
         Point pt = UIService.getClickbox(widget);
         int worldView = ctxProvider.get().getClient().getTopLevelWorldView().getId();
@@ -201,18 +233,19 @@ public class InteractionManager {
         MenuOption opt = new MenuOption(MenuAction.WIDGET_CONTINUE, 0, option,
                 widget.getId(), -1, worldView);
 
-        dispatcher.dispatch(pt, "Continue", new ResolvedMenuAction(opt, ""));
+        return dispatcher.dispatch(pt, "Continue", new ResolvedMenuAction(opt, ""));
     }
 
     /**
      * Sets the player's heading/camera direction.
      *
      * @param heading The heading value to set.
+     * @return true if the action was dispatched, false otherwise.
      */
-    public void interact(int heading) {
+    public boolean interact(int heading) {
         int worldView = ctxProvider.get().getClient().getTopLevelWorldView().getId();
         MenuOption option = new MenuOption(MenuAction.SET_HEADING, heading, 0, 0, 0, worldView);
-        dispatcher.dispatch(
+        return dispatcher.dispatch(
                 ctxProvider.get().getClient().getMouseCanvasPosition(),
                 "Set heading",
                 new ResolvedMenuAction(option, "")
@@ -225,18 +258,22 @@ public class InteractionManager {
      * @param item   The widget item to interact with.
      * @param menu   The parent menu name (e.g., "Rub").
      * @param action The specific sub-action to perform (e.g., "Grand Exchange").
+     * @return true if the sub-action resolved and was dispatched, false otherwise.
      */
-    public void interact(Widget item, String menu, String action) {
+    public boolean interact(Widget item, String menu, String action) {
+        if (item == null) return false;
+
         Point pt = UIService.getClickbox(item);
+        Optional<ResolvedMenuAction> resolved = subActionResolver.resolve(item, menu, action);
 
-        subActionResolver.resolve(item, menu, action)
-                .ifPresentOrElse(
-                        resolved -> dispatcher.dispatch(pt, action, resolved),
-                        () -> log.warn("Failed to resolve sub-action menu='{}' action='{}' on widget: {}",
-                                menu, action, item.getId())
-                );
+        if (resolved.isEmpty()) {
+            log.warn("Failed to resolve sub-action menu='{}' action='{}' on widget: {}",
+                    menu, action, item.getId());
+            return false;
+        }
+
+        return dispatcher.dispatch(pt, action, resolved.get());
     }
-
 
     /**
      * Uses one widget on another widget (e.g., casting High Alchemy on an inventory item,
@@ -244,25 +281,26 @@ public class InteractionManager {
      *
      * @param src  The source widget (the item or spell being used).
      * @param dest The destination widget (the item being targeted).
+     * @return true if both the selection and the target action were dispatched, false otherwise.
      */
-    public void interact(Widget src, Widget dest) {
-        Point srcPoint  = UIService.getClickbox(src);
-        Point destPoint = UIService.getClickbox(dest);
+    public boolean interact(Widget src, Widget dest) {
+        if (src == null || dest == null) return false;
 
         // First dispatch sets isWidgetSelected() = true on the client
-        registry.getResolver(Widget.class)
-                .flatMap(r -> r.resolve(src, src.getTargetVerb()))
-                .ifPresent(srcResolved -> {
-                    dispatcher.dispatch(srcPoint, src.getTargetVerb(), srcResolved);
+        if (!selectSource(src)) {
+            return false;
+        }
 
-                    // Second resolve now sees isWidgetSelected() == true → WIDGET_TARGET_ON_WIDGET
-                    registry.getResolver(Widget.class)
-                            .flatMap(r -> r.resolve(dest, dest.getTargetVerb()))
-                            .ifPresentOrElse(
-                                    destResolved -> dispatcher.dispatch(destPoint, dest.getTargetVerb(), destResolved),
-                                    () -> log.warn("Failed to resolve dest widget for Widget→Widget: id={}", dest.getId())
-                            );
-                });
+        // Second resolve now sees isWidgetSelected() == true → WIDGET_TARGET_ON_WIDGET
+        Optional<ResolvedMenuAction> destResolved = registry.getResolver(Widget.class)
+                .flatMap(r -> r.resolve(dest, dest.getTargetVerb()));
+
+        if (destResolved.isEmpty()) {
+            log.warn("Failed to resolve dest widget for Widget→Widget: id={}", dest.getId());
+            return false;
+        }
+
+        return dispatcher.dispatch(UIService.getClickbox(dest), dest.getTargetVerb(), destResolved.get());
     }
 
     /**
@@ -270,44 +308,46 @@ public class InteractionManager {
      *
      * @param src  The source widget (the item or spell).
      * @param dest The destination TileObject in the game world.
+     * @return true if both the selection and the target action were dispatched, false otherwise.
      */
-    public void interact(Widget src, TileObject dest) {
-        Point srcPoint  = UIService.getClickbox(src);
+    public boolean interact(Widget src, TileObject dest) {
+        if (src == null || dest == null) return false;
+
         Point destPoint = UIService.getClickbox(dest);
+        String targetVerb = src.getTargetVerb();
 
-        registry.getResolver(Widget.class)
-                .flatMap(r -> r.resolve(src, src.getTargetVerb()))
-                .ifPresent(srcResolved -> {
-                    dispatcher.dispatch(srcPoint, src.getTargetVerb(), srcResolved);
+        Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+            return false;
+        }
 
-                    // Build WIDGET_TARGET_ON_GAME_OBJECT directly — the generic TileObject
-                    // resolver would not see isWidgetSelected() == true in time, so we
-                    // construct it explicitly to mirror the original behavior.
-                    ctxProvider.get().runOnClientThread(() -> {
-                        Client client = ctxProvider.get().getClient();
-                        int worldView = client.getTopLevelWorldView().getId();
+        // Build WIDGET_TARGET_ON_GAME_OBJECT directly — the generic TileObject
+        // resolver would not see isWidgetSelected() == true in time, so we
+        // construct it explicitly to mirror the original behavior.
+        return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
+            Client client = ctxProvider.get().getClient();
+            int worldView = client.getTopLevelWorldView().getId();
 
-                        Point scenePoint;
+            Point scenePoint;
 
-                        if (dest instanceof GameObject) {
-                            GameObject go = (GameObject) dest;
-                            scenePoint = go.getSceneMinLocation();
-                        } else {
-                            scenePoint = new Point(dest.getLocalLocation().getSceneX(),
-                                    dest.getLocalLocation().getSceneY());
-                        }
+            if (dest instanceof GameObject) {
+                GameObject go = (GameObject) dest;
+                scenePoint = go.getSceneMinLocation();
+            } else {
+                scenePoint = new Point(dest.getLocalLocation().getSceneX(),
+                        dest.getLocalLocation().getSceneY());
+            }
 
-                        String name = Optional.ofNullable(getObjectComposition(client, dest))
-                                .map(ObjectComposition::getName)
-                                .orElse("");
+            String name = Optional.ofNullable(getObjectComposition(client, dest))
+                    .map(ObjectComposition::getName)
+                    .orElse("");
 
-                        MenuOption option = new MenuOption(MenuAction.WIDGET_TARGET_ON_GAME_OBJECT,
-                                dest.getId(), scenePoint.getX(), scenePoint.getY(), -1, worldView);
+            MenuOption option = new MenuOption(MenuAction.WIDGET_TARGET_ON_GAME_OBJECT,
+                    dest.getId(), scenePoint.getX(), scenePoint.getY(), -1, worldView);
 
-                        String target = srcResolved.getTarget() + " -> " + name;
-                        dispatcher.dispatch(destPoint, src.getTargetVerb(), new ResolvedMenuAction(option, target));
-                    });
-                });
+            String target = srcResolved.get().getTarget() + " -> " + name;
+            return dispatcher.dispatch(destPoint, targetVerb, new ResolvedMenuAction(option, target));
+        }));
     }
 
     /**
@@ -316,70 +356,101 @@ public class InteractionManager {
      *
      * @param src  The source widget (the item or spell).
      * @param dest The destination NPC.
+     * @return true if both the selection and the target action were dispatched, false otherwise.
      */
-    public void interact(Widget src, NPC dest) {
-        Point srcPoint  = UIService.getClickbox(src);
+    public boolean interact(Widget src, NPC dest) {
+        if (src == null || dest == null) return false;
+
         Point destPoint = UIService.getClickbox(dest);
+        String targetVerb = src.getTargetVerb();
 
-        registry.getResolver(Widget.class)
-                .flatMap(r -> r.resolve(src, src.getTargetVerb()))
-                .ifPresent(srcResolved -> {
-                    dispatcher.dispatch(srcPoint, src.getTargetVerb(), srcResolved);
+        Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+            return false;
+        }
 
-                    ctxProvider.get().runOnClientThread(() -> {
-                        Client client = ctxProvider.get().getClient();
-                        int worldView = client.getTopLevelWorldView().getId();
+        return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
+            Client client = ctxProvider.get().getClient();
+            int worldView = client.getTopLevelWorldView().getId();
 
-                        String npcName = dest.getName() == null ? "" : dest.getName();
-                        String target  = srcResolved.getTarget() + " -> " + npcName;
+            String npcName = dest.getName() == null ? "" : dest.getName();
+            String target = srcResolved.get().getTarget() + " -> " + npcName;
 
-                        MenuOption option = new MenuOption(MenuAction.WIDGET_TARGET_ON_NPC,
-                                dest.getIndex(), 0, 0, -1, worldView);
+            MenuOption option = new MenuOption(MenuAction.WIDGET_TARGET_ON_NPC,
+                    dest.getIndex(), 0, 0, -1, worldView);
 
-                        dispatcher.dispatch(destPoint, src.getTargetVerb(), new ResolvedMenuAction(option, target));
-                    });
-                });
+            return dispatcher.dispatch(destPoint, targetVerb, new ResolvedMenuAction(option, target));
+        }));
     }
-
 
     /**
      * Uses a widget on a ground item (e.g., casting Telekinetic Grab on dropped loot).
      *
      * @param src  The source widget (the spell or item).
      * @param dest The destination ground item.
+     * @return true if both the selection and the target action were dispatched, false otherwise.
      */
-    public void interact(Widget src, GroundItem dest) {
-        Point srcPoint  = UIService.getClickbox(src);
+    public boolean interact(Widget src, GroundItem dest) {
+        if (src == null || dest == null || dest.getTileObject() == null) return false;
+
         Point destPoint = UIService.getClickbox(dest.getTileObject());
+        String targetVerb = src.getTargetVerb();
 
-        registry.getResolver(Widget.class)
-                .flatMap(r -> r.resolve(src, src.getTargetVerb()))
-                .ifPresent(srcResolved -> {
-                    dispatcher.dispatch(srcPoint, src.getTargetVerb(), srcResolved);
+        Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+            return false;
+        }
 
-                    ctxProvider.get().runOnClientThread(() -> {
-                        Client client = ctxProvider.get().getClient();
-                        int worldView = client.getTopLevelWorldView().getId();
+        return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
+            Client client = ctxProvider.get().getClient();
+            int worldView = client.getTopLevelWorldView().getId();
 
-                        LocalPoint location = dest.getTileObject().getLocalLocation();
-                        String itemName = dest.getName() == null ? "" : dest.getName();
-                        String target   = srcResolved.getTarget() + " -> " + itemName;
+            LocalPoint location = dest.getTileObject().getLocalLocation();
+            String itemName = dest.getName() == null ? "" : dest.getName();
+            String target = srcResolved.get().getTarget() + " -> " + itemName;
 
-                        MenuOption option = new MenuOption(MenuAction.WIDGET_TARGET_ON_GROUND_ITEM,
-                                dest.getTileItem().getId(),
-                                location.getSceneX(), location.getSceneY(),
-                                -1, worldView);
+            MenuOption option = new MenuOption(MenuAction.WIDGET_TARGET_ON_GROUND_ITEM,
+                    dest.getTileItem().getId(),
+                    location.getSceneX(), location.getSceneY(),
+                    -1, worldView);
 
-                        dispatcher.dispatch(destPoint, src.getTargetVerb(), new ResolvedMenuAction(option, target));
-                    });
-                });
+            return dispatcher.dispatch(destPoint, targetVerb, new ResolvedMenuAction(option, target));
+        }));
+    }
+
+    /**
+     * Resolves the "use"/"cast" selection action for a source widget in a widget-on-target interaction.
+     *
+     * @param src The source widget being selected.
+     * @return the resolved selection action, or empty when the widget offers no target verb.
+     */
+    private Optional<ResolvedMenuAction> resolveSource(Widget src) {
+        Optional<ResolvedMenuAction> resolved = registry.getResolver(Widget.class)
+                .flatMap(r -> r.resolve(src, src.getTargetVerb()));
+
+        if (resolved.isEmpty()) {
+            log.warn("Failed to resolve source widget selection: id={}, targetVerb={}",
+                    src.getId(), src.getTargetVerb());
+        }
+        return resolved;
+    }
+
+    /**
+     * Resolves and dispatches the selection half of a widget-on-target interaction.
+     *
+     * @param src The source widget being selected.
+     * @return true when the client is now in the "widget selected" state.
+     */
+    private boolean selectSource(Widget src) {
+        return resolveSource(src)
+                .map(resolved -> dispatcher.dispatch(UIService.getClickbox(src), src.getTargetVerb(), resolved))
+                .orElse(false);
     }
 
     /**
      * Interacts with a widget by resolving its context and dispatching the specified interaction.
      * This method performs the following tasks:
      * <ul>
-     *   <li>Ensures that packets are loaded before proceeding.</li>
      *   <li>Resolves the widget using the provided {@code widgetId}.</li>
      *   <li>Determines the display name for the action based on the specified {@code action} index.</li>
      *   <li>Dispatches the interaction to the game's input system.</li>
@@ -395,13 +466,14 @@ public class InteractionManager {
      *                    If not targeting an item, this is typically {@code -1}.
      * @param action      the zero-based index of the action to be performed from the widget's action list.
      *                    This determines the type of interaction executed (e.g., click, examine).
+     * @return true if the widget resolved and the action was dispatched, false otherwise.
      */
-    public void interact(int widgetId, int childId, int itemId, int action) {
+    public boolean interact(int widgetId, int childId, int itemId, int action) {
         Context ctx = ctxProvider.get();
         Widget widget = ctx.getWidget(widgetId);
         if (widget == null) {
             log.error("Failed to resolve widget for interaction: widgetId={}", widgetId);
-            return;
+            return false;
         }
 
         Point pt = UIService.getClickbox(widget);
@@ -427,7 +499,7 @@ public class InteractionManager {
         }
 
         MenuOption option = new MenuOption(MenuAction.CC_OP, action, childId, widgetId, itemId, worldView);
-        dispatcher.dispatch(pt, actionName, new ResolvedMenuAction(option, target == null ? "" : Text.removeTags(target)));
+        return dispatcher.dispatch(pt, actionName, new ResolvedMenuAction(option, target == null ? "" : Text.removeTags(target)));
     }
 
     /**

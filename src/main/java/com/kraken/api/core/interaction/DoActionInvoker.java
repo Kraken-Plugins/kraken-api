@@ -44,31 +44,36 @@ public class DoActionInvoker {
      * @param target       Target entity or in-game object related to the action.
      * @param canvasX      X-coordinate on the game's canvas where the action occurs.
      * @param canvasY      Y-coordinate on the game's canvas where the action occurs.
+     * @return true if the engine call was made, false if the hooks could not be resolved, the
+     *         signature did not match, or the invocation failed.
      */
-    public void invoke(int param0, int param1, int opcode, int identifier, int itemId, int worldViewId, String option, String target, int canvasX, int canvasY) {
+    public boolean invoke(int param0, int param1, int opcode, int identifier, int itemId, int worldViewId, String option, String target, int canvasX, int canvasY) {
         ensureMethodLoaded();
         if (doActionMethod == null) {
             log.error("doAction method could not be resolved via reflection.");
-            return;
+            return false;
         }
 
         final Method method = doActionMethod;
         final Object[] args = buildArguments(method, param0, param1, opcode, identifier, itemId, worldViewId, option, target, canvasX, canvasY);
         if (args == null) {
-            return;
+            return false;
         }
 
         Context ctx = ctxProvider.get();
-        ctx.runOnClientThreadOptional(() -> {
+        // doAction is void, so its own return value cannot signal success — the sentinel below is
+        // only reached when the reflective call completed without throwing.
+        return ctx.runOnClientThreadOptional(() -> {
             try {
-                return method.invoke(null, args);
+                method.invoke(null, args);
+                return Boolean.TRUE;
             } catch (IllegalArgumentException e) {
                 log.error("doAction argument mismatch. Method expects {} but was called with {}. " +
                                 "Check the doAction hooks against the current client revision.",
                         describe(method.getParameterTypes()), describe(args), e);
                 throw e;
             }
-        });
+        }).orElse(Boolean.FALSE);
     }
 
     /**
