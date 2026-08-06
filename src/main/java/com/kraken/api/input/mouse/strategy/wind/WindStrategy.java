@@ -100,10 +100,10 @@ public class WindStrategy implements MoveableMouse {
 
             // We sleep longer if moving slowly (fine motor) and shorter if moving fast (ballistic).
             try {
-                long sleep = Math.round(RandomService.between(
-                        (int)config.getMinWait(),
-                        (int)config.getMaxWait()
-                ));
+                long sleep = RandomService.between(
+                        (int) config.getMinWait(),
+                        (int) config.getMaxWait()
+                );
                 Thread.sleep(sleep);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

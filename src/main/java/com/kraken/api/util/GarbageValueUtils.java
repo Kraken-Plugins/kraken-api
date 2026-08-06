@@ -3,6 +3,8 @@ package com.kraken.api.util;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import javax.annotation.Nullable;
+
 /**
  * Coerces an obfuscated "garbage value" to the primitive width a reflected client method
  * actually declares for its trailing dummy parameter.
@@ -27,6 +29,7 @@ public final class GarbageValueUtils {
      *         the declared width, or {@code null} if {@code parameterType} is not a supported
      *         primitive numeric type.
      */
+    @Nullable
     public static Object coerceToParameterType(Class<?> parameterType, Number value) {
         if (parameterType == byte.class) {
             return value.byteValue();

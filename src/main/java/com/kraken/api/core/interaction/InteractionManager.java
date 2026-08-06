@@ -201,13 +201,13 @@ public class InteractionManager {
     }
 
     /**
-     * Handles dialogue progression or selection using a widget's packed ID.
+     * Selects a dialogue option or continues a dialogue using a widget's packed ID.
      *
      * @param packedWidgetId The packed ID of the dialogue widget.
      * @param option         The dialogue option to select (-1 for continue, 1-5 for choices).
      * @return true if the action was dispatched, false if the widget could not be resolved.
      */
-    public boolean interact(int packedWidgetId, int option) {
+    public boolean selectDialogueOption(int packedWidgetId, int option) {
         Widget widget = ctxProvider.get().getWidget(packedWidgetId);
         if (widget == null) {
             log.warn("Failed to resolve dialogue widget: packedWidgetId={}", packedWidgetId);
@@ -237,12 +237,12 @@ public class InteractionManager {
     }
 
     /**
-     * Sets the player's heading/camera direction.
+     * Sets the player's heading/direction via a SET_HEADING menu action.
      *
      * @param heading The heading value to set.
      * @return true if the action was dispatched, false otherwise.
      */
-    public boolean interact(int heading) {
+    public boolean setHeading(int heading) {
         int worldView = ctxProvider.get().getClient().getTopLevelWorldView().getId();
         MenuOption option = new MenuOption(MenuAction.SET_HEADING, heading, 0, 0, 0, worldView);
         return dispatcher.dispatch(

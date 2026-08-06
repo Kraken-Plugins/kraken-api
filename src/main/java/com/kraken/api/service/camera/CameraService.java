@@ -395,7 +395,7 @@ public class CameraService {
      *
      * @return true if a NPC is being tracked, false otherwise
      */
-    public boolean isTrackingNpc() {
+    public synchronized boolean isTrackingNpc() {
         return trackingTask != null;
     }
 

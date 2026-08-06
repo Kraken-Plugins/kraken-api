@@ -171,7 +171,7 @@ public class TileService {
 
     /**
      * Standard BFS to map all reachable tiles from the current player position.
-     * @return A 104x104 boolean array where true = walkable from player.
+     * @return A 104x104 boolean array where true = walkable from player, or null if client state is unavailable.
      */
     private boolean[][] getReachableTilesMatrix() {
         Client client = ctxProvider.get().getClient();
@@ -184,20 +184,28 @@ public class TileService {
         LocalPoint playerLp = localPlayer.getLocalLocation();
         if (playerLp == null) return null;
 
-        int startX = playerLp.getSceneX();
-        int startY = playerLp.getSceneY();
-        int plane = wv.getPlane();
-
         CollisionData[] collisionData = wv.getCollisionMaps();
         if (collisionData == null) return null;
-        int[][] flags = collisionData[plane].getFlags();
+        int[][] flags = collisionData[wv.getPlane()].getFlags();
 
-        boolean[][] visited = new boolean[SCENE_SIZE][SCENE_SIZE];
+        return floodReachableTiles(playerLp.getSceneX(), playerLp.getSceneY(), flags);
+    }
+
+    /**
+     * Flood-fills the reachable tiles from a scene-coordinate start using a 4-cardinal BFS over the
+     * collision flags. A neighbour is entered only when the current tile permits leaving in that
+     * direction and the neighbour is not fully blocked.
+     *
+     * @param startX The start tile's scene x-coordinate (0-103).
+     * @param startY The start tile's scene y-coordinate (0-103).
+     * @param flags  The current plane's collision flags.
+     * @return A {@code FLAG_DATA_SIZE}×{@code FLAG_DATA_SIZE} matrix where true marks a reachable tile.
+     */
+    private boolean[][] floodReachableTiles(int startX, int startY, int[][] flags) {
+        boolean[][] visited = new boolean[FLAG_DATA_SIZE][FLAG_DATA_SIZE];
         ArrayDeque<Integer> queue = new ArrayDeque<>();
 
-        // Start BFS
-        int startPoint = (startX << 16) | startY;
-        queue.add(startPoint);
+        queue.add((startX << 16) | startY);
         visited[startX][startY] = true;
 
         while (!queue.isEmpty()) {
@@ -205,7 +213,6 @@ public class TileService {
             int x = point >> 16;
             int y = point & 0xFFFF;
 
-            // Check 4 cardinal directions
             checkNeighbour(queue, visited, flags, x, y, -1, 0, CollisionDataFlag.BLOCK_MOVEMENT_WEST);
             checkNeighbour(queue, visited, flags, x, y, 1, 0, CollisionDataFlag.BLOCK_MOVEMENT_EAST);
             checkNeighbour(queue, visited, flags, x, y, 0, -1, CollisionDataFlag.BLOCK_MOVEMENT_SOUTH);
@@ -215,23 +222,33 @@ public class TileService {
         return visited;
     }
 
-    private void checkNeighbour(ArrayDeque<Integer> queue, boolean[][] visited, int[][] flags, int x, int y, int dx, int dy, int blockFlag) {
+    /**
+     * Enters a neighbouring tile into the BFS when movement into it is permitted and it is unvisited.
+     * Movement requires the current tile not to block travel in the given direction and the
+     * destination not to be fully blocked.
+     *
+     * @param queue             The BFS work queue of packed scene coordinates.
+     * @param visited           The visited matrix, updated in place.
+     * @param flags             The current plane's collision flags.
+     * @param x                 The current tile's scene x-coordinate.
+     * @param y                 The current tile's scene y-coordinate.
+     * @param dx                The x-offset of the neighbour (-1, 0 or 1).
+     * @param dy                The y-offset of the neighbour (-1, 0 or 1).
+     * @param blockMovementFlag The flag on the current tile that blocks travel toward the neighbour.
+     */
+    private void checkNeighbour(ArrayDeque<Integer> queue, boolean[][] visited, int[][] flags, int x, int y, int dx, int dy, int blockMovementFlag) {
         int nx = x + dx;
         int ny = y + dy;
 
-        if (nx >= 0 && nx < SCENE_SIZE && ny >= 0 && ny < SCENE_SIZE) {
-            if (!visited[nx][ny]) {
-                // Check if we can leave current tile (blockFlag) AND enter next tile (BLOCK_MOVEMENT_FULL)
-                // Note: We check CollisionDataFlag.BLOCK_MOVEMENT_FULL on the *destination* to ensure we don't walk into walls
-                if ((flags[x][y] & blockFlag) == 0 && (flags[nx][ny] & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0) {
-                    visited[nx][ny] = true;
-                    queue.add((nx << 16) | ny);
-                }
-            }
+        if (isWithinBounds(nx, ny) && !visited[nx][ny]
+                && (flags[x][y] & blockMovementFlag) == 0
+                && (flags[nx][ny] & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0) {
+            queue.add((nx << 16) | ny);
+            visited[nx][ny] = true;
         }
     }
-    
-    
+
+
     /**
      * This method checks if a given target tile (WorldPoint) is reachable from the
      * player's current location, considering collision data and the plane of the
@@ -260,7 +277,6 @@ public class TileService {
 
         if (targetPoint.getPlane() != playerLoc.getPlane()) return false;
 
-        final boolean[][] visited = new boolean[FLAG_DATA_SIZE][FLAG_DATA_SIZE];
         final int[][] flags = getFlags();
         if (flags == null) return false;
 
@@ -274,25 +290,8 @@ public class TileService {
             startX = playerLoc.getX() - ctxProvider.get().getClient().getTopLevelWorldView().getBaseX();
             startY = playerLoc.getY() - ctxProvider.get().getClient().getTopLevelWorldView().getBaseY();
         }
-        final int startPoint = (startX << 16) | startY;
 
-        ArrayDeque<Integer> queue = new ArrayDeque<>();
-        queue.add(startPoint);
-        visited[startX][startY] = true;
-
-        while (!queue.isEmpty()) {
-            int point = queue.poll();
-            int x = point >> 16;
-            int y = point & 0xFFFF;
-
-            if (isWithinBounds(x, y)) {
-                checkAndAddNeighbour(queue, visited, flags, x, y, -1, 0, CollisionDataFlag.BLOCK_MOVEMENT_WEST);
-                checkAndAddNeighbour(queue, visited, flags, x, y, 1, 0, CollisionDataFlag.BLOCK_MOVEMENT_EAST);
-                checkAndAddNeighbour(queue, visited, flags, x, y, 0, -1, CollisionDataFlag.BLOCK_MOVEMENT_SOUTH);
-                checkAndAddNeighbour(queue, visited, flags, x, y, 0, 1, CollisionDataFlag.BLOCK_MOVEMENT_NORTH);
-            }
-        }
-
+        boolean[][] visited = floodReachableTiles(startX, startY, flags);
         return isVisited(targetPoint, visited);
     }
 
@@ -328,37 +327,6 @@ public class TileService {
 
 
         return isWithinBounds(x, y) && visited[x][y];
-    }
-
-    /**
-     * This method checks a neighboring tile and adds it to the queue if it is valid
-     * and not blocked for movement. It considers both the current tile's collision
-     * data and the neighboring tile’s collision flags to determine whether movement
-     * in the specified direction (dx, dy) is possible. The method ensures the neighboring
-     * tile is within bounds, hasn't been visited, and doesn't have movement restrictions
-     * (such as full-block movement or movement in the specified direction).
-     * <p>
-     * The method performs a bitwise check on the tile’s flags to determine if movement
-     * in the given direction is allowed and ensures that the neighboring tile is not
-     * already visited before adding it to the queue.
-     *
-     * @param queue The queue that stores the coordinates of tiles to be visited.
-     * @param visited A 2D boolean array tracking which tiles have already been visited.
-     * @param flags A 2D array containing the collision flags for each tile.
-     * @param x The current tile’s x-coordinate.
-     * @param y The current tile’s y-coordinate.
-     * @param dx The change in x-coordinate for the neighboring tile.
-     * @param dy The change in y-coordinate for the neighboring tile.
-     * @param blockMovementFlag The collision flag that blocks movement in a given direction.
-     */
-    private void checkAndAddNeighbour(ArrayDeque<Integer> queue, boolean[][] visited, int[][] flags, int x, int y, int dx, int dy, int blockMovementFlag) {
-        int nx = x + dx;
-        int ny = y + dy;
-
-        if (isWithinBounds(nx, ny) && !visited[nx][ny] && (flags[x][y] & blockMovementFlag) == 0 && (flags[nx][ny] & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0) {
-            queue.add((nx << 16) | ny);
-            visited[nx][ny] = true;
-        }
     }
 
     /**

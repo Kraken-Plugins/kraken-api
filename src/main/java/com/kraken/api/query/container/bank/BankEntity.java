@@ -43,10 +43,11 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
 
     /**
      * Returns the count of this item in the bank.
-     * @return The number of the item within the bank.
+     * @return The number of the item within the bank, or 0 if the item is absent.
      */
     public int count() {
-        return raw().getItemQuantity();
+        BankItemWidget raw = raw();
+        return raw != null ? raw.getItemQuantity() : 0;
     }
 
     /**

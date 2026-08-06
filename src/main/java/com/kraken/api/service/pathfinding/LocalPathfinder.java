@@ -888,69 +888,6 @@ public class LocalPathfinder {
     }
 
     /**
-     * Returns true if the source point is walkable to the target point given the constraints
-     * of collision flags.
-     * @param flags Game Collision flags
-     * @param source Source World Point
-     * @param target Target World Point
-     * @return True if there is a walkable path between the two points
-     */
-    private boolean isWalkable(int[][] flags, WorldPoint source, WorldPoint target) {
-        int sX = source.getX() - client.getTopLevelWorldView().getBaseX();
-        int sY = source.getY() - client.getTopLevelWorldView().getBaseY();
-        int tX = target.getX() - client.getTopLevelWorldView().getBaseX();
-        int tY = target.getY() - client.getTopLevelWorldView().getBaseY();
-
-        int dx = tX - sX;
-        int dy = tY - sY;
-
-        int sourceFlags = flags[sX][sY];
-        int targetFlags = flags[tX][tY];
-
-        if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) != 0) return false;
-
-        if (dx == 0 && dy == 0) return true;
-
-        // Cardinal
-        if (dx == 0 || dy == 0) {
-            if (dx > 0) return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) == 0 && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) == 0;
-            if (dx < 0) return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) == 0 && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) == 0;
-            if (dy > 0) return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) == 0 && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) == 0;
-            return (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) == 0 && (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) == 0;
-        }
-
-        // Diagonal
-        // dx != 0 && dy != 0 is implicitly true here
-        int xFlags = flags[sX + dx][sY];
-        int yFlags = flags[sX][sY + dy];
-
-        if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) != 0) return false;
-
-        if (dx > 0 && dy > 0) { // NE
-            if ((sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) != 0 || (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) != 0) return false;
-            if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) != 0 || (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) != 0) return false;
-            return (xFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0 && (yFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0;
-        }
-        if (dx < 0 && dy > 0) { // NW
-            if ((sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) != 0 || (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) != 0) return false;
-            if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) != 0 || (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) != 0) return false;
-            return (xFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0 && (yFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0;
-        }
-        if (dx > 0 && dy < 0) { // SE
-            if ((sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) != 0 || (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) != 0) return false;
-            if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) != 0 || (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) != 0) return false;
-            return (xFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0 && (yFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0;
-        }
-        if (dx < 0 && dy < 0) { // SW
-            if ((sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_WEST) != 0 || (sourceFlags & CollisionDataFlag.BLOCK_MOVEMENT_SOUTH) != 0) return false;
-            if ((targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_EAST) != 0 || (targetFlags & CollisionDataFlag.BLOCK_MOVEMENT_NORTH) != 0) return false;
-            return (xFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0 && (yFlags & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0;
-        }
-
-        return false;
-    }
-
-    /**
      * Renders a path on the minimap.
      *
      * @param path     The list of WorldPoints representing the path.

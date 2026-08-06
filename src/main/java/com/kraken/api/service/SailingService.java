@@ -52,7 +52,7 @@ public class SailingService {
      */
     public boolean setDirection(Direction direction) {
         mousePackets.queueClickPacket(1, 1);
-        interactionManager.interact(direction.getCode());
+        interactionManager.setHeading(direction.getCode());
         return true;
     }
 
