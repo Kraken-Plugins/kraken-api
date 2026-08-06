@@ -10,8 +10,6 @@ import lombok.ToString;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-// The generated toString must never expose credentials or session secrets, since it lands in logs
-// and exception messages. Sensitive fields are excluded rather than masked.
 @ToString(exclude = {"password", "sessionId", "characterId", "bankPin"})
 public class Profile {
 
