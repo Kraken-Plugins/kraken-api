@@ -90,6 +90,8 @@ public class InventoryTest extends BaseApiTest {
             testsPassed &= ctx.inventory().filter(entity -> entity.getName().equalsIgnoreCase("Swordfish")).first().interact("Drop");
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
             testsPassed &= ctx.inventory().food().nameContains("Lobster").first().interact("Eat");
+            SleepService.tick();
+            ctx.groundItems().filter(entity -> entity.getName().equalsIgnoreCase("Swordfish")).first().take();
 
             testsPassed &= !ctx.inventory().hasItem("Gold bar");
             testsPassed &= !ctx.inventory().hasItem(1607); // sapphire

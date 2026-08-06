@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-28
+- Last updated: 2026-08-05
 - Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
@@ -33,7 +33,7 @@
 - Keep packet and reflection logic localized. Do not spread obfuscated client lookups, packet method resolution, or runtime hook patching into unrelated services or queries.
 - Preserve the service/query distinction. Use `service` for static or global game systems, and `query` for dynamic entities that are filtered and interacted with fluently.
 - Keep `Script` orchestration separate from plugin wiring. Put reusable task logic behind `Task`, `AbstractTask`, or service classes instead of embedding everything in plugin event handlers.
-- Do not mutate game client details directly from arbitrary layers when a dedicated helper already exists in `core.packet`, `core.interceptor`, or `service.util.reflect`.
+- Do not mutate game client details directly from arbitrary layers when a dedicated helper already exists in `core.packet`, `core.interaction`, or `service.util` (e.g. `ReflectionService`).
 
 ### Testing policy (agents and contributors)
 
@@ -54,7 +54,7 @@
 - `Context` wires together:
   - query accessors for players, NPCs, objects, inventory, equipment, widgets, worlds, bank, and deposit box
   - high-level services for bank, dialogue, movement, camera, prayer, magic, UI, grand exchange, map, and utility behavior
-  - runtime hooks and interceptors for packet/mouse behavior
+  - runtime hooks for packet/mouse behavior
   - client-thread helpers so callers do not need to manage RuneLite thread rules manually
 - `Script` is the main long-running automation primitive. It handles lifecycle, game-tick execution, pause/resume, and break management.
 
@@ -103,13 +103,14 @@ This section is the working guide for AI systems and humans asking AI systems to
 - Use `bankInventory()` only while the bank interface is open, and you are depositing items from the inventory to the bank.
 - Use `bank()` only while the bank interface is open and you are withdrawing items from the bank into your inventory.
 - Use `inventory()` for ordinary inventory work and `depositBox()` for deposit box actions.
+- Use `shop()` only while a shop is open and you are reading or buying from its shelves, and `shopInventory()` only while a shop is open and you are selling to it.
 - Prefer dedicated entity methods over generic `interact()` when a helper already exists.
 
 ## Packages and naming
 
 - Main source root: `src/main/java/com/kraken/api/`
 - Core package groups:
-  - `core` for script, packet, interaction, and interceptor infrastructure
+  - `core` for script, packet, interaction, and hooks infrastructure
   - `query` for fluent entity queries and wrappers
   - `service` for higher-level game actions and system helpers
   - `input` for mouse and keyboard handling
@@ -144,6 +145,7 @@ Do not treat these as hand-edited sources.
 
 - `docs/API.md` explains the service/query split and should be kept aligned with the code.
 - `docs/INTERACTION.md` covers packet-based interaction and runtime hook behavior.
+- `docs/SHOPS.md` covers `ShopService`, shop price discovery, and buying/selling under limits.
 - `docs/MOUSE.md` covers mouse movement strategies.
 - `docs/SCRIPTING.md` covers `Script`, `Task`, and break management.
 - `docs/SIMULATION.md` is the simulation overview; deep dives live in `docs/simulation/`

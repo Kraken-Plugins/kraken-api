@@ -1,6 +1,7 @@
 package com.kraken.api.service.ui;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.service.util.RandomService;
 import lombok.extern.slf4j.Slf4j;
@@ -24,20 +25,42 @@ import java.util.concurrent.ThreadLocalRandom;
 @Singleton
 public class UIService {
     
-    private final static Context ctx = RuneLite.getInjector().getInstance(Context.class);
+    private static Context ctx() {
+        return Services.context();
+    }
 
+
+    /**
+     * Reports whether the numeric input dialogue is currently on screen.
+     *
+     * <p>The dialogue is only drawn once the server answers the click that requested it, so callers
+     * that just dispatched such a click must wait on this before assuming the dialogue exists.</p>
+     *
+     * @return true when the numeric input dialogue is open, false when it is not or the state could
+     *         not be read.
+     */
+    public static boolean isNumberDialogueOpen() {
+        return Boolean.TRUE.equals(ctx().runOnClientThread(() -> {
+            Client client = ctx().getClient();
+            return client.getWidget(WidgetInfo.CHATBOX_INPUT) != null
+                    || client.getWidget(WidgetInfo.CHATBOX_FULL_INPUT) != null;
+        }));
+    }
 
     /**
      * Runs a client script to close the numeric input dialogue if it is open. This
      * dialogue is shown when players are prompted to enter a number like: inputting GE offers,
      * clue scroll steps, or withdrawing-X items from the bank.
+     *
+     * <p>This is a no-op when the dialogue is not open, so a caller that has just requested one must
+     * wait for {@link #isNumberDialogueOpen()} first — otherwise the dialogue arrives after the close
+     * and stays on screen to swallow the next interaction.</p>
      */
     public static void closeNumberDialogue() {
-        Client client = ctx.getClient();
-        ctx.runOnClientThread(() -> {
-            Widget widgetOne = client.getWidget(WidgetInfo.CHATBOX_INPUT);
-            Widget widgetTwo = client.getWidget(WidgetInfo.CHATBOX_FULL_INPUT);
-            if(widgetOne != null || widgetTwo != null) {
+        ctx().runOnClientThread(() -> {
+            Client client = ctx().getClient();
+            if (client.getWidget(WidgetInfo.CHATBOX_INPUT) != null
+                    || client.getWidget(WidgetInfo.CHATBOX_FULL_INPUT) != null) {
                 client.runScript(138);
             }
         });
@@ -91,7 +114,7 @@ public class UIService {
      */
     public static Rectangle getDefaultRectangle() {
         int randomValue = ThreadLocalRandom.current().nextInt(3) - 1;
-        return new Rectangle(randomValue, randomValue, ctx.getClient().getCanvasWidth(), ctx.getClient().getCanvasHeight());
+        return new Rectangle(randomValue, randomValue, ctx().getClient().getCanvasWidth(), ctx().getClient().getCanvasHeight());
     }
 
     /**
@@ -106,8 +129,8 @@ public class UIService {
             return getDefaultRectangle();
         }
 
-        Shape clickbox = ctx.runOnClientThreadOptional(() -> Perspective.getClickbox(ctx.getClient(), ctx.getClient().getTopLevelWorldView(), actor.getModel(), actor.getCurrentOrientation(), lp.getX(), lp.getY(),
-                        Perspective.getTileHeight(ctx.getClient(), lp, actor.getWorldLocation().getPlane())))
+        Shape clickbox = ctx().runOnClientThreadOptional(() -> Perspective.getClickbox(ctx().getClient(), ctx().getClient().getTopLevelWorldView(), actor.getModel(), actor.getCurrentOrientation(), lp.getX(), lp.getY(),
+                        Perspective.getTileHeight(ctx().getClient(), lp, actor.getWorldLocation().getPlane())))
                 .orElse(null);
 
         if (clickbox == null) return getDefaultRectangle();
@@ -122,7 +145,7 @@ public class UIService {
      */
     public static Rectangle getObjectClickbox(TileObject object) {
         if (object == null) return getDefaultRectangle();
-        Shape clickbox = ctx.runOnClientThreadOptional(object::getClickbox).orElse(null);
+        Shape clickbox = ctx().runOnClientThreadOptional(object::getClickbox).orElse(null);
         if (clickbox == null) return getDefaultRectangle();
         if (clickbox.getBounds() == null) return getDefaultRectangle();
 
@@ -142,7 +165,7 @@ public class UIService {
         if (localPoint == null) return getDefaultRectangle();
 
         // Get the screen point of the tile center
-        Point screenPoint = Perspective.localToCanvas(ctx.getClient(), localPoint, ctx.getClient().getTopLevelWorldView().getPlane());
+        Point screenPoint = Perspective.localToCanvas(ctx().getClient(), localPoint, ctx().getClient().getTopLevelWorldView().getPlane());
 
         if (screenPoint == null) return getDefaultRectangle();
 
@@ -162,10 +185,10 @@ public class UIService {
     public static Rectangle getWorldPointClickbox(WorldPoint worldPoint) {
         if (worldPoint == null) return getDefaultRectangle();
 
-        LocalPoint localPoint = LocalPoint.fromWorld(ctx.getClient().getTopLevelWorldView(), worldPoint);
+        LocalPoint localPoint = LocalPoint.fromWorld(ctx().getClient().getTopLevelWorldView(), worldPoint);
         if (localPoint == null) return getDefaultRectangle();
 
-        Point screenPoint = Perspective.localToCanvas(ctx.getClient(), localPoint, worldPoint.getPlane());
+        Point screenPoint = Perspective.localToCanvas(ctx().getClient(), localPoint, worldPoint.getPlane());
         if (screenPoint == null) return getDefaultRectangle();
 
         // TODO Different resolutions may cause problems here
@@ -184,7 +207,7 @@ public class UIService {
     public static Rectangle getLocalPointClickbox(LocalPoint localPoint) {
         if (localPoint == null) return getDefaultRectangle();
 
-        Point screenPoint = Perspective.localToCanvas(ctx.getClient(), localPoint, ctx.getClient().getTopLevelWorldView().getPlane());
+        Point screenPoint = Perspective.localToCanvas(ctx().getClient(), localPoint, ctx().getClient().getTopLevelWorldView().getPlane());
         if (screenPoint == null) return getDefaultRectangle();
 
         // Create a small clickable area around the point (20x20 pixels)
@@ -205,7 +228,7 @@ public class UIService {
     public static Rectangle getLocalPointClickbox(LocalPoint localPoint, int plane) {
         if (localPoint == null) return getDefaultRectangle();
 
-        Point screenPoint = Perspective.localToCanvas(ctx.getClient(), localPoint, plane);
+        Point screenPoint = Perspective.localToCanvas(ctx().getClient(), localPoint, plane);
         if (screenPoint == null) return getDefaultRectangle();
 
         // Create a small clickable area around the point (20x20 pixels)
@@ -252,7 +275,7 @@ public class UIService {
      * @return Center point or random point within the bounds of the inventory item.
      */
     public static Point getClickbox(ContainerItem item, boolean randomize) {
-        Rectangle bounds = item.getBounds(ctx, ctx.getClient());
+        Rectangle bounds = item.getBounds(ctx(), ctx().getClient());
         if(bounds == null) return getClickingPoint(getDefaultRectangle(), true);
         return getClickingPoint(bounds, randomize);
     }
@@ -412,7 +435,11 @@ public class UIService {
      * @return a point within the rectangle (randomized or centered)
      */
     public static Point getClickingPoint(Rectangle rectangle, boolean randomize) {
+        // getDefaultRectangle() signals a failed/absent clickbox with a full-canvas rectangle whose
+        // origin is one of (-1,-1), (0,0) or (1,1). All three must be caught here; missing the -1 case
+        // let a failed clickbox fall through to a real spoofed click at a random screen point.
         if (rectangle == null) return new Point(1, 1);
+        if (rectangle.getX() == -1 && rectangle.getY() == -1) return new Point(1, 1);
         if (rectangle.getX() == 1 && rectangle.getY() == 1) return new Point(1, 1);
         if (rectangle.getX() == 0 && rectangle.getY() == 0) return new Point(1, 1);
 

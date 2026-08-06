@@ -8,6 +8,7 @@ import net.runelite.api.ObjectComposition;
 import net.runelite.api.Perspective;
 import net.runelite.api.Tile;
 import net.runelite.api.coords.LocalPoint;
+import com.kraken.api.util.WorldAreaUtils;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.*;
@@ -143,22 +144,7 @@ public class GameObjectQuery extends AbstractQuery<GameObjectEntity, GameObjectQ
      * @return GameObjectQuery
      */
     public GameObjectQuery withinArea(WorldPoint min, WorldPoint max) {
-        int x1 = min.getX();
-        int x2 = max.getX();
-        int y1 = min.getY();
-        int y2 = max.getY();
-
-         return filter(obj -> {
-             WorldPoint pt = obj.raw().getWorldLocation();
-             int x3 = pt.getX();
-             int y3 = pt.getY();
-
-             if (x3 > Math.max(x1, x2) || x3 < Math.min(x1, x2)) {
-                 return false;
-             }
-
-             return y3 <= Math.max(y1, y2) && y3 >= Math.min(y1, y2);
-         });
+        return filter(obj -> WorldAreaUtils.contains(obj.raw().getWorldLocation(), min, max));
     }
 
     /**
@@ -199,15 +185,14 @@ public class GameObjectQuery extends AbstractQuery<GameObjectEntity, GameObjectQ
     }
 
     /**
-     * Filters for only objects whose location is within the specified distance from the players current local point.
-     * @param distance The maximum distance from the anchor point (in local units).
-     * @return True if the object is within the specified distance from the anchor point, false otherwise.
+     * Filters for only objects within the specified distance of the local player, measured in world
+     * tiles using Chebyshev distance. Use {@link #within(LocalPoint, int)} for sub-tile local-space filtering.
+     * @param distance The maximum distance from the player, in world tiles.
+     * @return A filtered {@code GameObjectQuery}.
      */
     public GameObjectQuery within(int distance) {
-        LocalPoint anchor = ctx.players().local().localLocation();
-        int range = distance * Perspective.LOCAL_TILE_SIZE;
-
-        return filter(obj -> obj.raw().getLocalLocation().distanceTo(anchor) <= range);
+        WorldPoint anchor = ctx.players().local().location();
+        return filter(obj -> obj.raw().getWorldLocation().distanceTo(anchor) <= distance);
     }
 
     /**

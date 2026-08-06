@@ -225,14 +225,13 @@ public class LoginService {
      * @return true if successful, false otherwise
      */
     private boolean setFieldSafely(String className, String fieldName, Object value, String fieldDescription) {
-        try {
-            reflectionService.setFieldValue(className, fieldName, null, value);
+        boolean set = reflectionService.setFieldValue(className, fieldName, null, value);
+        if (set) {
             log.debug("Set {} successfully", fieldDescription);
-            return true;
-        } catch (Exception e) {
-            log.error("Failed to set {}", fieldDescription, e);
-            return false;
+        } else {
+            log.error("Failed to set {}", fieldDescription);
         }
+        return set;
     }
 
     /**
@@ -261,12 +260,16 @@ public class LoginService {
             }
 
             // Write it to the client's account check field
-            reflectionService.setFieldValue(
+            boolean set = reflectionService.setFieldValue(
                     hooks.getAccountCheckClassName(),
                     hooks.getAccountCheckFieldName(),
                     null,
                     accountTypeObject
             );
+            if (!set) {
+                log.error("Failed to set account type check for {} account", type);
+                return false;
+            }
             log.debug("Set account type check for {} account", type);
             return true;
 

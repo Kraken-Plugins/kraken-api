@@ -158,7 +158,6 @@ public class InventoryQuery extends AbstractQuery<InventoryEntity, InventoryQuer
 
             // If the inventory set does not contain the required name, fail immediately
             if (!inventoryNames.contains(name.toLowerCase())) {
-                System.out.println("Inventory names does not contain: " + name + " names: " + inventoryNames);
                 return false;
             }
         }
@@ -199,14 +198,6 @@ public class InventoryQuery extends AbstractQuery<InventoryEntity, InventoryQuer
      */
     public InventoryQuery withAction(String action) {
         return filter(i -> i.hasAction(action.toLowerCase()));
-    }
-
-    /**
-     * Returns true if the inventory is empty and false otherwise.
-     * @return true if the inventory is empty and false otherwise.
-     */
-    public boolean isEmpty() {
-        return source().get().findAny().isEmpty();
     }
 
     /**

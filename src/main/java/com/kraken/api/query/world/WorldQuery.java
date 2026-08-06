@@ -2,6 +2,7 @@ package com.kraken.api.query.world;
 
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import com.kraken.api.core.AbstractQuery;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.World;
@@ -27,7 +28,7 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
     @Override
     protected Supplier<Stream<WorldEntity>> source() {
         return () -> {
-            WorldService worldService = RuneLite.getInjector().getInstance(WorldService.class);
+            WorldService worldService = Services.get(WorldService.class);
             WorldResult worlds = worldService.getWorlds();
 
             if (worlds == null) return Stream.empty();
@@ -47,6 +48,11 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
         };
     }
 
+    /**
+     * Expects a World name in the format: "123"
+     * @param name The name of the object to filter for
+     * @return WorldQuery chainable world query after name filter has been applied.
+     */
     @Override
     public WorldQuery withName(String name) {
         int worldNum;
@@ -414,12 +420,19 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
     public WorldEntity previous() {
         int currentWorld = ctx.getClient().getWorld();
         List<WorldEntity> results = sortByWorldNumberAsc().list();
-        for (WorldEntity world : results) {
+
+        if (results.isEmpty()) {
+            return null;
+        }
+
+        for (int i = results.size() - 1; i >= 0; i--) {
+            WorldEntity world = results.get(i);
             if (world.getId() < currentWorld) {
                 return world;
             }
         }
 
-        return !results.isEmpty() ? results.get(results.size() - 1) : null;
+        // Wraps around to the last world in the list if no smaller world is found
+        return results.get(results.size() - 1);
     }
 }

@@ -26,7 +26,7 @@ public enum Lunar implements CastableSpell {
 
     // Utility Spells
     BAKE_PIE(
-            66,
+            65,
             InterfaceID.MagicSpellbook.BAKE_PIE,
             2,
             Map.of(Rune.WATER, 4, Rune.FIRE, 5, Rune.ASTRAL, 1)
@@ -38,115 +38,115 @@ public enum Lunar implements CastableSpell {
             Map.of(Rune.EARTH, 8, Rune.ASTRAL, 1)
     ),
     NPC_CONTACT(
-            66,
+            67,
             InterfaceID.MagicSpellbook.NPC_CONTACT,
             4,
             Map.of(Rune.AIR, 2, Rune.COSMIC, 1, Rune.ASTRAL, 1)
     ),
     CURE_OTHER(
-            66,
+            68,
             InterfaceID.MagicSpellbook.CURE_OTHER,
             5,
             Map.of(Rune.EARTH, 10, Rune.ASTRAL, 1, Rune.LAW, 1)
     ),
     CURE_ME(
-            66,
+            71,
             InterfaceID.MagicSpellbook.CURE_ME,
             8,
             Map.of(Rune.COSMIC, 2, Rune.ASTRAL, 2, Rune.LAW, 1)
     ),
     CURE_GROUP(
-            66,
+            74,
             InterfaceID.MagicSpellbook.CURE_GROUP,
             11,
             Map.of(Rune.COSMIC, 2, Rune.ASTRAL, 2, Rune.LAW, 2)
     ),
     STAT_SPY(
-            66,
+            75,
             InterfaceID.MagicSpellbook.STAT_SPY,
             12,
             Map.of(Rune.BODY, 5, Rune.COSMIC, 1, Rune.ASTRAL, 2)
     ),
     SPIN_FLAX(
-            66,
+            76,
             InterfaceID.MagicSpellbook.SPIN_FLAX,
             15,
             Map.of(Rune.AIR, 5, Rune.ASTRAL, 1, Rune.NATURE, 2)
     ),
     SUPERGLASS_MAKE(
-            66,
+            77,
             InterfaceID.MagicSpellbook.SUPERGLASS,
             16,
             Map.of(Rune.AIR, 10, Rune.FIRE, 6, Rune.ASTRAL, 2)
     ),
     TAN_LEATHER(
-            66,
+            78,
             InterfaceID.MagicSpellbook.TAN_LEATHER,
             17,
             Map.of(Rune.FIRE, 5, Rune.ASTRAL, 2, Rune.NATURE, 1)
     ),
     STRING_JEWELLERY(
-            66,
+            80,
             InterfaceID.MagicSpellbook.STRING_JEWEL,
             20,
             Map.of(Rune.EARTH, 10, Rune.WATER, 5, Rune.ASTRAL, 2)
     ),
     STAT_RESTORE_POT_SHARE(
-            66,
+            81,
             InterfaceID.MagicSpellbook.REST_POT_SHARE,
             21,
             Map.of(Rune.WATER, 10, Rune.EARTH, 10, Rune.ASTRAL, 2)
     ),
     MAGIC_IMBUE(
-            66,
+            82,
             InterfaceID.MagicSpellbook.MAGIC_IMBUE,
             22,
             Map.of(Rune.WATER, 7, Rune.FIRE, 7, Rune.ASTRAL, 2)
     ),
     FERTILE_SOIL(
-            66,
+            83,
             InterfaceID.MagicSpellbook.FERTILE_SOIL,
             23,
             Map.of(Rune.EARTH, 15, Rune.ASTRAL, 3, Rune.NATURE, 2)
     ),
     BOOST_POTION_SHARE(
-            66,
+            84,
             InterfaceID.MagicSpellbook.STREN_POT_SHARE,
             24,
             Map.of(Rune.WATER, 10, Rune.EARTH, 12, Rune.ASTRAL, 3)
     ),
     RECHARGE_DRAGONSTONE(
-            66,
+            89,
             InterfaceID.MagicSpellbook.RECHARGE_DRAGONSTONE,
             29,
             Map.of(Rune.WATER, 4, Rune.ASTRAL, 1, Rune.SOUL, 1)
     ),
     ENERGY_TRANSFER(
-            66,
+            91,
             InterfaceID.MagicSpellbook.ENERGY_TRANS,
             32,
             Map.of(Rune.ASTRAL, 3, Rune.NATURE, 1, Rune.LAW, 2)
     ),
     HEAL_OTHER(
-            66,
+            92,
             InterfaceID.MagicSpellbook.HEAL_OTHER,
             33,
             Map.of(Rune.ASTRAL, 3, Rune.LAW, 3, Rune.BLOOD, 1)
     ),
     VENGEANCE_OTHER(
-            66,
+            93,
             InterfaceID.MagicSpellbook.VENGEANCE_OTHER,
             34,
             Map.of(Rune.EARTH, 10, Rune.ASTRAL, 3, Rune.DEATH, 2)
     ),
     VENGEANCE(
-            66,
+            94,
             InterfaceID.MagicSpellbook.VENGEANCE,
             35,
             Map.of(Rune.EARTH, 10, Rune.ASTRAL, 4, Rune.DEATH, 2)
     ),
     HEAL_GROUP(
-            66,
+            95,
             InterfaceID.MagicSpellbook.HEAL_GROUP,
             36,
             Map.of(Rune.ASTRAL, 4, Rune.LAW, 6, Rune.BLOOD, 3)
@@ -158,37 +158,37 @@ public enum Lunar implements CastableSpell {
             Map.of(Rune.MIND, 1, Rune.COSMIC, 1, Rune.ASTRAL, 1)
     ),
     HUMIDIFY(
-            66,
+            68,
             InterfaceID.MagicSpellbook.HUMIDIFY,
             38,
             Map.of(Rune.WATER, 3, Rune.FIRE, 1, Rune.ASTRAL, 1)
     ),
     HUNTER_KIT(
-            66,
+            71,
             InterfaceID.MagicSpellbook.HUNTER_KIT,
             40,
             Map.of(Rune.EARTH, 2, Rune.ASTRAL, 2)
     ),
     DREAM(
-            66,
+            79,
             InterfaceID.MagicSpellbook.DREAM,
             41,
             Map.of(Rune.BODY, 5, Rune.COSMIC, 1, Rune.ASTRAL, 2)
     ),
     PLANK_MAKE(
-            66,
+            86,
             InterfaceID.MagicSpellbook.PLANK_MAKE,
             42,
             Map.of(Rune.EARTH, 15, Rune.ASTRAL, 2, Rune.NATURE, 1)
     ),
     SPELLBOOK_SWAP(
-            66,
+            96,
             InterfaceID.MagicSpellbook.SPELLBOOK_SWAP,
             43,
             Map.of(Rune.COSMIC, 2, Rune.ASTRAL, 3, Rune.LAW, 1)
     ),
     GEOMANCY(
-            66,
+            65,
             InterfaceID.MagicSpellbook.GEOMANCY,
             44,
             Map.of(Rune.EARTH, 8, Rune.ASTRAL, 3, Rune.NATURE, 3)

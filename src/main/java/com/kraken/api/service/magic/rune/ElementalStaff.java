@@ -1,6 +1,7 @@
 package com.kraken.api.service.magic.rune;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.runelite.api.EquipmentInventorySlot;
@@ -49,7 +50,9 @@ public enum ElementalStaff {
     @Getter
     private final Rune rune;
 
-    private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
+    private static Context ctx() {
+        return Services.context();
+    }
 
     /**
      * Retrieves an {@code ElementalStaff} corresponding to the provided item ID.
@@ -94,7 +97,7 @@ public enum ElementalStaff {
     public static Map<Rune, Integer> getRunes() {
         Map<Rune, Integer> runes = new HashMap<>();
 
-        int staffId = ctx.equipment().inSlot(EquipmentInventorySlot.WEAPON).getId();
+        int staffId = ctx().equipment().inSlot(EquipmentInventorySlot.WEAPON).getId();
 
         if(staffId == -1) {
             return Collections.emptyMap();

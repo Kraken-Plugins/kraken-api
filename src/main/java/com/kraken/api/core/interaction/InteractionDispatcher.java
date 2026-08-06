@@ -28,9 +28,14 @@ public class InteractionDispatcher {
      * @param point          Canvas coordinates to click
      * @param action         Action label (e.g. "Attack") — used for logging and the engine call
      * @param resolvedAction The fully resolved menu option and target string
+     * @return true if the action reached the client's engine, false if it could not be dispatched
      */
-    public void dispatch(Point point, String action, ResolvedMenuAction resolvedAction) {
-        if (point == null || resolvedAction == null) return;
+    public boolean dispatch(Point point, String action, ResolvedMenuAction resolvedAction) {
+        if (point == null || resolvedAction == null) {
+            log.warn("Refusing to dispatch action '{}': point={}, resolvedAction={}", action, point, resolvedAction);
+            return false;
+        }
+
         MenuOption option = resolvedAction.getOption();
         mousePackets.queueClickPacket(point.getX(), point.getY());
 
@@ -39,7 +44,7 @@ public class InteractionDispatcher {
                 option.getIdentifier(), option.getItemId(), option.getWorldView(),
                 action, resolvedAction.getTarget(), point.getX(), point.getY());
 
-        doActionInvoker.invoke(
+        return doActionInvoker.invoke(
                 option.getParam0(), option.getParam1(), option.getType().getId(),
                 option.getIdentifier(), option.getItemId(), option.getWorldView(),
                 action, resolvedAction.getTarget(), point.getX(), point.getY()

@@ -126,7 +126,7 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
 
         return ctx.runOnClientThread(() -> {
             List<DepositBoxEntity> entities = new ArrayList<>();
-            for(int i = InterfaceID.BankDepositbox.SLOT0; i < InterfaceID.BankDepositbox.SLOT13; i++) {
+            for(int i = InterfaceID.BankDepositbox.SLOT0; i <= InterfaceID.BankDepositbox.SLOT13; i++) {
                 final Widget widget = ctx.getWidget(i);
 
                 if(widget.getDynamicChildren().length < 2) {

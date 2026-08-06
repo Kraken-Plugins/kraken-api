@@ -21,6 +21,9 @@ public enum Facility {
     /** A Grand Exchange clerk offering the "Exchange" menu action. */
     GRAND_EXCHANGE_CLERK,
 
+    /** A shopkeeper NPC offering the "Trade" menu action. */
+    SHOP_NPC,
+
     /** A water source that fills a bucket, such as a fountain. */
     WATER_SOURCE,
 

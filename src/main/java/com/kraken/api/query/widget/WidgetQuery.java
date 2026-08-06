@@ -133,7 +133,9 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
      *         {@code null} if no matching widget is found.
      */
     public WidgetEntity get(int packedId) {
-        return withId(packedId).first();
+        // client.getWidget(packedId) resolves the component directly; withId(packedId).first() would
+        // enumerate the whole widget tree to find the same widget.
+        return fromClient(packedId);
     }
 
 
@@ -147,7 +149,7 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
      * @return The corresponding {@link WidgetEntity}, or {@code null} if no match is found.
      */
     public WidgetEntity get(WidgetInfo widgetInfo) {
-        return withId(widgetInfo.getId()).first();
+        return fromClient(widgetInfo.getId());
     }
 
 
@@ -169,7 +171,7 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
      *         or {@code null} if no matching widget is found.
      */
     public WidgetEntity get(int groupId, int childId) {
-        return withGroupChild(groupId, childId).first();
+        return fromClient(groupId, childId);
     }
 
     /**
@@ -241,11 +243,20 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
     }
 
     /**
-     * Filters for widgets which are currently visible on the canvas.
+     * Filters for widgets which are currently visible on the canvas. A widget is visible when it is
+     * not hidden and its parent (if any) is not hidden; root widgets, which have no parent, are
+     * included rather than excluded.
      * @return WidgetQuery
      */
     public WidgetQuery visible() {
-        return filter(w -> !w.raw().isHidden() && w.raw().getParent() != null && !w.raw().getParent().isHidden());
+        return filter(w -> {
+            Widget raw = w.raw();
+            if (raw == null || raw.isHidden()) {
+                return false;
+            }
+            Widget parent = raw.getParent();
+            return parent == null || !parent.isHidden();
+        });
     }
 
     /**

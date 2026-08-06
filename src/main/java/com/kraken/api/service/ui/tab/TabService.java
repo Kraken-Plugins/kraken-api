@@ -17,7 +17,13 @@ public class TabService {
 
     public InterfaceTab getCurrentTab() {
         final int varcIntValue = ctx.getClient().getVarcIntValue(171); // Inventory tab varc int
-        switch (VarcIntValues.valueOf(varcIntValue)) {
+        // valueOf returns null for an unmapped varc value; switching on a null enum would NPE before
+        // reaching the default branch, so guard it explicitly.
+        VarcIntValues tab = VarcIntValues.valueOf(varcIntValue);
+        if (tab == null) {
+            return InterfaceTab.NOTHING_SELECTED;
+        }
+        switch (tab) {
             case TAB_COMBAT_OPTIONS:
                 return InterfaceTab.COMBAT;
             case TAB_SKILLS:
@@ -49,7 +55,7 @@ public class TabService {
             case TAB_NOT_SELECTED:
                 return InterfaceTab.NOTHING_SELECTED;
             default:
-                throw new IllegalStateException("Unexpected value: " + VarcIntValues.valueOf(varcIntValue));
+                throw new IllegalStateException("Unexpected value: " + tab);
         }
     }
 

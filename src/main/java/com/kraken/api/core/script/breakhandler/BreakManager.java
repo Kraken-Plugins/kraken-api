@@ -3,6 +3,7 @@ package com.kraken.api.core.script.breakhandler;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.core.KrakenThreads;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.service.ui.login.LoginService;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,7 @@ public class BreakManager {
     @Inject
     private BreakState state;
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService scheduler = KrakenThreads.newScheduler("break-manager");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("hh:mm:ss a").withZone(ZoneId.systemDefault());
 
     private Script activeScript;
@@ -56,6 +57,11 @@ public class BreakManager {
      */
     public void initialize() {
         if (!initialized) {
+            // A scheduler shut down by a previous shutdown() cannot accept work again, so a
+            // re-initialised manager gets a fresh one.
+            if (scheduler.isShutdown()) {
+                scheduler = KrakenThreads.newScheduler("break-manager");
+            }
             eventBus.register(this);
             initialized = true;
             log.info("Break Manager initialized");
@@ -118,6 +124,10 @@ public class BreakManager {
      * Detaches the current script from the break handler.
      */
     public void detachScript() {
+        if (activeScript == null) {
+            return;
+        }
+
         // Don't clear state if we're on break - preserve it for potential resume
         if (!state.isOnBreak() && !state.isAwaitingLogin()) {
             log.info("Script: {} detached", activeScript.getClass().getName());

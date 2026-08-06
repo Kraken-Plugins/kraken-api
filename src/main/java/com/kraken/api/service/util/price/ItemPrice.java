@@ -23,8 +23,8 @@ import lombok.Data;
  * <p>The {@code ItemPrice} class leverages Lombok's {@code {@literal @}Data} and {@code {@literal @}Builder}
  * annotations, which provide boilerplate code generation for getters, setters, builder pattern, and more.</p>
  *
- * <p>This object is immutable when using the builder pattern, ensuring consistent and thread-safe
- * data access across concurrent operations.</p>
+ * <p>Because {@code {@literal @}Data} generates setters over non-final fields, instances are mutable
+ * and not thread-safe; treat a shared instance as read-only or copy it before mutating.</p>
  */
 @Data
 @Builder

@@ -11,7 +11,6 @@ import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static net.runelite.api.Constants.CHUNK_SIZE;
 import static net.runelite.api.Perspective.SCENE_SIZE;
@@ -21,6 +20,12 @@ import static net.runelite.api.Perspective.SCENE_SIZE;
 public class TileService {
 
     private static final int FLAG_DATA_SIZE = 104;
+
+    // The player-reachability flood depends only on the player's tile and the plane's collision
+    // flags, neither of which changes within a game tick, so it is computed at most once per tick.
+    // Without this, reachable() over N entities ran one full 104x104 BFS per entity in a single frame.
+    private int reachabilityMatrixTick = -1;
+    private boolean[][] cachedReachabilityMatrix;
 
     @Inject
     private Provider<Context> ctxProvider;
@@ -62,10 +67,16 @@ public class TileService {
         final HashMap<WorldPoint, Integer> tileDistances = new HashMap<>();
         tileDistances.put(tile, 0);
 
-        for (int i = 0; i < distance + 1; i++) {
+        // Expand ring by ring from an explicit frontier of the tiles just discovered, rather than
+        // re-scanning the whole distance map on every ring. Each tile is visited once.
+        List<WorldPoint> frontier = new ArrayList<>();
+        frontier.add(tile);
+
+        for (int i = 0; i < distance + 1 && !frontier.isEmpty(); i++) {
             int dist = i;
-            for (var kvp : tileDistances.entrySet().stream().filter(x -> x.getValue() == dist).collect(Collectors.toList())) {
-                WorldPoint point = kvp.getKey();
+            List<WorldPoint> nextFrontier = new ArrayList<>();
+
+            for (WorldPoint point : frontier) {
                 LocalPoint localPoint;
                 if (ctxProvider.get().getClient().getTopLevelWorldView().isInstance()) {
                     WorldPoint worldPoint = WorldPoint.toLocalInstance(ctxProvider.get().getClient().getTopLevelWorldView(), point).stream().findFirst().orElse(null);
@@ -90,22 +101,39 @@ public class TileService {
                         }
                     }
 
-                    if (kvp.getValue() >= distance)
+                    if (dist >= distance)
                         continue;
 
                     if (!movementFlags.contains(MovementFlag.BLOCK_MOVEMENT_EAST))
-                        tileDistances.putIfAbsent(point.dx(1), dist + 1);
+                        addNeighbour(point.dx(1), dist + 1, tileDistances, nextFrontier);
                     if (!movementFlags.contains(MovementFlag.BLOCK_MOVEMENT_WEST))
-                        tileDistances.putIfAbsent(point.dx(-1), dist + 1);
+                        addNeighbour(point.dx(-1), dist + 1, tileDistances, nextFrontier);
                     if (!movementFlags.contains(MovementFlag.BLOCK_MOVEMENT_NORTH))
-                        tileDistances.putIfAbsent(point.dy(1), dist + 1);
+                        addNeighbour(point.dy(1), dist + 1, tileDistances, nextFrontier);
                     if (!movementFlags.contains(MovementFlag.BLOCK_MOVEMENT_SOUTH))
-                        tileDistances.putIfAbsent(point.dy(-1), dist + 1);
+                        addNeighbour(point.dy(-1), dist + 1, tileDistances, nextFrontier);
                 }
             }
+
+            frontier = nextFrontier;
         }
 
         return tileDistances;
+    }
+
+    /**
+     * Records a neighbouring tile at the given distance if it has not been seen yet, adding it to the
+     * next frontier so it is expanded exactly once.
+     *
+     * @param neighbour     The neighbouring world point.
+     * @param neighbourDist The distance to assign to the neighbour.
+     * @param tileDistances The accumulated tile-to-distance map.
+     * @param nextFrontier  The frontier for the next ring, appended to when the neighbour is new.
+     */
+    private void addNeighbour(WorldPoint neighbour, int neighbourDist, HashMap<WorldPoint, Integer> tileDistances, List<WorldPoint> nextFrontier) {
+        if (tileDistances.putIfAbsent(neighbour, neighbourDist) == null) {
+            nextFrontier.add(neighbour);
+        }
     }
 
     /**
@@ -171,10 +199,15 @@ public class TileService {
 
     /**
      * Standard BFS to map all reachable tiles from the current player position.
-     * @return A 104x104 boolean array where true = walkable from player.
+     * @return A 104x104 boolean array where true = walkable from player, or null if client state is unavailable.
      */
     private boolean[][] getReachableTilesMatrix() {
         Client client = ctxProvider.get().getClient();
+        int tick = client.getTickCount();
+        if (tick == reachabilityMatrixTick && cachedReachabilityMatrix != null) {
+            return cachedReachabilityMatrix;
+        }
+
         Player localPlayer = ctxProvider.get().runOnClientThread(client::getLocalPlayer);
         if (localPlayer == null) return null;
 
@@ -184,20 +217,31 @@ public class TileService {
         LocalPoint playerLp = localPlayer.getLocalLocation();
         if (playerLp == null) return null;
 
-        int startX = playerLp.getSceneX();
-        int startY = playerLp.getSceneY();
-        int plane = wv.getPlane();
-
         CollisionData[] collisionData = wv.getCollisionMaps();
         if (collisionData == null) return null;
-        int[][] flags = collisionData[plane].getFlags();
+        int[][] flags = collisionData[wv.getPlane()].getFlags();
 
-        boolean[][] visited = new boolean[SCENE_SIZE][SCENE_SIZE];
+        boolean[][] matrix = floodReachableTiles(playerLp.getSceneX(), playerLp.getSceneY(), flags);
+        cachedReachabilityMatrix = matrix;
+        reachabilityMatrixTick = tick;
+        return matrix;
+    }
+
+    /**
+     * Flood-fills the reachable tiles from a scene-coordinate start using a 4-cardinal BFS over the
+     * collision flags. A neighbour is entered only when the current tile permits leaving in that
+     * direction and the neighbour is not fully blocked.
+     *
+     * @param startX The start tile's scene x-coordinate (0-103).
+     * @param startY The start tile's scene y-coordinate (0-103).
+     * @param flags  The current plane's collision flags.
+     * @return A {@code FLAG_DATA_SIZE}×{@code FLAG_DATA_SIZE} matrix where true marks a reachable tile.
+     */
+    private boolean[][] floodReachableTiles(int startX, int startY, int[][] flags) {
+        boolean[][] visited = new boolean[FLAG_DATA_SIZE][FLAG_DATA_SIZE];
         ArrayDeque<Integer> queue = new ArrayDeque<>();
 
-        // Start BFS
-        int startPoint = (startX << 16) | startY;
-        queue.add(startPoint);
+        queue.add((startX << 16) | startY);
         visited[startX][startY] = true;
 
         while (!queue.isEmpty()) {
@@ -205,7 +249,6 @@ public class TileService {
             int x = point >> 16;
             int y = point & 0xFFFF;
 
-            // Check 4 cardinal directions
             checkNeighbour(queue, visited, flags, x, y, -1, 0, CollisionDataFlag.BLOCK_MOVEMENT_WEST);
             checkNeighbour(queue, visited, flags, x, y, 1, 0, CollisionDataFlag.BLOCK_MOVEMENT_EAST);
             checkNeighbour(queue, visited, flags, x, y, 0, -1, CollisionDataFlag.BLOCK_MOVEMENT_SOUTH);
@@ -215,23 +258,33 @@ public class TileService {
         return visited;
     }
 
-    private void checkNeighbour(ArrayDeque<Integer> queue, boolean[][] visited, int[][] flags, int x, int y, int dx, int dy, int blockFlag) {
+    /**
+     * Enters a neighbouring tile into the BFS when movement into it is permitted and it is unvisited.
+     * Movement requires the current tile not to block travel in the given direction and the
+     * destination not to be fully blocked.
+     *
+     * @param queue             The BFS work queue of packed scene coordinates.
+     * @param visited           The visited matrix, updated in place.
+     * @param flags             The current plane's collision flags.
+     * @param x                 The current tile's scene x-coordinate.
+     * @param y                 The current tile's scene y-coordinate.
+     * @param dx                The x-offset of the neighbour (-1, 0 or 1).
+     * @param dy                The y-offset of the neighbour (-1, 0 or 1).
+     * @param blockMovementFlag The flag on the current tile that blocks travel toward the neighbour.
+     */
+    private void checkNeighbour(ArrayDeque<Integer> queue, boolean[][] visited, int[][] flags, int x, int y, int dx, int dy, int blockMovementFlag) {
         int nx = x + dx;
         int ny = y + dy;
 
-        if (nx >= 0 && nx < SCENE_SIZE && ny >= 0 && ny < SCENE_SIZE) {
-            if (!visited[nx][ny]) {
-                // Check if we can leave current tile (blockFlag) AND enter next tile (BLOCK_MOVEMENT_FULL)
-                // Note: We check CollisionDataFlag.BLOCK_MOVEMENT_FULL on the *destination* to ensure we don't walk into walls
-                if ((flags[x][y] & blockFlag) == 0 && (flags[nx][ny] & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0) {
-                    visited[nx][ny] = true;
-                    queue.add((nx << 16) | ny);
-                }
-            }
+        if (isWithinBounds(nx, ny) && !visited[nx][ny]
+                && (flags[x][y] & blockMovementFlag) == 0
+                && (flags[nx][ny] & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0) {
+            queue.add((nx << 16) | ny);
+            visited[nx][ny] = true;
         }
     }
-    
-    
+
+
     /**
      * This method checks if a given target tile (WorldPoint) is reachable from the
      * player's current location, considering collision data and the plane of the
@@ -260,38 +313,11 @@ public class TileService {
 
         if (targetPoint.getPlane() != playerLoc.getPlane()) return false;
 
-        final boolean[][] visited = new boolean[FLAG_DATA_SIZE][FLAG_DATA_SIZE];
-        final int[][] flags = getFlags();
-        if (flags == null) return false;
-
-        final int startX;
-        final int startY;
-        if (ctxProvider.get().getClient().getTopLevelWorldView().getScene().isInstance()) {
-            LocalPoint localPoint = player.raw().getLocalLocation();
-            startX = localPoint.getSceneX();
-            startY = localPoint.getSceneY();
-        } else {
-            startX = playerLoc.getX() - ctxProvider.get().getClient().getTopLevelWorldView().getBaseX();
-            startY = playerLoc.getY() - ctxProvider.get().getClient().getTopLevelWorldView().getBaseY();
-        }
-        final int startPoint = (startX << 16) | startY;
-
-        ArrayDeque<Integer> queue = new ArrayDeque<>();
-        queue.add(startPoint);
-        visited[startX][startY] = true;
-
-        while (!queue.isEmpty()) {
-            int point = queue.poll();
-            int x = point >> 16;
-            int y = point & 0xFFFF;
-
-            if (isWithinBounds(x, y)) {
-                checkAndAddNeighbour(queue, visited, flags, x, y, -1, 0, CollisionDataFlag.BLOCK_MOVEMENT_WEST);
-                checkAndAddNeighbour(queue, visited, flags, x, y, 1, 0, CollisionDataFlag.BLOCK_MOVEMENT_EAST);
-                checkAndAddNeighbour(queue, visited, flags, x, y, 0, -1, CollisionDataFlag.BLOCK_MOVEMENT_SOUTH);
-                checkAndAddNeighbour(queue, visited, flags, x, y, 0, 1, CollisionDataFlag.BLOCK_MOVEMENT_NORTH);
-            }
-        }
+        // Shares the tick-cached player-reachability flood with isObjectReachable; the flood always
+        // starts from the player's scene tile, and isVisited handles the target-side (instanced)
+        // coordinate conversion.
+        boolean[][] visited = getReachableTilesMatrix();
+        if (visited == null) return false;
 
         return isVisited(targetPoint, visited);
     }
@@ -313,66 +339,24 @@ public class TileService {
      * @return True if the tile has been visited and is within bounds, otherwise false.
      */
     private boolean isVisited(WorldPoint worldPoint, boolean[][] visited) {
-        int baseX, baseY, x, y;
-        if (ctxProvider.get().getClient().getTopLevelWorldView().getScene().isInstance()) {
-            LocalPlayerEntity player = ctxProvider.get().players().local();
-            LocalPoint localPoint = player.raw().getLocalLocation();
-            x = localPoint.getSceneX();
-            y = localPoint.getSceneY();
-        } else {
-            baseX = ctxProvider.get().getClient().getTopLevelWorldView().getBaseX();
-            baseY = ctxProvider.get().getClient().getTopLevelWorldView().getBaseY();
-            x = worldPoint.getX() - baseX;
-            y = worldPoint.getY() - baseY;
+        WorldView wv = ctxProvider.get().getClient().getTopLevelWorldView();
+        if (wv.getScene().isInstance()) {
+            // In an instance the target world point maps to one or more instanced scene positions;
+            // the tile is reachable if any of them was visited. Convert the target itself here — not
+            // the player's location — otherwise every target reads as reachable.
+            for (WorldPoint instancePoint : WorldPoint.toLocalInstance(wv, worldPoint)) {
+                LocalPoint localPoint = LocalPoint.fromWorld(wv, instancePoint);
+                if (localPoint != null && isWithinBounds(localPoint.getSceneX(), localPoint.getSceneY())
+                        && visited[localPoint.getSceneX()][localPoint.getSceneY()]) {
+                    return true;
+                }
+            }
+            return false;
         }
 
-
+        int x = worldPoint.getX() - wv.getBaseX();
+        int y = worldPoint.getY() - wv.getBaseY();
         return isWithinBounds(x, y) && visited[x][y];
-    }
-
-    /**
-     * This method checks a neighboring tile and adds it to the queue if it is valid
-     * and not blocked for movement. It considers both the current tile's collision
-     * data and the neighboring tile’s collision flags to determine whether movement
-     * in the specified direction (dx, dy) is possible. The method ensures the neighboring
-     * tile is within bounds, hasn't been visited, and doesn't have movement restrictions
-     * (such as full-block movement or movement in the specified direction).
-     * <p>
-     * The method performs a bitwise check on the tile’s flags to determine if movement
-     * in the given direction is allowed and ensures that the neighboring tile is not
-     * already visited before adding it to the queue.
-     *
-     * @param queue The queue that stores the coordinates of tiles to be visited.
-     * @param visited A 2D boolean array tracking which tiles have already been visited.
-     * @param flags A 2D array containing the collision flags for each tile.
-     * @param x The current tile’s x-coordinate.
-     * @param y The current tile’s y-coordinate.
-     * @param dx The change in x-coordinate for the neighboring tile.
-     * @param dy The change in y-coordinate for the neighboring tile.
-     * @param blockMovementFlag The collision flag that blocks movement in a given direction.
-     */
-    private void checkAndAddNeighbour(ArrayDeque<Integer> queue, boolean[][] visited, int[][] flags, int x, int y, int dx, int dy, int blockMovementFlag) {
-        int nx = x + dx;
-        int ny = y + dy;
-
-        if (isWithinBounds(nx, ny) && !visited[nx][ny] && (flags[x][y] & blockMovementFlag) == 0 && (flags[nx][ny] & CollisionDataFlag.BLOCK_MOVEMENT_FULL) == 0) {
-            queue.add((nx << 16) | ny);
-            visited[nx][ny] = true;
-        }
-    }
-
-    /**
-     * Returns collision flags for the current plane
-     * @return 2D array of collision flags
-     */
-    private int[][] getFlags() {
-        final WorldView wv = ctxProvider.get().getClient().getTopLevelWorldView();
-        if (wv == null) return null;
-
-        final CollisionData[] collisionData = wv.getCollisionMaps();
-        if (collisionData == null) return null;
-
-        return collisionData[wv.getPlane()].getFlags();
     }
 
     /**
@@ -537,88 +521,6 @@ public class TileService {
             worldPoints.add(worldPoint);
         return worldPoints;
     }
-
-    /**
-     * Returns a normal WorldPoint given a world point that originated in an instance.
-     * @param worldPoint WorldPoint to convert
-     * @return a normalized WorldPoint from an instance WorldPoint
-     */
-//    public WorldPoint fromInstance(WorldPoint worldPoint) {
-//        LocalPoint localPoint = LocalPoint.fromWorld(client.getTopLevelWorldView(), worldPoint);
-//
-//        // if local point is null or not in an instanced region, return the world point as is
-//        if (localPoint == null || !client.getTopLevelWorldView().isInstance())
-//            return worldPoint;
-//
-//        int sceneX = localPoint.getSceneX();
-//        int sceneY = localPoint.getSceneY();
-//
-//        int chunkX = sceneX / CHUNK_SIZE;
-//        int chunkY = sceneY / CHUNK_SIZE;
-//
-//        int[][][] instanceTemplateChunks = client.getTopLevelWorldView().getInstanceTemplateChunks();
-//        int templateChunk = instanceTemplateChunks[worldPoint.getPlane()][chunkX][chunkY];
-//
-//        int rotation = templateChunk >> 1 & 0x3;
-//        int templateChunkY = (templateChunk >> 3 & 0x7FF) * CHUNK_SIZE;
-//        int templateChunkX = (templateChunk >> 14 & 0x3FF) * CHUNK_SIZE;
-//        int templateChunkPlane = templateChunk >> 24 & 0x3;
-//
-//        int x = templateChunkX + (sceneX & (CHUNK_SIZE - 1));
-//        int y = templateChunkY + (sceneY & (CHUNK_SIZE - 1));
-//
-//        return rotate(new WorldPoint(x, y, templateChunkPlane), 4 - rotation);
-//    }
-
-    /**
-     * Converts a normal WorldPoint into an instanced version of the WorldPoint
-     * @param worldPoint Normal WorldPoint to convert
-     * @return The instanced WorldPoint
-     */
-//    public WorldPoint toInstance(WorldPoint worldPoint) {
-//        if (!client.getTopLevelWorldView().isInstance()) {
-//            return worldPoint;
-//        }
-//
-//        ArrayList<WorldPoint> worldPoints = new ArrayList<>();
-//        int[][][] instanceTemplateChunks = client.getTopLevelWorldView().getInstanceTemplateChunks();
-//        for (int z = 0; z < instanceTemplateChunks.length; z++) {
-//            for (int x = 0; x < instanceTemplateChunks[z].length; ++x) {
-//                for (int y = 0; y < instanceTemplateChunks[z][x].length; ++y) {
-//                    int chunkData = instanceTemplateChunks[z][x][y];
-//                    int rotation = chunkData >> 1 & 0x3;
-//                    int templateChunkY = (chunkData >> 3 & 0x7FF) * CHUNK_SIZE;
-//                    int templateChunkX = (chunkData >> 14 & 0x3FF) * CHUNK_SIZE;
-//                    int plane = chunkData >> 24 & 0x3;
-//                    if (worldPoint.getX() >= templateChunkX && worldPoint.getX() < templateChunkX + CHUNK_SIZE
-//                            && worldPoint.getY() >= templateChunkY && worldPoint.getY() < templateChunkY + CHUNK_SIZE
-//                            && plane == worldPoint.getPlane()) {
-//                        WorldPoint p = new WorldPoint(client.getTopLevelWorldView().getBaseX() + x * CHUNK_SIZE + (worldPoint.getX() & (CHUNK_SIZE - 1)),
-//                                client.getTopLevelWorldView().getBaseY() + y * CHUNK_SIZE + (worldPoint.getY() & (CHUNK_SIZE - 1)),
-//                                z);
-//                        p = rotate(p, rotation);
-//                        worldPoints.add(p);
-//                    }
-//                }
-//            }
-//        }
-//        if (worldPoints.isEmpty())
-//            worldPoints.add(worldPoint);
-//        return worldPoints.get(0);
-//    }
-
-//    /**
-//     * Returns a world point from a clicked point on the world map.
-//     * @return WorldPoint calculated world point object
-//     */
-//    public WorldPoint fromMap() {
-//        WorldMap worldMap = client.getWorldMap();
-//        if(worldMap == null || !widgetService.isWidgetVisible(WidgetInfo.WORLD_MAP_VIEW.getId()))
-//            return null;
-//
-//        Point p = worldMap.getWorldMapPosition();
-//        return WorldPointUtil.translate(new WorldPoint(p.getX(), p.getY(), client.getTopLevelWorldView().getPlane()));
-//    }
 
     /**
      * Rotate the coordinates in the chunk according to chunk rotation

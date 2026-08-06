@@ -45,6 +45,13 @@ public enum NamedLocation {
             6,
             EnumSet.of(Facility.WATER_SOURCE, Facility.OTHER_PLAYERS)),
 
+    VARROCK_GENERAL_STORE(
+            "Varrock general store",
+            new WorldPoint(3216, 3415, 0),
+            new WorldArea(3212, 3411, 8, 8, 0),
+            5,
+            EnumSet.of(Facility.SHOP_NPC, Facility.OTHER_PLAYERS)),
+
     GRAND_EXCHANGE(
             "Grand Exchange",
             new WorldPoint(3165, 3487, 0),

@@ -7,7 +7,6 @@ import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.core.packet.entity.WidgetPackets;
 import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.ui.UIService;
-import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GrandExchangeOffer;
@@ -213,10 +212,13 @@ public class GrandExchangeService {
 
     /**
      * Cancels an active Grand Exchange offer in the specified slot.
+     *
      * @param slot The GrandExchangeSlot to cancel.
+     * @return true if the abort action was dispatched, false if the slot was null or the widget
+     *         could not be resolved.
      */
-    public void cancelOffer(GrandExchangeSlot slot) {
-        interactionManager.interact(2, slot.getId(), 2, -1);
-        SleepService.sleepFor(2);
+    public boolean cancelOffer(GrandExchangeSlot slot) {
+        if (slot == null) return false;
+        return interactionManager.interact(slot.getId(), 2, -1, 2);
     }
 }

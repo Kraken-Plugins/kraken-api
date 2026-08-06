@@ -1,6 +1,7 @@
 package com.kraken.api.service.magic.spellbook;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import com.kraken.api.service.magic.CastableSpell;
 import com.kraken.api.service.magic.rune.Rune;
 import lombok.Getter;
@@ -53,7 +54,7 @@ public enum Standard implements CastableSpell {
     ),
     TELEPORT_TO_HOUSE(
             40,
-            InterfaceID.MagicSpellbook.TELEPORT_HOME_STANDARD,
+            InterfaceID.MagicSpellbook.TELEPORT_TO_YOUR_HOUSE,
             49,
             Map.of(Rune.AIR, 1, Rune.EARTH, 1, Rune.LAW, 1)
     ),
@@ -518,7 +519,7 @@ public enum Standard implements CastableSpell {
      * @return The action number to send in the widget packet
      */
     private int getVariantAction(int varbit, CastableSpell spell, CastableSpell baseSpell, CastableSpell variantSpell) {
-        Context ctx = RuneLite.getInjector().getInstance(Context.class);
+        Context ctx = Services.get(Context.class);
         int config = ctx.getVarbitValue(varbit);
         if (config == 0) {
             return spell == baseSpell ? 1 : 2;

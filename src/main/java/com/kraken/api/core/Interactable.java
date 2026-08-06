@@ -3,8 +3,13 @@ package com.kraken.api.core;
 public interface Interactable<T> {
     /**
      * Interacts with the entity using the given action verb.
+     *
+     * <p>Returns false when nothing was sent to the server — the entity was null or had despawned, or
+     * the requested action does not exist on it. Callers may rely on this to drive retries: a false
+     * return means the game state is unchanged by this call.</p>
+     *
      * @param action The menu action to trigger (e.g., "Attack", "Talk-to", "Take")
-     * @return true if the interaction packet was successfully queued/sent
+     * @return true if the action resolved and was dispatched to the client's engine
      */
     boolean interact(String action);
 

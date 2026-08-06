@@ -43,10 +43,6 @@ dependencies {
     compileOnly("com.google.inject:guice:4.2.2")
     compileOnly("net.runelite:client:${runeLiteVersion}")
 
-    // This is the only dependency required by Kraken API that is not natively provided by RuneLite
-    // its included in the jar for simplicity. Providing this dependency outside of Krakens API can result in double loading and dependency issues.
-    implementation("org.benf:cfr:0.152")
-
     implementation 'com.github.Kraken-Plugins:shortest-path:11d64616eb'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
@@ -62,16 +58,6 @@ dependencies {
 
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
     testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.0'
-}
-
-shadowJar {
-    archiveBaseName = 'kraken-api'
-    archiveVersion = projectVersion
-    archiveClassifier = '' // Purposefully leave this as none the only jar produced is the shaded jar.
-
-    dependencies {
-        exclude(dependency('net.runelite:client:.*'))
-    }
 }
 
 test {
@@ -99,6 +85,18 @@ jar {
     archiveBaseName = 'kraken-api'
     archiveVersion = projectVersion
     archiveClassifier = 'unshaded'
+}
+
+shadowJar {
+    archiveBaseName = 'kraken-api'
+    archiveVersion = projectVersion
+    archiveClassifier = '' // Purposefully leave this as none the only jar produced is the shaded jar.
+
+    exclude 'kraken.png'
+
+    dependencies {
+        exclude(dependency('net.runelite:client:.*'))
+    }
 }
 
 publishing {

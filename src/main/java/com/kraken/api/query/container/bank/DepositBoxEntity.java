@@ -24,8 +24,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
     public boolean interact(String action) {
         ContainerItem raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     @Override
@@ -36,12 +35,12 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
 
     /**
      * Returns the quantity of the item in your inventory when the bank deposit box interface is open.
-     * @return Int the quantity of the bank inventory entity (this will be the stack size of the item if it is noted) or
-     * the value of the item if it's coins.
+     * @return The quantity of the deposit box entity (the stack size of the item if it is noted, or
+     * the value of the item if it's coins), or 0 if the item is absent.
      */
     public int count() {
         ContainerItem raw = raw();
-        return raw != null ? raw.getQuantity() : -1;
+        return raw != null ? raw.getQuantity() : 0;
     }
 
 
@@ -106,17 +105,13 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
 
         switch(amount) {
             case -1:
-                ctx.getInteractionManager().interact(raw, "Deposit-All");
-                return true;
+                return ctx.getInteractionManager().interact(raw, "Deposit-All");
             case 1:
-                ctx.getInteractionManager().interact(raw, "Deposit-1");
-                return true;
+                return ctx.getInteractionManager().interact(raw, "Deposit-1");
             case 5:
-                ctx.getInteractionManager().interact(raw, "Deposit-5");
-                return true;
+                return ctx.getInteractionManager().interact(raw, "Deposit-5");
             case 10:
-                ctx.getInteractionManager().interact(raw, "Deposit-10");
-                return true;
+                return ctx.getInteractionManager().interact(raw, "Deposit-10");
             default:
                 ctx.getService(DepositBoxService.class).setQuantity(amount);
                 return ctx.widgets()
@@ -141,8 +136,7 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
         if(raw().getOrigin() == ContainerItem.ItemOrigin.EQUIPMENT) {
             return ctx.widgets().get(raw().getSlot()).interact(raw().getSlot(), -1, -1, 1);
         }
-        ctx.getInteractionManager().interact(raw, "Deposit-1");
-        return true;
+        return ctx.getInteractionManager().interact(raw, "Deposit-1");
     }
 
     /**

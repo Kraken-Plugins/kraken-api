@@ -22,8 +22,7 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
         ContainerItem raw = raw();
 
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     @Override
@@ -34,12 +33,12 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
 
     /**
      * Returns the quantity of the item in your inventory when the bank interface is open.
-     * @return Int the quantity of the bank inventory entity (this will be the stack size of the item if its noted) or
-     * the value of the item if it's coins.
+     * @return The quantity of the bank inventory entity (the stack size of the item if it is noted, or
+     * the value of the item if it's coins), or 0 if the item is absent.
      */
     public int count() {
         ContainerItem raw = raw();
-        return raw != null ? raw.getQuantity() : -1;
+        return raw != null ? raw.getQuantity() : 0;
     }
 
     /**
@@ -78,17 +77,13 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
 
         switch(amount) {
             case 1:
-                ctx.getInteractionManager().interact(raw, "Deposit-1");
-                return true;
+                return ctx.getInteractionManager().interact(raw, "Deposit-1");
             case 5:
-                ctx.getInteractionManager().interact(raw, "Deposit-5");
-                return true;
+                return ctx.getInteractionManager().interact(raw, "Deposit-5");
             case 10:
-                ctx.getInteractionManager().interact(raw, "Deposit-10");
-                return true;
+                return ctx.getInteractionManager().interact(raw, "Deposit-10");
             default:
-                ctx.getInteractionManager().interact(raw, "Deposit-All");
-                return true;
+                return ctx.getInteractionManager().interact(raw, "Deposit-All");
         }
     }
 
@@ -112,8 +107,7 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
     public boolean wieldOrWear() {
         ContainerItem raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, "wield", "wear", "equip");
-        return true;
+        return ctx.getInteractionManager().interact(raw, "wield", "wear", "equip");
     }
 
 
@@ -134,8 +128,7 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
      */
     public boolean wear() {
         // TODO This doesn't validate that the wear action exists on this bank inventory entity.
-        ctx.getInteractionManager().interact(raw, "wear");
-        return true;
+        return ctx.getInteractionManager().interact(raw, "wear");
     }
 
     /**
@@ -157,7 +150,6 @@ public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
      */
     public boolean wield() {
         // TODO This doesn't validate that the wield action exists on this bank inventory entity.
-        ctx.getInteractionManager().interact(raw, "wield", "equip");
-        return true;
+        return ctx.getInteractionManager().interact(raw, "wield", "equip");
     }
 }

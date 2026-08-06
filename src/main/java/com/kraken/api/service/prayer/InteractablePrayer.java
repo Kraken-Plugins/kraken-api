@@ -1,6 +1,7 @@
 package com.kraken.api.service.prayer;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.runelite.api.Prayer;
@@ -17,7 +18,7 @@ public enum InteractablePrayer {
     THICK_SKIN("Thick Skin", 35454985, 1, 5.0, VarbitID.PRAYER_THICKSKIN, 0),
     BURST_STRENGTH("Burst of Strength", 35454986, 4, 5.0, VarbitID.PRAYER_BURSTOFSTRENGTH, 1),
     CLARITY_THOUGHT("Clarity of Thought", 35454987, 7, 5.0, VarbitID.PRAYER_CLARITYOFTHOUGHT, 2),
-    SHARP_EYE("Sharp Eye", 35455003, 8, 5.0, VarbitID.PRAYER_SHARPEYE, 3),
+    SHARP_EYE("Sharp Eye", 35455003, 8, 5.0, VarbitID.PRAYER_SHARPEYE, 18),
     MYSTIC_WILL("Mystic Will", 35455006, 9, 5.0, VarbitID.PRAYER_MYSTICWILL, 19),
     ROCK_SKIN("Rock Skin", 35454988, 10, 10.0, VarbitID.PRAYER_ROCKSKIN, 3),
     SUPERHUMAN_STRENGTH("Superhuman Strength", 35454989, 13, 10.0, VarbitID.PRAYER_SUPERHUMANSTRENGTH, 4),
@@ -73,7 +74,7 @@ public enum InteractablePrayer {
      * @return {@code true} if the prayer is active; {@code false} otherwise.
      */
     public boolean isActive() {
-        Context ctx = RuneLite.getInjector().getInstance(Context.class);
+        Context ctx = Services.get(Context.class);
         return ctx.getVarbitValue(getVarbit()) == 1;
     }
 

@@ -11,6 +11,12 @@ import net.runelite.api.gameval.VarbitID;
 @Slf4j
 public class BankEntity extends AbstractEntity<BankItemWidget> {
 
+    /** How long to wait for the server to acknowledge a note-mode toggle. */
+    private static final long MODE_TIMEOUT_MS = 2_000L;
+
+    /** How long to wait for a requested number-input dialogue to be drawn. */
+    private static final long DIALOGUE_TIMEOUT_MS = 2_000L;
+
     public BankEntity(Context ctx, BankItemWidget raw) {
         super(ctx, raw);
     }
@@ -26,8 +32,7 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
         BankItemWidget raw = raw();
 
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     @Override
@@ -38,10 +43,11 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
 
     /**
      * Returns the count of this item in the bank.
-     * @return The number of the item within the bank.
+     * @return The number of the item within the bank, or 0 if the item is absent.
      */
     public int count() {
-        return raw().getItemQuantity();
+        BankItemWidget raw = raw();
+        return raw != null ? raw.getItemQuantity() : 0;
     }
 
     /**
@@ -78,14 +84,14 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
 
     /**
      * Withdraws All of this item, ensuring it comes out as Notes.
+     *
+     * <p>Must be called off the client thread: the note-mode toggle is only reflected after the server
+     * acknowledges it, and this waits for that acknowledgement before dispatching the withdraw.</p>
+     *
      * @return true if the withdrawal was successful and false otherwise
      */
     public boolean withdrawAllNoted() {
-        return ctx.runOnClientThread(() -> {
-            ctx.getService(BankService.class).setWithdrawMode(true);
-            SleepService.sleepFor(1);
-            return interact("Withdraw-All");
-        });
+        return setModeAndInteract(true, "Withdraw-All");
     }
 
     /**
@@ -95,16 +101,15 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
      * @return true if the withdrawal was successful and false otherwise
      */
     public boolean withdraw(int amount) {
-       boolean success = withdraw(amount, false);
-       if(success) {
-           UIService.closeNumberDialogue();
-           return true;
-       }
-       return false;
+       return withdraw(amount, false);
     }
 
     /**
      * Withdraws a specific amount with explicit Note mode selection.
+     *
+     * <p>Must be called off the client thread: amounts outside 1/5/10 open a number dialogue that this
+     * waits for before dismissing it.</p>
+     *
      * @param amount The amount of the item to withdraw: 1, 5, or 10. Any other value will withdraw X of that value
      * @param noted True if the items should be withdrawn as notes and false if they should be withdrawn as items
      * @return true if the withdrawal was successful and false otherwise
@@ -112,34 +117,36 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
     public boolean withdraw(int amount, boolean noted) {
         BankItemWidget raw = raw();
 
+        if (raw == null) return false;
+
         if (amount == 1) return setModeAndInteract(noted, "Withdraw-1");
         if (amount == 5) return setModeAndInteract(noted, "Withdraw-5");
         if (amount == 10) return setModeAndInteract(noted, "Withdraw-10");
 
-        boolean actionQueued = ctx.runOnClientThread(() -> {
-            BankService bankService = ctx.getService(BankService.class);
+        if (!ensureWithdrawMode(noted)) return false;
 
-            if (!bankService.setWithdrawMode(noted)) return false;
-
+        boolean actionQueued = Boolean.TRUE.equals(ctx.runOnClientThread(() -> {
             int quantitySet = ctx.getVarbitValue(VarbitID.BANK_REQUESTEDQUANTITY);
 
             // The X value is already exactly what we need.
-            if(quantitySet == amount) {
-                ctx.getInteractionManager().interact(raw, "Withdraw-" + amount);
-                ctx.getInteractionManager().getWidgetPackets().queueResumeCount(amount);
-                return true;
+            if(quantitySet != amount) {
+                ctx.getService(BankService.class).setXAmount(amount);
             }
 
-            bankService.setXAmount(amount);
-            ctx.getInteractionManager().interact(raw, "Withdraw-X");
+            String action = quantitySet == amount ? "Withdraw-" + amount : "Withdraw-X";
+            if (!ctx.getInteractionManager().interact(raw, action)) {
+                return false;
+            }
+
             ctx.getInteractionManager().getWidgetPackets().queueResumeCount(amount);
             return true;
-        });
+        }));
 
         if (actionQueued && ctx.getVarbitValue(VarbitID.BANK_REQUESTEDQUANTITY) != amount) {
-            // Wait for the engine to process the packet and open the UI
-            // Then close the dialogue outside of the client thread block so you don't freeze the client.
-            SleepService.sleepFor(1);
+            // The count is answered by packet, but the dialogue the click opened is drawn only after
+            // the server replies, and dismissing it has no effect until it exists. Wait for it here,
+            // off the client thread.
+            SleepService.sleepUntil(UIService::isNumberDialogueOpen, DIALOGUE_TIMEOUT_MS);
             UIService.closeNumberDialogue();
         }
 
@@ -148,13 +155,42 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
 
     /**
      * Sets the bank withdrawal mode and then interacts. Helper method for withdrawing 1, 5, or 10 items.
+     * @param noted True to withdraw as notes, false to withdraw as items
+     * @param action The withdraw action to dispatch once the mode is confirmed
      * @return true if the withdrawal was successful and false otherwise
      */
     private boolean setModeAndInteract(boolean noted, String action) {
-        return ctx.runOnClientThread(() -> {
-            boolean withdrawModeSet = ctx.getService(BankService.class).setWithdrawMode(noted);
-            if(!withdrawModeSet) return false;
-            return interact(action);
-        });
+        return ensureWithdrawMode(noted) && interact(action);
+    }
+
+    /**
+     * Puts the bank into the requested note mode and waits for the change to take effect.
+     *
+     * <p>{@code BankService.setWithdrawMode} dispatches the toggle click; the
+     * {@code BANK_WITHDRAWNOTES} varbit reflects the new mode only once the server replies. The wait
+     * happens here, off the client thread, so that callers can rely on the mode being active by the
+     * time this returns.</p>
+     *
+     * @param noted True to withdraw as notes, false to withdraw as items
+     * @return true once the bank is in the requested mode, false if the toggle failed or timed out
+     */
+    private boolean ensureWithdrawMode(boolean noted) {
+        int targetMode = noted ? 1 : 0;
+        if (ctx.getVarbitValue(VarbitID.BANK_WITHDRAWNOTES) == targetMode) {
+            return true;
+        }
+
+        if (!Boolean.TRUE.equals(ctx.runOnClientThread(
+                () -> ctx.getService(BankService.class).setWithdrawMode(noted)))) {
+            log.warn("Failed to dispatch bank withdraw mode toggle (noted={})", noted);
+            return false;
+        }
+
+        boolean applied = SleepService.sleepUntil(
+                () -> ctx.getVarbitValue(VarbitID.BANK_WITHDRAWNOTES) == targetMode, MODE_TIMEOUT_MS);
+        if (!applied) {
+            log.warn("Timed out waiting for bank withdraw mode to change to noted={}", noted);
+        }
+        return applied;
     }
 }

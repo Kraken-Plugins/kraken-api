@@ -18,7 +18,7 @@ public enum InventoryOrder {
      * Reverse reading order:
      * Last Item {@literal ->} First Item.
      */
-    BOTTOM_RIGHT_TOP_LEFT(Comparator.comparingInt(e -> e.raw().getSlot())),
+    BOTTOM_RIGHT_TOP_LEFT(TOP_LEFT_BOTTOM_RIGHT.getComparator().reversed()),
 
 
     /**

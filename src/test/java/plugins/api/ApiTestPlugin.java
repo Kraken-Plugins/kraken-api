@@ -33,7 +33,6 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.ImageUtil;
-import plugins.api.overlay.InfoPanelOverlay;
 import plugins.api.overlay.SceneOverlay;
 import plugins.api.suite.RegisteredTest;
 import plugins.api.suite.SuiteOptions;
@@ -70,9 +69,6 @@ public class ApiTestPlugin extends Plugin {
 
     @Inject
     private MouseOverlay overlay;
-
-    @Inject
-    private InfoPanelOverlay infoPanelOverlay;
 
     @Inject
     private TestResultManager testResultManager;
@@ -220,7 +216,6 @@ public class ApiTestPlugin extends Plugin {
         exampleScript.start();
 
         overlayManager.add(overlay);
-        overlayManager.add(infoPanelOverlay);
         overlayManager.add(sceneOverlay);
         if (config.showMouse()) {
             overlayManager.add(mouseOverlay);
@@ -283,7 +278,6 @@ public class ApiTestPlugin extends Plugin {
         exampleScript.stop();
 
         overlayManager.remove(overlay);
-        overlayManager.remove(infoPanelOverlay);
         overlayManager.remove(sceneOverlay);
         overlayManager.remove(mouseOverlay);
 

@@ -26,6 +26,12 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
 
     private ItemSource dataSource = ItemSource.BOTH;
 
+    // collectEquippedItems runs 11 client scripts to populate the equipment widgets; source(),
+    // isWearing() and inSlot() all call it. Equipment cannot change within a tick, so the result is
+    // reused across those calls on this instance for the current tick.
+    private int equippedItemsTick = -1;
+    private List<EquipmentEntity> cachedEquippedItems;
+
     public EquipmentQuery(Context ctx) {
         super(ctx);
         equipmentSlotWidgetMapping.put(0, 15);
@@ -141,13 +147,22 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
      * @return List of equipped item objects
      */
     private List<EquipmentEntity> collectEquippedItems() {
+        int tick = ctx.getClient().getTickCount();
+        if (tick == equippedItemsTick && cachedEquippedItems != null) {
+            return cachedEquippedItems;
+        }
+
         for (int i = 0; i < 11; i++) {
             ctx.getClient().runScript(545, (25362447 + i), intMapping.get(i), 1, 1, 2);
         }
 
         List<EquipmentEntity> entities = new ArrayList<>();
         ItemContainer equipment = ctx.getClient().getItemContainer(94); // 94 = Equipment
-        if (equipment == null) return Collections.emptyList();
+        if (equipment == null) {
+            cachedEquippedItems = entities;
+            equippedItemsTick = tick;
+            return entities;
+        }
 
         int i = -1;
         for (Item item : equipment.getItems()) {
@@ -168,6 +183,9 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
             // Pass slotIndex so we know which equipment slot this is
             entities.add(new EquipmentEntity(ctx, new ContainerItem(item, def, i, ctx, w, ContainerItem.ItemOrigin.EQUIPMENT)));
         }
+
+        cachedEquippedItems = entities;
+        equippedItemsTick = tick;
         return entities;
     }
 

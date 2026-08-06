@@ -130,7 +130,7 @@ public class DialogueService {
      * @param option the index of the option to select, typically starting from 0 for the first option.
      */
     public void selectOption(int option) {
-        interactionManager.interact(UIService.pack(WidgetID.DIALOG_OPTION_GROUP_ID, DialogOption.OPTIONS), option);
+        interactionManager.selectDialogueOption(UIService.pack(WidgetID.DIALOG_OPTION_GROUP_ID, DialogOption.OPTIONS), option);
     }
 
     /**
@@ -344,35 +344,35 @@ public class DialogueService {
         return ctx.runOnClientThread(() -> {
             // When an NPC is speaking
             if (ctx.getClient().getWidget(WidgetID.DIALOG_NPC_GROUP_ID, DialogNPC.CONTINUE) != null) {
-                interactionManager.interact(UIService.pack(WidgetID.DIALOG_NPC_GROUP_ID, DialogNPC.CONTINUE), -1);
+                interactionManager.selectDialogueOption(UIService.pack(WidgetID.DIALOG_NPC_GROUP_ID, DialogNPC.CONTINUE), -1);
                 return true;
             }
 
             if (ctx.getClient().getWidget(633, 0) != null) {
-                interactionManager.interact(UIService.pack(633, 0), -1);
+                interactionManager.selectDialogueOption(UIService.pack(633, 0), -1);
                 return true;
             }
 
             // When the player speaks
             if (ctx.getClient().getWidget(WidgetID.DIALOG_PLAYER_GROUP_ID, DialogPlayer.CONTINUE) != null) {
-                interactionManager.interact(UIService.pack(WidgetID.DIALOG_PLAYER_GROUP_ID, DialogPlayer.CONTINUE), -1);
+                interactionManager.selectDialogueOption(UIService.pack(WidgetID.DIALOG_PLAYER_GROUP_ID, DialogPlayer.CONTINUE), -1);
                 return true;
             }
 
-            // When a sprite is shown
+            // When a sprite is shown.
             if (ctx.getClient().getWidget(WidgetInfo.DIALOG_SPRITE) != null) {
-                interactionManager.interact(UIService.pack(11, 0), -1);
+                interactionManager.selectDialogueOption(UIService.pack(WidgetID.DIALOG_SPRITE_GROUP_ID, 0), -1);
                 return true;
             }
 
             if (ctx.getClient().getWidget(11, 0) != null) {
-                interactionManager.interact(UIService.pack(11, DialogSprite2.CONTINUE), -1);
+                interactionManager.selectDialogueOption(UIService.pack(11, DialogSprite2.CONTINUE), -1);
                 return true;
             }
             if (ctx.getClient().getWidget(229, MinigameDialog.CONTINUE) != null) {
                 Widget w = ctx.getClient().getWidget(229, MinigameDialog.CONTINUE);
                 if(w != null && w.getText() != null && w.getText().equals("Click here to continue")) {
-                    interactionManager.interact(UIService.pack(229, MinigameDialog.CONTINUE), -1);
+                    interactionManager.selectDialogueOption(UIService.pack(229, MinigameDialog.CONTINUE), -1);
                     return true;
                 }
             }
@@ -380,7 +380,7 @@ public class DialogueService {
             if (ctx.getClient().getWidget(229, DialogNotification.CONTINUE) != null) {
                 Widget w = ctx.getClient().getWidget(229, DialogNotification.CONTINUE);
                 if(w != null && w.getText() != null && w.getText().equals("Click here to continue")) {
-                    interactionManager.interact(UIService.pack(229, DialogNotification.CONTINUE), -1);
+                    interactionManager.selectDialogueOption(UIService.pack(229, DialogNotification.CONTINUE), -1);
                     return true;
                 }
             }
@@ -388,7 +388,7 @@ public class DialogueService {
             if (ctx.getClient().getWidget(WidgetID.LEVEL_UP_GROUP_ID, LevelUp.CONTINUE) != null) {
                 Widget w = ctx.getClient().getWidget(WidgetID.LEVEL_UP_GROUP_ID, LevelUp.CONTINUE);
                 if(w != null && w.getText() != null && w.getText().equals("Click here to continue")) {
-                    interactionManager.interact(UIService.pack(WidgetID.LEVEL_UP_GROUP_ID, LevelUp.CONTINUE), -1);
+                    interactionManager.selectDialogueOption(UIService.pack(WidgetID.LEVEL_UP_GROUP_ID, LevelUp.CONTINUE), -1);
                     return true;
                 }
             }
@@ -396,7 +396,7 @@ public class DialogueService {
             if(ctx.getClient().getWidget(InterfaceID.Messagebox.CONTINUE) != null) {
                 Widget w = ctx.getClient().getWidget(InterfaceID.Messagebox.CONTINUE);
                 if(w != null && w.getText() != null && w.getText().equals("Click here to continue")) {
-                    interactionManager.interact(InterfaceID.Messagebox.CONTINUE, -1);
+                    interactionManager.selectDialogueOption(InterfaceID.Messagebox.CONTINUE, -1);
                     return true;
                 }
             }

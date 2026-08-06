@@ -27,11 +27,6 @@ public class ReplayStrategy implements MoveableMouse {
     private List<NormalizedPath> library;
 
     @Override
-    public Canvas getCanvas() {
-        return client.getCanvas();
-    }
-
-    @Override
     public void move(Point start, Point target) {
         if(libraryName == null || library == null || library.isEmpty()) {
             log.error("Cannot move mouse, no library was loaded or loaded library contained no usable data. Use loadLibrary() to load a specific library.");
@@ -92,7 +87,7 @@ public class ReplayStrategy implements MoveableMouse {
      */
     private void executePath(List<MotionFactory.TimedPoint> path) {
         MouseEvent event = new MouseEvent(
-                getCanvas(), MouseEvent.MOUSE_MOVED,
+                client.getCanvas(), MouseEvent.MOUSE_MOVED,
                 System.currentTimeMillis(),
                 0, 0, 0, 0, false
         );
@@ -109,11 +104,11 @@ public class ReplayStrategy implements MoveableMouse {
             }
 
             event = new MouseEvent(
-                    getCanvas(), MouseEvent.MOUSE_MOVED,
+                    client.getCanvas(), MouseEvent.MOUSE_MOVED,
                     System.currentTimeMillis(),
                     0, p.x, p.y, 0, false
             );
-            getCanvas().dispatchEvent(event);
+            client.getCanvas().dispatchEvent(event);
         }
     }
 

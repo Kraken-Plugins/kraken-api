@@ -48,8 +48,7 @@ public class GameObjectEntity extends AbstractEntity<GameObject> {
     public boolean interact(String action) {
         GameObject raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(raw, action);
-        return true;
+        return ctx.getInteractionManager().interact(raw, action);
     }
 
     /**
@@ -70,7 +69,6 @@ public class GameObjectEntity extends AbstractEntity<GameObject> {
     public boolean useWidget(Widget widget) {
         GameObject raw = raw();
         if (raw == null) return false;
-        ctx.getInteractionManager().interact(widget, raw);
-        return true;
+        return ctx.getInteractionManager().interact(widget, raw);
     }
 }

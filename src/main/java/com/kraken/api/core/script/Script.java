@@ -1,6 +1,7 @@
 package com.kraken.api.core.script;
 
 import com.google.inject.Inject;
+import com.kraken.api.core.KrakenThreads;
 import com.kraken.api.core.script.breakhandler.BreakManager;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.events.GameTick;
@@ -8,7 +9,6 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 @Slf4j
@@ -21,8 +21,10 @@ public abstract class Script implements Scriptable {
     private BreakManager breakManager;
 
     private Future<?> future = null;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private boolean isRunning = false;
+    private volatile ExecutorService executor = KrakenThreads.newExecutor("script");
+    private volatile boolean isRunning = false;
+    private volatile boolean isRegistered = false;
+    private volatile ScriptCancellation cancellation = new ScriptCancellation();
     private final String name;
 
     public Script() {
@@ -105,8 +107,19 @@ public abstract class Script implements Scriptable {
      */
     public final void start() {
         if (isRunning) return;
+        // A restarted script gets a fresh token so a cancellation from the previous run does not
+        // immediately unwind the new one, and a fresh executor because stop() shuts the previous one
+        // down and a terminated executor rejects new work.
+        cancellation = new ScriptCancellation();
+        if (executor.isShutdown()) {
+            executor = KrakenThreads.newExecutor("script");
+        }
+        future = null;
         isRunning = true;
-        eventBus.register(this);
+        if (!isRegistered) {
+            eventBus.register(this);
+            isRegistered = true;
+        }
         log.info("[{}] script started", this.name);
         onStart();
     }
@@ -208,7 +221,8 @@ public abstract class Script implements Scriptable {
      *     <li>Submits the {@code loop()} logic to an {@code executor} service for asynchronous execution.</li>
      *     <li>If a delay is set by the {@code loop()} method, the thread sleeps for the specified duration before proceeding.</li>
      *     <li>Gracefully handles and logs exceptions thrown during the loop execution.</li>
-     *     <li>Cleans up thread-local resources by calling {@link RunnableTask#dispose()}.</li>
+     *     <li>Binds this script's {@link ScriptCancellation} token to the worker thread for the
+     *         duration of the loop, and releases it afterwards.</li>
      * </ul>
      *
      * <h3>Threading Model:</h3>
@@ -242,18 +256,20 @@ public abstract class Script implements Scriptable {
         // If we are sleeping as part of loop() skip calling loop again this game tick.
         if (future != null && !future.isDone()) return;
 
+        final ScriptCancellation token = cancellation;
         future = executor.submit(() -> {
+            token.bindToCurrentThread();
             try {
                 int delay = loop();
                 if (delay > 0) {
                     Thread.sleep(delay);
                 }
             } catch (InterruptedException e) {
-                // Thread interrupted, likely due to stop() being called
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error("[{}] Error in script:", this.name, e);
             } finally {
-                RunnableTask.dispose();
+                ScriptCancellation.unbindFromCurrentThread();
             }
         });
     }
@@ -275,33 +291,49 @@ public abstract class Script implements Scriptable {
      *                 can be {@code null} if no action is required after stopping.
      */
     public void stop(Runnable callback) {
-        if (!isRunning) return;
+        if (!isRegistered) return;
+
         isRunning = false;
         eventBus.unregister(this);
+        isRegistered = false;
 
         if(future == null || future.isDone()) {
-            log.info("[{}] Script stopped", this.name);
-            onStop();
-            if(callback != null) callback.run();
+            finishStop(callback);
             return;
         }
 
         log.info("[{}] Stopping script...", this.name);
-        RunnableTask.cancel();
+        cancellation.cancel();
+        Future<?> pending = future;
+
+        // Queued behind the in-flight loop() on the same single-threaded executor, so it runs once
+        // that loop returns. Shutting the executor down here would reject it.
         executor.submit(() -> {
             try {
-                while(!future.isDone()) {
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException ignored) {}
-                }
-                log.info("[{}] Script stopped", this.name);
-                onStop();
-                if(callback != null) callback.run();
+                pending.get();
             } catch (Exception e) {
-                log.error("[{}] Task execution failed: ", this.name, e);
+                log.debug("[{}] Loop ended with an exception while stopping: {}", this.name, e.toString());
             }
+            finishStop(callback);
         });
+        executor.shutdown();
+    }
+
+    /**
+     * Runs the stop callbacks and releases the script's executor.
+     *
+     * @param callback Optional caller-supplied hook to run once the script has stopped.
+     */
+    private void finishStop(Runnable callback) {
+        log.info("[{}] Script stopped", this.name);
+        try {
+            onStop();
+            if (callback != null) callback.run();
+        } catch (Exception e) {
+            log.error("[{}] Stop handler failed: ", this.name, e);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     /**

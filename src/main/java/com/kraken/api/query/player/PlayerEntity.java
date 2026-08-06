@@ -26,8 +26,7 @@ public class PlayerEntity extends AbstractEntity<Player> {
         Player p = raw();
         if (p == null) return false;
 
-        ctx.getInteractionManager().interact(p, action);
-        return true;
+        return ctx.getInteractionManager().interact(p, action);
     }
 
     /**

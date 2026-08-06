@@ -28,7 +28,7 @@ class TestRowPanel extends JPanel {
     private final JLabel nameLabel = new JLabel();
     private final JLabel durationLabel = new JLabel();
     private final JLabel detailLabel = new JLabel();
-    private final JButton runButton = new JButton("▶");
+    private final JButton runButton = new JButton("Run");
 
     private TestResultManager.TestStatus renderedStatus;
     private String renderedDetail;

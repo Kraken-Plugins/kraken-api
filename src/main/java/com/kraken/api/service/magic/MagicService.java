@@ -88,8 +88,10 @@ public class MagicService {
             return false;
         }
 
-        if (!hasRequiredRunes(spell)) {
-            log.warn("Cannot cast spell {}. Missing required runes: {}, have runes: {}", spell.getName(), spell.getRuneRequirement(), getRunes());
+        // isCastable() was already checked above, so only the rune requirement is verified here;
+        // calling hasRequiredRunes would re-run the CS2 castability script a second time.
+        if (!hasRunes(spell)) {
+            log.warn("Cannot cast spell {}. Missing required runes: {}", spell.getName(), spell.getRuneRequirement());
             return false;
         }
 
@@ -140,10 +142,9 @@ public class MagicService {
     public boolean cast(CastableSpell spell) {
         if (!canCast(spell)) return false;
 
-        WidgetEntity w = getSpellWidget(spell);
-        if (w == null) return false;
-        interactionManager.interact(spell.getWidget(), -1, -1, spell.getAction());
-        return true;
+        // interact resolves the spell widget by id itself, so there is no need to fetch it first
+        // (the previous getSpellWidget call discarded its result).
+        return interactionManager.interact(spell.getWidget(), -1, -1, spell.getAction());
     }
 
     /**
@@ -283,9 +284,19 @@ public class MagicService {
      * @return {@code true} if the player has the necessary runes and the spell is castable; {@code false} otherwise.
      */
     public boolean hasRequiredRunes(CastableSpell spell) {
+        return hasRunes(spell) && spell.isCastable();
+    }
+
+    /**
+     * Checks only whether the player holds enough of each rune the spell requires, without the CS2
+     * castability check. {@link #canCast(CastableSpell)} uses this to avoid running that script twice.
+     *
+     * @param spell The spell whose rune requirement is checked.
+     * @return {@code true} if every required rune is available in sufficient quantity.
+     */
+    private boolean hasRunes(CastableSpell spell) {
         Map<Rune, Integer> runes = getRunes();
 
-        // Check if we have enough of each required rune
         for(Map.Entry<Rune, Integer> entry : spell.getRuneRequirement().entrySet()) {
             Rune runeRequired = entry.getKey();
             int requiredAmount = entry.getValue();
@@ -297,7 +308,6 @@ public class MagicService {
             }
         }
 
-        // Finally, check that the client also thinks that the spell is castable
-        return spell.isCastable();
+        return true;
     }
 }

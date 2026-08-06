@@ -18,6 +18,7 @@ import net.runelite.client.ui.overlay.OverlayUtil;
 
 import javax.inject.Singleton;
 import java.awt.BasicStroke;
+import java.awt.Stroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FontMetrics;
@@ -37,6 +38,11 @@ public class GlobalPathfinderOverlay extends Overlay {
     private static final Color TRANSPORT_COLOR = new Color(236, 72, 153, 225);
     private static final Color LABEL_BACKGROUND = new Color(15, 23, 42, 210);
     private static final int WORLD_MAP_TILE_SIZE_FLOOR = 3;
+
+    private static final Stroke TILE_OUTLINE_STROKE = new BasicStroke(1.5f);
+    private static final Stroke PATH_LINE_STROKE = new BasicStroke(1.25f);
+    private static final Stroke SPARSE_OUTLINE_STROKE = new BasicStroke(2f);
+    private static final Stroke TRANSPORT_STROKE = new BasicStroke(2.5f);
 
     private final Client client;
     private final GlobalPathfinder globalPathfinder;
@@ -79,14 +85,14 @@ public class GlobalPathfinderOverlay extends Overlay {
                 graphics.setColor(PATH_FILL);
                 graphics.fillPolygon(polygon);
                 graphics.setColor(PATH_OUTLINE);
-                graphics.setStroke(new BasicStroke(1.5f));
+                graphics.setStroke(TILE_OUTLINE_STROKE);
                 graphics.drawPolygon(polygon);
             }
 
             Point canvasPoint = Perspective.localToCanvas(client, localPoint, client.getTopLevelWorldView().getPlane());
             if (canvasPoint != null && previous != null) {
                 graphics.setColor(PATH_OUTLINE);
-                graphics.setStroke(new BasicStroke(1.25f));
+                graphics.setStroke(PATH_LINE_STROKE);
                 graphics.drawLine(previous.getX(), previous.getY(), canvasPoint.getX(), canvasPoint.getY());
             }
             previous = canvasPoint;
@@ -106,7 +112,7 @@ public class GlobalPathfinderOverlay extends Overlay {
             graphics.setColor(SPARSE_FILL);
             graphics.fillPolygon(polygon);
             graphics.setColor(SPARSE_OUTLINE);
-            graphics.setStroke(new BasicStroke(2f));
+            graphics.setStroke(SPARSE_OUTLINE_STROKE);
             graphics.drawPolygon(polygon);
         }
     }
@@ -130,7 +136,7 @@ public class GlobalPathfinderOverlay extends Overlay {
             }
 
             graphics.setColor(TRANSPORT_COLOR);
-            graphics.setStroke(new BasicStroke(2.5f));
+            graphics.setStroke(TRANSPORT_STROKE);
             graphics.draw(new Line2D.Float(start.getX(), start.getY(), end.getX(), end.getY()));
             drawLabel(graphics, midpoint(start, end), transportLabel(transport, false));
         }
@@ -193,7 +199,7 @@ public class GlobalPathfinderOverlay extends Overlay {
             }
 
             graphics.setColor(TRANSPORT_COLOR);
-            graphics.setStroke(new BasicStroke(2f));
+            graphics.setStroke(SPARSE_OUTLINE_STROKE);
             graphics.drawLine(startX, startY, endX, endY);
             drawLabel(graphics, new Point((startX + endX) / 2, (startY + endY) / 2), transportLabel(transport, true));
         }

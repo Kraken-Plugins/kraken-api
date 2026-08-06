@@ -169,14 +169,14 @@ public class PrayerService {
      *         {@literal false} otherwise.
      */
     public boolean deactivateAll(boolean keepPreserve) {
-        return deactivateAll(keepPreserve, false, 3);
+        return deactivateAll(keepPreserve, false, Prayer.values().length);
     }
 
     /**
      * Deactivates all prayers (including preserve)
      */
     public void deactivateAll() {
-        deactivateAll(false, false, 3);
+        deactivateAll(false, false, Prayer.values().length);
     }
 
     /**
@@ -184,7 +184,7 @@ public class PrayerService {
      * like preserve and protect item active.
      */
     public void deactivateProtectionPrayers() {
-        deactivateAll(false, true, 3);
+        deactivateAll(false, true, Prayer.values().length);
     }
 
     /**

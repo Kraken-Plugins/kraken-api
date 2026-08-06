@@ -1,6 +1,7 @@
 package com.kraken.api.service.actor;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import com.kraken.api.service.tile.TileService;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
@@ -17,8 +18,12 @@ import java.util.List;
 public class ActorService {
 
     private static final int MAX_ACTOR_PATH_STEPS = 256;
-    private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
-    private static final TileService tileService = RuneLite.getInjector().getInstance(TileService.class);
+    private static Context ctx() {
+        return Services.context();
+    }
+    private static TileService tileService() {
+        return Services.get(TileService.class);
+    }
 
     /**
      * Computes the movement path an NPC would take towards the local player using local collision data.
@@ -28,8 +33,8 @@ public class ActorService {
      * @return The predicted step-by-step path toward the local player.
      */
     public static List<WorldPoint> getActorPath(NPC npc) {
-        return ctx.runOnClientThread(() -> {
-            Player localPlayer = ctx.getClient().getLocalPlayer();
+        return ctx().runOnClientThread(() -> {
+            Player localPlayer = ctx().getClient().getLocalPlayer();
             if (localPlayer == null) {
                 return new ArrayList<>();
             }
@@ -46,7 +51,7 @@ public class ActorService {
      * @return The predicted step-by-step path.
      */
     public static List<WorldPoint> getActorPath(Actor actor, Player player) {
-        return ctx.runOnClientThread(() -> {
+        return ctx().runOnClientThread(() -> {
             if (player == null) {
                 return new ArrayList<>();
             }
@@ -63,7 +68,7 @@ public class ActorService {
      * @return The predicted step-by-step path.
      */
     public static List<WorldPoint> getActorPath(Actor actor, WorldPoint destination) {
-        return ctx.runOnClientThread(() -> getActorPathInternal(actor, destination));
+        return ctx().runOnClientThread(() -> getActorPathInternal(actor, destination));
     }
 
     /**
@@ -75,8 +80,8 @@ public class ActorService {
      * when line of sight is already available from the NPC's current tile.
      */
     public static List<WorldPoint> getActorPathUntilLineOfSight(NPC npc) {
-        return ctx.runOnClientThread(() -> {
-            Player localPlayer = ctx.getClient().getLocalPlayer();
+        return ctx().runOnClientThread(() -> {
+            Player localPlayer = ctx().getClient().getLocalPlayer();
             if (localPlayer == null) {
                 return new ArrayList<>();
             }
@@ -94,7 +99,7 @@ public class ActorService {
      * when line of sight is already available from the NPC's current tile.
      */
     public static List<WorldPoint> getActorPathUntilLineOfSight(NPC npc, Player player) {
-        return ctx.runOnClientThread(() -> {
+        return ctx().runOnClientThread(() -> {
             if (player == null) {
                 return new ArrayList<>();
             }
@@ -110,8 +115,8 @@ public class ActorService {
      * @return The termination tile, or null when inputs are invalid.
      */
     public static WorldPoint getActorLineOfSightTerminationTile(NPC npc) {
-        return ctx.runOnClientThread(() -> {
-            Player localPlayer = ctx.getClient().getLocalPlayer();
+        return ctx().runOnClientThread(() -> {
+            Player localPlayer = ctx().getClient().getLocalPlayer();
             if (localPlayer == null) {
                 return null;
             }
@@ -128,7 +133,7 @@ public class ActorService {
      * @return The termination tile, or null when inputs are invalid.
      */
     public static WorldPoint getActorLineOfSightTerminationTile(NPC npc, Player player) {
-        return ctx.runOnClientThread(() -> {
+        return ctx().runOnClientThread(() -> {
             if (player == null) {
                 return null;
             }
@@ -144,8 +149,8 @@ public class ActorService {
      * @return True if there is an unobstructed line of sight, false otherwise.
      */
     public static boolean hasLineOfSightTo(WorldPoint source, WorldPoint other) {
-        Tile sourceTile = tileService.getTile(source.getX(), source.getY());
-        Tile otherTile = tileService.getTile(other.getX(), other.getY());
+        Tile sourceTile = tileService().getTile(source.getX(), source.getY());
+        Tile otherTile = tileService().getTile(other.getX(), other.getY());
 
         if(sourceTile == null || otherTile == null) return false;
 
@@ -161,7 +166,7 @@ public class ActorService {
      * @return True if there is an unobstructed line of sight, false otherwise.
      */
     public static boolean hasLineOfSightTo(Tile source, Tile other) {
-        return ctx.runOnClientThread(() -> {
+        return ctx().runOnClientThread(() -> {
             if(source == null || other == null) {
                 return false;
             }
@@ -170,7 +175,7 @@ public class ActorService {
                 return false;
             }
 
-            Client client = ctx.getClient();
+            Client client = ctx().getClient();
 
             CollisionData[] collisionData = client.getTopLevelWorldView().getCollisionMaps();
             if (collisionData == null) {
@@ -193,7 +198,7 @@ public class ActorService {
      * @return A list of {@link WorldPoint}s representing visible tiles. Returns an empty list if none are found.
      */
     public static List<WorldPoint> getLineOfSightTiles(NPC npc, int range) {
-        return ctx.runOnClientThread(() -> {
+        return ctx().runOnClientThread(() -> {
             if (npc == null) {
                 return new ArrayList<>();
             }
@@ -313,7 +318,7 @@ public class ActorService {
             return new ArrayList<>();
         }
 
-        Client client = ctx.getClient();
+        Client client = ctx().getClient();
         WorldView worldView = client.getTopLevelWorldView();
         if (worldView == null || worldView.getPlane() != start.getPlane()) {
             return new ArrayList<>();
@@ -347,7 +352,7 @@ public class ActorService {
             return new ArrayList<>();
         }
 
-        Client client = ctx.getClient();
+        Client client = ctx().getClient();
         WorldView worldView = client.getTopLevelWorldView();
         if (worldView == null || worldView.getPlane() != start.getPlane()) {
             return new ArrayList<>();
@@ -395,7 +400,7 @@ public class ActorService {
             return null;
         }
 
-        Client client = ctx.getClient();
+        Client client = ctx().getClient();
         WorldView worldView = client.getTopLevelWorldView();
         if (worldView == null || worldView.getPlane() != start.getPlane()) {
             return null;
@@ -714,7 +719,7 @@ public class ActorService {
             return visibleTiles;
         }
 
-        Client client = ctx.getClient();
+        Client client = ctx().getClient();
         WorldView worldView = client.getTopLevelWorldView();
         if (worldView == null || source.getPlane() != worldView.getPlane()) {
             return visibleTiles;

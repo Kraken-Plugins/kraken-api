@@ -255,7 +255,11 @@ public class DepositBoxService {
      */
     private boolean invokeDepositWorn(EquipmentInventorySlot slot) {
         int slotWidgetId = getDepositBoxWidget(slot);
-        return ctxProvider.get().widgets().get(slotWidgetId).interact(2, slotWidgetId, -1, -1);
+        WidgetEntity widget = ctxProvider.get().widgets().fromClient(slotWidgetId);
+        if (widget == null) {
+            return false;
+        }
+        return widget.interact(slotWidgetId, -1, -1, 2);
     }
 
     /**

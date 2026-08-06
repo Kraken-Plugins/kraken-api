@@ -114,7 +114,6 @@ public final class DpsConstants {
             3169, 3170, 3171, 3172, 3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, 3181, 3182, 3183, 7037);
 
     public static final Set<Integer> IMMUNE_TO_RANGED_DAMAGE_NPC_IDS;
-    public static final Set<Integer> IMMUNE_TO_BURN_DAMAGE_NPC_IDS;
     public static final Set<Integer> IMMUNE_TO_MAGIC_DAMAGE_NPC_IDS;
 
     static {
@@ -124,7 +123,6 @@ public final class DpsConstants {
         ranged.addAll(GLOWING_CRYSTAL_IDS);
         ranged.addAll(WARRIORS_GUILD_CYCLOPES);
         IMMUNE_TO_RANGED_DAMAGE_NPC_IDS = Collections.unmodifiableSet(ranged);
-        IMMUNE_TO_BURN_DAMAGE_NPC_IDS = IMMUNE_TO_RANGED_DAMAGE_NPC_IDS;
 
         Set<Integer> magic = new HashSet<>();
         magic.addAll(DUSK_IDS);

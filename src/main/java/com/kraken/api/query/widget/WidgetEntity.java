@@ -19,8 +19,23 @@ public class WidgetEntity extends AbstractEntity<Widget> {
     }
 
 
+    /**
+     * Returns the widget's packed component id (its group and child id combined), which is the value
+     * {@link WidgetQuery#withId(int)}, {@code unique()} and {@code distinctById()} key on. For the item
+     * a widget holds, use {@link #getItemId()}.
+     * @return the packed widget id, or -1 if the underlying widget is null.
+     */
     @Override
     public int getId() {
+        Widget w = raw();
+        return w != null ? w.getId() : -1;
+    }
+
+    /**
+     * Returns the item id of the item this widget holds.
+     * @return the item id, or -1 if the widget is null or holds no item.
+     */
+    public int getItemId() {
         Widget w = raw();
         return w != null ? w.getItemId() : -1;
     }
@@ -74,8 +89,7 @@ public class WidgetEntity extends AbstractEntity<Widget> {
     public boolean interact(String action) {
         Widget w = raw();
         if (w == null) return false;
-        ctx.getInteractionManager().interact(w, action);
-        return true;
+        return ctx.getInteractionManager().interact(w, action);
     }
 
     /**
@@ -91,14 +105,13 @@ public class WidgetEntity extends AbstractEntity<Widget> {
      * @param action The specific action to be invoked within the selected menu option.
      *               This typically represents the intended effect of the interaction, such as "Wield".
      *
-     * @return {@code true} if the interaction process was initiated successfully;
-     *         {@code false} if the underlying widget was {@code null} and no action was performed.
+     * @return {@code true} if the sub-action resolved and was dispatched; {@code false} if the
+     *         underlying widget was {@code null} or the menu/action pair could not be resolved.
      */
     public boolean interact(String menu, String action) {
         Widget w = raw();
         if (w == null) return false;
-        ctx.getInteractionManager().interact(w, menu, action);
-        return true;
+        return ctx.getInteractionManager().interact(w, menu, action);
     }
 
 
@@ -108,11 +121,10 @@ public class WidgetEntity extends AbstractEntity<Widget> {
      * @param childId The child id of the widget
      * @param itemId The item id of the widget.
      * @param action The action index to take.
-     * @return True if the interaction was successful and false otherwise
+     * @return True if the widget resolved and the action was dispatched, false otherwise
      */
     public boolean interact(int packedId, int childId, int itemId, int action) {
-        ctx.getInteractionManager().interact(packedId, childId, itemId, action);
-        return true;
+        return ctx.getInteractionManager().interact(packedId, childId, itemId, action);
     }
 
     /**
@@ -135,8 +147,7 @@ public class WidgetEntity extends AbstractEntity<Widget> {
     public boolean useOn(Widget destinationWidget) {
         Widget w = raw();
         if(w == null) return false;
-        ctx.getInteractionManager().interact(w, destinationWidget);
-        return true;
+        return ctx.getInteractionManager().interact(w, destinationWidget);
     }
 
     /**
@@ -147,8 +158,7 @@ public class WidgetEntity extends AbstractEntity<Widget> {
     public boolean useOn(NPC npc) {
         Widget w = raw();
         if(w == null) return false;
-        ctx.getInteractionManager().interact(w, npc);
-        return true;
+        return ctx.getInteractionManager().interact(w, npc);
     }
 
     /**
@@ -159,7 +169,6 @@ public class WidgetEntity extends AbstractEntity<Widget> {
     public boolean useOn(GameObject gameObject) {
         Widget w = raw();
         if(w == null) return false;
-        ctx.getInteractionManager().interact(w, gameObject);
-        return true;
+        return ctx.getInteractionManager().interact(w, gameObject);
     }
 }

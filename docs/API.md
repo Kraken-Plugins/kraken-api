@@ -22,6 +22,7 @@ Dependency injection ensures that your script classes remain lightweight, testab
 The Service API paradigm is useful for static widgets or global game entities, for example:
 
 - Bank interface - There is only a single bank interface to open, close, and set withdrawal modes on
+- Shops - One shop is open at a time, and buying under a price or coin limit is a global concern rather than a per item one (see [SHOPS.md](SHOPS.md))
 - Prayers - A finite number of static prayer widgets
 - Spells - A fixed number of in-game spells
 - UI - Static utilities for calculating UI element bounds, interfacing with Dialogue, and switching client tabs
@@ -42,7 +43,8 @@ The query system allows you to flexibly "query", refine, and filter for dynamic 
 - Widgets
 - Worn equipment (in the interface as well as your inventory)
 - Inventory items
-- and Bank items
+- Bank items
+- and the items on an open shop's shelves
 
 The query paradigm wraps familiar RuneLite API objects with an `Interactable` interface allowing you to not
 only __find__ game entities but also __interact__ with them in a straightforward fashion.

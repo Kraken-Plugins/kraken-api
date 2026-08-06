@@ -22,10 +22,6 @@ public class WindStrategy implements MoveableMouse {
     private final double SQRT_3 = Math.sqrt(3);
     private final double SQRT_5 = Math.sqrt(5);
 
-    @Override
-    public Canvas getCanvas() {
-        return client.getCanvas();
-    }
 
     @Override
     public void move(Point start, Point target) {
@@ -100,10 +96,10 @@ public class WindStrategy implements MoveableMouse {
 
             // We sleep longer if moving slowly (fine motor) and shorter if moving fast (ballistic).
             try {
-                long sleep = Math.round(RandomService.between(
-                        (int)config.getMinWait(),
-                        (int)config.getMaxWait()
-                ));
+                long sleep = RandomService.between(
+                        (int) config.getMinWait(),
+                        (int) config.getMaxWait()
+                );
                 Thread.sleep(sleep);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

@@ -5,6 +5,7 @@ import com.kraken.api.core.AbstractQuery;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.Player;
+import com.kraken.api.util.WorldAreaUtils;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.Comparator;
@@ -60,22 +61,7 @@ public class PlayerQuery extends AbstractQuery<PlayerEntity, PlayerQuery, Player
      * @return NpcQuery
      */
     public PlayerQuery withinArea(WorldPoint minimum, WorldPoint max) {
-        int x1 = minimum.getX();
-        int x2 = max.getX();
-        int y1 = minimum.getY();
-        int y2 = max.getY();
-
-        return filter(p -> {
-            WorldPoint pt = p.raw().getWorldLocation();
-            int x3 = pt.getX();
-            int y3 = pt.getY();
-
-            if (x3 > Math.max(x1, x2) || x3 < Math.min(x1, x2)) {
-                return false;
-            }
-
-            return y3 <= Math.max(y1, y2) && y3 >= Math.min(y1, y2);
-        });
+        return filter(p -> WorldAreaUtils.contains(p.raw().getWorldLocation(), minimum, max));
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.kraken.api.service.magic.rune;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.runelite.api.EnumComposition;
@@ -32,8 +33,12 @@ public enum RunePouch {
     @Getter
     private final boolean hasFourSlots;
 
-    private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
-    private static final ItemManager itemManager = RuneLite.getInjector().getInstance(ItemManager.class);
+    private static Context ctx() {
+        return Services.context();
+    }
+    private static ItemManager itemManager() {
+        return Services.get(ItemManager.class);
+    }
 
     private static final int[] RUNE_VARBITS = {
             VarbitID.RUNE_POUCH_TYPE_1, VarbitID.RUNE_POUCH_TYPE_2, VarbitID.RUNE_POUCH_TYPE_3, VarbitID.RUNE_POUCH_TYPE_4,
@@ -62,7 +67,7 @@ public enum RunePouch {
         List<Integer> pouchIds = Arrays.stream(RunePouch.values()).map(RunePouch::getItemId).collect(Collectors.toList());
 
         for(int pouchId : pouchIds) {
-            if(ctx.inventory().hasItem(pouchId)) {
+            if(ctx().inventory().hasItem(pouchId)) {
                 return RunePouch.byItemId(pouchId);
             }
         }
@@ -170,20 +175,20 @@ public enum RunePouch {
         // No rune pouch in inventory and thus no contents in the rune pouch.
         if(!RunePouch.hasRunePouch()) return pouchRunes;
 
-        final EnumComposition runePouchEnum = ctx.getEnum(EnumID.RUNEPOUCH_RUNE);
+        final EnumComposition runePouchEnum = ctx().getEnum(EnumID.RUNEPOUCH_RUNE);
 
         for (int i = 0; i < 6; i++) {
             @Varbit
             int amountVarbit = AMOUNT_VARBITS[i];
-            int amount = ctx.getVarbitValue(amountVarbit);
+            int amount = ctx().getVarbitValue(amountVarbit);
 
             if(amount > 0) {
                 @Varbit
                 int runeVarbit = RUNE_VARBITS[i];
-                int runeId = ctx.getVarbitValue(runeVarbit);
+                int runeId = ctx().getVarbitValue(runeVarbit);
 
                 if(runeId > 0) {
-                    ItemComposition rune = ctx.runOnClientThread(() -> itemManager.getItemComposition(runePouchEnum.getIntValue(runeId)));
+                    ItemComposition rune = ctx().runOnClientThread(() -> itemManager().getItemComposition(runePouchEnum.getIntValue(runeId)));
                     Rune r = Rune.byItemId(rune.getId());
                     if(r != null) pouchRunes.put(r, amount);
                 }
