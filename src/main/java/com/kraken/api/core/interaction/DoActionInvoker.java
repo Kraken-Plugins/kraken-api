@@ -5,6 +5,7 @@ import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.hooks.HooksLoader;
+import com.kraken.api.util.GarbageValueUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 
@@ -107,16 +108,8 @@ public class DoActionInvoker {
         }
 
         Class<?> garbageType = parameterTypes[fixed.length];
-        Object garbageArgument;
-        if (garbageType == byte.class) {
-            garbageArgument = garbageValue.byteValue();
-        } else if (garbageType == short.class) {
-            garbageArgument = garbageValue.shortValue();
-        } else if (garbageType == long.class) {
-            garbageArgument = garbageValue.longValue();
-        } else if (garbageType == int.class) {
-            garbageArgument = garbageValue;
-        } else {
+        Object garbageArgument = GarbageValueUtils.coerceToParameterType(garbageType, garbageValue);
+        if (garbageArgument == null) {
             log.error("Unsupported doAction garbage value type '{}' in signature {}", garbageType.getName(), describe(parameterTypes));
             return null;
         }

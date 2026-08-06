@@ -38,6 +38,12 @@ public class MousePackets {
      */
     private static final AtomicLong idleResetThreshold = new AtomicLong(RandomUtils.randomDelay());
 
+    private final Object resolutionLock = new Object();
+    private volatile Field clientMillisField;
+    private volatile Field mouseHandlerLastPressedField;
+    private volatile Long clientMillisMultiplierInverse;
+    private volatile Long mouseHandlerMultiplierInverse;
+
     /**
      * Queues a click packet to send to the game server. The click packet should be sent before
      * any game interaction (Widget, Movement, Npc, Object etc...) packets are sent. The click packet
@@ -110,27 +116,93 @@ public class MousePackets {
 
     @SneakyThrows
     private long getClientLastMillis() {
-        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getClientMillisField());
-        clientLastPressedTimeMillis.setAccessible(true);
-        long retValue = clientLastPressedTimeMillis.getLong(client) * HooksLoader.getReflectionHooks().getClientMillisMultiplier();
-        clientLastPressedTimeMillis.setAccessible(false);
-        return retValue;
+        return getClientMillisField().getLong(client) * HooksLoader.getReflectionHooks().getClientMillisMultiplier();
     }
 
     @SneakyThrows
     private void setMouseHandlerLastMillis(long time) {
-        Class<?> mouseHandler = client.getClass().getClassLoader().loadClass(HooksLoader.getReflectionHooks().getMouseHandlerLastPressedClass());
-        Field mouseHandlerLastPressedTime = mouseHandler.getDeclaredField(HooksLoader.getReflectionHooks().getMouseHandlerLastPressedField());
-        mouseHandlerLastPressedTime.setAccessible(true);
-        mouseHandlerLastPressedTime.setLong(null, time * MathUtils.modInverse(HooksLoader.getReflectionHooks().getMouseHandlerMultiplier()));
-        mouseHandlerLastPressedTime.setAccessible(false);
+        getMouseHandlerLastPressedField().setLong(null, time * mouseHandlerMultiplierInverse());
     }
 
     @SneakyThrows
     private void setClientLastMillis(long time) {
-        Field clientLastPressedTimeMillis = client.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getClientMillisField());
-        clientLastPressedTimeMillis.setAccessible(true);
-        clientLastPressedTimeMillis.setLong(client, time * MathUtils.modInverse(HooksLoader.getReflectionHooks().getClientMillisMultiplier()));
-        clientLastPressedTimeMillis.setAccessible(false);
+        getClientMillisField().setLong(client, time * clientMillisMultiplierInverse());
+    }
+
+    /**
+     * Returns the cached client millis {@link Field}, resolving it on first use. Only the field
+     * handle is cached — the timestamp is read from and written to the live client on every call.
+     * A failed resolution is not cached and is retried on the next call.
+     *
+     * @return The reflected field with its accessible flag set.
+     */
+    @SneakyThrows
+    private Field getClientMillisField() {
+        Field cached = clientMillisField;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (resolutionLock) {
+            if (clientMillisField == null) {
+                Field resolved = client.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getClientMillisField());
+                resolved.setAccessible(true);
+                clientMillisField = resolved;
+            }
+            return clientMillisField;
+        }
+    }
+
+    /**
+     * Returns the cached mouse handler last-pressed {@link Field}, resolving it on first use.
+     * Only the field handle is cached — the timestamp is written through it on every call.
+     * A failed resolution is not cached and is retried on the next call.
+     *
+     * @return The reflected static field with its accessible flag set.
+     */
+    @SneakyThrows
+    private Field getMouseHandlerLastPressedField() {
+        Field cached = mouseHandlerLastPressedField;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (resolutionLock) {
+            if (mouseHandlerLastPressedField == null) {
+                Class<?> mouseHandler = client.getClass().getClassLoader().loadClass(HooksLoader.getReflectionHooks().getMouseHandlerLastPressedClass());
+                Field resolved = mouseHandler.getDeclaredField(HooksLoader.getReflectionHooks().getMouseHandlerLastPressedField());
+                resolved.setAccessible(true);
+                mouseHandlerLastPressedField = resolved;
+            }
+            return mouseHandlerLastPressedField;
+        }
+    }
+
+    /**
+     * Returns the modular inverse of the hooked client millis multiplier, computed once. The
+     * inverse is a pure function of the hook constant, so caching it cannot change the value.
+     *
+     * @return The modular inverse used to scramble timestamps written to the client field.
+     */
+    private long clientMillisMultiplierInverse() {
+        Long cached = clientMillisMultiplierInverse;
+        if (cached == null) {
+            cached = MathUtils.modInverse(HooksLoader.getReflectionHooks().getClientMillisMultiplier());
+            clientMillisMultiplierInverse = cached;
+        }
+        return cached;
+    }
+
+    /**
+     * Returns the modular inverse of the hooked mouse handler multiplier, computed once. The
+     * inverse is a pure function of the hook constant, so caching it cannot change the value.
+     *
+     * @return The modular inverse used to scramble timestamps written to the mouse handler field.
+     */
+    private long mouseHandlerMultiplierInverse() {
+        Long cached = mouseHandlerMultiplierInverse;
+        if (cached == null) {
+            cached = MathUtils.modInverse(HooksLoader.getReflectionHooks().getMouseHandlerMultiplier());
+            mouseHandlerMultiplierInverse = cached;
+        }
+        return cached;
     }
 }

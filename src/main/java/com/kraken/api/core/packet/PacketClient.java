@@ -4,6 +4,7 @@ import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.model.BufferOperation;
 import com.kraken.api.core.packet.model.PacketDefinition;
 import com.kraken.api.core.packet.model.PacketWrite;
+import com.kraken.api.util.GarbageValueUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -17,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@code PacketClient} is an instance-based RuneLite client packet sending utility which uses reflection to
@@ -25,6 +27,14 @@ import java.util.Map;
  * <p>
  * Instead, it's recommended to use the higher level API's like {@code MousePackets}, {@code WidgetPackets}, or {@code NpcPackets} for
  * sending game packets to the server based on your specific entity interaction needs (clicking interfaces, NPC's, GameObjects, etc...
+ * <p>
+ * All reflective handles (classes, methods and fields) are resolved once and cached with the same
+ * double-checked-locking shape {@code DoActionInvoker} uses. Only the handles are cached — the
+ * {@code PacketWriter} instance, ISAAC cipher and packet definition constants are re-read from the
+ * live client on every send. Each instance-bound handle is guarded by the declaring class of the
+ * object it is applied to, so if the client ever supplies an object of a different class the handle
+ * is re-resolved instead of being applied stale. Failed resolutions are never cached and are
+ * retried on the next send.
  */
 @Slf4j
 @Singleton
@@ -34,6 +44,15 @@ public class PacketClient {
     private final Client client;
 
     private final boolean isUsingClientAddNode;
+
+    private final Object resolutionLock = new Object();
+    private volatile Class<?> clientPacketClass;
+    private volatile Method getPacketBufferNodeMethod;
+    private volatile Field packetWriterField;
+    private volatile Field isaacField;
+    private volatile Field packetBufferField;
+    private volatile Method addNodeMethod;
+    private final Map<String, Field> packetDefinitionFields = new ConcurrentHashMap<>();
 
     /**
      * Creates a new PacketSender. This constructor initializes packet queueing functionality by either loading the client packet
@@ -58,7 +77,6 @@ public class PacketClient {
      * @param objects The data (payload) for the packet, in the order defined by the PacketDefinition.
      */
     public void sendPacket(PacketDefinition def, Object... objects) {
-        // 1. Get all necessary reflection components to build and send the packet.
         Object packetBufferNode = null;
         Method getPacketBufferNode = getGetPacketBufferNode();
         Class<?> clientPacket = getClientPacketClass();
@@ -69,33 +87,32 @@ public class PacketClient {
             return;
         }
 
-        // Invoke the getPacketBufferNode method to create a new packet node instance.
-        // This method is obfuscated and may require a "garbage value" of a specific type.
-        getPacketBufferNode.setAccessible(true);
-        long garbageValue = Math.abs(HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue());
-
         try {
             Field packetField = fetchPacketField(def.getObfuscatedName());
             if (packetField == null) {
                 log.error("Could not find packet field for: {}", def.getObfuscatedName());
-                getPacketBufferNode.setAccessible(false);
                 return;
             }
             Object packetDefInstance = packetField.get(clientPacket);
 
-            // The method signature for getPacketBufferNode changes based on the obfuscated garbage value.
-            if (garbageValue < 256) {
-                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue().byteValue());
-            } else if (garbageValue < 32768) {
-                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue().shortValue());
-            } else if (garbageValue < Integer.MAX_VALUE) {
-                packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue());
+            // The factory method takes (packetDefinition, isaac, garbage). The obfuscator re-rolls the
+            // trailing garbage parameter's primitive width every revision, so the value is boxed at
+            // whatever width the resolved method actually declares.
+            Class<?>[] parameterTypes = getPacketBufferNode.getParameterTypes();
+            if (parameterTypes.length != 3) {
+                log.error("getPacketBufferNode has an unexpected parameter count ({}) for packet: {}", parameterTypes.length, def.getObfuscatedName());
+                return;
             }
+
+            Object garbageArgument = GarbageValueUtils.coerceToParameterType(parameterTypes[2], HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue());
+            if (garbageArgument == null) {
+                log.error("Unsupported getPacketBufferNode garbage value type '{}' for packet: {}", parameterTypes[2].getName(), def.getObfuscatedName());
+                return;
+            }
+
+            packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, garbageArgument);
         } catch (IllegalAccessException | InvocationTargetException e) {
             log.error("Failed to invoke getPacketBufferNode: ", e);
-            e.printStackTrace();
-        } finally {
-            getPacketBufferNode.setAccessible(false);
         }
 
         if (packetBufferNode == null) {
@@ -106,10 +123,7 @@ public class PacketClient {
         // Get the raw 'buffer' object from the 'packetBufferNode' to write data into.
         Object buffer;
         try {
-            Field bufferField = packetBufferNode.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getPacketBufferFieldName());
-            bufferField.setAccessible(true);
-            buffer = bufferField.get(packetBufferNode);
-            bufferField.setAccessible(false);
+            buffer = getPacketBufferField(packetBufferNode.getClass()).get(packetBufferNode);
         } catch (IllegalAccessException | NoSuchFieldException e) {
             log.error("Failed to get packet buffer from node: ", e);
             return;
@@ -140,16 +154,15 @@ public class PacketClient {
                 }
             }
 
-            // 6. Get the PacketWriter field and queue the fully constructed packet node.
-            Field packetWriterField = getPacketWriterField();
-            if (packetWriterField == null) {
+            // Get the PacketWriter field and queue the fully constructed packet node.
+            Field writerField = getPacketWriterField();
+            if (writerField == null) {
                 log.error("Could not get PacketWriter field to queue packet.");
                 return;
             }
 
-            packetWriterField.setAccessible(true);
             try {
-                Object packetWriter = packetWriterField.get(null);
+                Object packetWriter = writerField.get(null);
                 if (packetWriter != null) {
                     addNode(packetWriter, packetBufferNode);
                 } else {
@@ -157,9 +170,6 @@ public class PacketClient {
                 }
             } catch (Exception e) {
                 log.error("Failed to add packet node to queue: ", e);
-                e.printStackTrace();
-            } finally {
-                packetWriterField.setAccessible(false);
             }
         } else {
             log.warn("Unrecognized packet type, packet not sent: {}", def.getType());
@@ -180,68 +190,148 @@ public class PacketClient {
      * </ul>
      * <p>
      * This method acts as a unified wrapper, abstracting away this instability. It seamlessly executes
-     * the correct reflection call—including the dynamic resolution of anti-reversing dummy "garbage values"
-     * (byte, short, or int)—based on the current revision's hooks.
+     * the correct reflection call — the anti-reversing dummy "garbage value" is boxed at whatever
+     * primitive width the resolved method declares for it.
      *
      * @param packetWriter     The client's {@code PacketWriter} instance responsible for handling network I/O.
      * @param packetBufferNode The fully constructed packet node containing the payload to be sent.
      */
     private void addNode(Object packetWriter, Object packetBufferNode) {
         try {
-            // Path 1: The 'addNode' method is a member of the PacketWriter class itself and is accessed
-            // via a static field from the client class like: client.aq.az() client.packetWriter.addNode()
+            Method addNode = getAddNodeMethod(packetWriter, packetBufferNode);
+            if (addNode == null) {
+                log.error("Failed to locate addNode method: {} in class {}: ", HooksLoader.getReflectionHooks().getAddNodeMethodName(), HooksLoader.getReflectionHooks().getAddNodeClassName());
+                return;
+            }
+
+            Class<?>[] parameterTypes = addNode.getParameterTypes();
             if (isUsingClientAddNode) {
-                Method addNode = null;
-                long garbageValue = Math.abs(HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
-
-                // Find the correct obfuscated method signature based on the garbage value type.
-                if (garbageValue < 256) {
-                    addNode = packetWriter.getClass().getDeclaredMethod(HooksLoader.getReflectionHooks().getAddNodeMethodName(), packetBufferNode.getClass(), byte.class);
-                    addNode.setAccessible(true);
-                    addNode.invoke(packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue().byteValue());
-                } else if (garbageValue < 32768) {
-                    addNode = packetWriter.getClass().getDeclaredMethod(HooksLoader.getReflectionHooks().getAddNodeMethodName(), packetBufferNode.getClass(), short.class);
-                    addNode.setAccessible(true);
-                    addNode.invoke(packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue().shortValue());
-                } else if (garbageValue < Integer.MAX_VALUE) {
-                    addNode = packetWriter.getClass().getDeclaredMethod(HooksLoader.getReflectionHooks().getAddNodeMethodName(), packetBufferNode.getClass(), int.class);
-                    addNode.setAccessible(true);
-                    addNode.invoke(packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
-                }
-
-                if (addNode != null) {
-                    addNode.setAccessible(false);
-                }
-            } else {
-                // Path 2: The 'addNode' method is a static utility method found elsewhere. This means we must find the method
-                // specifically because it won't exist on the packetWriter class. It will also accept packetwriter AND packetBuffer as arguments.
-                Method addNode = getAddNodeMethod();
-                if(addNode == null) {
-                    log.error("Failed to locate addNode method: {} in class {}: ", HooksLoader.getReflectionHooks().getAddNodeMethodName(), HooksLoader.getReflectionHooks().getAddNodeClassName());
+                // Path 1: instance method on the PacketWriter — addNode(packetBufferNode, garbage).
+                Object garbageArgument = GarbageValueUtils.coerceToParameterType(parameterTypes[1], HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
+                if (garbageArgument == null) {
+                    log.error("Unsupported addNode garbage value type '{}'", parameterTypes[1].getName());
                     return;
                 }
-
-                addNode.setAccessible(true);
-
-                if (addNode.getParameterCount() == 2) {
-                    // Method signature is: addNode(packetWriter, packetBufferNode)
+                addNode.invoke(packetWriter, packetBufferNode, garbageArgument);
+            } else {
+                // Path 2: static utility method — addNode(packetWriter, packetBufferNode[, garbage]).
+                if (parameterTypes.length == 2) {
                     addNode.invoke(null, packetWriter, packetBufferNode);
-                } else {
-                    // Method signature is: addNode(packetWriter, packetBufferNode, garbageValue)
-                    long garbageValue = Math.abs(HooksLoader.getReflectionHooks().getAddNodeGarbageValue().longValue());
-                    if (garbageValue < 256) {
-                        addNode.invoke(null, packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue().byteValue());
-                    } else if (garbageValue < 32768) {
-                        addNode.invoke(null, packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue().shortValue());
-                    } else if (garbageValue < Integer.MAX_VALUE) {
-                        addNode.invoke(null, packetWriter, packetBufferNode, HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
+                } else if (parameterTypes.length == 3) {
+                    Object garbageArgument = GarbageValueUtils.coerceToParameterType(parameterTypes[2], HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
+                    if (garbageArgument == null) {
+                        log.error("Unsupported addNode garbage value type '{}'", parameterTypes[2].getName());
+                        return;
                     }
+                    addNode.invoke(null, packetWriter, packetBufferNode, garbageArgument);
+                } else {
+                    log.error("addNode method has an unexpected parameter count: {}", parameterTypes.length);
                 }
-                addNode.setAccessible(false);
             }
         } catch (Exception e) {
             log.error("Failed during addNode packet queueing: ", e);
         }
+    }
+
+    /**
+     * Returns the cached {@code addNode} {@link Method}, resolving it on first use.
+     * <p>
+     * For Path 1 the cached handle is only reused while it still belongs to the live
+     * {@code PacketWriter}'s class and accepts the live node's class as its first parameter;
+     * otherwise it is re-resolved. The Path 2 handle is a static utility method and is stable
+     * for the life of the client.
+     *
+     * @param packetWriter     The live {@code PacketWriter} instance.
+     * @param packetBufferNode The packet node about to be queued.
+     * @return The resolved {@code addNode} method with its accessible flag set, or {@code null} if it cannot be found.
+     */
+    private Method getAddNodeMethod(Object packetWriter, Object packetBufferNode) {
+        if (isUsingClientAddNode) {
+            Class<?> packetWriterClass = packetWriter.getClass();
+            Class<?> packetBufferNodeClass = packetBufferNode.getClass();
+            Method cached = addNodeMethod;
+            if (isAddNodeCacheValid(cached, packetWriterClass, packetBufferNodeClass)) {
+                return cached;
+            }
+            synchronized (resolutionLock) {
+                cached = addNodeMethod;
+                if (isAddNodeCacheValid(cached, packetWriterClass, packetBufferNodeClass)) {
+                    return cached;
+                }
+                Method resolved = resolveAddNodeOnPacketWriter(packetWriterClass, packetBufferNodeClass);
+                if (resolved != null) {
+                    resolved.setAccessible(true);
+                    addNodeMethod = resolved;
+                }
+                return resolved;
+            }
+        }
+
+        Method cached = addNodeMethod;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (resolutionLock) {
+            if (addNodeMethod != null) {
+                return addNodeMethod;
+            }
+            Method resolved = findStaticAddNodeMethod();
+            if (resolved != null) {
+                resolved.setAccessible(true);
+                addNodeMethod = resolved;
+            }
+            return resolved;
+        }
+    }
+
+    /**
+     * Checks whether a cached Path 1 {@code addNode} handle still matches the live client objects.
+     *
+     * @param cached                The currently cached method, possibly {@code null}.
+     * @param packetWriterClass     The live {@code PacketWriter}'s class.
+     * @param packetBufferNodeClass The live packet node's class.
+     * @return True if the cached handle can be applied to the live objects.
+     */
+    private static boolean isAddNodeCacheValid(Method cached, Class<?> packetWriterClass, Class<?> packetBufferNodeClass) {
+        return cached != null
+                && cached.getDeclaringClass() == packetWriterClass
+                && cached.getParameterCount() == 2
+                && cached.getParameterTypes()[0] == packetBufferNodeClass;
+    }
+
+    /**
+     * Resolves the Path 1 {@code addNode} method on the {@code PacketWriter} class.
+     * <p>
+     * The exact signature implied by the garbage value's magnitude is looked up first, preserving
+     * the historically verified resolution for the current hooks. Only if that signature does not
+     * exist does this fall back to scanning for a same-named two-parameter method taking the packet
+     * node and a primitive numeric garbage parameter, whose declared width then drives the
+     * argument coercion in {@link #addNode(Object, Object)}.
+     *
+     * @param packetWriterClass     The live {@code PacketWriter}'s class.
+     * @param packetBufferNodeClass The packet node class the method must accept.
+     * @return The resolved method, or {@code null} if no candidate exists.
+     */
+    private Method resolveAddNodeOnPacketWriter(Class<?> packetWriterClass, Class<?> packetBufferNodeClass) {
+        String methodName = HooksLoader.getReflectionHooks().getAddNodeMethodName();
+        long garbageMagnitude = Math.abs(HooksLoader.getReflectionHooks().getAddNodeGarbageValue().longValue());
+        Class<?> preferredGarbageType = garbageMagnitude < 256 ? byte.class : garbageMagnitude < 32768 ? short.class : int.class;
+
+        try {
+            return packetWriterClass.getDeclaredMethod(methodName, packetBufferNodeClass, preferredGarbageType);
+        } catch (NoSuchMethodException e) {
+            log.debug("addNode signature ({}, {}) not found, falling back to declared-type scan", packetBufferNodeClass.getName(), preferredGarbageType.getName());
+        }
+
+        for (Method method : packetWriterClass.getDeclaredMethods()) {
+            if (method.getName().equals(methodName)
+                    && method.getParameterCount() == 2
+                    && method.getParameterTypes()[0] == packetBufferNodeClass
+                    && GarbageValueUtils.isSupportedParameterType(method.getParameterTypes()[1])) {
+                return method;
+            }
+        }
+        return null;
     }
 
     /**
@@ -251,16 +341,15 @@ public class PacketClient {
      * {@code PacketWriter} class (Path 2). To locate the correct obfuscated method, this scans
      * the target utility class for a method that matches the injected hook name and explicitly
      * declares the {@code PacketWriter} class as its first parameter.
-     * * @return The static {@code addNode} {@link Method}, or {@code null} if the method cannot be found
+     *
+     * @return The static {@code addNode} {@link Method}, or {@code null} if the method cannot be found
      * or the target class fails to load.
      */
-    private Method getAddNodeMethod() {
-        Method addNodeMethod = null;
+    private Method findStaticAddNodeMethod() {
         try {
             Class<?> addNodeClass = client.getClass().getClassLoader().loadClass(HooksLoader.getReflectionHooks().getAddNodeClassName());
 
             for (Method method : addNodeClass.getDeclaredMethods()) {
-
                 // Identify the static utility variant of addNode (Path 2).
                 // Because this method is detached from the PacketWriter class, it cannot access the
                 // writer implicitly. Therefore, its signature MUST explicitly accept the PacketWriter
@@ -268,17 +357,15 @@ public class PacketClient {
                 // `packetWriter.az(buffer)`). We filter the class methods based on this requirement.
                 if (method.getName().equals(HooksLoader.getReflectionHooks().getAddNodeMethodName())
                         && method.getParameterCount() > 0
-                        && method.getParameterTypes().length != 0
                         && method.getParameterTypes()[0].getSimpleName().equals(HooksLoader.getReflectionHooks().getPacketWriterClassName())) {
-                    addNodeMethod = method;
-                    break;
+                    return method;
                 }
             }
         } catch (ClassNotFoundException e) {
             log.error("Failed to locate addNode method: {} in class {}: ", HooksLoader.getReflectionHooks().getAddNodeMethodName(), HooksLoader.getReflectionHooks().getAddNodeClassName(), e);
         }
 
-        return addNodeMethod;
+        return null;
     }
 
     /**
@@ -298,84 +385,142 @@ public class PacketClient {
     }
 
     /**
-     * Finds the static method responsible for creating a {@code PacketBufferNode}.
+     * Returns the cached static method responsible for creating a {@code PacketBufferNode},
+     * resolving it on first use by scanning the accessor class for the method whose return
+     * type is the {@code PacketBufferNode} class.
      *
-     * @return The reflected {@code Method} object, or null if not found.
+     * @return The reflected {@code Method} object with its accessible flag set, or null if not found.
      */
     private Method getGetPacketBufferNode() {
-        try {
-            Class<?> packetBufferNodeAccessorClass = loadGameClientClass(HooksLoader.getReflectionHooks().getClassContainingPacketBufferNodeName());
-            if (packetBufferNodeAccessorClass == null) {
-                return null;
-            }
-
-            Class<?> packetBufferNodeClass = loadGameClientClass(HooksLoader.getReflectionHooks().getPacketBufferNodeClassName());
-            if (packetBufferNodeClass == null) {
-                return null;
-            }
-
-            // Find the method within the accessor class that returns a PacketBufferNode.
-            // This is fragile and assumes only one such method exists.
-            return Arrays.stream(packetBufferNodeAccessorClass.getDeclaredMethods())
-                    .filter(m -> m.getReturnType().equals(packetBufferNodeClass))
-                    .findFirst()
-                    .orElse(null);
-        } catch (Exception e) {
-            log.error("Failed to get packet buffer node method: ", e);
+        Method cached = getPacketBufferNodeMethod;
+        if (cached != null) {
+            return cached;
         }
-        return null;
+        synchronized (resolutionLock) {
+            if (getPacketBufferNodeMethod != null) {
+                return getPacketBufferNodeMethod;
+            }
+            try {
+                Class<?> packetBufferNodeAccessorClass = loadGameClientClass(HooksLoader.getReflectionHooks().getClassContainingPacketBufferNodeName());
+                if (packetBufferNodeAccessorClass == null) {
+                    return null;
+                }
+
+                Class<?> packetBufferNodeClass = loadGameClientClass(HooksLoader.getReflectionHooks().getPacketBufferNodeClassName());
+                if (packetBufferNodeClass == null) {
+                    return null;
+                }
+
+                // Find the method within the accessor class that returns a PacketBufferNode.
+                // This is fragile and assumes only one such method exists.
+                Method resolved = Arrays.stream(packetBufferNodeAccessorClass.getDeclaredMethods())
+                        .filter(m -> m.getReturnType().equals(packetBufferNodeClass))
+                        .findFirst()
+                        .orElse(null);
+                if (resolved != null) {
+                    resolved.setAccessible(true);
+                    getPacketBufferNodeMethod = resolved;
+                }
+                return resolved;
+            } catch (Exception e) {
+                log.error("Failed to get packet buffer node method: ", e);
+            }
+            return null;
+        }
     }
 
     /**
-     * Loads the {@code ClientPacket} class, which contains static definitions for packets.
+     * Returns the cached {@code ClientPacket} class, which contains static definitions for packets,
+     * loading it on first use.
      *
      * @return The {@code ClientPacket} class, or null if not found.
      */
     private Class<?> getClientPacketClass() {
-        return loadGameClientClass(HooksLoader.getReflectionHooks().getClientPacketClassName());
+        Class<?> cached = clientPacketClass;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (resolutionLock) {
+            if (clientPacketClass == null) {
+                clientPacketClass = loadGameClientClass(HooksLoader.getReflectionHooks().getClientPacketClassName());
+            }
+            return clientPacketClass;
+        }
     }
 
     /**
-     * Finds the client's static {@code PacketWriter} field.
+     * Returns the cached {@code Field} holding the raw buffer on the packet node class,
+     * resolving it on first use. The handle is only reused while it belongs to the live
+     * node's class.
      *
-     * @return The reflected {@code Field} object, or null if not found.
+     * @param packetBufferNodeClass The live packet node's class.
+     * @return The reflected {@code Field} with its accessible flag set.
+     * @throws NoSuchFieldException If the hooked field name does not exist on the node class.
+     */
+    private Field getPacketBufferField(Class<?> packetBufferNodeClass) throws NoSuchFieldException {
+        Field cached = packetBufferField;
+        if (cached != null && cached.getDeclaringClass() == packetBufferNodeClass) {
+            return cached;
+        }
+        synchronized (resolutionLock) {
+            cached = packetBufferField;
+            if (cached != null && cached.getDeclaringClass() == packetBufferNodeClass) {
+                return cached;
+            }
+            Field resolved = packetBufferNodeClass.getDeclaredField(HooksLoader.getReflectionHooks().getPacketBufferFieldName());
+            resolved.setAccessible(true);
+            packetBufferField = resolved;
+            return resolved;
+        }
+    }
+
+    /**
+     * Returns the cached static {@code PacketWriter} field on the client class, resolving it
+     * on first use. Only the field handle is cached — the {@code PacketWriter} instance is
+     * read through it on every use.
+     *
+     * @return The reflected {@code Field} object with its accessible flag set, or null if not found.
      */
     private Field getPacketWriterField() {
-        try {
-            return client.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getPacketWriterFieldName());
-        } catch (NoSuchFieldException e) {
-            log.error("Failed to get field: {}", HooksLoader.getReflectionHooks().getPacketWriterFieldName(), e);
+        Field cached = packetWriterField;
+        if (cached != null) {
+            return cached;
         }
-        return null;
+        synchronized (resolutionLock) {
+            if (packetWriterField != null) {
+                return packetWriterField;
+            }
+            try {
+                Field resolved = client.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getPacketWriterFieldName());
+                resolved.setAccessible(true);
+                packetWriterField = resolved;
+                return resolved;
+            } catch (NoSuchFieldException e) {
+                log.error("Failed to get field: {}", HooksLoader.getReflectionHooks().getPacketWriterFieldName(), e);
+            }
+            return null;
+        }
     }
 
     /**
      * Retrieves the {@code IsaacCipher} object from the {@code PacketWriter}.
-     * The cipher is needed to correctly construct the packet header.
+     * The cipher is needed to correctly construct the packet header. The cipher instance is
+     * read from the live {@code PacketWriter} on every call; only the field handle is cached.
      *
      * @return The {@code IsaacCipher} instance, or null if failed.
      */
     private Object getIsaacObject() {
         try {
-            Field packetWriterField = getPacketWriterField();
-            if (packetWriterField == null) return null;
+            Field writerField = getPacketWriterField();
+            if (writerField == null) return null;
 
-            packetWriterField.setAccessible(true);
-            Object packetWriter = packetWriterField.get(null); // Get static field
-            packetWriterField.setAccessible(false);
-
+            Object packetWriter = writerField.get(null); // Get static field
             if (packetWriter == null) {
                  log.error("PacketWriter object is null, cannot get ISAAC cipher.");
                  return null;
             }
 
-            Class<?> packetWriterClass = packetWriter.getClass();
-            Field isaacField = packetWriterClass.getDeclaredField(HooksLoader.getReflectionHooks().getIsaacCipherFieldName());
-            isaacField.setAccessible(true);
-            Object isaacObject = isaacField.get(packetWriter); // Get instance field
-            isaacField.setAccessible(false);
-
-            return isaacObject;
+            return getIsaacField(packetWriter.getClass()).get(packetWriter); // Get instance field
         } catch (NoSuchFieldException | IllegalAccessException e) {
             log.error("Failed to get ISAAC object: ", e);
         }
@@ -383,16 +528,51 @@ public class PacketClient {
     }
 
     /**
-     * Finds a specific static packet definition field within the {@code ClientPacket} class.
+     * Returns the cached ISAAC cipher {@code Field} on the {@code PacketWriter} class, resolving
+     * it on first use. The handle is only reused while it belongs to the live writer's class.
+     *
+     * @param packetWriterClass The live {@code PacketWriter}'s class.
+     * @return The reflected {@code Field} with its accessible flag set.
+     * @throws NoSuchFieldException If the hooked field name does not exist on the writer class.
+     */
+    private Field getIsaacField(Class<?> packetWriterClass) throws NoSuchFieldException {
+        Field cached = isaacField;
+        if (cached != null && cached.getDeclaringClass() == packetWriterClass) {
+            return cached;
+        }
+        synchronized (resolutionLock) {
+            cached = isaacField;
+            if (cached != null && cached.getDeclaringClass() == packetWriterClass) {
+                return cached;
+            }
+            Field resolved = packetWriterClass.getDeclaredField(HooksLoader.getReflectionHooks().getIsaacCipherFieldName());
+            resolved.setAccessible(true);
+            isaacField = resolved;
+            return resolved;
+        }
+    }
+
+    /**
+     * Finds a specific static packet definition field within the {@code ClientPacket} class,
+     * cached per packet name. Only the field handle is cached — the packet definition instance
+     * is read through it on every send.
      *
      * @param name The name of the packet field (e.g., "IF_BUTTON1").
-     * @return The reflected {@code Field} object, or null if not found.
+     * @return The reflected {@code Field} object with its accessible flag set, or null if not found.
      */
     private Field fetchPacketField(String name) {
+        Field cached = packetDefinitionFields.get(name);
+        if (cached != null) {
+            return cached;
+        }
+
+        Class<?> clientPacket = getClientPacketClass();
+        if (clientPacket == null) return null;
         try {
-            Class<?> clientPacket = getClientPacketClass();
-            if (clientPacket == null) return null;
-            return clientPacket.getDeclaredField(name);
+            Field resolved = clientPacket.getDeclaredField(name);
+            resolved.setAccessible(true);
+            packetDefinitionFields.put(name, resolved);
+            return resolved;
         } catch (NoSuchFieldException e) {
             log.error("Failed to get packet field: {}", name, e);
         }

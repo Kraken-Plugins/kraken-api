@@ -4,14 +4,54 @@ import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.model.BufferOperation;
 
 import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A static utility class that uses reflection to interact with the client's
  * obfuscated buffer objects (e.g., PacketBuffer). This class provides a stable
  * API to get/set the buffer's underlying byte array and its current offset,
  * and to write data using the client's specific (and obfuscated) methods.
+ * <p>
+ * The offset and array {@link Field} handles are resolved once per concrete buffer class and
+ * cached; the field lookup uses {@link Class#getField(String)} so fields inherited from a buffer
+ * superclass resolve the same way a per-call lookup would. Only the handles are cached — the
+ * offset and array values are read from the live buffer instance on every call. A failed lookup
+ * or access throws {@link IllegalStateException} immediately so a packet is never partially
+ * written with garbage state; failed resolutions are not cached and are retried on the next call.
  */
 public class BufferUtils {
+
+    private static final Map<Class<?>, Field> OFFSET_FIELDS = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Field> ARRAY_FIELDS = new ConcurrentHashMap<>();
+
+    /**
+     * Resolves and caches the public field with the given hooked name on the buffer's concrete class.
+     * @param cache The per-class cache to resolve through.
+     * @param bufferClass The buffer instance's concrete class.
+     * @param fieldName The obfuscated field name from the hooks.
+     * @return The resolved field with its accessible flag set.
+     */
+    private static Field resolveField(Map<Class<?>, Field> cache, Class<?> bufferClass, String fieldName) {
+        return cache.computeIfAbsent(bufferClass, clazz -> {
+            try {
+                Field field = clazz.getField(fieldName);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException e) {
+                throw new IllegalStateException("Failed to resolve buffer field '" + fieldName
+                        + "' on " + clazz.getName() + ". The hooks are likely stale for this client revision.", e);
+            }
+        });
+    }
+
+    private static Field offsetField(Object bufferInstance) {
+        return resolveField(OFFSET_FIELDS, bufferInstance.getClass(), HooksLoader.getReflectionHooks().getBufferOffsetField());
+    }
+
+    private static Field arrayField(Object bufferInstance) {
+        return resolveField(ARRAY_FIELDS, bufferInstance.getClass(), HooksLoader.getReflectionHooks().getBufferArrayField());
+    }
 
     /**
      * Reflectively sets the 'offset' (current write position) on a buffer instance.
@@ -21,12 +61,9 @@ public class BufferUtils {
      */
     public static void setOffset(Object bufferInstance, int offset) {
         try {
-            Field offsetField = bufferInstance.getClass().getField(HooksLoader.getReflectionHooks().getBufferOffsetField());
-            offsetField.setAccessible(true);
-            offsetField.setInt(bufferInstance, offset);
-            offsetField.setAccessible(false);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
+            offsetField(bufferInstance).setInt(bufferInstance, offset);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Failed to set buffer offset on " + bufferInstance.getClass().getName(), e);
         }
     }
 
@@ -34,19 +71,14 @@ public class BufferUtils {
      * Reflectively gets the 'offset' (current write position) from a buffer instance.
      *
      * @param bufferInstance The obfuscated buffer object.
-     * @return The current offset, or -1 if retrieval fails.
+     * @return The current offset.
      */
     public static int getOffset(Object bufferInstance) {
         try {
-            Field offsetField = bufferInstance.getClass().getField(HooksLoader.getReflectionHooks().getBufferOffsetField());
-            offsetField.setAccessible(true);
-            int offset = offsetField.getInt(bufferInstance); // Get the current value
-            offsetField.setAccessible(false);
-            return offset;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
+            return offsetField(bufferInstance).getInt(bufferInstance);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Failed to get buffer offset on " + bufferInstance.getClass().getName(), e);
         }
-        return -1;
     }
 
     /**
@@ -57,12 +89,9 @@ public class BufferUtils {
      */
     public static void setArray(Object bufferInstance, byte[] array) {
         try {
-            Field arrayField = bufferInstance.getClass().getField(HooksLoader.getReflectionHooks().getBufferArrayField());
-            arrayField.setAccessible(true);
-            arrayField.set(bufferInstance, array);
-            arrayField.setAccessible(false);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
+            arrayField(bufferInstance).set(bufferInstance, array);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Failed to set buffer array on " + bufferInstance.getClass().getName(), e);
         }
     }
 
@@ -70,19 +99,14 @@ public class BufferUtils {
      * Reflectively gets the underlying 'array' (the byte[]) from a buffer instance.
      *
      * @param bufferInstance The obfuscated buffer object.
-     * @return The buffer's byte[] data, or null if retrieval fails.
+     * @return The buffer's byte[] data.
      */
     public static byte[] getArray(Object bufferInstance) {
         try {
-            Field arrayField = bufferInstance.getClass().getField(HooksLoader.getReflectionHooks().getBufferArrayField());
-            arrayField.setAccessible(true);
-            byte[] array = (byte[]) arrayField.get(bufferInstance);
-            arrayField.setAccessible(false);
-            return array;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
+            return (byte[]) arrayField(bufferInstance).get(bufferInstance);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Failed to get buffer array on " + bufferInstance.getClass().getName(), e);
         }
-        return null;
     }
 
     /**
