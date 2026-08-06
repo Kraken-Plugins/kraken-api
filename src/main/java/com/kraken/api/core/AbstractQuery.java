@@ -175,11 +175,11 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      * @return long count of objects.
      */
     public long count() {
-        return (Long) ctx.runOnClientThread(() -> {
+        return ctx.runOnClientThread(() -> {
             Stream<T> stream = source().get();
 
             if(stream == null) {
-                return Collections.emptyList();
+                return 0L;
             }
 
             // Apply filters but do not waste time sorting for a basic count op

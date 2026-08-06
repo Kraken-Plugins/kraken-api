@@ -310,6 +310,10 @@ public class ShopService {
             return false;
         }
 
+        if(ctxProvider.get().getClient().isClientThread()) {
+            throw new IllegalStateException("setXAmount may not be called on the client thread");
+        }
+
         interactionManager.interact(ShopQuantity.X.getWidgetId(), -1, -1, 1);
         interactionManager.getWidgetPackets().queueResumeCount(amount);
 

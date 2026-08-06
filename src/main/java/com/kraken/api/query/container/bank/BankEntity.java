@@ -4,7 +4,6 @@ import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.ui.UIService;
-import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.gameval.VarbitID;
 
@@ -83,7 +82,6 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
     public boolean withdrawAllNoted() {
         return ctx.runOnClientThread(() -> {
             ctx.getService(BankService.class).setWithdrawMode(true);
-            SleepService.sleepFor(1);
             return interact("Withdraw-All");
         });
     }
@@ -139,7 +137,6 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
         if (actionQueued && ctx.getVarbitValue(VarbitID.BANK_REQUESTEDQUANTITY) != amount) {
             // Wait for the engine to process the packet and open the UI
             // Then close the dialogue outside of the client thread block so you don't freeze the client.
-            SleepService.sleepFor(1);
             UIService.closeNumberDialogue();
         }
 

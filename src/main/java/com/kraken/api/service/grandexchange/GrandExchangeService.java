@@ -7,7 +7,6 @@ import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.core.packet.entity.WidgetPackets;
 import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.ui.UIService;
-import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GrandExchangeOffer;
@@ -217,6 +216,5 @@ public class GrandExchangeService {
      */
     public void cancelOffer(GrandExchangeSlot slot) {
         interactionManager.interact(2, slot.getId(), 2, -1);
-        SleepService.sleepFor(2);
     }
 }

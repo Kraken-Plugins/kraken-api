@@ -47,11 +47,21 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
         };
     }
 
+    /**
+     * Expects a World name in the format: "w123"
+     * @param name The name of the object to filter for
+     * @return
+     */
     @Override
     public WorldQuery withName(String name) {
+        if(!name.startsWith("w")) {
+            log.error("World name must start with 'w'. Example: w493");
+            return this;
+        }
+
         int worldNum;
         try {
-            worldNum = Integer.parseInt(name);
+            worldNum = Integer.parseInt(name.substring(1, name.length() - 1));
         } catch (NumberFormatException e) {
             log.error("Failed to parse world number from name: {}, expected name to be the world number.", name);
             return this;
@@ -414,12 +424,19 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
     public WorldEntity previous() {
         int currentWorld = ctx.getClient().getWorld();
         List<WorldEntity> results = sortByWorldNumberAsc().list();
-        for (WorldEntity world : results) {
+
+        if (results.isEmpty()) {
+            return null;
+        }
+
+        for (int i = results.size() - 1; i >= 0; i--) {
+            WorldEntity world = results.get(i);
             if (world.getId() < currentWorld) {
                 return world;
             }
         }
 
-        return !results.isEmpty() ? results.get(results.size() - 1) : null;
+        // Wraps around to the last world in the list if no smaller world is found
+        return results.get(results.size() - 1);
     }
 }

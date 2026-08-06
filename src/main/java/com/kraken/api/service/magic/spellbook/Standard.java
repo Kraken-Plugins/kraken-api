@@ -53,7 +53,7 @@ public enum Standard implements CastableSpell {
     ),
     TELEPORT_TO_HOUSE(
             40,
-            InterfaceID.MagicSpellbook.TELEPORT_HOME_STANDARD,
+            InterfaceID.MagicSpellbook.TELEPORT_TO_YOUR_HOUSE,
             49,
             Map.of(Rune.AIR, 1, Rune.EARTH, 1, Rune.LAW, 1)
     ),

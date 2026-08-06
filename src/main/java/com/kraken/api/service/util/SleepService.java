@@ -19,16 +19,11 @@ public class SleepService {
     private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
 
     /**
-     * Waits until the specified condition is true.
+     * Waits up to 15 seconds until the specified condition is true.
      * @param condition the condition to be met
      */
     public static void sleepUntil(Supplier<Boolean> condition) {
-        while(!condition.get()) {
-            if(Thread.currentThread().isInterrupted() || RunnableTask.isCanceled()) {
-                throw new RuntimeException();
-            }
-            sleep(100);
-        }
+        sleepUntil(condition, 15000);
     }
 
     /**
@@ -38,6 +33,10 @@ public class SleepService {
      * @return true if the condition was met, false if the timeout was reached
      */
     public static boolean sleepUntil(Supplier<Boolean> condition, long timeoutMS) {
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         long start = System.currentTimeMillis();
         while(!condition.get()) {
             if(System.currentTimeMillis() - start > timeoutMS) {
@@ -59,7 +58,11 @@ public class SleepService {
      * @param ticks the maximum time to sleep in game ticks
      * @return true if the condition was met, false if the timeout was reached
      */
-    public static boolean sleepUntil(Supplier<Boolean> condition, int ticks) {
+    public static boolean sleepUntilTicks(Supplier<Boolean> condition, int ticks) {
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         int end = ctx.getClient().getTickCount() + ticks;
         while(!condition.get()) {
             if(ctx.getClient().getTickCount() >= end) {
@@ -101,8 +104,9 @@ public class SleepService {
      * @param duration the duration to sleep in milliseconds
      */
     public static void sleep(int duration) {
-        // Prevent sleeping on the client thread to avoid freezing the game
-        if (ctx.getClient().isClientThread()) return;
+        if (ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
         sleep((long) duration);
     }
 
@@ -111,6 +115,10 @@ public class SleepService {
      * @param time the duration to sleep in milliseconds
      */
     public static void sleep(long time) {
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         if (time <= 0) {
             return;
         }
@@ -137,6 +145,10 @@ public class SleepService {
      * @param end the maximum sleep time
      */
     public static void sleep(long start, long end) {
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         if (start < 0 || end < 0 || start > end) {
             throw new IllegalArgumentException("Invalid sleep range: " + start + " to " + end);
         }
@@ -174,7 +186,10 @@ public class SleepService {
      */
     @SneakyThrows
     public static <T> T sleepUntilNotNull(Callable<T> method, int timeoutMillis, int sleepMillis) {
-        if (ctx.getClient().isClientThread()) return null;
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         boolean done;
         T methodResponse;
         final long endTime = System.currentTimeMillis()+timeoutMillis;
@@ -219,7 +234,10 @@ public class SleepService {
      * @return true if the condition was met, false if the timeout was reached
      */
     public static boolean sleepUntil(BooleanSupplier awaitedCondition, int time) {
-        if (ctx.getClient().isClientThread()) return false;
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         boolean done;
         long startTime = System.currentTimeMillis();
         do {
@@ -238,6 +256,10 @@ public class SleepService {
      * Sleeps the current thread for one game tick
      */
     public static void tick() {
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         sleepFor(1);
     }
 
@@ -246,6 +268,10 @@ public class SleepService {
      * @param ticks ticks
      */
     public static void sleepFor(int ticks) {
+        if (ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         int tick = ctx.getClient().getTickCount() + ticks;
         int start = ctx.getClient().getTickCount();
         while(ctx.getClient().getTickCount() < tick && ctx.getClient().getTickCount() >= start) {
@@ -273,7 +299,10 @@ public class SleepService {
      * @return true if the condition was met, false if the timeout was reached
      */
     public static boolean sleepUntilTrue(BooleanSupplier awaitedCondition, int time, int timeout) {
-        if (ctx.getClient().isClientThread()) return false;
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         long startTime = System.currentTimeMillis();
         do {
             if (RunnableTask.isCanceled()) {
@@ -294,7 +323,10 @@ public class SleepService {
      * @return true if the condition was met, false if the timeout was reached
      */
     public static boolean sleepUntilTrue(BooleanSupplier awaitedCondition, int timeout) {
-        if (ctx.getClient().isClientThread()) return false;
+        if(ctx.getClient().isClientThread()) {
+            throw new IllegalStateException("SleepService may not be called on the client thread");
+        }
+
         long startTime = System.currentTimeMillis();
         do {
             if (RunnableTask.isCanceled()) {
