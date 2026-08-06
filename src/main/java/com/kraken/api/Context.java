@@ -1,8 +1,8 @@
 package com.kraken.api;
 
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import com.google.inject.Provider;
+import com.google.inject.Singleton;
 import com.kraken.api.core.ClientThreadException;
 import com.kraken.api.core.Services;
 import com.kraken.api.core.hooks.HooksLoader;
@@ -22,17 +22,15 @@ import com.kraken.api.query.player.LocalPlayerEntity;
 import com.kraken.api.query.player.PlayerQuery;
 import com.kraken.api.query.widget.WidgetQuery;
 import com.kraken.api.query.world.WorldQuery;
-import com.kraken.api.service.camera.CameraService;
 import com.kraken.api.service.bank.BankService;
+import com.kraken.api.service.camera.CameraService;
 import com.kraken.api.service.shop.ShopService;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.EnumComposition;
 import net.runelite.api.widgets.Widget;
-import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
@@ -51,7 +49,7 @@ public class Context {
      * <p>The client thread services this queue once per frame, so anything approaching this budget
      * means it is blocked or the client is loading — not that the work is slow.</p>
      */
-    public static final long CLIENT_THREAD_TIMEOUT_MS = 2_000L;
+    public static final long CLIENT_THREAD_TIMEOUT_MS = 3_000L;
 
     @Setter
     @Getter
@@ -99,7 +97,6 @@ public class Context {
         this.bankService = bankService;
         this.shopService = shopService;
         this.localPlayer = new LocalPlayerEntity(this);
-        eventBus.register(this.localPlayer);
         eventBus.register(bankService);
 
         // ShopService learns shop prices from the game messages the "Value" action produces, which is
@@ -277,8 +274,7 @@ public class Context {
         try {
             return future.get(CLIENT_THREAD_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
-            throw new ClientThreadException("Client thread did not respond within "
-                    + CLIENT_THREAD_TIMEOUT_MS + "ms; it is likely blocked or the client is loading", e);
+            throw new ClientThreadException("Client thread did not respond within " + CLIENT_THREAD_TIMEOUT_MS + "ms; it is likely blocked or the client is loading", e);
         } catch (ExecutionException e) {
             throw new ClientThreadException("Client-thread work threw an exception", e.getCause());
         } catch (InterruptedException e) {

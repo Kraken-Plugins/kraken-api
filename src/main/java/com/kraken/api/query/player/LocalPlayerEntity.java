@@ -2,20 +2,17 @@ package com.kraken.api.query.player;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.KrakenThreads;
+import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.tile.GameArea;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.client.eventbus.Subscribe;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -38,46 +35,6 @@ public class LocalPlayerEntity extends PlayerEntity {
      */
     public void shutdown() {
         executor.shutdownNow();
-    }
-
-    private int antiVenomTime = -1;
-    private int antiPoisonTime = -1;
-
-    @Getter
-    private boolean isPoisoned = false;
-
-    @Getter
-    private boolean isVenomed = false;
-
-    /**
-     * The poisoned status of the player, with negative values indicating the duration of poison or venom protection and
-     * positive values representing the amount of poison or venom damage the player will be taking.
-     * @param event The varbit changed event from RuneLite
-     *    - (-inf, -38): Venom immune for a duration of {@code (abs(val) - 38) * 30} game ticks (18 seconds per poison tick), after which point the value will have increased to {@code -38} and be representing poison immunity rather than venom immunity
-     *    - [-38, 0): Poison immune for a duration of {@code abs(val) * 30} game ticks (18 seconds per poison tick)
-     *    - 0: Not poisoned or immune to poison
-     *    - [1, 100]: Poisoned for an amount of {@code ceil(val / 5.0f)}
-     *    - [1000000, inf): Venomed for an amount of {@code min(20, (val - 999997) * 2)}, that is, an amount starting at 6 damage, increasing by 2 each time the value increases by one, and capped at 20
-     */
-    @Subscribe
-    public void onVarbitChanged(VarbitChanged event) {
-        if (event.getVarpId() == VarPlayerID.POISON) {
-            final int poisonValue = event.getValue();
-            if (poisonValue >= VENOM_VALUE_CUTOFF) {
-                antiVenomTime = 0;
-            } else {
-                antiVenomTime = poisonValue;
-            }
-
-            if(poisonValue == 0) {
-                antiPoisonTime = -1;
-            } else {
-                antiPoisonTime = poisonValue;
-            }
-
-            isVenomed = poisonValue >= VENOM_THRESHOLD;
-            isPoisoned = poisonValue >= 0 || poisonValue < VENOM_VALUE_CUTOFF;
-        }
     }
 
     @Override
@@ -135,6 +92,26 @@ public class LocalPlayerEntity extends PlayerEntity {
     }
 
     /**
+     * Checks if the player has auto retaliate on
+     * @return true if the player has auto retaliate on, false otherwise
+     */
+    public boolean isAutoRetaliate() {
+        return ctx.getVarpValue(VarPlayerID.OPTION_NODEF) == 0;
+    }
+
+    /**
+     * Toggles the player's auto-retaliate setting
+     * @param value true to enable auto-retaliate, false to disable
+     */
+    public void toggleAutoRetaliate(boolean value) {
+        if(!isAutoRetaliate() && value) {
+            ctx.getService(InteractionManager.class).interact(InterfaceID.CombatInterface.RETALIATE, -1, -1, 1);
+        } else if(isAutoRetaliate() && !value) {
+            ctx.getService(InteractionManager.class).interact(InterfaceID.CombatInterface.RETALIATE, -1, -1, 1);
+        }
+    }
+
+    /**
      * Gets the amount of special attack energy remaining as a percent (0-100).
      * @return int the amount of special attack energy the player has remaining.
      */
@@ -187,37 +164,57 @@ public class LocalPlayerEntity extends PlayerEntity {
     }
 
     /**
-     * Returns true if the player has anti-venom protection currently active
-     * @return True if the player has anti-venom active and false otherwise
+     * The poisoned status of the player, with negative values indicating the duration of poison or venom protection and
+     * positive values representing the amount of poison or venom damage the player will be taking.
+     * - (-inf, -38): Venom immune for a duration of {@code (abs(val) - 38) * 30} game ticks (18 seconds per poison tick), after which point the value will have increased to {@code -38} and be representing poison immunity rather than venom immunity
+     * - [-38, 0): Poison immune for a duration of {@code abs(val) * 30} game ticks (18 seconds per poison tick)
+     * - 0: Not poisoned or immune to poison
+     * - [1, 100]: Poisoned for an amount of {@code ceil(val / 5.0f)}
+     * - [1000000, inf): Venomed for an amount of {@code min(20, (val - 999997) * 2)}, that is, an amount starting at 6 damage, increasing by 2 each time the value increases by one, and capped at 20
+     * @return true if the player is poisoned, false otherwise
      */
-    private boolean hasAntiVenomActive() {
-        return antiVenomTime < VENOM_VALUE_CUTOFF;
+    public  boolean isPoisoned() {
+        return ctx.getVarpValue(VarPlayerID.POISON) > 0;
     }
 
     /**
-     * Returns true if the player has anti-poison protection currently active
-     * @return True if the player has anti-poison active and false otherwise
+     * Checks if the player is currently venomed
+     * @return true if the player is venomed, false otherwise
      */
-    private boolean hasAntiPoisonActive() {
-        return antiPoisonTime > 0;
+    public boolean isVenomed() {
+        return ctx.getVarpValue(VarPlayerID.POISON) >= VENOM_THRESHOLD;
     }
 
     /**
-     * Returns true if the player's anti-poison protection is about to expire (within 10 ticks of expiration)
-     * @return True if the anti-poison is about to expire within 10 game ticks.
+     * @return true if an antipoison effect is active
      */
-    private boolean antiPoisonAboutToExpire() {
-        return hasAntiPoisonActive() && (Math.abs(antiPoisonTime) * 30) < 10;
+    public boolean isAntipoisonActive() {
+        return ctx.getVarpValue(VarPlayerID.POISON) < 0;
     }
 
     /**
-     * Returns true if the players anti-venom protection is about to expire (within 10 ticks of expiration)
-     * @return True if the anti-venom is about to expire within 10 game ticks.
+     * @return true if an antivenom effect is active
      */
-    private boolean antiVenomAboutToExpire() {
-        int ticks = (Math.abs(antiVenomTime) - 38) * 30;
-        return hasAntiVenomActive() && ticks < 10;
+    public  boolean isAntivenomActive() {
+        return ctx.getVarpValue(VarPlayerID.POISON) < VENOM_VALUE_CUTOFF;
     }
+
+    /**
+     * @return The damage that the next poison hitsplat will incur
+     */
+    public int getNextPoisonDamage() {
+        int value = ctx.getVarpValue(VarPlayerID.POISON);
+        if (isVenomed()) {
+            return (value - 999997) * 2;
+        }
+
+        if (isPoisoned()) {
+            return (int) Math.ceil(value / 5.0f);
+        }
+
+        return 0;
+    }
+
 
     /**
      * Sets the special attack state if current special attack energy is greater than or equal to the required special
