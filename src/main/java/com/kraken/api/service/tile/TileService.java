@@ -312,20 +312,23 @@ public class TileService {
      * @return True if the tile has been visited and is within bounds, otherwise false.
      */
     private boolean isVisited(WorldPoint worldPoint, boolean[][] visited) {
-        int baseX, baseY, x, y;
-        if (ctxProvider.get().getClient().getTopLevelWorldView().getScene().isInstance()) {
-            LocalPlayerEntity player = ctxProvider.get().players().local();
-            LocalPoint localPoint = player.raw().getLocalLocation();
-            x = localPoint.getSceneX();
-            y = localPoint.getSceneY();
-        } else {
-            baseX = ctxProvider.get().getClient().getTopLevelWorldView().getBaseX();
-            baseY = ctxProvider.get().getClient().getTopLevelWorldView().getBaseY();
-            x = worldPoint.getX() - baseX;
-            y = worldPoint.getY() - baseY;
+        WorldView wv = ctxProvider.get().getClient().getTopLevelWorldView();
+        if (wv.getScene().isInstance()) {
+            // In an instance the target world point maps to one or more instanced scene positions;
+            // the tile is reachable if any of them was visited. Convert the target itself here — not
+            // the player's location — otherwise every target reads as reachable.
+            for (WorldPoint instancePoint : WorldPoint.toLocalInstance(wv, worldPoint)) {
+                LocalPoint localPoint = LocalPoint.fromWorld(wv, instancePoint);
+                if (localPoint != null && isWithinBounds(localPoint.getSceneX(), localPoint.getSceneY())
+                        && visited[localPoint.getSceneX()][localPoint.getSceneY()]) {
+                    return true;
+                }
+            }
+            return false;
         }
 
-
+        int x = worldPoint.getX() - wv.getBaseX();
+        int y = worldPoint.getY() - wv.getBaseY();
         return isWithinBounds(x, y) && visited[x][y];
     }
 

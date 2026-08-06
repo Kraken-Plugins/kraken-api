@@ -63,13 +63,16 @@ public class ReflectionService {
      * @param fieldName The obfuscated field name.
      * @param instance The object instance to set the field value on.
      * @param value    The new value to set.
+     * @return {@code true} if the field was set, {@code false} if resolution or assignment failed.
      */
-    public void setFieldValue(String className, String fieldName, Object instance, Object value) {
+    public boolean setFieldValue(String className, String fieldName, Object instance, Object value) {
         try {
             Field field = getField(className, fieldName);
             field.set(instance, value);
+            return true;
         } catch (Exception e) {
             log.error("Failed to set field {}.{}", className, fieldName, e);
+            return false;
         }
     }
 

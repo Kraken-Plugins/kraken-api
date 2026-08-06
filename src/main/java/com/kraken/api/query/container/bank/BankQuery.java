@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 public class BankQuery extends AbstractQuery<BankEntity, BankQuery, BankItemWidget> {
 
     private int lastUpdateTick = -1;
+    private List<BankItemWidget> cachedItems = Collections.emptyList();
     private final LoadingCache<Integer, ItemComposition> itemDefs;
 
     public BankQuery(Context ctx) {
@@ -46,42 +47,46 @@ public class BankQuery extends AbstractQuery<BankEntity, BankQuery, BankItemWidg
     protected Supplier<Stream<BankEntity>> source() {
         return () -> {
             List<BankItemWidget> bankItems = ctx.runOnClientThread(() -> {
-                if (lastUpdateTick < ctx.getClient().getTickCount()) {
-                    List<BankItemWidget> items = new ArrayList<>();
-                    int i = 0;
-                    ItemContainer container = ctx.getClient().getItemContainer(InventoryID.BANK);
-                    if(container == null) {
-                        return Collections.emptyList();
-                    }
-
-                    for (Item item : container.getItems()) {
-                        try {
-                            if (item == null) {
-                                i++;
-                                continue;
-                            }
-
-                            ItemComposition comp = itemDefs.get(item.getId());
-                            if (comp.getPlaceholderTemplateId() == 14401) {
-                                i++;
-                                continue;
-                            }
-
-                            if(comp.getName().equalsIgnoreCase("Bank filler")) {
-                                i++;
-                                continue;
-                            }
-
-                            items.add(new BankItemWidget(comp.getName(), item.getId(), item.getQuantity(), i, ctx));
-                        } catch (NullPointerException | ExecutionException ex) {
-                            log.error("exception thrown while attempting to get items from bank:", ex);
-                        }
-                        i++;
-                    }
-                    lastUpdateTick = ctx.getClient().getTickCount();
-                    return items;
+                // Rebuild at most once per tick; subsequent terminal ops within the same tick reuse the
+                // cached snapshot instead of rebuilding (or, previously, silently returning an empty bank).
+                if (lastUpdateTick >= ctx.getClient().getTickCount()) {
+                    return cachedItems;
                 }
-                return Collections.emptyList();
+
+                List<BankItemWidget> items = new ArrayList<>();
+                int i = 0;
+                ItemContainer container = ctx.getClient().getItemContainer(InventoryID.BANK);
+                if(container == null) {
+                    return Collections.emptyList();
+                }
+
+                for (Item item : container.getItems()) {
+                    try {
+                        if (item == null) {
+                            i++;
+                            continue;
+                        }
+
+                        ItemComposition comp = itemDefs.get(item.getId());
+                        if (comp.getPlaceholderTemplateId() == 14401) {
+                            i++;
+                            continue;
+                        }
+
+                        if(comp.getName().equalsIgnoreCase("Bank filler")) {
+                            i++;
+                            continue;
+                        }
+
+                        items.add(new BankItemWidget(comp.getName(), item.getId(), item.getQuantity(), i, ctx));
+                    } catch (NullPointerException | ExecutionException ex) {
+                        log.error("exception thrown while attempting to get items from bank:", ex);
+                    }
+                    i++;
+                }
+                lastUpdateTick = ctx.getClient().getTickCount();
+                cachedItems = items;
+                return items;
             });
 
             return bankItems.stream().map(i -> new BankEntity(ctx, i));

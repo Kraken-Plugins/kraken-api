@@ -63,7 +63,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
             return ctx.runOnClientThread(() -> {
                 Stream<T> stream = source().get();
                 if (stream == null) {
-                    return Collections.<T>emptyList();
+                    return Collections.emptyList();
                 }
 
                 for (Predicate<T> filter : filters) {

@@ -435,7 +435,11 @@ public class UIService {
      * @return a point within the rectangle (randomized or centered)
      */
     public static Point getClickingPoint(Rectangle rectangle, boolean randomize) {
+        // getDefaultRectangle() signals a failed/absent clickbox with a full-canvas rectangle whose
+        // origin is one of (-1,-1), (0,0) or (1,1). All three must be caught here; missing the -1 case
+        // let a failed clickbox fall through to a real spoofed click at a random screen point.
         if (rectangle == null) return new Point(1, 1);
+        if (rectangle.getX() == -1 && rectangle.getY() == -1) return new Point(1, 1);
         if (rectangle.getX() == 1 && rectangle.getY() == 1) return new Point(1, 1);
         if (rectangle.getX() == 0 && rectangle.getY() == 0) return new Point(1, 1);
 

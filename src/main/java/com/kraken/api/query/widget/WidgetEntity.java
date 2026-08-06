@@ -19,8 +19,23 @@ public class WidgetEntity extends AbstractEntity<Widget> {
     }
 
 
+    /**
+     * Returns the widget's packed component id (its group and child id combined), which is the value
+     * {@link WidgetQuery#withId(int)}, {@code unique()} and {@code distinctById()} key on. For the item
+     * a widget holds, use {@link #getItemId()}.
+     * @return the packed widget id, or -1 if the underlying widget is null.
+     */
     @Override
     public int getId() {
+        Widget w = raw();
+        return w != null ? w.getId() : -1;
+    }
+
+    /**
+     * Returns the item id of the item this widget holds.
+     * @return the item id, or -1 if the widget is null or holds no item.
+     */
+    public int getItemId() {
         Widget w = raw();
         return w != null ? w.getItemId() : -1;
     }

@@ -10,8 +10,8 @@ import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.ScriptCallbackEvent;
+import com.kraken.api.query.widget.WidgetEntity;
 import net.runelite.api.gameval.InterfaceID;
-import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.JavaScriptCallback;
@@ -52,11 +52,18 @@ public class BankService {
     /**
      * Checks whether the bank interface is open.
      *
+     * <p>Tests the visibility of the bank interface itself rather than the presence of the bank item
+     * container: the client caches item containers permanently once seen, so a container check reports
+     * the bank as open forever after the first visit.</p>
+     *
      * @return {@code true} if the bank interface is open, {@code false} otherwise.
      */
     public boolean isOpen() {
-        Client client = ctxProvider.get().getClient();
-        return ctxProvider.get().runOnClientThread(() -> client.getItemContainer(InventoryID.BANK) != null);
+        WidgetEntity bankWidget = ctxProvider.get().widgets().fromClient(InterfaceID.Bankmain.QUANTITYX);
+        if (bankWidget == null) {
+            return false;
+        }
+        return bankWidget.isVisible();
     }
 
     /**

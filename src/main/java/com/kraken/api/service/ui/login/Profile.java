@@ -4,11 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+// The generated toString must never expose credentials or session secrets, since it lands in logs
+// and exception messages. Sensitive fields are excluded rather than masked.
+@ToString(exclude = {"password", "sessionId", "characterId", "bankPin"})
 public class Profile {
 
     @Builder.Default

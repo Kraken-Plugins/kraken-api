@@ -159,12 +159,12 @@ public class ItemPriceService {
                     String jsonString = response.body().string();
                     parseAndCache(jsonString);
 
-                    ItemPrice price = priceCache.get(itemId);
-                    if (price != null) {
-                        callback.accept(price);
-                    }
+                    // Always invoke the callback, passing null when the item was absent from the
+                    // response, so callers that await a guaranteed callback do not hang forever.
+                    callback.accept(priceCache.get(itemId));
                 } catch (IOException e) {
                     log.error("Error reading response", e);
+                    callback.accept(null);
                 }
             }
         });
