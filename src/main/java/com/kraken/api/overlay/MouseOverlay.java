@@ -23,6 +23,17 @@ public class MouseOverlay extends Overlay {
     private static final int CROSSHAIR_SIZE = 10; // Length of each arm in pixels
     private static final int CROSSHAIR_GAP = 3;   // Empty space in the dead center
 
+    // Loop-invariant paint resources, allocated once rather than per frame / per trail segment.
+    private static final Stroke THIN_STROKE = new BasicStroke(1);
+    private static final Font COORDS_FONT = new Font("Arial", Font.BOLD, 12);
+    private static final Color[] TRAIL_COLORS = new Color[256];
+
+    static {
+        for (int alpha = 0; alpha < TRAIL_COLORS.length; alpha++) {
+            TRAIL_COLORS[alpha] = new Color(0, 255, 255, alpha); // Cyan trail at each alpha level
+        }
+    }
+
     @Setter
     private boolean renderCrosshair = true;
 
@@ -82,7 +93,7 @@ public class MouseOverlay extends Overlay {
 
     private void renderTrail(Graphics2D g) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setStroke(new BasicStroke(1));
+        g.setStroke(THIN_STROKE);
 
         long now = System.currentTimeMillis();
         Iterator<TrailPoint> it = trail.iterator();
@@ -103,7 +114,7 @@ public class MouseOverlay extends Overlay {
                 // Clamp alpha
                 alpha = Math.max(0.0f, Math.min(1.0f, alpha));
 
-                g.setColor(new Color(0, 255, 255, (int)(alpha * 255))); // Cyan trail
+                g.setColor(TRAIL_COLORS[(int)(alpha * 255)]);
                 g.drawLine(prev.point.getX(), prev.point.getY(), current.point.getX(), current.point.getY());
             }
             prev = current;
@@ -112,7 +123,7 @@ public class MouseOverlay extends Overlay {
 
     private void renderCrosshair(Graphics2D g, net.runelite.api.Point p) {
         g.setColor(Color.CYAN);
-        g.setStroke(new BasicStroke(1));
+        g.setStroke(THIN_STROKE);
 
         int x = p.getX();
         int y = p.getY();
@@ -127,9 +138,9 @@ public class MouseOverlay extends Overlay {
         // Right arm
         g.drawLine(x + CROSSHAIR_GAP, y, x + CROSSHAIR_SIZE, y);
 
-        String coords = String.format("(%d, %d)", x, y);
+        String coords = "(" + x + ", " + y + ")";
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 12));
+        g.setFont(COORDS_FONT);
 
         // Offset text slightly to the bottom right of the crosshair
         int textOffsetX = CROSSHAIR_SIZE + 5;

@@ -44,8 +44,8 @@ public class ItemPriceService {
      * @param itemId The OSRS Item ID
      * @param userAgent A user agent sent to the OSRS Wiki to identify the application fetching data. This should NOT
      *                  be the basic java user agent or contain information about your plugins or client as it is sent to the Wiki and likely inspected.
-     * @param callback A functional interface for consuming the result of the asynchronous API call
-     * @throws RuntimeException if called on the main client thread (optional safety check you could add)
+     * @param callback A functional interface for consuming the result of the asynchronous API call. It is
+     *                 always invoked exactly once, with {@code null} when the item's price is unavailable.
      */
     public void getItemPrice(int itemId, String userAgent, Consumer<ItemPrice> callback) {
         if (priceCache.containsKey(itemId)) {

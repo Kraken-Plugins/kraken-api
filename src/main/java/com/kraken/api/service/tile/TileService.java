@@ -11,7 +11,6 @@ import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static net.runelite.api.Constants.CHUNK_SIZE;
 import static net.runelite.api.Perspective.SCENE_SIZE;
@@ -21,6 +20,12 @@ import static net.runelite.api.Perspective.SCENE_SIZE;
 public class TileService {
 
     private static final int FLAG_DATA_SIZE = 104;
+
+    // The player-reachability flood depends only on the player's tile and the plane's collision
+    // flags, neither of which changes within a game tick, so it is computed at most once per tick.
+    // Without this, reachable() over N entities ran one full 104x104 BFS per entity in a single frame.
+    private int reachabilityMatrixTick = -1;
+    private boolean[][] cachedReachabilityMatrix;
 
     @Inject
     private Provider<Context> ctxProvider;
@@ -62,10 +67,16 @@ public class TileService {
         final HashMap<WorldPoint, Integer> tileDistances = new HashMap<>();
         tileDistances.put(tile, 0);
 
-        for (int i = 0; i < distance + 1; i++) {
+        // Expand ring by ring from an explicit frontier of the tiles just discovered, rather than
+        // re-scanning the whole distance map on every ring. Each tile is visited once.
+        List<WorldPoint> frontier = new ArrayList<>();
+        frontier.add(tile);
+
+        for (int i = 0; i < distance + 1 && !frontier.isEmpty(); i++) {
             int dist = i;
-            for (var kvp : tileDistances.entrySet().stream().filter(x -> x.getValue() == dist).collect(Collectors.toList())) {
-                WorldPoint point = kvp.getKey();
+            List<WorldPoint> nextFrontier = new ArrayList<>();
+
+            for (WorldPoint point : frontier) {
                 LocalPoint localPoint;
                 if (ctxProvider.get().getClient().getTopLevelWorldView().isInstance()) {
                     WorldPoint worldPoint = WorldPoint.toLocalInstance(ctxProvider.get().getClient().getTopLevelWorldView(), point).stream().findFirst().orElse(null);
@@ -90,22 +101,39 @@ public class TileService {
                         }
                     }
 
-                    if (kvp.getValue() >= distance)
+                    if (dist >= distance)
                         continue;
 
                     if (!movementFlags.contains(MovementFlag.BLOCK_MOVEMENT_EAST))
-                        tileDistances.putIfAbsent(point.dx(1), dist + 1);
+                        addNeighbour(point.dx(1), dist + 1, tileDistances, nextFrontier);
                     if (!movementFlags.contains(MovementFlag.BLOCK_MOVEMENT_WEST))
-                        tileDistances.putIfAbsent(point.dx(-1), dist + 1);
+                        addNeighbour(point.dx(-1), dist + 1, tileDistances, nextFrontier);
                     if (!movementFlags.contains(MovementFlag.BLOCK_MOVEMENT_NORTH))
-                        tileDistances.putIfAbsent(point.dy(1), dist + 1);
+                        addNeighbour(point.dy(1), dist + 1, tileDistances, nextFrontier);
                     if (!movementFlags.contains(MovementFlag.BLOCK_MOVEMENT_SOUTH))
-                        tileDistances.putIfAbsent(point.dy(-1), dist + 1);
+                        addNeighbour(point.dy(-1), dist + 1, tileDistances, nextFrontier);
                 }
             }
+
+            frontier = nextFrontier;
         }
 
         return tileDistances;
+    }
+
+    /**
+     * Records a neighbouring tile at the given distance if it has not been seen yet, adding it to the
+     * next frontier so it is expanded exactly once.
+     *
+     * @param neighbour     The neighbouring world point.
+     * @param neighbourDist The distance to assign to the neighbour.
+     * @param tileDistances The accumulated tile-to-distance map.
+     * @param nextFrontier  The frontier for the next ring, appended to when the neighbour is new.
+     */
+    private void addNeighbour(WorldPoint neighbour, int neighbourDist, HashMap<WorldPoint, Integer> tileDistances, List<WorldPoint> nextFrontier) {
+        if (tileDistances.putIfAbsent(neighbour, neighbourDist) == null) {
+            nextFrontier.add(neighbour);
+        }
     }
 
     /**
@@ -175,6 +203,11 @@ public class TileService {
      */
     private boolean[][] getReachableTilesMatrix() {
         Client client = ctxProvider.get().getClient();
+        int tick = client.getTickCount();
+        if (tick == reachabilityMatrixTick && cachedReachabilityMatrix != null) {
+            return cachedReachabilityMatrix;
+        }
+
         Player localPlayer = ctxProvider.get().runOnClientThread(client::getLocalPlayer);
         if (localPlayer == null) return null;
 
@@ -188,7 +221,10 @@ public class TileService {
         if (collisionData == null) return null;
         int[][] flags = collisionData[wv.getPlane()].getFlags();
 
-        return floodReachableTiles(playerLp.getSceneX(), playerLp.getSceneY(), flags);
+        boolean[][] matrix = floodReachableTiles(playerLp.getSceneX(), playerLp.getSceneY(), flags);
+        cachedReachabilityMatrix = matrix;
+        reachabilityMatrixTick = tick;
+        return matrix;
     }
 
     /**
@@ -277,21 +313,12 @@ public class TileService {
 
         if (targetPoint.getPlane() != playerLoc.getPlane()) return false;
 
-        final int[][] flags = getFlags();
-        if (flags == null) return false;
+        // Shares the tick-cached player-reachability flood with isObjectReachable; the flood always
+        // starts from the player's scene tile, and isVisited handles the target-side (instanced)
+        // coordinate conversion.
+        boolean[][] visited = getReachableTilesMatrix();
+        if (visited == null) return false;
 
-        final int startX;
-        final int startY;
-        if (ctxProvider.get().getClient().getTopLevelWorldView().getScene().isInstance()) {
-            LocalPoint localPoint = player.raw().getLocalLocation();
-            startX = localPoint.getSceneX();
-            startY = localPoint.getSceneY();
-        } else {
-            startX = playerLoc.getX() - ctxProvider.get().getClient().getTopLevelWorldView().getBaseX();
-            startY = playerLoc.getY() - ctxProvider.get().getClient().getTopLevelWorldView().getBaseY();
-        }
-
-        boolean[][] visited = floodReachableTiles(startX, startY, flags);
         return isVisited(targetPoint, visited);
     }
 
@@ -330,20 +357,6 @@ public class TileService {
         int x = worldPoint.getX() - wv.getBaseX();
         int y = worldPoint.getY() - wv.getBaseY();
         return isWithinBounds(x, y) && visited[x][y];
-    }
-
-    /**
-     * Returns collision flags for the current plane
-     * @return 2D array of collision flags
-     */
-    private int[][] getFlags() {
-        final WorldView wv = ctxProvider.get().getClient().getTopLevelWorldView();
-        if (wv == null) return null;
-
-        final CollisionData[] collisionData = wv.getCollisionMaps();
-        if (collisionData == null) return null;
-
-        return collisionData[wv.getPlane()].getFlags();
     }
 
     /**
@@ -508,88 +521,6 @@ public class TileService {
             worldPoints.add(worldPoint);
         return worldPoints;
     }
-
-    /**
-     * Returns a normal WorldPoint given a world point that originated in an instance.
-     * @param worldPoint WorldPoint to convert
-     * @return a normalized WorldPoint from an instance WorldPoint
-     */
-//    public WorldPoint fromInstance(WorldPoint worldPoint) {
-//        LocalPoint localPoint = LocalPoint.fromWorld(client.getTopLevelWorldView(), worldPoint);
-//
-//        // if local point is null or not in an instanced region, return the world point as is
-//        if (localPoint == null || !client.getTopLevelWorldView().isInstance())
-//            return worldPoint;
-//
-//        int sceneX = localPoint.getSceneX();
-//        int sceneY = localPoint.getSceneY();
-//
-//        int chunkX = sceneX / CHUNK_SIZE;
-//        int chunkY = sceneY / CHUNK_SIZE;
-//
-//        int[][][] instanceTemplateChunks = client.getTopLevelWorldView().getInstanceTemplateChunks();
-//        int templateChunk = instanceTemplateChunks[worldPoint.getPlane()][chunkX][chunkY];
-//
-//        int rotation = templateChunk >> 1 & 0x3;
-//        int templateChunkY = (templateChunk >> 3 & 0x7FF) * CHUNK_SIZE;
-//        int templateChunkX = (templateChunk >> 14 & 0x3FF) * CHUNK_SIZE;
-//        int templateChunkPlane = templateChunk >> 24 & 0x3;
-//
-//        int x = templateChunkX + (sceneX & (CHUNK_SIZE - 1));
-//        int y = templateChunkY + (sceneY & (CHUNK_SIZE - 1));
-//
-//        return rotate(new WorldPoint(x, y, templateChunkPlane), 4 - rotation);
-//    }
-
-    /**
-     * Converts a normal WorldPoint into an instanced version of the WorldPoint
-     * @param worldPoint Normal WorldPoint to convert
-     * @return The instanced WorldPoint
-     */
-//    public WorldPoint toInstance(WorldPoint worldPoint) {
-//        if (!client.getTopLevelWorldView().isInstance()) {
-//            return worldPoint;
-//        }
-//
-//        ArrayList<WorldPoint> worldPoints = new ArrayList<>();
-//        int[][][] instanceTemplateChunks = client.getTopLevelWorldView().getInstanceTemplateChunks();
-//        for (int z = 0; z < instanceTemplateChunks.length; z++) {
-//            for (int x = 0; x < instanceTemplateChunks[z].length; ++x) {
-//                for (int y = 0; y < instanceTemplateChunks[z][x].length; ++y) {
-//                    int chunkData = instanceTemplateChunks[z][x][y];
-//                    int rotation = chunkData >> 1 & 0x3;
-//                    int templateChunkY = (chunkData >> 3 & 0x7FF) * CHUNK_SIZE;
-//                    int templateChunkX = (chunkData >> 14 & 0x3FF) * CHUNK_SIZE;
-//                    int plane = chunkData >> 24 & 0x3;
-//                    if (worldPoint.getX() >= templateChunkX && worldPoint.getX() < templateChunkX + CHUNK_SIZE
-//                            && worldPoint.getY() >= templateChunkY && worldPoint.getY() < templateChunkY + CHUNK_SIZE
-//                            && plane == worldPoint.getPlane()) {
-//                        WorldPoint p = new WorldPoint(client.getTopLevelWorldView().getBaseX() + x * CHUNK_SIZE + (worldPoint.getX() & (CHUNK_SIZE - 1)),
-//                                client.getTopLevelWorldView().getBaseY() + y * CHUNK_SIZE + (worldPoint.getY() & (CHUNK_SIZE - 1)),
-//                                z);
-//                        p = rotate(p, rotation);
-//                        worldPoints.add(p);
-//                    }
-//                }
-//            }
-//        }
-//        if (worldPoints.isEmpty())
-//            worldPoints.add(worldPoint);
-//        return worldPoints.get(0);
-//    }
-
-//    /**
-//     * Returns a world point from a clicked point on the world map.
-//     * @return WorldPoint calculated world point object
-//     */
-//    public WorldPoint fromMap() {
-//        WorldMap worldMap = client.getWorldMap();
-//        if(worldMap == null || !widgetService.isWidgetVisible(WidgetInfo.WORLD_MAP_VIEW.getId()))
-//            return null;
-//
-//        Point p = worldMap.getWorldMapPosition();
-//        return WorldPointUtil.translate(new WorldPoint(p.getX(), p.getY(), client.getTopLevelWorldView().getPlane()));
-//    }
 
     /**
      * Rotate the coordinates in the chunk according to chunk rotation

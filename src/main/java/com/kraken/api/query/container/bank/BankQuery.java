@@ -1,8 +1,7 @@
 package com.kraken.api.query.container.bank;
 
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractQuery;
 import com.kraken.api.service.bank.BankService;
@@ -11,7 +10,6 @@ import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.gameval.InventoryID;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,23 +22,18 @@ import java.util.stream.Stream;
 @Slf4j
 public class BankQuery extends AbstractQuery<BankEntity, BankQuery, BankItemWidget> {
 
+    // Item compositions are global and immutable, so the cache is shared across all BankQuery
+    // instances rather than being rebuilt and discarded on every ctx.bank() call.
+    private static final Cache<Integer, ItemComposition> ITEM_DEFS = CacheBuilder.newBuilder()
+            .maximumSize(1000)
+            .expireAfterWrite(20, TimeUnit.MINUTES)
+            .build();
+
     private int lastUpdateTick = -1;
     private List<BankItemWidget> cachedItems = Collections.emptyList();
-    private final LoadingCache<Integer, ItemComposition> itemDefs;
 
     public BankQuery(Context ctx) {
         super(ctx);
-        this.itemDefs = CacheBuilder.newBuilder()
-            .maximumSize(1000)
-            .expireAfterWrite(20, TimeUnit.MINUTES)
-            .build(new CacheLoader<>() {
-                       @NonNull
-                       @Override
-                       public ItemComposition load(@NonNull Integer itemId) {
-                           return ctx.runOnClientThread(() -> ctx.getItemManager().getItemComposition(itemId));
-                       }
-                   }
-            );
     }
 
     @Override
@@ -67,7 +60,7 @@ public class BankQuery extends AbstractQuery<BankEntity, BankQuery, BankItemWidg
                             continue;
                         }
 
-                        ItemComposition comp = itemDefs.get(item.getId());
+                        ItemComposition comp = ITEM_DEFS.get(item.getId(), () -> ctx.getItemManager().getItemComposition(item.getId()));
                         if (comp.getPlaceholderTemplateId() == 14401) {
                             i++;
                             continue;

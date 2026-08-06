@@ -25,9 +25,12 @@ public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
 
     @Override
     protected Supplier<Stream<NpcEntity>> source() {
+        // The terminal operation in AbstractQuery consumes this stream inside a single client-thread
+        // block, so these field reads are already on the client thread; a per-NPC runOnClientThread
+        // here only added a marshaling round-trip (and a Boolean-unboxing NPE on timeout) per NPC.
         return () -> ctx.getClient().getTopLevelWorldView().npcs().stream()
                 .filter(Objects::nonNull)
-                .filter(n -> ctx.runOnClientThread(() -> n.getName() != null && n.getId() != -1))
+                .filter(n -> n.getName() != null && n.getId() != -1)
                 .map(rawNpc -> new NpcEntity(ctx, rawNpc));
     }
 

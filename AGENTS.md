@@ -33,7 +33,7 @@
 - Keep packet and reflection logic localized. Do not spread obfuscated client lookups, packet method resolution, or runtime hook patching into unrelated services or queries.
 - Preserve the service/query distinction. Use `service` for static or global game systems, and `query` for dynamic entities that are filtered and interacted with fluently.
 - Keep `Script` orchestration separate from plugin wiring. Put reusable task logic behind `Task`, `AbstractTask`, or service classes instead of embedding everything in plugin event handlers.
-- Do not mutate game client details directly from arbitrary layers when a dedicated helper already exists in `core.packet`, `core.interceptor`, or `service.util.reflect`.
+- Do not mutate game client details directly from arbitrary layers when a dedicated helper already exists in `core.packet`, `core.interaction`, or `service.util` (e.g. `ReflectionService`).
 
 ### Testing policy (agents and contributors)
 
@@ -54,7 +54,7 @@
 - `Context` wires together:
   - query accessors for players, NPCs, objects, inventory, equipment, widgets, worlds, bank, and deposit box
   - high-level services for bank, dialogue, movement, camera, prayer, magic, UI, grand exchange, map, and utility behavior
-  - runtime hooks and interceptors for packet/mouse behavior
+  - runtime hooks for packet/mouse behavior
   - client-thread helpers so callers do not need to manage RuneLite thread rules manually
 - `Script` is the main long-running automation primitive. It handles lifecycle, game-tick execution, pause/resume, and break management.
 
@@ -110,7 +110,7 @@ This section is the working guide for AI systems and humans asking AI systems to
 
 - Main source root: `src/main/java/com/kraken/api/`
 - Core package groups:
-  - `core` for script, packet, interaction, and interceptor infrastructure
+  - `core` for script, packet, interaction, and hooks infrastructure
   - `query` for fluent entity queries and wrappers
   - `service` for higher-level game actions and system helpers
   - `input` for mouse and keyboard handling

@@ -15,10 +15,6 @@ public class NoMovement implements MoveableMouse {
     @Inject
     private Client client;
 
-    @Override
-    public Canvas getCanvas() {
-        return client.getCanvas();
-    }
 
     // Purposely does nothing. This class exists so users can opt to not have any mouse movement in their plugins
     // if so desired. They can use this strategy to skip mouse movement all-together while maintaing the ability

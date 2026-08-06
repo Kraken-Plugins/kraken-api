@@ -20,10 +20,6 @@ public class BezierStrategy implements MoveableMouse {
     @Inject
     private Client client;
 
-    @Override
-    public Canvas getCanvas() {
-        return client.getCanvas();
-    }
 
     /**
      * Moves the mouse cursor along a cubic Bezier curve path to the specified target point.

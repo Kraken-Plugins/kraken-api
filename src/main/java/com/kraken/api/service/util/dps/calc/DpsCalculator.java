@@ -392,10 +392,6 @@ public class DpsCalculator {
         return wearing("Ivandis flail", "Blisterwood sickle", "Blisterwood flail", "Hallowed flail", "Sunspear");
     }
 
-    private boolean isWearingMsb() {
-        return wearing("Magic shortbow", "Magic shortbow (i)");
-    }
-
     private boolean isWearingOgreBow() {
         return wearing("Ogre bow", "Comp ogre bow");
     }

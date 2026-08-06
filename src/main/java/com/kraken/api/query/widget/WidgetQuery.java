@@ -133,7 +133,9 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
      *         {@code null} if no matching widget is found.
      */
     public WidgetEntity get(int packedId) {
-        return withId(packedId).first();
+        // client.getWidget(packedId) resolves the component directly; withId(packedId).first() would
+        // enumerate the whole widget tree to find the same widget.
+        return fromClient(packedId);
     }
 
 
@@ -147,7 +149,7 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
      * @return The corresponding {@link WidgetEntity}, or {@code null} if no match is found.
      */
     public WidgetEntity get(WidgetInfo widgetInfo) {
-        return withId(widgetInfo.getId()).first();
+        return fromClient(widgetInfo.getId());
     }
 
 
@@ -169,7 +171,7 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
      *         or {@code null} if no matching widget is found.
      */
     public WidgetEntity get(int groupId, int childId) {
-        return withGroupChild(groupId, childId).first();
+        return fromClient(groupId, childId);
     }
 
     /**

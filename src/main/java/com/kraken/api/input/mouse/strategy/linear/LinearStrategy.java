@@ -26,10 +26,6 @@ public class LinearStrategy implements MoveableMouse {
     @Setter
     private int steps;
 
-    @Override
-    public Canvas getCanvas() {
-        return client.getCanvas();
-    }
 
     @Override
     public void move(Point start, Point target) {

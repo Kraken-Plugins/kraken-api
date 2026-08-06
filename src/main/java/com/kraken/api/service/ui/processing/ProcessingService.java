@@ -33,10 +33,8 @@ public class ProcessingService {
      * to create, not necessarily the item the player has. i.e. for cooking Salmon it expects the item id
      * of a cooked salmon, not the raw salmon that the player may have in their inventory.
      *
-     * <p>This method iterates over a map of processable item IDs and their associated slot indices,
-     * checking if any of the provided {@code itemIds} match the available items. If a match is found,
-     * it sends a "resume/pause" action packet for the corresponding widget slot with the current
-     * quantity value.</p>
+     * <p>This method scans the currently processable items and, on the first match, performs the
+     * given {@code action} on that item's widget through the interaction manager.</p>
      *
      * @param itemIds A variable-length list of item IDs to compare against the processable
      *                items currently available. These represent the items the user
@@ -68,10 +66,8 @@ public class ProcessingService {
      * to create, not necessarily the item the player has. i.e. for cooking Salmon it expects the item id
      * of a cooked salmon, not the raw salmon that the player may have in their inventory.
      *
-     * <p>This method iterates over a map of processable item IDs and their associated slot indices,
-     * checking if any of the provided {@code itemIds} match the available items. If a match is found,
-     * it sends a "resume/pause" action packet for the corresponding widget slot with the current
-     * quantity value.</p>
+     * <p>This method scans the currently processable items and, on the first match, performs the
+     * given {@code action} on that item's widget through the interaction manager.</p>
      *
      * @param containerItem A non null container item to compare against the processable
      *                items currently available. These represent the items the user

@@ -34,21 +34,15 @@ public class SailingService {
     /**
      * Sets the sailing direction of the boat in the game.
      * <p>
-     * This method first ensures that the necessary game packets are loaded. If not, it
-     * immediately returns {@literal false}. If packets are loaded, a mouse click packet
-     * is queued, followed by a request to update the boat direction using the provided
-     * {@link Direction} value.
-     *
-     * <p>The direction is set by passing the direction's code to the sailing packet system.
-     * Directions are represented using predefined constants in the {@link Direction} enumeration.
-     * </p>
+     * Queues a mouse click packet and then a SET_HEADING request carrying the provided
+     * {@link Direction}'s code. Directions are represented using predefined constants in the
+     * {@link Direction} enumeration.
      *
      * @param direction The desired {@link Direction} to set the boat's heading.
      *                  Directions are enumerated values ranging from {@literal SOUTH(0)} to
      *                  {@literal SOUTH_SOUTH_EAST(15)}.
      *
-     * @return {@literal true} if the direction was successfully set;
-     *         {@literal false} if the necessary game packets were not loaded.
+     * @return {@literal true} once the heading request has been queued.
      */
     public boolean setDirection(Direction direction) {
         mousePackets.queueClickPacket(1, 1);

@@ -22,10 +22,6 @@ public class WindStrategy implements MoveableMouse {
     private final double SQRT_3 = Math.sqrt(3);
     private final double SQRT_5 = Math.sqrt(5);
 
-    @Override
-    public Canvas getCanvas() {
-        return client.getCanvas();
-    }
 
     @Override
     public void move(Point start, Point target) {
