@@ -2,6 +2,7 @@ package com.kraken.api.query.world;
 
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import com.kraken.api.core.AbstractQuery;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.World;
@@ -27,7 +28,7 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
     @Override
     protected Supplier<Stream<WorldEntity>> source() {
         return () -> {
-            WorldService worldService = RuneLite.getInjector().getInstance(WorldService.class);
+            WorldService worldService = Services.get(WorldService.class);
             WorldResult worlds = worldService.getWorlds();
 
             if (worlds == null) return Stream.empty();

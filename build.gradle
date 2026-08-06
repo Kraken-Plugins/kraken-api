@@ -92,7 +92,6 @@ shadowJar {
     archiveVersion = projectVersion
     archiveClassifier = '' // Purposefully leave this as none the only jar produced is the shaded jar.
 
-    exclude 'map.dat'
     exclude 'kraken.png'
 
     dependencies {

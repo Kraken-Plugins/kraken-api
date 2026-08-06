@@ -1,9 +1,10 @@
 package com.kraken.api.core;
 
 import com.kraken.api.Context;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -13,21 +14,81 @@ import java.util.stream.Stream;
 /**
  * Forms the base class for all game client queries. This class defines generic actions which can be taken
  * on streams of game objects like NPC's, Ground Items, Tile Objects, Players and Widgets.
+ *
+ * <h3>Threading</h3>
+ * <p>Every terminal operation funnels through a single evaluation that runs entirely on the client
+ * thread and returns a materialised snapshot. Nothing lazy escapes: the {@link Stream} handed back by
+ * {@link #stream()} iterates that snapshot, not the live scene, so filters and downstream operations
+ * never touch client state from a script thread.</p>
+ *
+ * <h3>Failure</h3>
+ * <p>Collection-valued results are never {@code null}. If the client thread cannot answer — it is
+ * blocked, or the client is loading — the query logs and yields an empty result, so callers can treat
+ * "nothing matched" and "could not look" the same way when that is what they want. Callers who need to
+ * distinguish them should ask {@link Context#runOnClientThread(java.util.concurrent.Callable)} directly.</p>
+ *
+ * <h3>Reuse</h3>
+ * <p>A query may be evaluated repeatedly and returns fresh results each time. Filters, de-duplication
+ * and sorting are declarations, not consumed state.</p>
+ *
  * @param <T> The type of object being queried (e.g., NpcEntity, WidgetEntity)
  * @param <Q> The concrete query class (e.g., NpcQuery)
  * @param <R> The raw RuneLite type (NPC, Widget, TileObject, etc.)
  */
+@Slf4j
 public abstract class AbstractQuery<T extends Interactable<R>, Q extends AbstractQuery<T, Q, R>, R> {
     protected final Context ctx;
     private final List<Predicate<T>> filters = new ArrayList<>();
+    private final List<Function<T, Object>> distinctKeys = new ArrayList<>();
     private Comparator<T> comparator = null;
-    private static final Random random = new Random();
 
     public AbstractQuery(Context ctx) {
         this.ctx = ctx;
     }
 
     protected abstract Supplier<Stream<T>> source();
+
+    /**
+     * Evaluates the query on the client thread and returns a materialised snapshot.
+     *
+     * <p>This is the single place the source is read. The collect happens inside the client-thread block
+     * so that traversal of live game state stays on the client thread regardless of which thread the
+     * caller is on.</p>
+     *
+     * @return the matching entities, never {@code null}; empty if nothing matched or the client thread
+     *         could not be reached.
+     */
+    private List<T> evaluate() {
+        try {
+            return ctx.runOnClientThread(() -> {
+                Stream<T> stream = source().get();
+                if (stream == null) {
+                    return Collections.<T>emptyList();
+                }
+
+                for (Predicate<T> filter : filters) {
+                    stream = stream.filter(filter);
+                }
+
+                List<T> items = stream.collect(Collectors.toList());
+
+                // De-duplication uses a set built per evaluation, so re-running the query does not
+                // inherit the keys seen by a previous run.
+                for (Function<T, Object> keyExtractor : distinctKeys) {
+                    Set<Object> seen = new HashSet<>();
+                    items.removeIf(item -> !seen.add(keyExtractor.apply(item)));
+                }
+
+                if (comparator != null) {
+                    items.sort(comparator);
+                }
+                return items;
+            });
+        } catch (ClientThreadException e) {
+            log.warn("Query could not be evaluated: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
 
     /**
      * Applies a predicate to the stream to filter elements of the stream.
@@ -70,93 +131,51 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     }
 
     /**
-     * Returns an empty stream.
-     * @return An empty stream containing no elements.
+     * Filters out every element, so the query yields nothing.
+     * @return Q matching no entities.
      */
     public Q empty() {
         return filter(t -> false);
     }
 
-
     /**
-     * Checks if the stream contains no elements.
-     * <p>
-     * This method determines whether the stream is empty by checking
-     * if the count of elements in the stream is equal to zero.
-     * </p>
-     *
-     * @return {@code true} if the stream contains no elements; otherwise, {@code false}.
+     * Checks if the query matches no elements.
+     * @return {@code true} if nothing matched; otherwise {@code false}.
      */
     public boolean isEmpty() {
-        return count() == 0;
+        return evaluate().isEmpty();
     }
 
     /**
-     * Randomizes the order of elements in the stream and returns a new stream with the shuffled elements.
-     * <p>
-     * This method collects all elements in the stream into a list, shuffles the list using
-     * {@code Collections.shuffle(List)}, and then converts the shuffled list back into a stream for further use.
-     * </p>
-     *
-     * <p>
-     * Note: This operation consumes the original stream, making it unsuitable for re-use after calling this method.
-     * Additionally, the shuffling process may impact performance for very large datasets due to memory usage
-     * (as it fully materializes the stream into a list) and the shuffling algorithm.
-     * </p>
-     *
-     * @return A new {@code Stream<T>} containing the same elements as the original stream, but in a randomized order.
+     * Randomises the order of the matched elements.
+     * @return A {@code Stream<T>} over the matched entities in randomised order.
      */
     public Stream<T> shuffle() {
-        List<T> list = stream().collect(Collectors.toList());
-        Collections.shuffle(list);
-        return list.stream();
+        List<T> items = evaluate();
+        Collections.shuffle(items);
+        return items.stream();
     }
 
     /**
-     * Reverses the order of elements in the stream and returns a new stream with the reversed order.
-     * <p>
-     * This method collects all elements in the stream into a list, reverses the list using
-     * {@code Collections.reverse(List)}, and then converts the reversed list back into a stream for further use.
-     * </p>
-     *
-     * <p>
-     * Note: This operation consumes the original stream, making it unsuitable for re-use
-     * after calling this method. Additionally, the reversal process may impact performance
-     * for very large datasets due to memory usage (as it fully materializes the stream into a list).
-     * </p>
-     *
-     * @return A new {@code Stream<T>} containing the same elements as the original stream, but in reversed order.
+     * Reverses the order of the matched elements.
+     * @return A {@code Stream<T>} over the matched entities in reverse order.
      */
     public Stream<T> reverse() {
-        List<T> list = stream().collect(Collectors.toList());
-        Collections.reverse(list);
-        return list.stream();
+        List<T> items = evaluate();
+        Collections.reverse(items);
+        return items.stream();
     }
 
-
     /**
-     * Returns the raw stream of elements in the query so filters and matching can be
-     * manually applied.
+     * Returns the matched entities as a stream.
+     *
+     * <p>The stream iterates a snapshot taken on the client thread, so it is safe to consume from any
+     * thread and will not observe entities spawning or despawning mid-traversal.</p>
+     *
      * @return Stream of entities
      */
     public Stream<T> stream() {
-        return ctx.runOnClientThread(() -> {
-            Stream<T> stream = source().get();
-
-            if(stream == null) {
-                return Stream.empty();
-            }
-
-            for (Predicate<T> filter : filters) {
-                stream = stream.filter(filter);
-            }
-
-            if (comparator != null) {
-                stream = stream.sorted(comparator);
-            }
-
-            return stream;
-        });
+        return evaluate().stream();
     }
 
     /**
@@ -167,28 +186,15 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      * @return Stream of RuneLite API objects
      */
     public Stream<R> toRuneLite() {
-        return ctx.runOnClientThread(() -> stream().map(T::raw));
+        return evaluate().stream().map(T::raw);
     }
 
     /**
-     * Returns a count of objects in the stream
+     * Returns a count of matched entities.
      * @return long count of objects.
      */
     public long count() {
-        return ctx.runOnClientThread(() -> {
-            Stream<T> stream = source().get();
-
-            if(stream == null) {
-                return 0L;
-            }
-
-            // Apply filters but do not waste time sorting for a basic count op
-            for (Predicate<T> filter : filters) {
-                stream = stream.filter(filter);
-            }
-
-            return stream.count();
-        });
+        return evaluate().size();
     }
 
     /**
@@ -230,64 +236,56 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     }
 
     /**
-     * Returns a random element from the filtered list.
+     * Returns a random element from the matched entities.
      * Useful for anti-ban measures (e.g., picking a random cow to attack).
-     * @return T A random entity from the stream
+     * @return T A random matched entity, or {@code null} if nothing matched.
      */
     public T random() {
-        List<T> all = list();
+        List<T> all = evaluate();
         if (all.isEmpty()) return null;
-        return all.get(random.nextInt(all.size()));
+        return all.get(ThreadLocalRandom.current().nextInt(all.size()));
     }
 
     /**
-     * Filters the stream to only include elements that are distinct based on a property.
+     * Keeps only the first entity for each distinct key.
      * Usage: {@code ctx.npcs().distinct(NpcEntity::getName).list();}
      * (Returns one of each type of NPC nearby)
+     *
+     * <p>De-duplication is applied after filtering, and a fresh key set is used on every evaluation, so
+     * the query can be re-run and will produce the same result.</p>
+     *
      * @param keyExtractor The function to use to determine uniqueness keys between entities
      * @return Q The distinct entities
      */
+    @SuppressWarnings("unchecked")
     public Q distinct(Function<T, Object> keyExtractor) {
-        Set<Object> seen = ConcurrentHashMap.newKeySet();
-        return filter(t -> seen.add(keyExtractor.apply(t)));
+        if (keyExtractor != null) {
+            distinctKeys.add(keyExtractor);
+        }
+        return (Q) this;
     }
 
     /**
-     * Ensures that only unique elements based on their IDs are included in the stream.
-     * <p>
-     * This method acts as a wrapper around the {@code distinctById()} method to provide a concise alias.
-     * It guarantees that the resulting stream contains only distinct elements whose IDs have not
-     * previously appeared in the stream.
-     * </p>
-     *
-     * @return Q A filtered stream containing only unique elements based on their IDs.
+     * Ensures that only unique elements based on their IDs are included.
+     * <p>An alias for {@link #distinctById()}.</p>
+     * @return Q containing only unique elements based on their IDs.
      */
     public Q unique() {
         return distinctById();
     }
 
     /**
-     * Filters the stream of elements, ensuring only unique elements are returned based on their IDs.
-     * <p>
-     * This method uses a thread-safe {@literal Set} to track IDs of processed elements.
-     * The elements are included in the resulting stream only if their ID has not been seen before.
-     * </p>
-     *
-     * <p>
-     * <b>Note:</b> This operation assumes that each element in the stream has a unique identifier accessible through {@code getId()}.
-     * </p>
-     *
-     * @return Q A filtered stream containing only elements with unique IDs.
+     * Keeps only the first entity for each distinct id.
+     * @return Q A filtered result containing only elements with unique IDs.
      */
     public Q distinctById() {
-        Set<Object> seen = ConcurrentHashMap.newKeySet();
-        return filter(t -> seen.add(t.getId()));
+        return distinct(Interactable::getId);
     }
 
     /**
-     * Applies a comparator to the stream for sorting elements within the stream.
+     * Applies a comparator used to sort the matched entities.
      * @param comparator Comparator to add
-     * @return Q A sorted stream of entities
+     * @return Q A sorted query
      */
     @SuppressWarnings("unchecked")
     public Q sorted(Comparator<T> comparator) {
@@ -296,114 +294,70 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     }
 
     /**
-     * Returns the stream of entities as a list of objects
-     * @return A list of objects that have been queried (e.g., NpcEntity, WidgetEntity)
+     * Returns the matched entities as a list.
+     * @return A list of matched entities (e.g., NpcEntity, WidgetEntity), never {@code null}.
      */
     public List<T> list() {
-        return ctx.runOnClientThread(() -> {
-            Stream<T> stream = source().get();
-
-            if(stream == null) {
-                return Collections.emptyList();
-            }
-
-            for (Predicate<T> filter : filters) {
-                stream = stream.filter(filter);
-            }
-
-            if (comparator != null) {
-                stream = stream.sorted(comparator);
-            }
-
-            return stream.collect(Collectors.toList());
-        });
+        return evaluate();
     }
 
     /**
      * An alias for {@code list()}.
-     * @return The stream of entities as a list of objects.
+     * @return The matched entities as a list.
      */
     public List<T> result() {
         return list();
     }
 
     /**
-     * Collects the stream of entities into a map keyed by the id of the element in the map. Generally this will
+     * Collects the matched entities into a map keyed by the id of the element. Generally this will
      * be the item id for objects like {@code ContainerItem}, {@code EquipmentEntity}, and {@code GroundObjectEntity} but
      * can take on other ids for things like Game objects, NPC's and widgets.
+     *
+     * <p>Ids are not unique in general — two cows share an NPC id — so when several entities share an
+     * id, the first one encountered wins.</p>
+     *
      * @return Map of entities keyed by their id.
      */
     public Map<Integer, T> map() {
-        return stream().collect(Collectors.toMap(T::getId, Function.identity()));
+        return evaluate().stream()
+                .collect(Collectors.toMap(T::getId, Function.identity(), (first, duplicate) -> first));
     }
 
     /**
-     * Returns the first type of object being queried (e.g., NpcEntity, WidgetEntity) from the stream.
-     * If the stream contains no objects, then this will return null.
-     * @return T The first type of object being queried (e.g., NpcEntity, WidgetEntity)
+     * Returns the first matched entity (e.g., NpcEntity, WidgetEntity), or {@code null} if nothing matched.
+     * @return T The first matched entity, or {@code null}.
      */
     public T first() {
-        return ctx.runOnClientThread(() -> {
-            Stream<T> stream = source().get();
-            for (Predicate<T> filter : filters) {
-                stream = stream.filter(filter);
-            }
-
-            if (comparator != null) {
-                stream = stream.sorted(comparator);
-            }
-
-            return stream.findFirst().orElse(null);
-        });
+        List<T> items = evaluate();
+        return items.isEmpty() ? null : items.get(0);
     }
 
     /**
-     * Returns the first type of object being queried (e.g. NpcEntity, WidgetEntity) from the stream matching
-     * a provided predicate. If the stream contains no object then this will return null. This respects predicates
-     * which have already been applied via {@link filter}.
-     * @param predicate The predicate to apply to the stream of objects
-     * @return T the first type of object being queried matching the provided predicate.
+     * Returns the first matched entity that also satisfies the provided predicate, respecting any
+     * predicates already applied via {@link #filter}.
+     * @param predicate The predicate to apply
+     * @return T the first matching entity, or {@code null}.
      */
     public T firstMatching(Predicate<T> predicate) {
-        return ctx.runOnClientThread(() -> {
-            Stream<T> stream = source().get();
-            for (Predicate<T> filter : filters) {
-                stream = stream.filter(filter);
-            }
-
-            if (comparator != null) {
-                stream = stream.sorted(comparator);
-            }
-
-            return stream.filter(predicate).findFirst().orElse(null);
-        });
+        return evaluate().stream().filter(predicate).findFirst().orElse(null);
     }
 
     /**
-     * Returns true if the type of entity being queried is present and not null in the scene.
+     * Returns true if at least one entity matched.
      * @return True if the entity is present and false otherwise.
      */
     public boolean isPresent() {
-        return ctx.runOnClientThread(() -> {
-            Stream<T> stream = source().get();
-            for (Predicate<T> filter : filters) {
-                stream = stream.filter(filter);
-            }
-
-            if (comparator != null) {
-                stream = stream.sorted(comparator);
-            }
-
-            return stream.findAny().isPresent();
-        });
+        return !evaluate().isEmpty();
     }
 
     /**
-     * Takes the first N elements from the stream and returns them as a list.
-     * @param n The number of elements to take from the stream.
+     * Takes the first N matched entities.
+     * @param n The number of elements to take.
      * @return List of entities
      */
     public List<T> take(int n) {
-        return stream().limit(n).collect(Collectors.toList());
+        List<T> items = evaluate();
+        return items.size() <= n ? items : new ArrayList<>(items.subList(0, Math.max(0, n)));
     }
 }

@@ -1,7 +1,9 @@
 package com.kraken.api.service.util;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.script.RunnableTask;
+import com.kraken.api.core.Services;
+import com.kraken.api.core.script.ScriptCancellation;
+import com.kraken.api.core.script.ScriptStoppedException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Player;
@@ -27,7 +29,9 @@ import java.util.function.BooleanSupplier;
 @Singleton
 public class SleepService {
 
-    private static final Context ctx = RuneLite.getInjector().getInstance(Context.class);
+    private static Context ctx() {
+        return Services.context();
+    }
 
     /**
      * Default budget for the wait helpers that do not take an explicit timeout.
@@ -48,7 +52,7 @@ public class SleepService {
      * @throws IllegalStateException when invoked on the client thread.
      */
     private static void assertOffClientThread() {
-        if (ctx.getClient().isClientThread()) {
+        if (ctx().getClient().isClientThread()) {
             throw new IllegalStateException("SleepService may not be called on the client thread — "
                     + "the client thread cannot advance the game state it would be waiting for. "
                     + "Move this call onto a script thread, or schedule the follow-up work with "
@@ -58,10 +62,13 @@ public class SleepService {
 
     /**
      * Throws if the script that owns this thread has been cancelled or the thread was interrupted.
+     *
+     * <p>Cancellation is read from the token bound to the calling thread, so a stopping script only
+     * interrupts its own waits.</p>
      */
     private static void assertNotCancelled() {
-        if (Thread.currentThread().isInterrupted() || RunnableTask.isCanceled()) {
-            throw new RuntimeException("Script stopped during sleep");
+        if (Thread.currentThread().isInterrupted() || ScriptCancellation.currentThreadCancelled()) {
+            throw new ScriptStoppedException("Script stopped during sleep");
         }
     }
 
@@ -107,9 +114,9 @@ public class SleepService {
     public static boolean sleepUntilTicks(BooleanSupplier condition, int ticks) {
         assertOffClientThread();
 
-        int end = ctx.getClient().getTickCount() + ticks;
+        int end = ctx().getClient().getTickCount() + ticks;
         while (!condition.getAsBoolean()) {
-            if (ctx.getClient().getTickCount() >= end) {
+            if (ctx().getClient().getTickCount() >= end) {
                 return false;
             }
             assertNotCancelled();
@@ -124,7 +131,7 @@ public class SleepService {
      */
     public static boolean sleepUntilIdle() {
         assertOffClientThread();
-        return sleepUntil(() -> ctx.players().local().isIdle());
+        return sleepUntil(() -> ctx().players().local().isIdle());
     }
 
     /**
@@ -137,7 +144,7 @@ public class SleepService {
     public static boolean sleepUntilTile(int worldX, int worldY) {
         assertOffClientThread();
         return sleepUntil(() -> {
-            Player player = ctx.players().local().raw();
+            Player player = ctx().players().local().raw();
             if (player == null) {
                 return false;
             }
@@ -266,9 +273,9 @@ public class SleepService {
     public static void sleepFor(int ticks) {
         assertOffClientThread();
 
-        int tick = ctx.getClient().getTickCount() + ticks;
-        int start = ctx.getClient().getTickCount();
-        while (ctx.getClient().getTickCount() < tick && ctx.getClient().getTickCount() >= start) {
+        int tick = ctx().getClient().getTickCount() + ticks;
+        int start = ctx().getClient().getTickCount();
+        while (ctx().getClient().getTickCount() < tick && ctx().getClient().getTickCount() >= start) {
             assertNotCancelled();
             sleep(20);
         }

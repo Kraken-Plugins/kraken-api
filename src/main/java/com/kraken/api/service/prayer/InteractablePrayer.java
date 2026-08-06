@@ -1,6 +1,7 @@
 package com.kraken.api.service.prayer;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.runelite.api.Prayer;
@@ -73,7 +74,7 @@ public enum InteractablePrayer {
      * @return {@code true} if the prayer is active; {@code false} otherwise.
      */
     public boolean isActive() {
-        Context ctx = RuneLite.getInjector().getInstance(Context.class);
+        Context ctx = Services.get(Context.class);
         return ctx.getVarbitValue(getVarbit()) == 1;
     }
 

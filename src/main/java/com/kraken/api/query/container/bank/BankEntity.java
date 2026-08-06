@@ -142,9 +142,9 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
         }));
 
         if (actionQueued && ctx.getVarbitValue(VarbitID.BANK_REQUESTEDQUANTITY) != amount) {
-            // The count was answered by packet, but the dialogue the click opened is only drawn once
-            // the server replies. Closing it before it exists is a no-op that leaves it on screen to
-            // swallow the next interaction, so wait for it here — off the client thread.
+            // The count is answered by packet, but the dialogue the click opened is drawn only after
+            // the server replies, and dismissing it has no effect until it exists. Wait for it here,
+            // off the client thread.
             SleepService.sleepUntil(UIService::isNumberDialogueOpen, DIALOGUE_TIMEOUT_MS);
             UIService.closeNumberDialogue();
         }
@@ -165,10 +165,10 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
     /**
      * Puts the bank into the requested note mode and waits for the change to take effect.
      *
-     * <p>{@code BankService.setWithdrawMode} only dispatches the toggle click; the
-     * {@code BANK_WITHDRAWNOTES} varbit does not flip until the server replies. Dispatching a withdraw
-     * in the same client-thread pass therefore withdraws under the previous mode, which is why the
-     * wait happens here and off the client thread.</p>
+     * <p>{@code BankService.setWithdrawMode} dispatches the toggle click; the
+     * {@code BANK_WITHDRAWNOTES} varbit reflects the new mode only once the server replies. The wait
+     * happens here, off the client thread, so that callers can rely on the mode being active by the
+     * time this returns.</p>
      *
      * @param noted True to withdraw as notes, false to withdraw as items
      * @return true once the bank is in the requested mode, false if the toggle failed or timed out

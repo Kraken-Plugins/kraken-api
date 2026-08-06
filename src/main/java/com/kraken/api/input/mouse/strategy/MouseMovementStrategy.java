@@ -7,6 +7,7 @@ import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.input.mouse.strategy.none.NoMovement;
 import com.kraken.api.input.mouse.strategy.replay.ReplayStrategy;
 import com.kraken.api.input.mouse.strategy.wind.WindStrategy;
+import com.kraken.api.core.Services;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.RuneLite;
@@ -21,11 +22,34 @@ public enum MouseMovementStrategy {
     WIND(WindStrategy.class),
     REPLAY(ReplayStrategy.class);
     
-    @Getter
-    private final MoveableMouse strategy;
-    
+    private final Class<? extends MoveableMouse> strategyClass;
+    private volatile MoveableMouse strategy;
+
     MouseMovementStrategy(Class<? extends MoveableMouse> clazz) {
-        this.strategy = RuneLite.getInjector().getInstance(clazz);
+        this.strategyClass = clazz;
+    }
+
+    /**
+     * Returns the movement implementation for this strategy, resolving it on first use.
+     *
+     * <p>Enum constants initialise as a group, so resolving in the constructor would build every
+     * strategy the moment any one of them is referenced. Resolving here builds only the strategy that
+     * is actually used, and keeps the enum usable if the first reference happens before RuneLite's
+     * injector exists.</p>
+     *
+     * @return the {@link MoveableMouse} implementing this strategy.
+     */
+    public MoveableMouse getStrategy() {
+        MoveableMouse local = strategy;
+        if (local == null) {
+            synchronized (this) {
+                local = strategy;
+                if (local == null) {
+                    strategy = local = Services.get(strategyClass);
+                }
+            }
+        }
+        return local;
     }
 
     /**

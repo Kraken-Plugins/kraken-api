@@ -85,6 +85,7 @@ RuneLite, guice, guava, gson, slf4j, and lombok are `compileOnly` on purpose —
 - Java 11 toolchain; Lombok is used where surrounding code already uses it.
 - Descriptive names, no abbreviations. Search for an existing helper before writing a new one — refactor to generalize rather than duplicate.
 - Never hand-edit `build/**` or `docs/kraken-api/**` (generated).
+- When adding block comments to classes or methods avoid saying what the method did previously or why there was an error in previous versions of the code. Stick to what the code actively does now, since it has been changed.
 - Commits: sign off with `git commit -s`. Project policy is that AI agents are **never** listed as commit co-authors — omit any `Co-Authored-By` trailer naming an AI.
 - Versioning is automated: CI bumps the patch on merge to `master`; bump `version.txt` manually for a minor/major base.
 - Don't include comments like `// ------------- Something here ---------------` that doesn't add anything meaningful to the codebase

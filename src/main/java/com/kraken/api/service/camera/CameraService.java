@@ -4,6 +4,7 @@ package com.kraken.api.service.camera;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.core.KrakenThreads;
 import com.kraken.api.input.KeyboardService;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Singleton
 public class CameraService {
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService scheduler = KrakenThreads.newScheduler("camera");
     private ScheduledFuture<?> trackingTask;
 
     @Inject
@@ -359,7 +360,7 @@ public class CameraService {
      *
      * @param npcId the ID of the NPC to track
      */
-    public void trackNpc(int npcId) {
+    public synchronized void trackNpc(int npcId) {
         if (trackingTask != null && !trackingTask.isCancelled()) {
             log.error("Already tracking an NPC, cannot track another one.");
             return;
@@ -369,9 +370,20 @@ public class CameraService {
     }
 
     /**
+     * Stops any tracking job and releases the camera scheduler.
+     *
+     * <p>Called by {@link com.kraken.api.Context#shutdown()}; plugins do not need to invoke this
+     * directly.</p>
+     */
+    public synchronized void shutdown() {
+        stopTrackingNpc();
+        scheduler.shutdownNow();
+    }
+
+    /**
      * Stop tracking the NPC with the camera
      */
-    public void stopTrackingNpc() {
+    public synchronized void stopTrackingNpc() {
         if (trackingTask != null) {
             trackingTask.cancel(true);
             trackingTask = null;

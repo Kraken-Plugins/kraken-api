@@ -1,6 +1,7 @@
 package com.kraken.api.query.player;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.KrakenThreads;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.tile.GameArea;
 import lombok.Getter;
@@ -24,10 +25,19 @@ public class LocalPlayerEntity extends PlayerEntity {
     private static final int VENOM_THRESHOLD = 1000000;
     private static final int WIDGET_SPECIAL_ATTACK_ORB = 10485796;
 
-    private final  ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService executor = KrakenThreads.newScheduler("local-player");
 
     public LocalPlayerEntity(Context ctx) {
-        super(ctx, ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer()));
+        super(ctx, ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer(), null));
+    }
+
+    /**
+     * Releases the scheduler backing delayed actions such as special-attack activation.
+     *
+     * <p>Called by {@link Context#shutdown()}; plugins do not need to invoke this directly.</p>
+     */
+    public void shutdown() {
+        executor.shutdownNow();
     }
 
     private int antiVenomTime = -1;

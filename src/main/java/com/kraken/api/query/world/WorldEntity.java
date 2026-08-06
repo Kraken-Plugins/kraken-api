@@ -36,17 +36,17 @@ public class WorldEntity extends AbstractEntity<World> {
 
     @Override
     public boolean interact(String action) {
-        // runOnClientThread returns null when it times out, so every result is compared rather than
-        // unboxed — an unboxing NPE here would surface as a failure in the caller's world hop.
-        boolean isLoginScreen = Boolean.TRUE.equals(
-                ctx.runOnClientThread(() -> ctx.getClient().getGameState() == GameState.LOGIN_SCREEN));
+        // A stalled client is treated as "not on the login screen and hopper not yet open", which leads
+        // to the wait below rather than an exception escaping into the caller's hop logic.
+        boolean isLoginScreen = ctx.runOnClientThread(
+                () -> ctx.getClient().getGameState() == GameState.LOGIN_SCREEN, false);
         if(!isLoginScreen) {
-            boolean worldHopperNotOpen = Boolean.TRUE.equals(
-                    ctx.runOnClientThread(() -> ctx.widgets().get(InterfaceID.Worldswitcher.BUTTONS) == null));
+            boolean worldHopperNotOpen = ctx.runOnClientThread(
+                    () -> ctx.widgets().get(InterfaceID.Worldswitcher.BUTTONS) == null, true);
             if(worldHopperNotOpen) {
                 ctx.runOnClientThread(() -> ctx.getClient().openWorldHopper());
-                boolean opened = SleepService.sleepUntilTicks(() -> Boolean.TRUE.equals(
-                        ctx.runOnClientThread(() -> ctx.widgets().get(InterfaceID.Worldswitcher.BUTTONS) != null)),
+                boolean opened = SleepService.sleepUntilTicks(() -> ctx.runOnClientThread(
+                        () -> ctx.widgets().get(InterfaceID.Worldswitcher.BUTTONS) != null, false),
                         4
                 );
 

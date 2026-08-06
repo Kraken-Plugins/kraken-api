@@ -30,7 +30,16 @@ public class RandomUtils {
         throw new RuntimeException("Failed to select random element from set");
     }
 
+    /**
+     * Produces a randomised idle-tick threshold in the range [1, 13000].
+     *
+     * <p>The magnitude of a gaussian draw is used so the result is a half-normal with scale 8000:
+     * roughly a 5400-tick median, a spread across the whole band, and about a tenth of draws sitting at
+     * the 13000 ceiling. The ceiling stays clear of the client's own idle-logout threshold.</p>
+     *
+     * @return a threshold in game client idle ticks, between 1 and 13000 inclusive.
+     */
     public static long randomDelay() {
-        return Math.max(1, Math.min(13000, Math.round(random.nextGaussian() * 8000)));
+        return Math.max(1, Math.min(13000, Math.round(Math.abs(random.nextGaussian()) * 8000)));
     }
 }

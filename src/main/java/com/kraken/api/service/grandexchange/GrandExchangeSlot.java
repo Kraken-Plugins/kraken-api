@@ -1,6 +1,7 @@
 package com.kraken.api.service.grandexchange;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -24,12 +25,22 @@ public enum GrandExchangeSlot {
     private final int slot;
     private final int buyChild = 3;
     private final int sellChild = 4;
-    private final Context ctx;
-
     GrandExchangeSlot(int id, int slot) {
         this.id = id;
         this.slot = slot;
-        this.ctx = RuneLite.getInjector().getInstance(Context.class);
+    }
+
+    /**
+     * Returns the shared {@link Context}, resolved on first use.
+     *
+     * <p>Resolved here rather than in the constructor because enum constants initialise as a group:
+     * touching any slot would otherwise resolve the injector eight times before the client is
+     * necessarily ready.</p>
+     *
+     * @return the Context used to read Grand Exchange widget state.
+     */
+    private static Context ctx() {
+        return Services.context();
     }
 
     /**
@@ -37,8 +48,8 @@ public enum GrandExchangeSlot {
      * @return True when the slot of fulfilled and false otherwise
      */
     public boolean isFulfilled() {
-        Client client = ctx.getClient();
-        return ctx.runOnClientThread(() ->{
+        Client client = ctx().getClient();
+        return ctx().runOnClientThread(() ->{
             Widget widget = client.getWidget(id);
             if(widget == null) return false;
             Widget child = widget.getChild(22);
@@ -53,8 +64,8 @@ public enum GrandExchangeSlot {
      * @return int
      */
     public int getItemId() {
-        return ctx.runOnClientThread(() -> {
-            Widget widget = ctx.getClient().getWidget(id);
+        return ctx().runOnClientThread(() -> {
+            Widget widget = ctx().getClient().getWidget(id);
             if(widget == null) return -1;
             Widget child = widget.getChild(18);
             if(child == null) return -1;

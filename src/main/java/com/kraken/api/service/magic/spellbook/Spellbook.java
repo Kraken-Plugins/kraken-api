@@ -1,6 +1,7 @@
 package com.kraken.api.service.magic.spellbook;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import com.kraken.api.service.magic.CastableSpell;
 import lombok.Getter;
 import net.runelite.api.gameval.VarbitID;
@@ -97,7 +98,7 @@ public enum Spellbook {
      *         if no match is found.
      */
     public static Spellbook getCurrentSpellbook() {
-        Context ctx = RuneLite.getInjector().getInstance(Context.class);
+        Context ctx = Services.get(Context.class);
         int varbitValue = ctx.getVarbitValue(VarbitID.SPELLBOOK);
 
         for (Spellbook spellbook : Spellbook.values()) {

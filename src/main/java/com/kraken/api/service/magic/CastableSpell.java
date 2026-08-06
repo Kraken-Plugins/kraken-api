@@ -1,6 +1,7 @@
 package com.kraken.api.service.magic;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.Services;
 import com.kraken.api.service.magic.rune.Rune;
 import com.kraken.api.service.magic.spellbook.Spellbook;
 import net.runelite.api.*;
@@ -19,7 +20,7 @@ public interface CastableSpell {
     Map<Rune, Integer> getRuneRequirement();
 
     default boolean isCastable() {
-        Context ctx = RuneLite.getInjector().getInstance(Context.class);
+        Context ctx = Services.get(Context.class);
         return ctx.runOnClientThread(() -> {
             Client client = ctx.getClient();
             EnumComposition spellsEnum = client.getEnum(getSpellbook().getEnumCompositionIndex());
