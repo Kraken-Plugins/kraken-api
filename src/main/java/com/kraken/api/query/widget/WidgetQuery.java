@@ -133,8 +133,6 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
      *         {@code null} if no matching widget is found.
      */
     public WidgetEntity get(int packedId) {
-        // client.getWidget(packedId) resolves the component directly; withId(packedId).first() would
-        // enumerate the whole widget tree to find the same widget.
         return fromClient(packedId);
     }
 
