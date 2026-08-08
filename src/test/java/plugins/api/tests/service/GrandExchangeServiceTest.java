@@ -127,6 +127,8 @@ public class GrandExchangeServiceTest extends BaseApiTest {
         }
 
         SleepService.sleepUntil(fireRuneBuySlot::isFulfilled, 20000);
+        SleepService.tick();
+        grandExchangeService.collectAll();
         return true;
     }
 
