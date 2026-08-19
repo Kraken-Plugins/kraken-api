@@ -9,6 +9,7 @@ import com.kraken.api.core.script.breakhandler.BreakManager;
 import com.kraken.api.core.script.breakhandler.BreakProfile;
 import com.kraken.api.input.mouse.MouseRecorder;
 import com.kraken.api.overlay.MouseOverlay;
+import com.kraken.api.overlay.GlobalPathfinderOverlay;
 import com.kraken.api.service.map.WorldMapService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.ui.login.LoginService;
@@ -81,6 +82,9 @@ public class ApiTestPlugin extends Plugin {
 
     @Inject
     private MouseOverlay mouseOverlay;
+
+    @Inject
+    private GlobalPathfinderOverlay globalPathfinderOverlay;
 
     @Inject
     private LocalPathfinder pathfinder;
@@ -178,6 +182,14 @@ public class ApiTestPlugin extends Plugin {
             }
         }
 
+        if (key.equalsIgnoreCase("renderWalkerRoute")) {
+            if (config.renderWalkerRoute()) {
+                overlayManager.add(globalPathfinderOverlay);
+            } else {
+                overlayManager.remove(globalPathfinderOverlay);
+            }
+        }
+
         // A per-test toggle starts just that test, preconditions and all. Reading the event's new
         // value means only ticking a box starts a run; un-ticking one no longer re-triggers it.
         if (!"true".equalsIgnoreCase(event.getNewValue())) {
@@ -219,6 +231,9 @@ public class ApiTestPlugin extends Plugin {
         overlayManager.add(sceneOverlay);
         if (config.showMouse()) {
             overlayManager.add(mouseOverlay);
+        }
+        if (config.renderWalkerRoute()) {
+            overlayManager.add(globalPathfinderOverlay);
         }
 
         breakManager.initialize();
@@ -280,6 +295,7 @@ public class ApiTestPlugin extends Plugin {
         overlayManager.remove(overlay);
         overlayManager.remove(sceneOverlay);
         overlayManager.remove(mouseOverlay);
+        overlayManager.remove(globalPathfinderOverlay);
 
         // TODO Find out how you want to test this
 //        if (!breakManager.isOnBreak()) {

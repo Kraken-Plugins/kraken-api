@@ -18,6 +18,7 @@ import com.kraken.api.query.equipment.EquipmentQuery;
 import com.kraken.api.query.gameobject.GameObjectQuery;
 import com.kraken.api.query.groundobject.GroundObjectQuery;
 import com.kraken.api.query.npc.NpcQuery;
+import com.kraken.api.query.tileobject.TileObjectQuery;
 import com.kraken.api.query.player.LocalPlayerEntity;
 import com.kraken.api.query.player.PlayerQuery;
 import com.kraken.api.query.widget.WidgetQuery;
@@ -476,6 +477,17 @@ public class Context {
      */
     public GroundObjectQuery groundItems() {
         return new GroundObjectQuery(this);
+    }
+
+    /**
+     * Creates a new query builder for tile objects. Where {@link #gameObjects()} sees only game objects, this
+     * query also sees wall, decorative and ground objects, which is what doors, gates and archways usually are.
+     * Usage: {@code ctx.tileObjects().withName("Door").nearest().interact("Open");}
+     *
+     * @return TileObjectQuery used to chain together predicates to select scenery of any kind within the scene.
+     */
+    public TileObjectQuery tileObjects() {
+        return new TileObjectQuery(this);
     }
 
     /**

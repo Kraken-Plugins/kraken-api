@@ -32,7 +32,7 @@ plugins.simulation.SimulationPlugin               # simulation example
 plugins.colosseum.AutoColosseumPlugin             # colosseum engine debug plugin
 ```
 
-`PluginRunnerTest` treats `args[0]` as a plugin class name, loads it via `ExternalPluginManager.loadBuiltin`, and passes the rest to `RuneLite.main`. The `./gradlew runelite` task passes `'--developer-mode plugins.api.ApiTestPlugin'` as a *single* argument, which does not match that contract — launch from the IDE instead.
+`PluginRunnerTest` treats `args[0]` as a plugin class name, loads it via `ExternalPluginManager.loadBuiltin`, and passes the rest to `RuneLite.main`. `./gradlew runelite` launches `plugins.api.ApiTestPlugin` that way; use the IDE when you want a different plugin or a debugger attached.
 
 `docs/TESTS.md` lists the in-game preconditions each harness test needs (location, bank contents, skill levels). Most assume Varrock West Bank.
 

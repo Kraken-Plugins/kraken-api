@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-08-05
+- Last updated: 2026-08-19
 - Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
@@ -146,6 +146,7 @@ Do not treat these as hand-edited sources.
 - `docs/API.md` explains the service/query split and should be kept aligned with the code.
 - `docs/INTERACTION.md` covers packet-based interaction and runtime hook behavior.
 - `docs/SHOPS.md` covers `ShopService`, shop price discovery, and buying/selling under limits.
+- `docs/WALKER.md` covers `Walker`, transport execution shapes, and which transport kinds are not yet supported.
 - `docs/MOUSE.md` covers mouse movement strategies.
 - `docs/SCRIPTING.md` covers `Script`, `Task`, and break management.
 - `docs/SIMULATION.md` is the simulation overview; deep dives live in `docs/simulation/`

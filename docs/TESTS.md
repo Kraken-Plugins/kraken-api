@@ -172,6 +172,13 @@ The following items must be present in your **Bank**:
 - **Location**: Near a Banker (the hub bank works).
 - **State**: Ensure no dialogue is currently open before starting.
 
+### `WalkerTest`
+- **Location**: Anywhere outside an instance. The walker refuses to plan from instanced coordinates, which do not match the static collision map.
+- **State**: Pick the destination in game — shift right click "Walk here" then "Set" on the tile you want. A tile picked by hand always wins over the one the runner publishes from the test's requirements, so it works with "Establish Requirements" either on or off. With no tile picked the test waits 30 seconds, then falls back to the declared tile so an unattended run still has somewhere to go.
+- **Items**: Whatever the route needs. A fairy ring route wants a dramen or lunar staff unless the Lumbridge elite diary is done; a boat route wants the fare; a teleport route wants the item or runes. The walker re-checks these before it clicks and aborts naming what is missing, so a shortfall reads as `TRANSPORT_REQUIREMENTS_UNMET` rather than a hang.
+- **What to watch**: The log lists every transport the planner intends to use, with its type, origin, destination and the raw `objectInfo` / `displayInfo`, before the walk starts. That listing is how an in-client failure gets traced to a specific transport. See [WALKER.md](WALKER.md).
+- **Note**: Canoes and minigame teleports are not implemented and end the walk with `TRANSPORT_UNSUPPORTED`. Turn `useCanoes` / `useTeleportationMinigames` off in the pathfinder config to route around them instead.
+
 ### `MouseTest`
 - **Configuration**: If using `REPLAY` strategy, a recording named "test" must exist. If using `LINEAR`, no specific setup is needed other than valid targets nearby.
 

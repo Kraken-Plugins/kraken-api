@@ -310,6 +310,18 @@ public interface ApiTestConfig extends Config {
         return false;
     }
 
+    @ConfigItem(
+            keyName = "renderWalkerRoute",
+            name = "Show Walker Route",
+            description = "Displays the route the global pathfinder planned, including every transport it "
+                    + "intends to use, in the scene and on the world map. Updates as the walker re-plans.",
+            section = overlaySettings,
+            position = 16
+    )
+    default boolean renderWalkerRoute() {
+        return false;
+    }
+
     // ==============================================
     // ========== LoS SETTINGS ==========
     // ==============================================

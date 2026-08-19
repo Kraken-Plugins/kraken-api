@@ -478,7 +478,8 @@ public class GlobalPathfinder {
                         transport.getDisplayInfo(),
                         transport.getObjectInfo(),
                         transport.isConsumable(),
-                        transport.getDuration()
+                        transport.getDuration(),
+                        transport
                 ));
                 break;
             }
@@ -618,7 +619,6 @@ public class GlobalPathfinder {
 
     /** Describes a single transport edge chosen in the final route. */
     @Getter
-    @AllArgsConstructor
     public static final class TransportUsage {
         private final int pathIndex;
         private final WorldPoint origin;
@@ -628,6 +628,64 @@ public class GlobalPathfinder {
         private final String objectInfo;
         private final boolean consumable;
         private final int duration;
+
+        /**
+         * The transport edge this usage was built from, carrying the requirements the planner applied.
+         *
+         * <p>The fields above flatten the edge for display. Anything that has to <em>execute</em> the
+         * transport needs the edge itself, because that is where the item, skill, quest and varbit
+         * requirements live in structured form. May be null when the usage was built without one.</p>
+         *
+         * <p>This exposes a shortest-path type whose shape follows the pinned dependency rather than
+         * Kraken's own compatibility promise.</p>
+         */
+        private final Transport transport;
+
+        /**
+         * Builds a usage without the underlying edge.
+         *
+         * <p>Retained so that code compiled against the previous all-args constructor keeps working.</p>
+         *
+         * @param pathIndex index into the route where the transport is entered
+         * @param origin the tile the transport is entered from
+         * @param destination the tile the transport leads to
+         * @param type the kind of transport
+         * @param displayInfo human readable description of the transport
+         * @param objectInfo what to interact with, as stored by the dataset
+         * @param consumable whether using the transport consumes an item
+         * @param duration how long the transport takes, in game ticks
+         */
+        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
+                              String displayInfo, String objectInfo, boolean consumable, int duration) {
+            this(pathIndex, origin, destination, type, displayInfo, objectInfo, consumable, duration, null);
+        }
+
+        /**
+         * Builds a usage carrying the underlying transport edge.
+         *
+         * @param pathIndex index into the route where the transport is entered
+         * @param origin the tile the transport is entered from
+         * @param destination the tile the transport leads to
+         * @param type the kind of transport
+         * @param displayInfo human readable description of the transport
+         * @param objectInfo what to interact with, as stored by the dataset
+         * @param consumable whether using the transport consumes an item
+         * @param duration how long the transport takes, in game ticks
+         * @param transport the dataset edge, may be null
+         */
+        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
+                              String displayInfo, String objectInfo, boolean consumable, int duration,
+                              Transport transport) {
+            this.pathIndex = pathIndex;
+            this.origin = origin;
+            this.destination = destination;
+            this.type = type;
+            this.displayInfo = displayInfo;
+            this.objectInfo = objectInfo;
+            this.consumable = consumable;
+            this.duration = duration;
+            this.transport = transport;
+        }
     }
 
     /** Bundles the packed search inputs with the refreshed shortest-path config. */
