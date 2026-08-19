@@ -430,6 +430,14 @@ public class BankItemWidget implements Widget {
         return null;
     }
 
+    @Override
+    public void setSubOp(int index, int subOp, String option) {}
+
+    @Nullable
+    public String[][] getSubOps() {
+        return new String[0][0];
+    }
+
     @Nullable
     @Override
     public String[] getActions() {
