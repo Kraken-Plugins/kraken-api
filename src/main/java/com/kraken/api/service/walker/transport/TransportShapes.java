@@ -29,8 +29,11 @@ public final class TransportShapes {
         shapes.put(TransportType.TELEPORTATION_PORTAL, TransportShape.SINGLE_CLICK);
         shapes.put(TransportType.TELEPORTATION_PORTAL_POH, TransportShape.SINGLE_CLICK);
         shapes.put(TransportType.TELEPORTATION_BOX, TransportShape.SINGLE_CLICK);
-        shapes.put(TransportType.SHIP, TransportShape.SINGLE_CLICK);
 
+        // Ships look like a single menu click in the dataset ("Musa Point" on Captain Tobias),
+        // but the live NPC is often the older Travel sailor, which then asks Yes please. Clicking
+        // and then walking the conversation covers both variants.
+        shapes.put(TransportType.SHIP, TransportShape.CLICK_THEN_DIALOGUE);
         shapes.put(TransportType.BOAT, TransportShape.CLICK_THEN_DIALOGUE);
         shapes.put(TransportType.MAGIC_CARPET, TransportShape.CLICK_THEN_DIALOGUE);
         shapes.put(TransportType.CHARTER_SHIP, TransportShape.CLICK_THEN_DIALOGUE);
@@ -39,12 +42,12 @@ public final class TransportShapes {
         // first click only opens a chooser. Which destination to pick comes from the expanded edge's
         // display info; what differs between them is the interface that does the choosing.
         shapes.put(TransportType.FAIRY_RING, TransportShape.FAIRY_RING);
-        shapes.put(TransportType.SPIRIT_TREE, TransportShape.HUB_DIALOGUE);
+        shapes.put(TransportType.SPIRIT_TREE, TransportShape.HUB_RESUME_PAUSE);
         shapes.put(TransportType.MAGIC_MUSHTREE, TransportShape.CLICK_THEN_WIDGET);
         shapes.put(TransportType.GNOME_GLIDER, TransportShape.CLICK_THEN_WIDGET);
         shapes.put(TransportType.HOT_AIR_BALLOON, TransportShape.CLICK_THEN_WIDGET);
         shapes.put(TransportType.QUETZAL, TransportShape.CLICK_THEN_WIDGET);
-        shapes.put(TransportType.MINECART, TransportShape.HUB_DIALOGUE);
+        shapes.put(TransportType.MINECART, TransportShape.HUB_RESUME_PAUSE);
         shapes.put(TransportType.CANOE, TransportShape.CANOE);
         shapes.put(TransportType.WILDERNESS_OBELISK, TransportShape.HUB_DIALOGUE);
 

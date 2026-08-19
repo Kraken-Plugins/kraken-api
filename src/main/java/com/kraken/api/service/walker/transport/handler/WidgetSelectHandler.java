@@ -8,6 +8,7 @@ import com.kraken.api.service.walker.transport.HubWidgets;
 import com.kraken.api.service.walker.transport.TransportContext;
 import com.kraken.api.service.walker.transport.TransportEntityResolver;
 import com.kraken.api.service.walker.transport.TransportHandler;
+import com.kraken.api.service.walker.transport.WidgetClicks;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 import shortestpath.transport.TransportType;
@@ -16,15 +17,12 @@ import shortestpath.transport.TransportType;
  * Crosses a hub transport whose destinations are laid out on a dedicated interface.
  *
  * <p>Two layouts appear. Gliders, balloons and mushtrees give each destination its own component, so
- * the right one is named directly. Quetzals and the grouping teleport build their list at runtime, so
- * the entry is found by the text it shows. Either way the destination comes from the transport's
- * display info, which the dataset fills in per journey.</p>
+ * the right one is named directly. Quetzals build their list at runtime, so the entry is found by
+ * the text it shows. Either way the destination comes from the transport's display info, which the
+ * dataset fills in per journey.</p>
  */
 @Slf4j
 public class WidgetSelectHandler implements TransportHandler {
-
-    /** Menu actions the destination components are known by. */
-    private static final String[] SELECT_ACTIONS = {"Travel", "Teleport", "Fly", "Select", "Confirm", "Continue"};
 
     /** How long to wait for the destination interface to open. */
     private static final long INTERFACE_TIMEOUT_MS = 6_000;
@@ -83,10 +81,10 @@ public class WidgetSelectHandler implements TransportHandler {
             if (component == HubWidgets.NOT_FOUND) {
                 return false;
             }
-            return click(ctx.widgets().get(component));
+            return click(ctx, ctx.widgets().get(component));
         }
 
-        return click(findByText(ctx, type, displayInfo));
+        return click(ctx, findByText(ctx, type, displayInfo));
     }
 
     /**
@@ -107,18 +105,8 @@ public class WidgetSelectHandler implements TransportHandler {
         return entry != null && entry.isPresent() ? entry : null;
     }
 
-    private boolean click(WidgetEntity widget) {
-        if (widget == null || widget.isNull()) {
-            return false;
-        }
-
-        for (String action : SELECT_ACTIONS) {
-            if (widget.interact(action)) {
-                return true;
-            }
-        }
-
-        return false;
+    private boolean click(Context ctx, WidgetEntity widget) {
+        return WidgetClicks.click(ctx, widget);
     }
 
     private boolean awaitTravel(TransportContext context, WorldPoint before) {

@@ -39,7 +39,17 @@ public class WalkerConfig {
     @Builder.Default
     private final int transportFireRadius = 2;
 
-    /** Planning options, including which transport types may be used. */
+    /**
+     * Planning options, including which transport types may be used.
+     *
+     * <p>Canoes and minigame teleports default off because the walker cannot operate them yet.
+     * Turning them off here keeps the planner from proposing a route that would then fail with
+     * {@code TRANSPORT_UNSUPPORTED}. Plan-only callers can still enable them on a
+     * {@link GlobalPathfinderConfig} of their own.</p>
+     */
     @Builder.Default
-    private final GlobalPathfinderConfig pathfinderConfig = GlobalPathfinderConfig.builder().build();
+    private final GlobalPathfinderConfig pathfinderConfig = GlobalPathfinderConfig.builder()
+            .useCanoes(false)
+            .useTeleportationMinigames(false)
+            .build();
 }

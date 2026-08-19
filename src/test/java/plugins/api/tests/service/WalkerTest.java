@@ -3,12 +3,14 @@ package plugins.api.tests.service;
 import com.google.inject.Inject;
 import com.kraken.api.Context;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
+import com.kraken.api.service.pathfinding.PathfinderLiveConfig;
 import com.kraken.api.service.walker.WalkResult;
 import com.kraken.api.service.walker.Walker;
 import com.kraken.api.service.walker.WalkerConfig;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 import plugins.api.TargetTileProvider;
+import plugins.api.WalkerDestination;
 import plugins.api.requirements.SideEffect;
 import plugins.api.requirements.TargetTile;
 import plugins.api.requirements.TestRequirements;
@@ -19,11 +21,11 @@ import java.util.List;
 /**
  * Walks to a chosen tile, operating whatever transports the route needs.
  *
- * <p>The destination is picked in game by shift right clicking "Walk here" then "Set", which is what
- * makes this test able to exercise transports the harness could never reach on its own — point it at
- * somewhere behind a door, across a boat trip, or through a fairy ring and the same test covers it.
- * A tile picked that way always wins; the relative tile declared in {@link #requirements()} is only a
- * fallback so an unattended suite run still has somewhere to go.</p>
+ * <p>The destination is a named place from the plugin config, a tile shift-clicked in game when
+ * that config is Manual, or a nearby fallback so an unattended suite run still has somewhere to go.
+ * Picking Karamja after a shift-click uses Karamja; the leftover Set tile is ignored until the
+ * dropdown is Manual again. Named places cover the walks worth repeating after a rebuild: the Grand
+ * Exchange, a castle bank upstairs, a gate, a boat.</p>
  *
  * <p>The route is planned and logged before the walk starts. That log is the point of the test as much
  * as the pass or fail is: it names every transport the planner intends to use, so a failure can be
@@ -62,9 +64,14 @@ public class WalkerTest extends BaseApiTest {
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        log.info("Shift + Right Click 'Walk here' -> 'Set' on a tile to choose where to walk.");
+        WalkerDestination configured = config.walkerDestination();
+        if (configured != null && configured.getTile() != null) {
+            log.info("Configured destination is {}.", configured.getDisplayName());
+        } else {
+            log.info("Shift + Right Click 'Walk here' -> 'Set' on a tile to choose where to walk.");
+        }
 
-        WorldPoint target = waitForTargetSelection();
+        WorldPoint target = resolveDestination();
         if (!assertNotNull(target, "a destination tile was chosen")) {
             return false;
         }
@@ -74,18 +81,21 @@ public class WalkerTest extends BaseApiTest {
             return false;
         }
 
-        log.info("Walking from {} to {} ({} tiles apart)", start, target, start.distanceTo(target));
-        describeRoute(start, target);
+        log.info("Walking from {} to {} ({} tiles apart, plane {} -> {})",
+                start, target, start.distanceTo2D(target), start.getPlane(), target.getPlane());
 
-        WalkResult result = walker.walkTo(target, WalkerConfig.builder()
+        WalkerConfig walkerConfig = WalkerConfig.builder()
                 .timeoutMillis(WALK_TIMEOUT_MS)
-                .build());
+                .build();
+        describeRoute(start, target, walkerConfig);
+
+        WalkResult result = walker.walkTo(target, walkerConfig);
 
         log.info("Walk finished: {}", result);
 
         WorldPoint end = ctx.players().local().location();
-        log.info("Ended at {}, {} tiles from the destination", end,
-                end != null ? end.distanceTo(target) : -1);
+        log.info("Ended at {}, {} tiles from the destination (2D)", end,
+                end != null ? end.distanceTo2D(target) : -1);
 
         return assertThat(result.isSuccess(), "the walk reached its destination: " + result.getReason());
     }
@@ -99,17 +109,23 @@ public class WalkerTest extends BaseApiTest {
      *
      * @param start where the walk begins
      * @param target where it is headed
+     * @param walkerConfig the same settings the walk itself will use
      */
-    private void describeRoute(WorldPoint start, WorldPoint target) {
-        GlobalPathfinder.PathResult route = globalPathfinder.findPathResult(start, target);
+    private void describeRoute(WorldPoint start, WorldPoint target, WalkerConfig walkerConfig) {
+        GlobalPathfinder.PathResult route = globalPathfinder.findPathResult(
+                start, target, PathfinderLiveConfig.resolve(walkerConfig.getPathfinderConfig(), ctx));
         if (route == null || route.getPath().isEmpty()) {
             log.warn("The planner found no route, so the walk is expected to fail");
             return;
         }
 
         List<GlobalPathfinder.TransportUsage> transports = route.getTransports();
-        log.info("Planned route: {} tiles, complete={}, {} transports",
-                route.getPath().size(), route.isComplete(), transports.size());
+        log.info("Planned route: {} tiles, complete={}, {} transports, first={} last={}",
+                route.getPath().size(),
+                route.isComplete(),
+                transports.size(),
+                route.getPath().get(0),
+                route.getPath().get(route.getPath().size() - 1));
 
         for (GlobalPathfinder.TransportUsage usage : transports) {
             log.info("  at step {}: {} {} -> {} | object='{}' display='{}'",
@@ -123,20 +139,31 @@ public class WalkerTest extends BaseApiTest {
     }
 
     /**
-     * Waits for a destination, preferring one the user picked in game.
+     * Picks the destination: the configured named place, then a tile the user set in game, then a
+     * wait for a click, then the declared nearby tile.
      *
-     * <p>A tile picked by hand wins over the one this test declares in {@link #requirements()}. The
-     * declared tile exists only so an unattended suite run has somewhere to go; without this
-     * preference the runner publishes it before the test starts and silently overrides the selection,
-     * which is the opposite of what someone shift right clicking a tile expects.</p>
+     * <p>A named config dest wins over a leftover shift-click, otherwise switching the dropdown back
+     * to Karamja would keep walking to the last Set tile. {@link TargetTileProvider#get()} would also
+     * silently use the suite-published declared tile instead of a shift-click, which is the opposite
+     * of what someone setting a tile in Manual mode expects.</p>
      *
      * @return the destination, or null when none was chosen within the timeout
      */
-    private WorldPoint waitForTargetSelection() throws InterruptedException {
-        WorldPoint manual = targetTileProvider.getManualTile();
-        if (manual != null) {
-            log.info("Using the tile you picked: {}", manual);
-            return manual;
+    private WorldPoint resolveDestination() throws InterruptedException {
+        WalkerDestination configured = config.walkerDestination();
+        if (configured == null) {
+            configured = WalkerDestination.MANUAL;
+        }
+
+        WorldPoint fromConfig = configured.resolve(targetTileProvider.getManualTile());
+        if (fromConfig != null) {
+            if (configured.getTile() != null) {
+                log.info("Using the configured destination: {} {}",
+                        configured.getDisplayName(), fromConfig);
+            } else {
+                log.info("Using the tile you picked: {}", fromConfig);
+            }
+            return fromConfig;
         }
 
         int elapsed = 0;

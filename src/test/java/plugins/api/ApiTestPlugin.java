@@ -327,8 +327,12 @@ public class ApiTestPlugin extends Plugin {
     @Subscribe
     public void onGameTick(GameTick event) {
         WorldPoint target = getTargetTile();
-        if (target != null) {
-            this.targetArea = new WorldArea(target, 5, 5);
+        if (target == null) {
+            return;
+        }
+
+        this.targetArea = new WorldArea(target, 5, 5);
+        if (config.renderCurrentPath()) {
             this.currentPath = pathfinder.findPath(client.getLocalPlayer().getWorldLocation(), target);
         }
     }

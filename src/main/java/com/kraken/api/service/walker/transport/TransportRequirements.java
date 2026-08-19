@@ -122,6 +122,7 @@ public final class TransportRequirements {
         }
 
         addFairyRingReasons(transport, state, reasons);
+        reasons.addAll(AlKharidGate.unmetReasons(transport, state));
 
         return reasons;
     }

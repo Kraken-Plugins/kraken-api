@@ -81,4 +81,55 @@ public final class SceneWindow {
     public static List<WorldPoint> clip(List<WorldPoint> route, int baseX, int baseY, int plane) {
         return clip(route, baseX, baseY, plane, DEFAULT_MARGIN);
     }
+
+    /**
+     * A clickable tile at the edge of the loaded scene, in the direction of a far-away target.
+     *
+     * <p>When the planned path starts outside the scene — a compressed route whose next tile is the
+     * castle stairs, eighty tiles south — {@link #clip} is empty. Walking that edge tile is what
+     * shifts the scene toward the rest of the route. Returning nothing from {@code clip} must not
+     * be treated as "already there".</p>
+     *
+     * @param here where the player is standing, may be null
+     * @param target where they are heading, may be on another plane; may be null
+     * @param baseX world x of the scene's south west corner
+     * @param baseY world y of the scene's south west corner
+     * @param margin tiles to trim from each scene edge
+     * @return an in-window tile toward {@code target} on the player's plane, or null when there is
+     *         nowhere to walk (already on that edge, or a missing argument)
+     */
+    public static WorldPoint toward(WorldPoint here, WorldPoint target, int baseX, int baseY, int margin) {
+        if (here == null || target == null) {
+            return null;
+        }
+
+        int minX = baseX + margin;
+        int minY = baseY + margin;
+        int maxX = baseX + SCENE_SIZE - 1 - margin;
+        int maxY = baseY + SCENE_SIZE - 1 - margin;
+
+        WorldPoint edge = new WorldPoint(
+                clamp(target.getX(), minX, maxX),
+                clamp(target.getY(), minY, maxY),
+                here.getPlane());
+
+        return edge.equals(here) ? null : edge;
+    }
+
+    /**
+     * A clickable tile at the edge of the loaded scene, using the default margin.
+     *
+     * @param here where the player is standing, may be null
+     * @param target where they are heading, may be null
+     * @param baseX world x of the scene's south west corner
+     * @param baseY world y of the scene's south west corner
+     * @return an in-window tile toward {@code target}, or null when there is nowhere to walk
+     */
+    public static WorldPoint toward(WorldPoint here, WorldPoint target, int baseX, int baseY) {
+        return toward(here, target, baseX, baseY, DEFAULT_MARGIN);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.min(max, Math.max(min, value));
+    }
 }

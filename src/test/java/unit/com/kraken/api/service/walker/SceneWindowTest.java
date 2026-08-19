@@ -99,4 +99,49 @@ class SceneWindowTest {
 
         assertTrue(SceneWindow.clip(Arrays.asList(outside, inside), BASE_X, BASE_Y, 0, MARGIN).isEmpty());
     }
+
+    @Test
+    void towardATileSouthOfTheSceneLandsOnTheSouthEdge() {
+        WorldPoint here = new WorldPoint(BASE_X + 50, BASE_Y + 50, 0);
+        WorldPoint stairs = new WorldPoint(BASE_X + 40, BASE_Y - 80, 0);
+        int southEdge = BASE_Y + MARGIN;
+
+        WorldPoint edge = SceneWindow.toward(here, stairs, BASE_X, BASE_Y, MARGIN);
+
+        assertEquals(new WorldPoint(BASE_X + 40, southEdge, 0), edge);
+    }
+
+    @Test
+    void towardKeepsThePlayersPlane() {
+        WorldPoint here = new WorldPoint(BASE_X + 50, BASE_Y + 50, 0);
+        WorldPoint upstairs = new WorldPoint(BASE_X + 40, BASE_Y - 80, 2);
+
+        WorldPoint edge = SceneWindow.toward(here, upstairs, BASE_X, BASE_Y, MARGIN);
+
+        assertEquals(0, edge.getPlane());
+    }
+
+    @Test
+    void towardReturnsNothingWhenAlreadyOnThatEdge() {
+        int southEdge = BASE_Y + MARGIN;
+        WorldPoint here = new WorldPoint(BASE_X + 40, southEdge, 0);
+        WorldPoint stairs = new WorldPoint(BASE_X + 40, BASE_Y - 80, 0);
+
+        assertEquals(null, SceneWindow.toward(here, stairs, BASE_X, BASE_Y, MARGIN));
+    }
+
+    @Test
+    void towardReturnsNothingWhenTheNextTileIsTheSameSpotOnAnotherPlane() {
+        WorldPoint here = new WorldPoint(3205, 3209, 1);
+        WorldPoint upstairs = new WorldPoint(3205, 3209, 2);
+
+        assertEquals(null, SceneWindow.toward(here, upstairs, 3136, 3136, MARGIN));
+    }
+
+    @Test
+    void towardReturnsNothingWhenTheTargetIsMissing() {
+        WorldPoint here = new WorldPoint(BASE_X + 50, BASE_Y + 50, 0);
+
+        assertEquals(null, SceneWindow.toward(here, null, BASE_X, BASE_Y, MARGIN));
+    }
 }

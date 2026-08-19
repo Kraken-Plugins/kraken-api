@@ -44,13 +44,18 @@ class TransportShapesTest {
     }
 
     @Test
+    void aShipOpensAConversation() {
+        assertEquals(TransportShape.CLICK_THEN_DIALOGUE, TransportShapes.of(TransportType.SHIP));
+    }
+
+    @Test
     void fairyRingsAreSelectedByCode() {
         assertEquals(TransportShape.FAIRY_RING, TransportShapes.of(TransportType.FAIRY_RING));
     }
 
     @Test
-    void spiritTreesOfferTheirStopsAsChatOptions() {
-        assertEquals(TransportShape.HUB_DIALOGUE, TransportShapes.of(TransportType.SPIRIT_TREE));
+    void spiritTreesSelectByResumePause() {
+        assertEquals(TransportShape.HUB_RESUME_PAUSE, TransportShapes.of(TransportType.SPIRIT_TREE));
     }
 
     @Test
@@ -61,8 +66,12 @@ class TransportShapesTest {
     }
 
     @Test
-    void hubsWithNumberedChatOptionsShareTheDialogueShape() {
-        assertEquals(TransportShape.HUB_DIALOGUE, TransportShapes.of(TransportType.MINECART));
+    void minecartsShareTheSpiritTreeChooser() {
+        assertEquals(TransportShape.HUB_RESUME_PAUSE, TransportShapes.of(TransportType.MINECART));
+    }
+
+    @Test
+    void wildernessObelisksAreChatOptions() {
         assertEquals(TransportShape.HUB_DIALOGUE, TransportShapes.of(TransportType.WILDERNESS_OBELISK));
     }
 

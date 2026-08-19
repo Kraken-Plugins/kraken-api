@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Quest;
 import net.runelite.api.QuestState;
 import net.runelite.api.Skill;
-import net.runelite.api.coords.WorldPoint;
 import shortestpath.transport.Transport;
 import shortestpath.transport.TransportType;
 import shortestpath.transport.parser.VarRequirement;
@@ -31,15 +30,6 @@ import java.util.Set;
 @Singleton
 public class PlayerStateReader {
 
-    /** The first wilderness level starts just north of this y coordinate. */
-    private static final int WILDERNESS_SOUTH_EDGE = 3520;
-
-    /** Wilderness levels are eight tiles tall. */
-    private static final int TILES_PER_WILDERNESS_LEVEL = 8;
-
-    /** The underground wilderness mirrors the surface from this y coordinate. */
-    private static final int WILDERNESS_UNDERGROUND_SOUTH_EDGE = 9920;
-
     @Inject
     private Context ctx;
 
@@ -53,7 +43,7 @@ public class PlayerStateReader {
         if (transport == null) {
             return TransportRequirements.PlayerState.builder()
                     .skillLevels(readSkillLevels())
-                    .wildernessLevel(readWildernessLevel())
+                    .wildernessLevel(WildernessLevels.of(ctx.players().local().location()))
                     .build();
         }
 
@@ -68,9 +58,15 @@ public class PlayerStateReader {
                     ctx.getVarbitValue(TransportRequirements.FAIRY_RING_DIARY_VARBIT));
         }
 
+        // The Al Kharid gate is a free Open in the dataset, so coins, varp 273 and Prince Ali
+        // Rescue are not listed on the transport. They still decide whether the live gate opens.
+        if (AlKharidGate.matches(transport)) {
+            varPlayers.put(AlKharidGate.GATE_VARP, ctx.getVarpValue(AlKharidGate.GATE_VARP));
+        }
+
         return TransportRequirements.PlayerState.builder()
                 .skillLevels(readSkillLevels())
-                .wildernessLevel(readWildernessLevel())
+                .wildernessLevel(WildernessLevels.of(ctx.players().local().location()))
                 .completedQuests(readCompletedQuests(transport))
                 .itemQuantities(readItems(transport))
                 .varbitValues(varbits)
@@ -89,44 +85,31 @@ public class PlayerStateReader {
         }, new int[skills.length]);
     }
 
-    /**
-     * Works out how deep into the wilderness the player is.
-     *
-     * <p>Returns zero outside it, which is what the dataset's wilderness ceilings compare against.</p>
-     */
-    private int readWildernessLevel() {
-        WorldPoint location = ctx.players().local().location();
-        if (location == null) {
-            return 0;
-        }
-
-        int y = location.getY();
-        if (y > WILDERNESS_UNDERGROUND_SOUTH_EDGE) {
-            return ((y - WILDERNESS_UNDERGROUND_SOUTH_EDGE) / TILES_PER_WILDERNESS_LEVEL) + 1;
-        }
-
-        if (y > WILDERNESS_SOUTH_EDGE) {
-            return ((y - WILDERNESS_SOUTH_EDGE) / TILES_PER_WILDERNESS_LEVEL) + 1;
-        }
-
-        return 0;
-    }
-
     private Set<Quest> readCompletedQuests(Transport transport) {
         Set<Quest> required = transport.getQuests();
-        if (required == null || required.isEmpty()) {
+        boolean alKharid = AlKharidGate.matches(transport);
+        if ((required == null || required.isEmpty()) && !alKharid) {
             return Collections.emptySet();
         }
 
         Set<Quest> completed = new HashSet<>();
-        for (Quest quest : required) {
-            QuestState state = ctx.runOnClientThread(() -> quest.getState(ctx.getClient()), null);
-            if (state == QuestState.FINISHED) {
-                completed.add(quest);
+        if (required != null) {
+            for (Quest quest : required) {
+                addIfFinished(completed, quest);
             }
+        }
+        if (alKharid) {
+            addIfFinished(completed, Quest.PRINCE_ALI_RESCUE);
         }
 
         return completed;
+    }
+
+    private void addIfFinished(Set<Quest> completed, Quest quest) {
+        QuestState state = ctx.runOnClientThread(() -> quest.getState(ctx.getClient()), null);
+        if (state == QuestState.FINISHED) {
+            completed.add(quest);
+        }
     }
 
     /**
@@ -136,7 +119,9 @@ public class PlayerStateReader {
      * player's bags are.</p>
      */
     private Map<Integer, Integer> readItems(Transport transport) {
-        if (transport.getItemRequirements() == null && transport.getType() != TransportType.FAIRY_RING) {
+        if (transport.getItemRequirements() == null
+                && transport.getType() != TransportType.FAIRY_RING
+                && !AlKharidGate.matches(transport)) {
             return Collections.emptyMap();
         }
 

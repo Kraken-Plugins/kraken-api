@@ -9,13 +9,15 @@ import com.kraken.api.service.walker.transport.TransportHandler;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
+import java.util.List;
+import java.util.Locale;
+
 /**
- * Crosses a hub transport whose destinations are offered as a numbered list.
+ * Crosses a hub transport whose destinations are offered as numbered chat options.
  *
- * <p>Spirit trees and the other hubs that read like {@code "6: Prifddinas"} present their stops as
- * chat options rather than a dedicated interface. The dataset supplies both halves of that entry, so
- * the destination is chosen by name where possible and by position where the name does not match —
- * the two disagree occasionally, and the position is the more literal of the pair.</p>
+ * <p>Wilderness obelisks read like {@code "1: Level 13 Wilderness"} and really are chat options, so
+ * they reuse {@link DialogueService}. Spirit trees and minecarts use the same numbered display info
+ * in the dataset but open a dedicated list widget; those go through {@link HubResumePauseHandler}.</p>
  */
 @Slf4j
 public class HubDialogueHandler implements TransportHandler {
@@ -60,17 +62,48 @@ public class HubDialogueHandler implements TransportHandler {
      * Picks the destination, by name first and by position as a fallback.
      */
     private boolean choose(DialogueService dialogue, DisplayInfo displayInfo) {
+        String option = chooseOption(dialogue.getDialogueOptions(), displayInfo);
+        return option != null && dialogue.selectOption(option);
+    }
+
+    /**
+     * Chooses the chat option that selects a hub destination.
+     *
+     * <p>The dataset's label is preferred because it is what the interface shows. Position is a
+     * fallback against the same title-stripped list {@link DialogueService#getDialogueOptions()}
+     * returns, so {@code "6: Prifddinas"} is the sixth real option rather than widget child index 6.
+     * The chosen text is what gets clicked; a raw index is never sent.</p>
+     *
+     * @param options the visible chat options, title already stripped; may be null
+     * @param displayInfo the parsed destination, may be null
+     * @return the option text to select, or null when none matches
+     */
+    public static String chooseOption(List<String> options, DisplayInfo displayInfo) {
+        if (options == null || options.isEmpty() || displayInfo == null) {
+            return null;
+        }
+
         String label = displayInfo.getLabel();
-        if (label != null && !label.isEmpty() && dialogue.isOptionPresent(label)) {
-            return dialogue.selectOption(label);
+        if (label != null && !label.isEmpty()) {
+            String wanted = label.toLowerCase(Locale.ROOT);
+            for (String option : options) {
+                if (option != null && option.toLowerCase(Locale.ROOT).contains(wanted)) {
+                    return option;
+                }
+            }
         }
 
         if (displayInfo.hasPosition()) {
-            dialogue.selectOption(displayInfo.getPosition());
-            return true;
+            int index = displayInfo.getPosition() - 1;
+            if (index >= 0 && index < options.size()) {
+                String option = options.get(index);
+                if (option != null && !option.isEmpty()) {
+                    return option;
+                }
+            }
         }
 
-        return false;
+        return null;
     }
 
     private boolean awaitTravel(TransportContext context, WorldPoint before) {

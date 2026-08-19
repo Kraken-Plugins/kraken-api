@@ -1,7 +1,10 @@
 package unit.com.kraken.api.service.walker;
 
 import com.kraken.api.service.walker.ObstacleRecovery;
+import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,6 +57,7 @@ class ObstacleRecoveryTest {
         assertEquals("Pass", ObstacleRecovery.chooseAction(new String[]{"Examine", "Pass"}));
         assertEquals("Squeeze-through", ObstacleRecovery.chooseAction(new String[]{"Squeeze-through"}));
         assertEquals("Go-through", ObstacleRecovery.chooseAction(new String[]{"Go-through", "Examine"}));
+        assertEquals("Pay-toll(10gp)", ObstacleRecovery.chooseAction(new String[]{"Pay-toll(10gp)", "Examine"}));
     }
 
     @Test
@@ -71,5 +75,69 @@ class ObstacleRecoveryTest {
         assertNull(ObstacleRecovery.chooseAction(new String[]{"Pick-lock", "Examine"}));
         assertNull(ObstacleRecovery.chooseAction(new String[]{}));
         assertNull(ObstacleRecovery.chooseAction(null));
+    }
+
+    @Test
+    void aDoorNextToThePlayerIsInRange() {
+        WorldPoint here = new WorldPoint(3200, 3200, 0);
+        WorldPoint door = new WorldPoint(3201, 3200, 0);
+
+        assertTrue(ObstacleRecovery.isWithinInteractRange(here, door, here));
+    }
+
+    @Test
+    void standingBesideTheNearSideOfADoorwayCounts() {
+        WorldPoint here = new WorldPoint(3200, 3200, 0);
+        WorldPoint nearSide = new WorldPoint(3201, 3200, 0);
+        WorldPoint blocked = new WorldPoint(3202, 3200, 0);
+
+        assertTrue(ObstacleRecovery.isWithinInteractRange(here, blocked, nearSide));
+    }
+
+    @Test
+    void aDoorFourTilesAwayIsInClickRangeButNotInteractRange() {
+        WorldPoint here = new WorldPoint(3253, 3434, 0);
+        WorldPoint door = new WorldPoint(3253, 3430, 0);
+
+        assertTrue(ObstacleRecovery.isWithinClickRange(here, door, here));
+        assertFalse(ObstacleRecovery.isWithinInteractRange(here, door, here));
+    }
+
+    @Test
+    void aDoorElevenTilesAwayIsOutOfClickRange() {
+        WorldPoint here = new WorldPoint(3200, 3200, 0);
+        WorldPoint door = new WorldPoint(3211, 3200, 0);
+
+        assertFalse(ObstacleRecovery.isWithinClickRange(here, door, here));
+        assertFalse(ObstacleRecovery.isWithinInteractRange(here, door, here));
+    }
+
+    @Test
+    void aCompressedJumpToAFarTileIsOutOfClickRange() {
+        WorldPoint here = new WorldPoint(3241, 3282, 0);
+        WorldPoint farBank = new WorldPoint(3221, 3232, 0);
+
+        assertFalse(ObstacleRecovery.isWithinClickRange(here, farBank, here));
+        assertFalse(ObstacleRecovery.isWithinInteractRange(here, farBank, here));
+        assertFalse(ObstacleRecovery.isWithinInteractRange(here, Arrays.asList(here, farBank), 1));
+        assertFalse(ObstacleRecovery.isWithinInteractRange(here, Arrays.asList(farBank), 0));
+    }
+
+    @Test
+    void openingFromAFewTilesAwayWaitsLonger() {
+        WorldPoint here = new WorldPoint(3253, 3434, 0);
+        WorldPoint door = new WorldPoint(3253, 3430, 0);
+
+        assertTrue(ObstacleRecovery.openTimeoutMs(here, door) > ObstacleRecovery.openTimeoutMs(here, here));
+    }
+
+    @Test
+    void missingArgumentsAreOutOfRange() {
+        WorldPoint here = new WorldPoint(3200, 3200, 0);
+
+        assertFalse(ObstacleRecovery.isWithinInteractRange(null, here, here));
+        assertFalse(ObstacleRecovery.isWithinInteractRange(here, (WorldPoint) null, null));
+        assertFalse(ObstacleRecovery.isWithinInteractRange(here, Arrays.asList(here), 1));
+        assertFalse(ObstacleRecovery.isWithinInteractRange(here, Arrays.asList(), 0));
     }
 }

@@ -21,6 +21,14 @@ public enum TransportShape {
     /** A click that offers its destinations as a numbered list of chat options. */
     HUB_DIALOGUE,
 
+    /**
+     * A click that opens a numbered destination list selected with resume-pause, not chat options.
+     *
+     * <p>Spirit trees and minecarts look like {@code "4: Grand Exchange"} in the dataset, but the live
+     * list is a dedicated widget rather than {@code DialogueService}'s chat group.</p>
+     */
+    HUB_RESUME_PAUSE,
+
     /** A fairy ring, selected by its three letter code. */
     FAIRY_RING,
 

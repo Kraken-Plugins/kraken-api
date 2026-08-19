@@ -197,11 +197,15 @@ public class MovementService {
     return waypoints;
     }
 
+    /** How close to a waypoint counts as reached when the caller does not say otherwise. */
+    private static final int DEFAULT_ARRIVAL_TILES = 2;
+
     /**
      * Traverses a given path made up of waypoints, attempting to successfully move the player
      * to each {@literal WorldPoint} in the sequence. This method moves the player towards the target
-     * waypoints and handles retries for unreachable points. The traversal stops if any waypoint
-     * cannot be reached after multiple attempts.
+     * waypoints and handles retries for unreachable points. Waypoints that are not reachable in the
+     * live scene are skipped rather than waited on — a stride that lands on a ditch or river is not
+     * a failed walk. The traversal stops if any remaining waypoint cannot be reached after retries.
      *
      * @param client The client instance used to interact with the game world and manage player movement.
      * @param path A list of {@literal WorldPoint} objects representing the waypoints to traverse in sequence.
@@ -209,49 +213,74 @@ public class MovementService {
      *         could not be reached after retries.
      */
     public boolean traversePath(Client client, List<WorldPoint> path) {
-        return traversePath(client, path, (ignored) -> {}, (ignored) -> {});
+        return traversePath(client, path, (ignored) -> {}, (ignored) -> {}, DEFAULT_ARRIVAL_TILES);
+    }
+
+    /**
+     * Traverses a path, treating a waypoint as reached when the player is within {@code withinTiles}.
+     *
+     * @param client the game client
+     * @param path the waypoints to walk, in order
+     * @param withinTiles how close to a waypoint counts as arrived, in tiles
+     * @return true when every remaining waypoint was reached or skipped
+     */
+    public boolean traversePath(Client client, List<WorldPoint> path, int withinTiles) {
+        return traversePath(client, path, (ignored) -> {}, (ignored) -> {}, withinTiles);
     }
 
     /**
      * Traverses a given path made up of waypoints, attempting to successfully move the player
-     * to each {@literal WorldPoint} in the sequence. This method moves the player towards the target
-     * waypoints and handles retries for unreachable points. The traversal stops if any waypoint
-     * cannot be reached after multiple attempts.
+     * to each {@literal WorldPoint} in the sequence.
      *
-     * @param client The client instance used to interact with the game world and manage player movement.
+     * @param client The client instance used to interact with the game world and retrieve the player's location.
      * @param path A list of {@literal WorldPoint} objects representing the waypoints to traverse in sequence.
-     * @param onWaypointReached A functional interface invoked when a waypoint in the path is reached
-     * @return {@code true} if the path was successfully traversed to the end, or {@code false} if any waypoint
+     * @param onWaypointReached A functional interface invoked when a waypoint is reached
+     * @return {@code true} if the path was successfully traversed to the end, {@code false} if any waypoint
      *         could not be reached after retries.
      */
     public boolean traversePath(Client client, List<WorldPoint> path, Consumer<String> onWaypointReached) {
-        return traversePath(client, path, onWaypointReached, (ignored) -> {});
+        return traversePath(client, path, onWaypointReached, (ignored) -> {}, DEFAULT_ARRIVAL_TILES);
     }
 
     /**
      * Traverses a given path made up of waypoints, attempting to successfully move the player
-     * to each {@literal WorldPoint} in the sequence. This method invokes movement commands and uses
-     * retries if a waypoint fails to be reached. It aborts if a waypoint cannot be reached after
-     * multiple attempts.
-     *
-     * <p>The method performs the following tasks for each waypoint in the path:
-     * <ul>
-     *   <li>Sends a movement command to the client to move towards the target waypoint.</li>
-     *   <li>Calculates a dynamic timeout based on distance and walking speed, with a buffer for path variance.</li>
-     *   <li>Waits for the player to reach the waypoint within the allowed timeout.</li>
-     *   <li>Retries the movement command up to two times if the waypoint is not reached within the timeout.</li>
-     *   <li>Aborts and returns failure if retries are exhausted for any waypoint.</li>
-     * </ul>
+     * to each {@literal WorldPoint} in the sequence.
      *
      * @param client The client instance used to interact with the game world and retrieve the player's location.
-     * @param path A list of {@literal WorldPoint} objects representing the sequence of waypoints to traverse.
+     * @param path A list of {@literal WorldPoint} objects representing the waypoints to traverse in sequence.
      * @param onWaypointReached A functional interface invoked when a waypoint is reached
      * @param onDestinationReached A functional interface invoked when the paths final destination is reached
      * @return {@code true} if the path was successfully traversed to the end, {@code false} if any waypoint
      *         could not be reached after retries.
      */
     public boolean traversePath(Client client, List<WorldPoint> path, Consumer<String> onWaypointReached, Consumer<String> onDestinationReached) {
+        return traversePath(client, path, onWaypointReached, onDestinationReached, DEFAULT_ARRIVAL_TILES);
+    }
+
+    /**
+     * Traverses a given path made up of waypoints, attempting to successfully move the player
+     * to each {@literal WorldPoint} in the sequence. This method moves the player towards the target
+     * waypoints and handles retries for unreachable points. Waypoints that are not reachable in the
+     * live scene are skipped rather than waited on. The last click uses {@code withinTiles} so a walk
+     * whose destination tolerance is three tiles does not retry for a one-tile miss.
+     *
+     * @param client The client instance used to interact with the game world and retrieve the player's location.
+     * @param path A list of {@literal WorldPoint} objects representing the waypoints to traverse in sequence.
+     * @param onWaypointReached A functional interface invoked when a waypoint is reached
+     * @param onDestinationReached A functional interface invoked when the paths final destination is reached
+     * @param withinTiles how close to a waypoint counts as arrived, in tiles
+     * @return {@code true} if the path was successfully traversed to the end, {@code false} if any waypoint
+     *         could not be reached after retries.
+     */
+    public boolean traversePath(Client client, List<WorldPoint> path, Consumer<String> onWaypointReached,
+                                Consumer<String> onDestinationReached, int withinTiles) {
+        int near = Math.max(0, withinTiles);
         for (WorldPoint step : path) {
+            if (step != null && !tileService.isTileReachable(step)) {
+                log.debug("Skipping unreachable waypoint {}", step);
+                continue;
+            }
+
             boolean stepSuccess = false;
 
             // Try to move to this waypoint up to 2 times
@@ -271,8 +300,7 @@ public class MovementService {
                 while (System.currentTimeMillis() < timeout) {
                     playerLoc = ctx.runOnClientThread(() -> client.getLocalPlayer().getWorldLocation());
 
-                    // Success condition: Distance <= 2
-                    if (playerLoc.distanceTo(step) <= 2) {
+                    if (playerLoc.distanceTo(step) <= near) {
                         reached = true;
                         break;
                     }

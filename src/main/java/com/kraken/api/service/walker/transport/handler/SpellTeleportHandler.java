@@ -7,6 +7,7 @@ import com.kraken.api.service.magic.spellbook.Arceuus;
 import com.kraken.api.service.magic.spellbook.Lunar;
 import com.kraken.api.service.magic.spellbook.Standard;
 import com.kraken.api.service.util.SleepService;
+import com.kraken.api.service.walker.HomeTeleportPlan;
 import com.kraken.api.service.walker.transport.TransportContext;
 import com.kraken.api.service.walker.transport.TransportHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -51,10 +52,13 @@ public class SpellTeleportHandler implements TransportHandler {
             return false;
         }
 
+        long timeout = HomeTeleportPlan.isHomeTeleport(spell)
+                ? HomeTeleportPlan.CAST_TIMEOUT_MS
+                : TELEPORT_TIMEOUT_MS;
         SleepService.sleepUntil(() -> {
             WorldPoint now = context.playerLocation();
             return now != null && before != null && now.distanceTo(before) > 10;
-        }, TELEPORT_TIMEOUT_MS);
+        }, timeout);
 
         return true;
     }

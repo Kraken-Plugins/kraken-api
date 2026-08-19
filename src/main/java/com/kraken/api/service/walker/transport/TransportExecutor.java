@@ -2,10 +2,12 @@ package com.kraken.api.service.walker.transport;
 
 import com.kraken.api.Context;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
+import com.kraken.api.service.tile.TileService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.service.walker.transport.handler.DialogueTransportHandler;
 import com.kraken.api.service.walker.transport.handler.FairyRingHandler;
 import com.kraken.api.service.walker.transport.handler.HubDialogueHandler;
+import com.kraken.api.service.walker.transport.handler.HubResumePauseHandler;
 import com.kraken.api.service.walker.transport.handler.ItemTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.ObjectTransportHandler;
 import com.kraken.api.service.walker.transport.handler.SpellTeleportHandler;
@@ -33,14 +35,19 @@ import java.util.Map;
 @Singleton
 public class TransportExecutor {
 
-    /** How far the player must move for a teleport to be judged to have happened. */
-    private static final int TELEPORT_DISTANCE = 16;
-
     /** Floor for how long to wait for a crossing to resolve. */
     private static final long MIN_ARRIVAL_TIMEOUT_MS = 4_000;
 
     /** Added to a transport's own advertised duration when waiting for it. */
     private static final long ARRIVAL_GRACE_MS = 3_000;
+
+    /**
+     * How long to wait for the player to finish walking the last approach tile before clicking.
+     *
+     * <p>Approach walking returns at distance ≤ 2, so without this the first Cross fires while they
+     * still have a tile to walk, and the next round clicks again during that step.</p>
+     */
+    private static final long IDLE_BEFORE_CLICK_MS = 8_000;
 
     @Inject
     private Context ctx;
@@ -48,12 +55,16 @@ public class TransportExecutor {
     @Inject
     private PlayerStateReader playerStateReader;
 
+    @Inject
+    private TileService tileService;
+
     private final Map<TransportShape, TransportHandler> handlers = new EnumMap<>(TransportShape.class);
 
     @Inject
     TransportExecutor(ObjectTransportHandler objectHandler,
                       DialogueTransportHandler dialogueHandler,
                       HubDialogueHandler hubDialogueHandler,
+                      HubResumePauseHandler hubResumePauseHandler,
                       FairyRingHandler fairyRingHandler,
                       ItemTeleportHandler itemHandler,
                       SpellTeleportHandler spellHandler,
@@ -62,6 +73,7 @@ public class TransportExecutor {
         handlers.put(TransportShape.SINGLE_CLICK, objectHandler);
         handlers.put(TransportShape.CLICK_THEN_DIALOGUE, dialogueHandler);
         handlers.put(TransportShape.HUB_DIALOGUE, hubDialogueHandler);
+        handlers.put(TransportShape.HUB_RESUME_PAUSE, hubResumePauseHandler);
         handlers.put(TransportShape.FAIRY_RING, fairyRingHandler);
         handlers.put(TransportShape.ITEM_SUBOP, itemHandler);
         handlers.put(TransportShape.SPELL, spellHandler);
@@ -107,6 +119,12 @@ public class TransportExecutor {
     /**
      * Operates a transport and waits to see whether the player got through.
      *
+     * <p>If the destination is the next tile and already reachable, nothing is clicked: an open door
+     * has no {@code Open} action, and operating it would fail. A tile that is reachable only by
+     * walking around a wall is not an open door — skipping Climb-into on the Varrock underwall is
+     * what stalled on the tunnel origin. Teleports are not skipped this way either. The player is
+     * waited to idle before the click so a last approach tile is not a second Cross mid-step.</p>
+     *
      * @param usage the transport edge chosen by the planner
      * @return what happened, with a readable reason when it did not work
      */
@@ -130,20 +148,31 @@ public class TransportExecutor {
             return Result.unsupported("no handler registered for " + shape);
         }
 
-        List<String> unmet = TransportRequirements.unmetReasons(transport, playerStateReader.read(transport));
+        TransportRequirements.PlayerState state = playerStateReader.read(transport);
+        List<String> unmet = TransportRequirements.unmetReasons(transport, state);
         if (!unmet.isEmpty()) {
             return Result.unmet(usage.getType() + " unusable: " + String.join("; ", unmet));
         }
 
         WorldPoint before = ctx.players().local().location();
+        WorldPoint destination = usage.getDestination();
+        boolean teleport = usage.getType() != null && usage.getType().isTeleport();
+        if (TransportArrival.skipOperating(
+                before, destination, destination != null && tileService.isTileReachable(destination), teleport)) {
+            log.info("Walker: {} already reachable at {}, skipping {}", destination, before, describe(usage));
+            return Result.crossed();
+        }
+
         TransportContext context = TransportContext.builder()
                 .ctx(ctx)
                 .transport(transport)
                 .origin(usage.getOrigin())
                 .destination(usage.getDestination())
-                .objectInfo(ObjectInfo.parse(usage.getObjectInfo()))
+                .objectInfo(ObjectInfo.parse(AlKharidGate.liveObjectInfo(transport, state)))
                 .displayInfo(usage.getDisplayInfo())
                 .build();
+
+        SleepService.sleepUntil(() -> ctx.players().local().isIdle(), IDLE_BEFORE_CLICK_MS);
 
         if (!handler.execute(context)) {
             if (shape == TransportShape.GROUPING_TELEPORT || shape == TransportShape.CANOE) {
@@ -163,9 +192,16 @@ public class TransportExecutor {
     /**
      * Waits for evidence the crossing happened.
      *
-     * <p>Arrival is judged generously on purpose. A staircase changes plane, a shortcut can drop the
-     * player short of the recorded tile, and a teleport lands them far away — so any of those counts,
-     * and the walker re-plans from wherever they actually are.</p>
+     * <p>A staircase changes plane, a shortcut can drop the player short of the recorded tile, and a
+     * teleport lands them far away — any of those counts, and the walker re-plans from wherever they
+     * actually are. A door that is already open is counted before the click: the destination is the
+     * next tile and already reachable in the live scene. A door that opens underfoot during the wait
+     * is counted the same way. A tile that is only reachable by walking around a wall is not — that
+     * is what clicked Climb-into again while the first climb was still playing.</p>
+     *
+     * <p>Warning overlays such as the wilderness ditch often appear a tick after the click. Dismissing
+     * them here, on every poll, is what lets the crossing finish instead of timing out on the south
+     * bank.</p>
      */
     private boolean awaitArrival(GlobalPathfinder.TransportUsage usage, WorldPoint before, Transport transport) {
         WorldPoint destination = usage.getDestination();
@@ -173,21 +209,11 @@ public class TransportExecutor {
                 (long) transport.getDuration() * Constants.GAME_TICK_LENGTH + ARRIVAL_GRACE_MS);
 
         return SleepService.sleepUntil(() -> {
+            WarningWidgets.dismiss(ctx);
+
             WorldPoint now = ctx.players().local().location();
-            if (now == null) {
-                return false;
-            }
-
-            if (destination != null && now.getPlane() == destination.getPlane()
-                    && now.distanceTo(destination) <= 3) {
-                return true;
-            }
-
-            if (before == null) {
-                return false;
-            }
-
-            return now.getPlane() != before.getPlane() || now.distanceTo(before) > TELEPORT_DISTANCE;
+            boolean reachable = destination != null && tileService.isTileReachable(destination);
+            return TransportArrival.arrived(before, now, destination, reachable);
         }, timeout);
     }
 

@@ -8,6 +8,7 @@ import com.kraken.api.service.walker.transport.FairyRingWidgets;
 import com.kraken.api.service.walker.transport.TransportContext;
 import com.kraken.api.service.walker.transport.TransportEntityResolver;
 import com.kraken.api.service.walker.transport.TransportHandler;
+import com.kraken.api.service.walker.transport.WidgetClicks;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InterfaceID;
@@ -29,9 +30,6 @@ public class FairyRingHandler implements TransportHandler {
 
     /** Display info used by the ring that leads to Zanaris rather than to a coded destination. */
     private static final String ZANARIS = "ZANARIS";
-
-    /** Menu actions the travel log entries and dial buttons are known by. */
-    private static final String[] TRAVEL_ACTIONS = {"Travel", "Teleport", "Confirm", "Select"};
 
     /** How long to wait for the ring interface to open. */
     private static final long INTERFACE_TIMEOUT_MS = 5_000;
@@ -107,18 +105,7 @@ public class FairyRingHandler implements TransportHandler {
     }
 
     private boolean clickAny(Context ctx, int packedId) {
-        WidgetEntity widget = ctx.widgets().get(packedId);
-        if (widget == null || widget.isNull()) {
-            return false;
-        }
-
-        for (String action : TRAVEL_ACTIONS) {
-            if (widget.interact(action)) {
-                return true;
-            }
-        }
-
-        return false;
+        return WidgetClicks.click(ctx, ctx.widgets().get(packedId));
     }
 
     private boolean isRingInterfaceOpen(Context ctx) {

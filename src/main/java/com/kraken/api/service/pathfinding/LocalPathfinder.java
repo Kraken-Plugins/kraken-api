@@ -840,7 +840,7 @@ public class LocalPathfinder {
                 }
 
                 if (upperboundDistance == Integer.MAX_VALUE) {
-                    log.error("No path found between: {} and {}, check that the tile is within the local scene.", from.getWorldLocation(), to.getWorldLocation());
+                    log.debug("No path found between: {} and {}, check that the tile is within the local scene.", from.getWorldLocation(), to.getWorldLocation());
                     return null;
                 }
             }

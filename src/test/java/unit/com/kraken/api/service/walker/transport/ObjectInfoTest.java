@@ -147,4 +147,22 @@ class ObjectInfoTest {
     void theRemainderIsRecoverable() {
         assertEquals("Al Kharid Amulet of Glory", ObjectInfo.parse("Al Kharid Amulet of Glory 13523").getRemainder());
     }
+
+    @Test
+    void aStaleShipIdStillNamesTheSailor() {
+        ObjectInfo info = ObjectInfo.parse("Musa Point Captain Tobias 14979");
+
+        assertEquals("Musa", info.getMenuOption());
+        assertEquals("Point Captain Tobias", info.getMenuTarget());
+        assertTrue(info.namesEntity("Captain Tobias"));
+        assertFalse(info.namesEntity("Seaman Lorris"));
+    }
+
+    @Test
+    void aCustomsOfficerRowNamesTheOfficer() {
+        ObjectInfo info = ObjectInfo.parse("Port Sarim Customs officer 14985");
+
+        assertTrue(info.namesEntity("Customs officer"));
+        assertFalse(info.namesEntity("Captain Tobias"));
+    }
 }

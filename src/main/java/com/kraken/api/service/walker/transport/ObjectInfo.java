@@ -124,6 +124,34 @@ public final class ObjectInfo {
     }
 
     /**
+     * Reports whether this object info names the given entity.
+     *
+     * <p>The first-word parse of {@code "Musa Point Captain Tobias 14979"} yields target
+     * {@code "Point Captain Tobias"}, which will not match the live NPC. The remainder still ends
+     * with {@code "Captain Tobias"}, which is what {@link #withEntityName(String)} recovers, so a
+     * name search can succeed when the dataset id is stale.</p>
+     *
+     * @param entityName the name from the object or NPC composition, may be null
+     * @return true when the target is this entity, or the remainder ends with its name
+     */
+    public boolean namesEntity(String entityName) {
+        if (entityName == null) {
+            return false;
+        }
+
+        String name = entityName.trim();
+        if (name.isEmpty()) {
+            return false;
+        }
+
+        if (menuTarget.equalsIgnoreCase(name)) {
+            return true;
+        }
+
+        return withEntityName(name).getMenuTarget().equalsIgnoreCase(name);
+    }
+
+    /**
      * Reports whether the string carried a usable entity id.
      *
      * @return true when an id was parsed
