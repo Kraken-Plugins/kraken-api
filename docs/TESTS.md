@@ -172,6 +172,15 @@ The following items must be present in your **Bank**:
 - **Location**: Near a Banker (the hub bank works).
 - **State**: Ensure no dialogue is currently open before starting.
 
+### `WalkerTest`
+- **Location**: Anywhere outside an instance. The walker refuses to plan from instanced coordinates, which do not match the static collision map.
+- **State**: Pick the destination in **Walker Destination** on the plugin config (Grand Exchange, Varrock East Bank, Lumbridge Castle bank, Al Kharid, Karamja, Falador East Bank, Draynor Village, Edgeville, Tree Gnome Stronghold, East Ardougne, Castle Wars), or leave it on **Manual** and shift right click "Walk here" then "Set" on a tile. A named place always uses that tile, even if a Set tile is still stored. With destination left on **Manual** and no tile picked, the test waits 30 seconds, then falls back to the declared nearby tile so an unattended run still has somewhere to go. Leave it on Manual for **Run All** — a named dest such as Karamja would send the whole suite across the map.
+- **Items**: Whatever the route needs. A fairy ring route wants a dramen or lunar staff unless the Lumbridge elite diary is done; a boat route (Karamja) wants the fare; a teleport route wants the item or runes. The walker re-checks these before it clicks and aborts naming what is missing, so a shortfall reads as `TRANSPORT_REQUIREMENTS_UNMET` rather than a hang.
+- **What to watch**: The log lists every transport the planner intends to use, with its type, origin, destination and the raw `objectInfo` / `displayInfo`, before the walk starts. That listing uses the same `WalkerConfig` as the walk itself (canoes off, F2P members types off), so it is not a more optimistic library-default route. Lumbridge Castle bank is upstairs (plane 2), so the route should include stairs. See [WALKER.md](WALKER.md).
+- **Note**: Canoes and minigame teleports are not implemented. A default `WalkerConfig` turns
+  `useCanoes` and `useTeleportationMinigames` off so the planner routes around them. Opt them back
+  in on a custom pathfinder config if you want to hit `TRANSPORT_UNSUPPORTED` instead.
+
 ### `MouseTest`
 - **Configuration**: If using `REPLAY` strategy, a recording named "test" must exist. If using `LINEAR`, no specific setup is needed other than valid targets nearby.
 

@@ -173,11 +173,13 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
             // 387 = WidgetInfo.EQUIPMENT.getGroupId(), child id
             Widget w = ctx.getClient().getWidget(387, equipmentSlotWidgetMapping.get(i));
            
-            if (w == null || w.getActions() == null) {
+            // Equipment widgets exist while another tab is open, but getActions() is null until the
+            // equipment tab is selected. Skipping those slots hid worn jewellery from teleport handlers.
+            if (w == null) {
                 continue;
             }
 
-            final ItemComposition def = ctx.getClient().getItemDefinition(w.getItemId());
+            final ItemComposition def = ctx.getClient().getItemDefinition(item.getId());
 
             // Create ContainerItem with EQUIPMENT origin
             // Pass slotIndex so we know which equipment slot this is

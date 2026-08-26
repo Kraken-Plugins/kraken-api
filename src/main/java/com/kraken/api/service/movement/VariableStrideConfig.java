@@ -6,17 +6,23 @@ import lombok.Getter;
 
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * How far along a dense path each walk click jumps.
+ *
+ * <p>Defaults match VitaLite's 10–15 tile lookahead, sampled from a Gaussian around 12
+ * rather than uniformly, so most clicks cluster near the middle of that range.</p>
+ */
 @Data
 @Builder
 public class VariableStrideConfig {
     @Builder.Default
-    private int minStride = 5;
+    private int minStride = 10;
 
     @Builder.Default
-    private int maxStride = 14;
+    private int maxStride = 15;
 
     @Builder.Default
-    private int meanStride = 10;
+    private int meanStride = 12;
 
     @Builder.Default
     private int standardDeviation = 3;

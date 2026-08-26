@@ -70,6 +70,18 @@ public interface ApiTestConfig extends Config {
     }
 
     @ConfigItem(
+            name = "Walker Destination",
+            keyName = "walkerDestination",
+            description = "Where the Walker test walks. A named place always uses that tile. "
+                    + "Manual waits for a shift-click, then a nearby tile, so Run All stays local.",
+            position = -993,
+            section = general
+    )
+    default WalkerDestination walkerDestination() {
+        return WalkerDestination.MANUAL;
+    }
+
+    @ConfigItem(
             keyName = "showDebugInfo",
             name = "Show Debug Info",
             description = "Display additional debug information in overlays and within the logs.",
@@ -307,6 +319,18 @@ public interface ApiTestConfig extends Config {
             position = 15
     )
     default boolean renderCurrentPath() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "renderWalkerRoute",
+            name = "Show Walker Route",
+            description = "Displays the route the global pathfinder planned, including every transport it "
+                    + "intends to use, in the scene and on the world map. Updates as the walker re-plans.",
+            section = overlaySettings,
+            position = 16
+    )
+    default boolean renderWalkerRoute() {
         return false;
     }
 

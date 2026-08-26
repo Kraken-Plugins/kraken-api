@@ -27,6 +27,7 @@ The Service API paradigm is useful for static widgets or global game entities, f
 - Spells - A fixed number of in-game spells
 - UI - Static utilities for calculating UI element bounds, interfacing with Dialogue, and switching client tabs
 - Camera - A single camera exists and is centered around your local player (`ctx.cameras().first()` doesn't really make much sense!)
+- Walking - Getting from one place to another is a global concern spanning the whole map rather than a per entity one (see [WALKER.md](WALKER.md))
 - etc...
 
 If you needed to toggle a prayer, cast a spell, or close the bank then the service API paradigm would suite your plugin
@@ -39,6 +40,7 @@ The query system allows you to flexibly "query", refine, and filter for dynamic 
 - Players
 - NPC's
 - Game objects
+- Tile objects (game, wall, decorative and ground objects - doors and gates are usually wall objects)
 - Ground Items
 - Widgets
 - Worn equipment (in the interface as well as your inventory)

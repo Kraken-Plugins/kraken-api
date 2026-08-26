@@ -27,7 +27,10 @@ tasks.register('runelite', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass.set('PluginRunnerTest')
     jvmArgs '-ea'
-    args '--developer-mode plugins.api.ApiTestPlugin'
+    // PluginRunnerTest reads args[0] as the plugin class to load as a builtin and forwards the
+    // rest to RuneLite, so these must be separate arguments with the plugin first. Passing them
+    // as one string made Class.forName fail and the task exit before the client ever started.
+    args 'plugins.api.ApiTestPlugin', '--developer-mode'
 }
 
 

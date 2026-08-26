@@ -1,14 +1,20 @@
 package com.kraken.api.service.pathfinding;
 
 import com.kraken.api.Context;
+import com.kraken.api.service.walker.transport.AlKharidGate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
+import net.runelite.api.Item;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.Player;
+import net.runelite.api.Quest;
+import net.runelite.api.QuestState;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InventoryID;
+import net.runelite.api.gameval.ItemID;
 import shortestpath.*;
 import shortestpath.pathfinder.*;
 import shortestpath.transport.Transport;
@@ -22,6 +28,7 @@ import java.util.*;
 @Singleton
 public class GlobalPathfinder {
     private static final GlobalPathfinderConfig DEFAULT_CONFIG = GlobalPathfinderConfig.builder().build();
+    private static final Transport[] NO_TRANSPORTS = new Transport[0];
     private static final PathResult EMPTY_RESULT = PathResult.empty();
 
     @Inject
@@ -257,7 +264,9 @@ public class GlobalPathfinder {
             }
 
             SearchState searchState = search(prepared.start, prepared.targets, prepared.pathfinderConfig);
-            PathResult result = buildResult(source, destination, resolvedConfig, prepared.pathfinderConfig, searchState);
+            PathResult result = buildResult(
+                    source, destination, resolvedConfig, prepared.pathfinderConfig, searchState,
+                    prepared.alKharidGateFree);
             lastResult = result;
             return result;
         }
@@ -278,12 +287,24 @@ public class GlobalPathfinder {
         reusablePathfinderConfig.bank = client.getItemContainer(InventoryID.BANK);
         PathfinderConfig pathfinderConfig = reusablePathfinderConfig;
         pathfinderConfig.refresh();
+        int gateVarp = client.getVarpValue(AlKharidGate.GATE_VARP);
+        boolean princeAliFinished = QuestState.FINISHED.equals(Quest.PRINCE_ALI_RESCUE.getState(client));
+        AlKharidGate.stripIfUnusable(
+                pathfinderConfig.getTransportsPacked(false),
+                pathfinderConfig.getTransportsPacked(true),
+                countCoins(),
+                gateVarp,
+                princeAliFinished);
 
         Set<Integer> targets = new HashSet<>();
         targets.add(WorldPointUtil.packWorldPoint(destination));
         pathfinderConfig.filterLocations(targets, true);
 
-        return new PreparedPathfinder(WorldPointUtil.packWorldPoint(source), targets, pathfinderConfig);
+        return new PreparedPathfinder(
+                WorldPointUtil.packWorldPoint(source),
+                targets,
+                pathfinderConfig,
+                AlKharidGate.isFree(gateVarp, princeAliFinished));
     }
 
     /** Runs the shortest-path graph search over walkable tiles and transport edges. */
@@ -418,7 +439,8 @@ public class GlobalPathfinder {
             WorldPoint destination,
             GlobalPathfinderConfig config,
             PathfinderConfig pathfinderConfig,
-            SearchState searchState
+            SearchState searchState,
+            boolean alKharidGateFree
     ) {
         if (searchState.pathSteps == null || searchState.pathSteps.isEmpty()) {
             return PathResult.empty(config, source, destination);
@@ -426,7 +448,7 @@ public class GlobalPathfinder {
 
         List<PathStep> pathSteps = searchState.pathSteps;
         List<WorldPoint> densePath = unpackPath(pathSteps);
-        List<TransportUsage> transports = findTransportUsages(pathSteps, pathfinderConfig);
+        List<TransportUsage> transports = findTransportUsages(pathSteps, pathfinderConfig, alKharidGateFree);
         List<WorldPoint> sparsePath = toSparsePath(densePath, transports, config.getSparsePathWaypointDistance());
         boolean complete = searchState.complete
                 && !densePath.isEmpty()
@@ -446,7 +468,11 @@ public class GlobalPathfinder {
     }
 
     /** Matches route steps against transport edges so callers can see which hops were used. */
-    private List<TransportUsage> findTransportUsages(List<PathStep> pathSteps, PathfinderConfig pathfinderConfig) {
+    private List<TransportUsage> findTransportUsages(
+            List<PathStep> pathSteps,
+            PathfinderConfig pathfinderConfig,
+            boolean alKharidGateFree
+    ) {
         if (pathSteps == null || pathSteps.size() < 2) {
             return Collections.emptyList();
         }
@@ -459,32 +485,80 @@ public class GlobalPathfinder {
             int destination = nextStep.getPackedPosition();
             boolean bankVisited = currentStep.isBankVisited() || nextStep.isBankVisited();
 
-            Transport[] transports = pathfinderConfig.getTransportsPacked(bankVisited).getOrDefault(origin, new Transport[0]);
-
-            if (transports == null || transports.length == 0) {
+            Transport[] fromTile = pathfinderConfig.getTransportsPacked(bankVisited)
+                    .getOrDefault(origin, NO_TRANSPORTS);
+            Transport transport = hopBetween(
+                    fromTile, pathfinderConfig.getUsableTeleports(bankVisited), origin, destination);
+            if (transport == null) {
                 continue;
             }
 
-            for (Transport transport : transports) {
-                if (transport.getDestination() != destination) {
-                    continue;
-                }
-
-                transportUsages.add(new TransportUsage(
-                        i - 1,
-                        WorldPointUtil.unpackWorldPoint(origin),
-                        WorldPointUtil.unpackWorldPoint(destination),
-                        transport.getType(),
-                        transport.getDisplayInfo(),
-                        transport.getObjectInfo(),
-                        transport.isConsumable(),
-                        transport.getDuration()
-                ));
-                break;
-            }
+            transportUsages.add(new TransportUsage(
+                    i - 1,
+                    WorldPointUtil.unpackWorldPoint(origin),
+                    WorldPointUtil.unpackWorldPoint(destination),
+                    transport.getType(),
+                    transport.getDisplayInfo(),
+                    AlKharidGate.liveObjectInfo(transport, alKharidGateFree),
+                    transport.isConsumable(),
+                    transport.getDuration(),
+                    transport
+            ));
         }
 
         return Collections.unmodifiableList(transportUsages);
+    }
+
+    /**
+     * Whether two packed tiles are a single walking step, including diagonals.
+     *
+     * <p>A jewellery teleport is stored with an undefined origin, so it is recovered by matching the
+     * landing tile. Walking onto that landing tile later must not count as rubbing the ring.</p>
+     *
+     * @param from packed start tile
+     * @param to packed end tile
+     * @return true when the hop is on the same plane and at most one tile away
+     */
+    public static boolean isWalkNeighbour(int from, int to) {
+        return WorldPointUtil.unpackWorldPlane(from) == WorldPointUtil.unpackWorldPlane(to)
+                && WorldPointUtil.distanceBetween(from, to) <= 1;
+    }
+
+    /**
+     * Picks the transport used between two consecutive path tiles.
+     *
+     * <p>Edges attached to the origin tile are preferred (doors, gliders, fairy rings). Player-centered
+     * teleports — jewellery, tabs, spells — have an undefined origin and are only used when the hop
+     * is not a walkable neighbour.</p>
+     *
+     * @param fromOrigin transports keyed by the path tile, may be null
+     * @param playerCentered teleports usable from wherever the player stands, may be null
+     * @param origin packed path tile the hop leaves
+     * @param destination packed path tile the hop lands on
+     * @return the matching edge, or null when the hop is ordinary walking
+     */
+    public static Transport hopBetween(
+            Transport[] fromOrigin, Transport[] playerCentered, int origin, int destination) {
+        Transport tiled = byDestination(fromOrigin, destination);
+        if (tiled != null) {
+            return tiled;
+        }
+        if (isWalkNeighbour(origin, destination)) {
+            return null;
+        }
+        return byDestination(playerCentered, destination);
+    }
+
+    private static Transport byDestination(Transport[] transports, int destination) {
+        if (transports == null) {
+            return null;
+        }
+        for (Transport transport : transports) {
+            if (transport != null && transport.getDestination() == destination) {
+                return transport;
+            }
+        }
+        return null;
     }
 
     /** Unpacks the shortest-path packed coordinate list into world points. */
@@ -618,7 +692,6 @@ public class GlobalPathfinder {
 
     /** Describes a single transport edge chosen in the final route. */
     @Getter
-    @AllArgsConstructor
     public static final class TransportUsage {
         private final int pathIndex;
         private final WorldPoint origin;
@@ -628,6 +701,80 @@ public class GlobalPathfinder {
         private final String objectInfo;
         private final boolean consumable;
         private final int duration;
+
+        /**
+         * The transport edge this usage was built from, carrying the requirements the planner applied.
+         *
+         * <p>The fields above flatten the edge for display. Anything that has to <em>execute</em> the
+         * transport needs the edge itself, because that is where the item, skill, quest and varbit
+         * requirements live in structured form. May be null when the usage was built without one.</p>
+         *
+         * <p>This exposes a shortest-path type whose shape follows the pinned dependency rather than
+         * Kraken's own compatibility promise.</p>
+         */
+        private final Transport transport;
+
+        /**
+         * Builds a usage without the underlying edge.
+         *
+         * <p>Retained so that code compiled against the previous all-args constructor keeps working.</p>
+         *
+         * @param pathIndex index into the route where the transport is entered
+         * @param origin the tile the transport is entered from
+         * @param destination the tile the transport leads to
+         * @param type the kind of transport
+         * @param displayInfo human readable description of the transport
+         * @param objectInfo what to interact with, as stored by the dataset
+         * @param consumable whether using the transport consumes an item
+         * @param duration how long the transport takes, in game ticks
+         */
+        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
+                              String displayInfo, String objectInfo, boolean consumable, int duration) {
+            this(pathIndex, origin, destination, type, displayInfo, objectInfo, consumable, duration, null);
+        }
+
+        /**
+         * Builds a usage carrying the underlying transport edge.
+         *
+         * @param pathIndex index into the route where the transport is entered
+         * @param origin the tile the transport is entered from
+         * @param destination the tile the transport leads to
+         * @param type the kind of transport
+         * @param displayInfo human readable description of the transport
+         * @param objectInfo what to interact with, as stored by the dataset
+         * @param consumable whether using the transport consumes an item
+         * @param duration how long the transport takes, in game ticks
+         * @param transport the dataset edge, may be null
+         */
+        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
+                              String displayInfo, String objectInfo, boolean consumable, int duration,
+                              Transport transport) {
+            this.pathIndex = pathIndex;
+            this.origin = origin;
+            this.destination = destination;
+            this.type = type;
+            this.displayInfo = displayInfo;
+            this.objectInfo = objectInfo;
+            this.consumable = consumable;
+            this.duration = duration;
+            this.transport = transport;
+        }
+    }
+
+    /** Totals coins in the inventory. The Al Kharid overlay needs a live count, not a spend cap. */
+    private int countCoins() {
+        ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+        if (inventory == null) {
+            return 0;
+        }
+
+        int coins = 0;
+        for (Item item : inventory.getItems()) {
+            if (item != null && item.getId() == ItemID.COINS) {
+                coins += Math.max(item.getQuantity(), 0);
+            }
+        }
+        return coins;
     }
 
     /** Bundles the packed search inputs with the refreshed shortest-path config. */
@@ -636,6 +783,7 @@ public class GlobalPathfinder {
         private final int start;
         private final Set<Integer> targets;
         private final PathfinderConfig pathfinderConfig;
+        private final boolean alKharidGateFree;
     }
 
     /** Captures the terminal search node and lightweight search metrics. */
@@ -645,6 +793,20 @@ public class GlobalPathfinder {
         private final boolean complete;
         private final int nodesChecked;
         private final int transportsChecked;
+    }
+
+    /**
+     * Maps the on/off flag to shortest-path's jewellery setting.
+     *
+     * <p>The plugin default is {@code INVENTORY_NON_CONSUMABLE} so an overlay does not burn a glory
+     * charge. A walker should use what is actually carried, matching VitaLite: a Ring of wealth (1)
+     * in the inventory is a Grand Exchange teleport, not a gnome glider.</p>
+     *
+     * @param useTeleportationItems whether item teleports are allowed
+     * @return inventory including charged jewellery, or none
+     */
+    public static TeleportationItem teleportationItemSetting(boolean useTeleportationItems) {
+        return useTeleportationItems ? TeleportationItem.INVENTORY : TeleportationItem.NONE;
     }
 
     private static final class MutableShortestPathConfigAdapter implements ShortestPathConfig {
@@ -758,9 +920,7 @@ public class GlobalPathfinder {
 
         @Override
         public TeleportationItem useTeleportationItems() {
-            return config.isUseTeleportationItems()
-                    ? TeleportationItem.INVENTORY_NON_CONSUMABLE
-                    : TeleportationItem.NONE;
+            return teleportationItemSetting(config.isUseTeleportationItems());
         }
 
         @Override
