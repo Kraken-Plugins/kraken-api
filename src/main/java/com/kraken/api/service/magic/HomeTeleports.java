@@ -4,6 +4,8 @@ import com.kraken.api.service.magic.spellbook.Ancient;
 import com.kraken.api.service.magic.spellbook.Arceuus;
 import com.kraken.api.service.magic.spellbook.Lunar;
 import com.kraken.api.service.magic.spellbook.Standard;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -16,10 +18,8 @@ import java.time.temporal.ChronoUnit;
  * {@code isCastable} does not consult the timer — home teleport has no runes — so a clickable-looking
  * spell can still be on cooldown. VitaLite uses the same varp check.</p>
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class HomeTeleports {
-
-    private HomeTeleports() {
-    }
 
     /**
      * Whether a spell is any book's home teleport.

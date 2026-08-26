@@ -59,6 +59,7 @@ public class WalkerTest extends BaseApiTest {
                 .sideEffect(SideEffect.MOVES_PLAYER)
                 .sideEffect(SideEffect.TELEPORTS)
                 .sideEffect(SideEffect.CONSUMES_ITEMS)
+                .timeoutMs(WALK_TIMEOUT_MS)
                 .build();
     }
 
