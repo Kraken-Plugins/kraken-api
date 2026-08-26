@@ -17,9 +17,8 @@ import java.awt.event.ActionListener;
 /**
  * One row in the test panel: name, status, duration, and a button to run just that test.
  *
- * <p>Rows are created once and updated in place. Rebuilding the list on every refresh would mean
- * thirty-odd component trees discarded four times a second, and would lose the expanded state of any
- * row whose failure reason you were reading.</p>
+ * <p>Rows are updated in place until the selected group or test catalogue changes. Rebuilding the
+ * list on every refresh would mean thirty-odd component trees discarded four times a second.</p>
  */
 class TestRowPanel extends JPanel {
 
