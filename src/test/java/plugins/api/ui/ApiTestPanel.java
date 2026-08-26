@@ -71,7 +71,7 @@ public class ApiTestPanel extends PluginPanel {
 
     private final Timer refreshTimer = new Timer(REFRESH_INTERVAL_MS, event -> refresh());
 
-    private int renderedTestCount = -1;
+    private int renderedRegistrySize = -1;
 
     /**
      * Builds the panel.
@@ -163,7 +163,7 @@ public class ApiTestPanel extends PluginPanel {
         groupFilter.setAlignmentX(LEFT_ALIGNMENT);
         groupFilter.setToolTipText("Limit Run All, and the list below, to one category");
         groupFilter.addActionListener(event -> {
-            applyFilter();
+            rebuildRows();
             refresh();
         });
         header.add(groupFilter);
@@ -214,17 +214,22 @@ public class ApiTestPanel extends PluginPanel {
     }
 
     /**
-     * Creates a row per registered test, grouped under category headings.
+     * Creates rows for the selected group under its category heading.
      *
      * <p>Deferred until the registry has been initialised, which happens in the plugin's
-     * {@code startUp()}, and rebuilt only if the catalogue size changes.</p>
+     * {@code startUp()}, and rebuilt only if the catalogue size or selected group changes.</p>
      */
     private void rebuildRows() {
         listPanel.removeAll();
         rows.clear();
 
+        TestGroup selected = selectedGroup();
         TestGroup previousGroup = null;
         for (RegisteredTest test : registry.all()) {
+            if (selected != null && test.getGroup() != selected) {
+                continue;
+            }
+
             if (test.getGroup() != previousGroup) {
                 listPanel.add(buildCategoryHeader(test.getGroup()));
                 previousGroup = test.getGroup();
@@ -236,8 +241,7 @@ public class ApiTestPanel extends PluginPanel {
             listPanel.add(row);
         }
 
-        renderedTestCount = rows.size();
-        applyFilter();
+        renderedRegistrySize = registry.size();
         listPanel.revalidate();
         listPanel.repaint();
     }
@@ -263,14 +267,14 @@ public class ApiTestPanel extends PluginPanel {
      * Rows early-return when nothing they display has changed, so a steady state tick touches no
      * components.</p>
      *
-     * <p>The row check compares against {@link TestRegistry#size()} rather than the length of
+     * <p>The catalogue check compares against {@link TestRegistry#size()} rather than the length of
      * {@code all()}, which would allocate a defensive copy of the whole catalogue on every tick. The
      * sentinel {@code -1} start value makes the first call rebuild without needing a separate
      * condition, and it still picks up the catalogue appearing later, since the panel is constructed
      * before the registry is populated on a fresh profile.</p>
      */
     private void refresh() {
-        if (renderedTestCount != registry.size()) {
+        if (renderedRegistrySize != registry.size()) {
             rebuildRows();
         }
 
@@ -350,20 +354,6 @@ public class ApiTestPanel extends PluginPanel {
 
         runner.runSelection(failed, optionsSupplier.get().toBuilder().includeDestructive(true).build());
         refresh();
-    }
-
-    /**
-     * Shows or hides rows to match the group filter.
-     */
-    private void applyFilter() {
-        TestGroup selected = selectedGroup();
-
-        for (TestRowPanel row : rows.values()) {
-            row.setVisible(selected == null || row.getTest().getGroup() == selected);
-        }
-
-        listPanel.revalidate();
-        listPanel.repaint();
     }
 
     /**
