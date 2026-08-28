@@ -4,6 +4,8 @@ import com.kraken.api.Context;
 import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.query.npc.NpcQuery;
 import com.kraken.api.query.tileobject.TileObjectEntity;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
@@ -18,6 +20,7 @@ import net.runelite.api.coords.WorldPoint;
  * recover multi-word options such as {@code "Al Kharid"}.</p>
  */
 @Slf4j
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TransportEntityResolver {
 
     /** How far from the transport's origin tile to look for scenery by id. */
@@ -36,8 +39,6 @@ public final class TransportEntityResolver {
      */
     private static final int NPC_SEARCH_RADIUS = 10;
 
-    private TransportEntityResolver() {
-    }
 
     /**
      * Resolves the object info to a clickable entity and interacts with it.

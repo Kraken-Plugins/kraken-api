@@ -35,6 +35,12 @@ class ObstacleRecoveryTest {
     }
 
     @Test
+    void websAreObstacles() {
+        assertTrue(ObstacleRecovery.isObstacle("Web"));
+        assertTrue(ObstacleRecovery.isObstacle("Slashed web"));
+    }
+
+    @Test
     void otherSceneryIsNotAnObstacle() {
         assertFalse(ObstacleRecovery.isObstacle("Bank booth"));
         assertFalse(ObstacleRecovery.isObstacle("Oak tree"));
@@ -58,6 +64,18 @@ class ObstacleRecoveryTest {
         assertEquals("Squeeze-through", ObstacleRecovery.chooseAction(new String[]{"Squeeze-through"}));
         assertEquals("Go-through", ObstacleRecovery.chooseAction(new String[]{"Go-through", "Examine"}));
         assertEquals("Pay-toll(10gp)", ObstacleRecovery.chooseAction(new String[]{"Pay-toll(10gp)", "Examine"}));
+    }
+
+    @Test
+    void slashGetsThroughAWeb() {
+        assertEquals("Slash", ObstacleRecovery.chooseAction(new String[]{"Slash", "Examine"}));
+    }
+
+    @Test
+    void aFailableSlashIsRetriedAndOtherActionsAreNot() {
+        assertTrue(ObstacleRecovery.maxAttempts("Slash") > 1);
+        assertEquals(1, ObstacleRecovery.maxAttempts("Open"));
+        assertEquals(1, ObstacleRecovery.maxAttempts(null));
     }
 
     @Test

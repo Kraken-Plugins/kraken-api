@@ -55,16 +55,19 @@ public class ObstacleRecovery {
     private static final int APPROACH_STEP_TILES = 16;
 
     /** Scenery that can be opened out of the way rather than walked around. */
-    private static final String[] OBSTACLE_NAMES = {"door", "gate", "curtain"};
+    private static final String[] OBSTACLE_NAMES = {"door", "gate", "curtain", "web"};
 
     /** Menu actions that open an obstacle, in the order they are preferred. */
     private static final String[] OBSTACLE_ACTIONS = {
             "Open", "Pay-toll(10gp)", "Pass", "Pass-through", "Go-through", "Push", "Push-through",
-            "Squeeze-through", "Enter"
+            "Squeeze-through", "Enter", "Slash"
     };
 
     /** How long to wait for the obstacle to open. */
     private static final long OPEN_TIMEOUT_MS = 5_000;
+
+    /** How many clicks a failable action gets; a failed web slash leaves the web standing. */
+    private static final int SLASH_ATTEMPTS = 10;
 
     @Inject
     private Context ctx;
@@ -311,25 +314,33 @@ public class ObstacleRecovery {
             return false;
         } else if (obstacle == null) {
             return fail("cannot reach " + blocked + " from " + nearSide
-                    + "; nothing matching door/gate/curtain stands there");
+                    + "; nothing matching door/gate/curtain/web stands there");
         } else {
             return fail("cannot reach " + blocked + " from " + nearSide + "; "
                     + describe(obstacle) + " offers no way through");
         }
 
         log.info("Walker: route blocked at {}; '{}' {}", blocked, action, describe(obstacle));
-        if (!obstacle.interact(action)) {
-            return fail("could not click '" + action + "' on " + describe(obstacle) + " at " + blocked);
-        }
-
         long timeout = openTimeoutMs(here, blocked);
-        if (!SleepService.sleepUntil(() -> tileService.isTileReachable(blocked), timeout)) {
-            return fail("clicked '" + action + "' on " + describe(obstacle) + " at " + blocked
-                    + " but it did not open");
+        int attempts = maxAttempts(action);
+        for (int attempt = 1; attempt <= attempts; attempt++) {
+            if (!obstacle.interact(action)) {
+                return fail("could not click '" + action + "' on " + describe(obstacle) + " at " + blocked);
+            }
+
+            if (SleepService.sleepUntil(() -> tileService.isTileReachable(blocked), timeout)) {
+                log.info("Walker: opened {}; {} is now reachable", describe(obstacle), blocked);
+                return true;
+            }
+
+            if (attempt < attempts) {
+                log.info("Walker: '{}' on {} did not open it (attempt {}/{}); clicking again",
+                        action, describe(obstacle), attempt, attempts);
+            }
         }
 
-        log.info("Walker: opened {}; {} is now reachable", describe(obstacle), blocked);
-        return true;
+        return fail("clicked '" + action + "' on " + describe(obstacle) + " at " + blocked
+                + " " + attempts + (attempts == 1 ? " time" : " times") + " but it did not open");
     }
 
     /**
@@ -400,7 +411,7 @@ public class ObstacleRecovery {
      * Reports whether a scenery name is something that can be opened out of the way.
      *
      * @param name the object's name, may be null
-     * @return true when it looks like a door, gate or curtain
+     * @return true when it looks like a door, gate, curtain or slashable web
      */
     public static boolean isObstacle(String name) {
         if (name == null) {
@@ -441,5 +452,18 @@ public class ObstacleRecovery {
         }
 
         return null;
+    }
+
+    /**
+     * How many clicks an action gets before the obstacle is reported as not opening.
+     *
+     * <p>Most actions either work or never will, so they get one click. Slashing a web can fail,
+     * leaving the web standing and the game waiting for another click, so it is retried.</p>
+     *
+     * @param action the menu action being used, may be null
+     * @return the number of attempts the action deserves
+     */
+    public static int maxAttempts(String action) {
+        return "Slash".equalsIgnoreCase(action) ? SLASH_ATTEMPTS : 1;
     }
 }

@@ -1,6 +1,7 @@
 package com.kraken.api.service.walker.transport;
 
 import com.kraken.api.Context;
+import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.tile.TileService;
 import com.kraken.api.service.util.SleepService;
@@ -21,6 +22,7 @@ import shortestpath.transport.Transport;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,12 @@ public class TransportExecutor {
      */
     private static final long IDLE_BEFORE_CLICK_MS = 8_000;
 
+    /** How many times to slash a web before giving up; a slash can fail and leave it standing. */
+    private static final int WEB_SLASH_ATTEMPTS = 5;
+
+    /** How long one slash attempt gets to open the web: walking to it plus the slash animation. */
+    private static final long WEB_SLASH_RESOLVE_MS = 6_000;
+
     @Inject
     private Context ctx;
 
@@ -57,6 +65,9 @@ public class TransportExecutor {
 
     @Inject
     private TileService tileService;
+
+    @Inject
+    private MovementService movementService;
 
     private final Map<TransportShape, TransportHandler> handlers = new EnumMap<>(TransportShape.class);
 
@@ -125,6 +136,10 @@ public class TransportExecutor {
      * what stalled on the tunnel origin. Teleports are not skipped this way either. The player is
      * waited to idle before the click so a last approach tile is not a second Cross mid-step.</p>
      *
+     * <p>A slashable web is crossed by {@link #crossWeb}: a slash can fail and needs re-clicking,
+     * and even a successful one leaves the player standing beside the open web, so it is handled
+     * apart from the shape dispatch.</p>
+     *
      * @param usage the transport edge chosen by the planner
      * @return what happened, with a readable reason when it did not work
      */
@@ -157,20 +172,26 @@ public class TransportExecutor {
         WorldPoint before = ctx.players().local().location();
         WorldPoint destination = usage.getDestination();
         boolean teleport = usage.getType() != null && usage.getType().isTeleport();
+
+        ObjectInfo objectInfo = ObjectInfo.parse(AlKharidGate.liveObjectInfo(transport, state));
+        TransportContext context = TransportContext.builder()
+                .ctx(ctx)
+                .transport(transport)
+                .origin(usage.getOrigin())
+                .destination(destination)
+                .objectInfo(objectInfo)
+                .displayInfo(usage.getDisplayInfo())
+                .build();
+
+        if (isSlashWeb(objectInfo)) {
+            return crossWeb(context, usage);
+        }
+
         if (TransportArrival.skipOperating(
                 before, destination, destination != null && tileService.isTileReachable(destination), teleport)) {
             log.info("Walker: {} already reachable at {}, skipping {}", destination, before, describe(usage));
             return Result.crossed();
         }
-
-        TransportContext context = TransportContext.builder()
-                .ctx(ctx)
-                .transport(transport)
-                .origin(usage.getOrigin())
-                .destination(usage.getDestination())
-                .objectInfo(ObjectInfo.parse(AlKharidGate.liveObjectInfo(transport, state)))
-                .displayInfo(usage.getDisplayInfo())
-                .build();
 
         SleepService.sleepUntil(() -> ctx.players().local().isIdle(), IDLE_BEFORE_CLICK_MS);
 
@@ -222,6 +243,62 @@ public class TransportExecutor {
             boolean reachable = destination != null && tileService.isTileReachable(destination);
             return TransportArrival.arrived(before, now, destination, reachable);
         }, timeout);
+    }
+
+    /**
+     * Crosses a slashable web.
+     *
+     * <p>A web is the one transport whose operation neither moves the player nor reliably works: a
+     * slash can fail, leaving the web intact and waiting for another click, and even a successful
+     * slash only opens the way while the player stays put. So the web is slashed until the far side
+     * becomes reachable, retrying failed attempts, and then walked through before the crossing is
+     * reported. A web someone already slashed is walked through without clicking — a slashed web
+     * offers no {@code Slash} action, and reporting it crossed without moving would leave the next
+     * round planning the same edge from the same tile.</p>
+     *
+     * @param context the transport being crossed, used to resolve and click the web
+     * @param usage the transport edge chosen by the planner
+     * @return crossed once the player stands on the far side, or a failure naming what went wrong
+     */
+    private Result crossWeb(TransportContext context, GlobalPathfinder.TransportUsage usage) {
+        WorldPoint destination = usage.getDestination();
+        if (destination == null) {
+            return Result.failed("web transport at " + usage.getOrigin() + " carries no destination");
+        }
+
+        for (int attempt = 1; !tileService.isTileReachable(destination); attempt++) {
+            if (attempt > WEB_SLASH_ATTEMPTS) {
+                return Result.failed("slashed " + describe(usage) + " " + WEB_SLASH_ATTEMPTS
+                        + " times but it never opened");
+            }
+
+            SleepService.sleepUntil(() -> ctx.players().local().isIdle(), IDLE_BEFORE_CLICK_MS);
+            log.info("Walker: slashing {} toward {} (attempt {}/{})",
+                    describe(usage), destination, attempt, WEB_SLASH_ATTEMPTS);
+            if (!TransportEntityResolver.interact(context)) {
+                return Result.failed("could not slash " + describe(usage));
+            }
+
+            SleepService.sleepUntil(() -> tileService.isTileReachable(destination), WEB_SLASH_RESOLVE_MS);
+        }
+
+        log.info("Walker: {} is open; walking through to {}", describe(usage), destination);
+        if (!movementService.traversePath(ctx.getClient(), Collections.singletonList(destination), 0)) {
+            return Result.failed("opened " + describe(usage) + " but could not walk through to " + destination);
+        }
+
+        return Result.crossed();
+    }
+
+    /**
+     * Whether this transport is a slashable web. {@code Slash} is the menu option the dataset uses
+     * for web rows and nothing else, so the option alone identifies them.
+     *
+     * @param info the parsed object info, may be null
+     * @return true when the transport is operated by slashing
+     */
+    private static boolean isSlashWeb(ObjectInfo info) {
+        return info != null && "Slash".equalsIgnoreCase(info.getMenuOption());
     }
 
     private String describe(GlobalPathfinder.TransportUsage usage) {
