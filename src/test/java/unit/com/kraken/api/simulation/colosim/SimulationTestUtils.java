@@ -1,7 +1,7 @@
 package unit.com.kraken.api.simulation.colosim;
 
-import com.kraken.api.simulation.colosim.Simulation;
-import com.kraken.api.simulation.colosim.model.Mob;
+import colosim.Simulation;
+import colosim.model.Mob;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

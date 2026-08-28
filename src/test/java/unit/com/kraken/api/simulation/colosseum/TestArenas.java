@@ -1,6 +1,6 @@
 package unit.com.kraken.api.simulation.colosseum;
 
-import com.kraken.api.simulation.colosim.Simulation;
+import colosim.Simulation;
 import plugins.colosseum.simulation.Constants;
 import plugins.colosseum.simulation.Coords;
 import plugins.colosseum.simulation.Frame;

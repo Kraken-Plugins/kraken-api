@@ -1,8 +1,8 @@
-package com.kraken.api.simulation.colosim;
+package colosim;
 
-import com.kraken.api.simulation.colosim.model.Mob;
-import com.kraken.api.simulation.colosim.model.NpcInfo;
-import com.kraken.api.simulation.colosim.model.Tile;
+import colosim.model.Mob;
+import colosim.model.NpcInfo;
+import colosim.model.Tile;
 
 import javax.swing.*;
 import java.awt.*;

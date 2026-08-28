@@ -65,7 +65,7 @@ New behavior goes in the narrowest layer that owns it. Do not add a query for so
 
 ### Simulation — two separate engines
 
-- `src/main/java/com/kraken/api/simulation/colosim/` — a Java port of the community Colosseum line-of-sight simulator, shipped in the published jar, with its own GUI.
+- `src/test/java/colosim/` — a Java port of the community Colosseum line-of-sight simulator, shipped in the published jar, with its own GUI.
 - `src/test/java/plugins/colosseum/simulation/` — the real-time bit-packed Fortis Colosseum tick engine and budgeted `Planner` (waves 1–11). It was deliberately moved *out* of the published API into the test source set (commits `10129331`, `fa1d9bdd`); do not move it back. `docs/SIMULATION.md` documents its design, and `unit/com/kraken/api/simulation/colosseum/TickParityTest` parity-checks it against `colosim`.
 
 ### Test source layout

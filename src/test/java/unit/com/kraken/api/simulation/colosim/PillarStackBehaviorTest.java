@@ -1,7 +1,7 @@
 package unit.com.kraken.api.simulation.colosim;
 
-import com.kraken.api.simulation.colosim.NpcType;
-import com.kraken.api.simulation.colosim.Simulation;
+import colosim.NpcType;
+import colosim.Simulation;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
