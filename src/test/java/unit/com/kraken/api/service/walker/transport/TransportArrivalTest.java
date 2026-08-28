@@ -37,9 +37,21 @@ class TransportArrivalTest {
     }
 
     @Test
-    void aPlaneChangeIsACrossing() {
+    void aPlaneChangeToTheDestinationFloorIsACrossing() {
         assertTrue(TransportArrival.crossed(ORIGIN, UPSTAIRS, UPSTAIRS));
         assertTrue(TransportArrival.crossed(ORIGIN, UPSTAIRS, null));
+    }
+
+    @Test
+    void aPlaneChangeToTheWrongFloorIsNotACrossing() {
+        WorldPoint stairs = new WorldPoint(3258, 3486, 2);
+        WorldPoint floorBelow = new WorldPoint(3257, 3487, 1);
+        WorldPoint floorAbove = new WorldPoint(3258, 3486, 3);
+
+        assertFalse(TransportArrival.crossed(stairs, floorBelow, floorAbove));
+        assertFalse(TransportArrival.arrived(stairs, floorBelow, floorAbove, false));
+        assertTrue(TransportArrival.crossed(stairs, floorAbove, floorAbove));
+        assertTrue(TransportArrival.arrived(stairs, floorAbove, floorAbove, false));
     }
 
     @Test

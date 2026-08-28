@@ -174,6 +174,9 @@ public class TransportExecutor {
 
         SleepService.sleepUntil(() -> ctx.players().local().isIdle(), IDLE_BEFORE_CLICK_MS);
 
+        log.info("Walker: operating {} ({}) from {} toward {}",
+                usage.getType(), describe(usage), before, destination);
+
         if (!handler.execute(context)) {
             if (shape == TransportShape.GROUPING_TELEPORT || shape == TransportShape.CANOE) {
                 return Result.unsupported(usage.getType() + " has no destination chooser implemented");
@@ -183,7 +186,9 @@ public class TransportExecutor {
         }
 
         if (!awaitArrival(usage, before, transport)) {
-            return Result.failed("operated " + usage.getType() + " but did not arrive at " + usage.getDestination());
+            WorldPoint now = ctx.players().local().location();
+            return Result.failed("operated " + usage.getType() + " (" + describe(usage) + ") but ended at "
+                    + now + " instead of " + usage.getDestination());
         }
 
         return Result.crossed();
@@ -192,9 +197,11 @@ public class TransportExecutor {
     /**
      * Waits for evidence the crossing happened.
      *
-     * <p>A staircase changes plane, a shortcut can drop the player short of the recorded tile, and a
-     * teleport lands them far away — any of those counts, and the walker re-plans from wherever they
-     * actually are. A door that is already open is counted before the click: the destination is the
+     * <p>A staircase lands on the destination's floor, a shortcut can drop the player short of the
+     * recorded tile, and a teleport lands them far away — any of those counts, and the walker
+     * re-plans from wherever they actually are. A plane change to any other floor is a climb in the
+     * wrong direction and keeps the wait polling until it times out.
+     * A door that is already open is counted before the click: the destination is the
      * next tile and already reachable in the live scene. A door that opens underfoot during the wait
      * is counted the same way. A tile that is only reachable by walking around a wall is not — that
      * is what clicked Climb-into again while the first climb was still playing.</p>

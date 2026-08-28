@@ -81,8 +81,11 @@ public final class HomeTeleportPlan {
      * @return true when the courtyard is strictly closer
      */
     public static boolean courtyardIsCloser(WorldPoint here, WorldPoint destination) {
-        return WalkPlan.progressDistance(COURTYARD, destination)
-                < WalkPlan.progressDistance(here, destination);
+        if (destination == null) {
+            return false;
+        }
+
+        return here == null || COURTYARD.distanceTo2D(destination) < here.distanceTo2D(destination);
     }
 
     /**

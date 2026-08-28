@@ -107,13 +107,24 @@ class WalkPlanTest {
     }
 
     @Test
-    void progressIgnoresPlaneSoAnUpstairsBankStillHasAGap() {
+    void progressWeighsPlanesSoAnUpstairsBankStillHasAFiniteGap() {
         WorldPoint farm = new WorldPoint(3230, 3298, 0);
         WorldPoint bank = new WorldPoint(3208, 3218, 2);
 
-        assertEquals(farm.distanceTo2D(bank), WalkPlan.progressDistance(farm, bank));
+        assertEquals(farm.distanceTo2D(bank) + 2 * WalkPlan.PLANE_CHANGE_TILES,
+                WalkPlan.progressDistance(farm, bank));
         assertTrue(WalkPlan.progressDistance(farm, bank) < Integer.MAX_VALUE);
         assertTrue(farm.distanceTo(bank) == Integer.MAX_VALUE);
+    }
+
+    @Test
+    void climbingTowardTheDestinationFloorCountsAsProgress() {
+        WorldPoint dest = new WorldPoint(3255, 3486, 3);
+        int beforeClimb = WalkPlan.progressDistance(new WorldPoint(3258, 3486, 1), dest);
+        int afterClimb = WalkPlan.progressDistance(new WorldPoint(3258, 3486, 2), dest);
+
+        assertTrue(WalkPlan.madeProgress(beforeClimb, afterClimb, 3));
+        assertFalse(WalkPlan.madeProgress(afterClimb, beforeClimb, 3));
     }
 
     @Test
@@ -169,6 +180,14 @@ class WalkPlanTest {
         WorldPoint dest = new WorldPoint(3204, 3200, 0);
 
         assertTrue(WalkPlan.isFollowable(false, Collections.singletonList(last), dest, 3));
+    }
+
+    @Test
+    void anIncompleteStubBelowTheDestinationFloorIsNotFollowable() {
+        WorldPoint last = new WorldPoint(3258, 3486, 2);
+        WorldPoint dest = new WorldPoint(3255, 3486, 3);
+
+        assertFalse(WalkPlan.isFollowable(false, Collections.singletonList(last), dest, 3));
     }
 
     @Test
