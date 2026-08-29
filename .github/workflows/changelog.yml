@@ -1,0 +1,241 @@
+name: Generate Changelog and Notify Discord
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master, main]
+
+jobs:
+  generate-changelog:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    environment: Prod
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm install -g conventional-changelog-cli
+          npm install axios
+
+      - name: Get PR commits and categorize
+        id: categorize
+        run: |
+          # Get all commits from the PR
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          
+          # Fetch commits from the PR
+          gh api repos/${{ github.repository }}/pulls/$PR_NUMBER/commits \
+            --jq '[.[] | {sha: .sha, message: .commit.message}]' > commits.json
+          
+          # Create categorization script
+          echo "Raw commits data:"
+          cat commits.json
+          
+          
+          cat > categorize.js << 'EOF'
+          const fs = require('fs');
+          const commitsData = fs.readFileSync('commits.json', 'utf8');
+          console.log('Raw JSON data:', commitsData.substring(0, 200) + '...');
+          
+          const commits = JSON.parse(commitsData);
+          console.log('Parsed commits count:', commits.length);
+          
+          const categories = {
+            features: [],
+            bugfixes: [],
+            chores: [],
+            other: []
+          };
+          
+          commits.forEach(commit => {
+            const message = commit.message.toLowerCase();
+            const firstLine = message.split('\n')[0];
+          
+            if (firstLine.includes('feat:') || firstLine.includes('feature:') || firstLine.includes('feat')) {
+              categories.features.push({
+                sha: commit.sha.substring(0, 7),
+                message: commit.message.split('\n')[0]
+              });
+            } else if (firstLine.includes('fix:') || firstLine.includes('bug:') || firstLine.includes('bug') || firstLine.includes('refactor:')) {
+              categories.bugfixes.push({
+                sha: commit.sha.substring(0, 7),
+                message: commit.message.split('\n')[0]
+              });
+            } else if (firstLine.includes('chore:') || firstLine.includes('ci:') || firstLine.includes('docs:') || firstLine.includes("chore")) {
+              categories.chores.push({
+                sha: commit.sha.substring(0, 7),
+                message: commit.message.split('\n')[0]
+              });
+            } else {
+              categories.other.push({
+                sha: commit.sha.substring(0, 7),
+                message: commit.message.split('\n')[0]
+              });
+            }
+          });
+          
+          console.log(JSON.stringify(categories, null, 2));
+          fs.writeFileSync('categorized.json', JSON.stringify(categories, null, 2));
+          EOF
+          
+          node categorize.js > categorized_output.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Generate changelog entry
+        id: changelog
+        run: |
+          # Read categorized commits
+          CATEGORIES=$(cat categorized.json)
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          
+          # Create changelog entry
+          cat > changelog_entry.md << EOF
+          ## Pull Request #$PR_NUMBER: $PR_TITLE
+          
+          **Author:** @$PR_AUTHOR  
+          **Merged:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")  
+          **Link:** $PR_URL
+          
+          EOF
+          
+          # Add categorized changes
+          node << 'SCRIPT'
+          const fs = require('fs');
+          const categories = JSON.parse(fs.readFileSync('categorized.json', 'utf8'));
+          
+          let changelog = fs.readFileSync('changelog_entry.md', 'utf8');
+          
+          if (categories.features.length > 0) {
+            changelog += "\n### ✨ Features\n";
+            categories.features.forEach(commit => {
+              changelog += `- ${commit.message} (\`${commit.sha}\`)\n`;
+            });
+          }
+          
+          if (categories.bugfixes.length > 0) {
+            changelog += "\n### 🐛 Bug Fixes\n";
+            categories.bugfixes.forEach(commit => {
+              changelog += `- ${commit.message} (\`${commit.sha}\`)\n`;
+            });
+          }
+          
+          if (categories.chores.length > 0) {
+            changelog += "\n### 🔧 Chores\n";
+            categories.chores.forEach(commit => {
+              changelog += `- ${commit.message} (\`${commit.sha}\`)\n`;
+            });
+          }
+          
+          if (categories.other.length > 0) {
+            changelog += "\n### 📝 Other Changes\n";
+            categories.other.forEach(commit => {
+              changelog += `- ${commit.message} (\`${commit.sha}\`)\n`;
+            });
+          }
+          
+          changelog += "\n---\n";
+          
+          fs.writeFileSync('changelog_entry.md', changelog);
+          SCRIPT
+
+      - name: Update CHANGELOG.md
+        run: |
+          # Create or update CHANGELOG.md
+          if [ ! -f CHANGELOG.md ]; then
+            echo "# Changelog" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+          
+          # Prepend new entry to existing changelog
+          cat changelog_entry.md > temp_changelog.md
+          echo "" >> temp_changelog.md
+          tail -n +3 CHANGELOG.md >> temp_changelog.md
+          mv temp_changelog.md CHANGELOG.md
+
+      - name: Commit changelog
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          git commit -m "docs: update changelog for PR #${{ github.event.pull_request.number }}" || exit 0
+          git push
+
+      - name: Send Discord notification
+        run: |
+          # Read the changelog content
+          CHANGELOG_CONTENT=$(cat changelog_entry.md)
+          
+          # Create Discord webhook payload
+          node << 'SCRIPT'
+          const axios = require('axios');
+          const fs = require('fs');
+          
+          const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+          const changelogContent = fs.readFileSync('changelog_entry.md', 'utf8');
+          const prUrl = process.env.PR_URL;
+          const prTitle = process.env.PR_TITLE;
+          const prNumber = process.env.PR_NUMBER;
+          const repoUrl = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY;
+          
+          // Truncate changelog if too long (Discord has 2000 char limit for descriptions)
+          let description = changelogContent;
+          if (description.length > 1800) {
+            description = description.substring(0, 1800) + '\n\n... (truncated)';
+          }
+          
+          const payload = {
+            embeds: [{
+              title: `🚀 API Release: PR #${prNumber}`,
+              description: `**${prTitle}**\n\n\`\`\`markdown\n${description}\n\`\`\``,
+              color: 0x00ff00, // Green color
+              fields: [
+                {
+                  name: "📋 View Full Changelog",
+                  value: `[View on GitHub](${repoUrl}/blob/master/CHANGELOG.md)`,
+                  inline: true
+                },
+                {
+                  name: "🔗 Pull Request",
+                  value: `[PR #${prNumber}](${prUrl})`,
+                  inline: true
+                }
+              ],
+              timestamp: new Date().toISOString(),
+              footer: {
+                text: "Automated Changelog"
+              }
+            }]
+          };
+          
+          axios.post(webhookUrl, payload)
+            .then(response => {
+              console.log('Discord notification sent successfully');
+            })
+            .catch(error => {
+              console.error('Error sending Discord notification:', error.response?.data || error.message);
+              process.exit(1);
+            });
+          SCRIPT
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
