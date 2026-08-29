@@ -83,7 +83,7 @@ public class BankService {
      * @return True for an open bank pin interface
      */
     public boolean isPinOpen() {
-        Widget w = ctxProvider.get().getClient().getWidget(InterfaceID.BankpinKeypad.UNIVERSE);
+        Widget w = ctxProvider.get().runOnClientThread(() -> client.getWidget(InterfaceID.BankpinKeypad.UNIVERSE));
         if(w == null) return false;
 
         return !w.isSelfHidden();

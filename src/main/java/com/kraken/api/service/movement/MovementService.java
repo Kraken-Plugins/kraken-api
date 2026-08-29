@@ -124,6 +124,7 @@ public class MovementService {
      * @param densePath The dense path with which to apply variable strides.
      * @return A list of {@literal WorldPoint} representing the strided path.
      */
+    @Deprecated(since = "4.0.5")
     public List<WorldPoint> applyVariableStride(List<WorldPoint> densePath) {
         return applyVariableStride(densePath, VariableStrideConfig.builder().build());
     }
@@ -138,6 +139,7 @@ public class MovementService {
      * @return A list of {@literal WorldPoint} representing the strided path. An empty list is returned when
      *         {@code densePath} is null or empty.
      */
+    @Deprecated(since = "4.0.5")
     public List<WorldPoint> applyVariableStride(List<WorldPoint> densePath, VariableStrideConfig config) {
         // A null or empty path has no final tile to stride toward. Without this guard the size <= 5
         // branch below calls get(-1) and throws IndexOutOfBoundsException.
@@ -212,6 +214,7 @@ public class MovementService {
      * @return {@code true} if the path was successfully traversed to the end, or {@code false} if any waypoint
      *         could not be reached after retries.
      */
+    @Deprecated(since = "4.0.5, use Walker.walkTo() instead")
     public boolean traversePath(Client client, List<WorldPoint> path) {
         return traversePath(client, path, (ignored) -> {}, (ignored) -> {}, DEFAULT_ARRIVAL_TILES);
     }
@@ -224,6 +227,7 @@ public class MovementService {
      * @param withinTiles how close to a waypoint counts as arrived, in tiles
      * @return true when every remaining waypoint was reached or skipped
      */
+    @Deprecated(since = "4.0.5, use Walker.walkTo() instead")
     public boolean traversePath(Client client, List<WorldPoint> path, int withinTiles) {
         return traversePath(client, path, (ignored) -> {}, (ignored) -> {}, withinTiles);
     }
@@ -238,6 +242,7 @@ public class MovementService {
      * @return {@code true} if the path was successfully traversed to the end, {@code false} if any waypoint
      *         could not be reached after retries.
      */
+    @Deprecated(since = "4.0.5, use Walker.walkTo() instead")
     public boolean traversePath(Client client, List<WorldPoint> path, Consumer<String> onWaypointReached) {
         return traversePath(client, path, onWaypointReached, (ignored) -> {}, DEFAULT_ARRIVAL_TILES);
     }
@@ -253,6 +258,7 @@ public class MovementService {
      * @return {@code true} if the path was successfully traversed to the end, {@code false} if any waypoint
      *         could not be reached after retries.
      */
+    @Deprecated(since = "4.0.5, use Walker.walkTo() instead")
     public boolean traversePath(Client client, List<WorldPoint> path, Consumer<String> onWaypointReached, Consumer<String> onDestinationReached) {
         return traversePath(client, path, onWaypointReached, onDestinationReached, DEFAULT_ARRIVAL_TILES);
     }
@@ -272,6 +278,7 @@ public class MovementService {
      * @return {@code true} if the path was successfully traversed to the end, {@code false} if any waypoint
      *         could not be reached after retries.
      */
+    @Deprecated(since = "4.0.5, use Walker.walkTo() instead")
     public boolean traversePath(Client client, List<WorldPoint> path, Consumer<String> onWaypointReached,
                                 Consumer<String> onDestinationReached, int withinTiles) {
         int near = Math.max(0, withinTiles);
@@ -321,6 +328,11 @@ public class MovementService {
                 log.error("TaskChain: Failed to reach waypoint {} after retries. Aborting.", step);
                 return false;
             }
+        }
+
+        if(path.isEmpty()) {
+            onDestinationReached.accept("Empty path");
+            return true;
         }
 
         onDestinationReached.accept("Reached destination: " + path.get(path.size() - 1));

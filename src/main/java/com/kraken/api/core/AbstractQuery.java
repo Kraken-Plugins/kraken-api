@@ -41,6 +41,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     private final List<Predicate<T>> filters = new ArrayList<>();
     private final List<Function<T, Object>> distinctKeys = new ArrayList<>();
     private Comparator<T> comparator = null;
+    private Supplier<Stream<T>> override = null;
 
     public AbstractQuery(Context ctx) {
         this.ctx = ctx;
@@ -61,7 +62,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     private List<T> evaluate() {
         try {
             return ctx.runOnClientThread(() -> {
-                Stream<T> stream = source().get();
+                Stream<T> stream = (override != null ? override : source()).get();
                 if (stream == null) {
                     return Collections.emptyList();
                 }
@@ -88,6 +89,43 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
             log.warn("Query could not be evaluated: {}", e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * Evaluates against the supplied entities instead of {@link #source()}. Useful when you already hold
+     * a snapshot and want to re-filter it without re-walking the scene. Filters, de-duplication and
+     * sorting still apply, and the collection is copied so later mutation by the caller is not observed.
+     *
+     * @param items The entities to query over. {@code null} or empty yields a query matching nothing.
+     * @return Q backed by the given items.
+     */
+    @SuppressWarnings("unchecked")
+    public Q from(Collection<T> items) {
+        List<T> snapshot = (items == null || items.isEmpty())
+                ? Collections.emptyList()
+                : new ArrayList<>(items);
+        this.override = snapshot::stream;
+        return (Q) this;
+    }
+
+    /**
+     * Varargs overload of {@code #of(Collection)}.
+     * @param items The items to query over
+     * @return Q backed by the given items.
+     */
+    @SafeVarargs
+    public final Q from(T... items) {
+        return from(items == null ? Collections.emptyList() : Arrays.asList(items));
+    }
+
+    /**
+     * Overload method for {@code from()}
+     * @param items The entities to query over.
+     * @return Q backed by the given items
+     */
+    @SafeVarargs
+    public final Q of(T... items) {
+        return from(items);
     }
 
     /**

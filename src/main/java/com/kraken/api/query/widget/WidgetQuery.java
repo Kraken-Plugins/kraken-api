@@ -118,7 +118,15 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
      * @return WidgetQuery
      */
     public WidgetQuery withId(int packedId) {
-        return filter(w -> w.raw().getId() == packedId);
+        WidgetEntity widget = ctx.runOnClientThread(() -> {
+            Widget w = ctx.getClient().getWidget(packedId);
+            if(w == null) return null;
+            return new WidgetEntity(ctx, w);
+        });
+
+        // Instead of iterating and constructing the entire widget tree, we use the RuneLite client to grab our
+        // exact widget and construct a simplified stream with a single element. Faster this way.
+        return of(widget);
     }
 
     /**

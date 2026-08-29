@@ -375,14 +375,17 @@ public class RandomService {
     }
 
     /**
-     * generate random number between min and max
+     * generate random number between min and max (inclusive)
      * @param min The minimum the random number can be
      * @param max The maximum the random number can be
      * @return A random number between the minimum and maximum
      */
     public static int between(final int min, final int max) {
-        final int n = Math.abs(max - min);
-        return Math.min(min, max) + (n == 0 ? 0 : new java.util.Random().nextInt(n));
+        int actualMin = Math.min(min, max);
+        int actualMax = Math.max(min, max);
+
+        // nextInt(origin, bound) is exclusive of bound, so we add 1
+        return ThreadLocalRandom.current().nextInt(actualMin, actualMax + 1);
     }
 
     /**

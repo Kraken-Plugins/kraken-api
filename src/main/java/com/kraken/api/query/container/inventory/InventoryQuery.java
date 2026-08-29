@@ -91,6 +91,7 @@ public class InventoryQuery extends AbstractQuery<InventoryEntity, InventoryQuer
      * @return True if the inventory has the item and false otherwise
      */
     public boolean hasItem(String name) {
+        if (name == null || name.isEmpty()) return false;
         return filter(i -> i.getName().equalsIgnoreCase(name)).count() > 0;
     }
 

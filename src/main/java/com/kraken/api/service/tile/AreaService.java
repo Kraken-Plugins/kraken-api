@@ -95,7 +95,7 @@ public class AreaService {
         Set<WorldPoint> points = new HashSet<>();
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
-                if (polygon.contains(x, y)) {
+                if (polygon.intersects(x - 0.5, y - 0.5, 1, 1)) {
                     points.add(new WorldPoint(x, y, plane));
                 }
             }
