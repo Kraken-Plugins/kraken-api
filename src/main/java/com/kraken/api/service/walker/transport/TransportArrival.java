@@ -27,6 +27,11 @@ public final class TransportArrival {
      * Dataset doors are often one tile apart, and treating that proximity as success is what made a
      * closed door look like a crossing.</p>
      *
+     * <p>A plane change only counts when it lands on the floor the transport leads to. A staircase
+     * stack has an up and a down flight on the same tile, so a climb in the wrong direction must
+     * read as a failed crossing, not a successful one — otherwise the walker re-plans as if it
+     * arrived and ping-pongs between floors until its stall budget runs out.</p>
+     *
      * @param before where the player stood before the transport was operated, may be null
      * @param now where the player stands now, may be null
      * @param destination where the transport is expected to leave them, may be null
@@ -38,7 +43,7 @@ public final class TransportArrival {
         }
 
         if (before != null && now.getPlane() != before.getPlane()) {
-            return true;
+            return destination == null || now.getPlane() == destination.getPlane();
         }
 
         if (before != null && now.distanceTo(before) > TELEPORT_DISTANCE) {
@@ -138,6 +143,10 @@ public final class TransportArrival {
      * three tiles north of the origin — the same radius as {@link #NEAR_DESTINATION_TILES} — so
      * walking the south bank counted as a crossing and Cross fired again before the jump.</p>
      *
+     * <p>A plane change to the wrong floor is not arrival: the wait keeps polling and times out, so
+     * the executor reports where the transport actually left the player instead of pretending it
+     * crossed.</p>
+     *
      * @param before where the player stood before the click, may be null
      * @param now where they stand now, may be null
      * @param destination where the transport leads, may be null
@@ -154,7 +163,7 @@ public final class TransportArrival {
         }
 
         if (before != null && now.getPlane() != before.getPlane()) {
-            return true;
+            return destination == null || now.getPlane() == destination.getPlane();
         }
 
         if (before != null && now.distanceTo(before) > TELEPORT_DISTANCE) {

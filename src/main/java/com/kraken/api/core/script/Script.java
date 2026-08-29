@@ -220,9 +220,9 @@ public abstract class Script implements Scriptable {
      *     <li>Skips execution if a previous {@code loop()} call is still in progress, indicated by the {@code future} object.</li>
      *     <li>Submits the {@code loop()} logic to an {@code executor} service for asynchronous execution.</li>
      *     <li>If a delay is set by the {@code loop()} method, the thread sleeps for the specified duration before proceeding.</li>
-     *     <li>Gracefully handles and logs exceptions thrown during the loop execution.</li>
-     *     <li>Binds this script's {@link ScriptCancellation} token to the worker thread for the
-     *         duration of the loop, and releases it afterwards.</li>
+     *     <li>Treats {@link ScriptStoppedException} as normal termination and logs it at debug level rather than as an error.</li>
+     *     <li>Logs any other exception thrown during loop execution as an error.</li>
+     *     <li>Binds this script's {@link ScriptCancellation} token to the worker thread for the duration of the loop, and releases it afterward.</li>
      * </ul>
      *
      * <h3>Threading Model:</h3>
@@ -264,14 +264,16 @@ public abstract class Script implements Scriptable {
                 if (delay > 0) {
                     Thread.sleep(delay);
                 }
+            } catch (ScriptStoppedException e) {
+                log.debug("[{}] Script loop cancelled", this.name);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                log.error("[{}] Error in script:", this.name, e);
-            } finally {
-                ScriptCancellation.unbindFromCurrentThread();
-            }
-        });
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    log.error("[{}] Error in script:", this.name, e);
+                } finally {
+                    ScriptCancellation.unbindFromCurrentThread();
+                }
+            });
     }
 
     /**

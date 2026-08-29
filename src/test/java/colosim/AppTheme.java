@@ -1,4 +1,4 @@
-package com.kraken.api.simulation.colosim;
+package colosim;
 
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicButtonUI;

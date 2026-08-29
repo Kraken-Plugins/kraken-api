@@ -64,22 +64,33 @@ public final class WalkPlan {
     }
 
     /**
+     * How many tiles of walking one plane of separation is worth, for stall detection.
+     *
+     * <p>Large enough that a single climb outweighs the default {@code minProgressTiles}, so a
+     * staircase round registers as progress even though the player's x and y barely move.</p>
+     */
+    public static final int PLANE_CHANGE_TILES = 10;
+
+    /**
      * How far the player still has to go, for stall detection.
      *
      * <p>{@link WorldPoint#distanceTo(WorldPoint)} is {@link Integer#MAX_VALUE} across planes, which
      * would make every round toward an upstairs bank look like progress. This is Chebyshev in x and y
-     * only, so walking the ground toward the castle still counts.</p>
+     * plus {@link #PLANE_CHANGE_TILES} per plane of separation: walking the ground toward the castle
+     * still counts, a climb toward an upstairs destination counts, and a climb away from it counts
+     * as losing ground rather than standing still.</p>
      *
      * @param from where the player is, may be null
      * @param to where they are heading, may be null
-     * @return the 2D distance in tiles, or {@link Integer#MAX_VALUE} when either point is missing
+     * @return the plane-weighted 2D distance in tiles, or {@link Integer#MAX_VALUE} when either
+     *         point is missing
      */
     public static int progressDistance(WorldPoint from, WorldPoint to) {
         if (from == null || to == null) {
             return Integer.MAX_VALUE;
         }
 
-        return from.distanceTo2D(to);
+        return from.distanceTo2D(to) + PLANE_CHANGE_TILES * Math.abs(from.getPlane() - to.getPlane());
     }
 
     /**

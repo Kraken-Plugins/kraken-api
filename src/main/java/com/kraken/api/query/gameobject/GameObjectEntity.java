@@ -3,10 +3,12 @@ package com.kraken.api.query.gameobject;
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
 import com.kraken.api.service.tile.GameArea;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameObject;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.widgets.Widget;
 
+@Slf4j
 public class GameObjectEntity extends AbstractEntity<GameObject> {
 
     public GameObjectEntity(Context ctx, GameObject raw) {
@@ -37,6 +39,13 @@ public class GameObjectEntity extends AbstractEntity<GameObject> {
     public ObjectComposition getObjectComposition() {
         GameObject raw = raw();
         ObjectComposition def = ctx.runOnClientThread(() -> ctx.getClient().getObjectDefinition(raw.getId()));
+
+        if(def == null) {
+            log.warn("Could not find object definition with id {}", raw.getId());
+            return null;
+        }
+
+
         if(def.getImpostorIds() != null && def.getImpostor() != null) {
             return ctx.runOnClientThread(def::getImpostor);
         }

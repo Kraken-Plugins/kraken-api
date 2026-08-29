@@ -1,6 +1,6 @@
-package com.kraken.api.simulation.colosim;
+package colosim;
 
-import com.kraken.api.simulation.colosim.model.Mob;
+import colosim.model.Mob;
 
 import javax.swing.*;
 import java.awt.*;

@@ -24,6 +24,14 @@ class TransportEntityResolverTest {
     }
 
     @Test
+    void aWebRowIsSlashed() {
+        ObjectInfo info = ObjectInfo.parse("Slash Web 733").withEntityName("Web");
+
+        assertEquals("Slash", TransportEntityResolver.chooseAction(
+                info, new String[]{"Slash", null, null, null, "Examine"}));
+    }
+
+    @Test
     void anEmptyOptionFallsBackToConfigure() {
         ObjectInfo info = ObjectInfo.parse("Fairy ring 29560").withEntityName("Fairy ring");
 

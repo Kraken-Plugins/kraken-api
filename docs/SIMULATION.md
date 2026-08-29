@@ -4,7 +4,7 @@ Kraken contains two related but separate pieces of simulation code:
 
 | What | Where | Shipped in the published jar? |
 |---|---|---|
-| **Colosim port** — a Java port of the community [Colosseum line-of-sight simulator](https://los.colosim.com/), with its own Swing GUI (`ColoSimApp`) | `src/main/java/com/kraken/api/simulation/colosim/` | Yes |
+| **Colosim port** — a Java port of the community [Colosseum line-of-sight simulator](https://los.colosim.com/), with its own Swing GUI (`ColoSimApp`) | `../src/test/java/colosim/` | Yes |
 | **Fortis Colosseum engine** — a real-time tick simulation, planner, and the *Auto Colosseum* debug plugin | `src/test/java/plugins/colosseum/` | No — test source set only |
 
 The colosim port is a faithful reimplementation of a community tool that has been

@@ -228,13 +228,14 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
     /**
      * Returns the interactable equipment entity for a given equipment slot.
      * @param slot The {@code EquipmentInventorySlot} to retrieve.
-     * @return EquipmentEntity
+     * @return EquipmentEntity in that slot, or {@code null} if the slot is empty.
      */
     public EquipmentEntity inSlot(EquipmentInventorySlot slot) {
+        if (slot == null) return null;
         return ctx.runOnClientThread(() -> collectEquippedItems()
                 .stream()
-                .filter(i -> i.raw().getSlot() == slot.getSlotIdx())
+                .filter(i -> i.raw() != null && i.raw().getSlot() == slot.getSlotIdx())
                 .findFirst()
-                .orElse(new EquipmentEntity(ctx, null)));
+                .orElse(null));
     }
 }
