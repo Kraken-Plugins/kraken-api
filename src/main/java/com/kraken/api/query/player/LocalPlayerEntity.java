@@ -464,12 +464,20 @@ public class LocalPlayerEntity extends PlayerEntity {
 
     /**
      * Checks if the player is within the game area.
+     *
+     * <p>Answers {@code false} rather than throwing when there is no local player to place, which is
+     * the state during a loading screen and on the login screen. Overlays call this every frame and
+     * cannot usefully handle an exception raised for a player who is simply not in the world yet.</p>
+     *
      * @param area The {@link GameArea} to check.
      * @return True if the player is within the game area and false otherwise.
      */
     public boolean isInArea(GameArea area) {
         if (area == null) return false;
-        return area.contains(ctx.runOnClientThread(() -> raw().getWorldLocation()));
+        return ctx.runOnClientThreadOptional(() -> {
+            Player localPlayer = raw();
+            return localPlayer != null && area.contains(localPlayer.getWorldLocation());
+        }).orElse(false);
     }
 
     /**

@@ -22,15 +22,16 @@ public class BankInventoryQuery extends AbstractQuery<BankInventoryEntity, BankI
 
     @Override
     protected Supplier<Stream<BankInventoryEntity>> source() {
-        Stream<BankInventoryEntity> emptyStream = Stream.empty();
+        // Each empty result builds its own stream. A shared one is consumed by the first terminal
+        // operation and throws IllegalStateException on the next evaluation of the same query.
         ctx.getClient().runScript(6009, 9764864, 28, 1, -1);
 
         ItemContainer container = ctx.getClient().getItemContainer(InventoryID.INV);
-        if(container == null) return () -> emptyStream;
+        if(container == null) return Stream::empty;
 
         // WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER
         Widget bankInventory = ctx.getClient().getWidget(0x000f_0003);
-        if(bankInventory == null) return () -> emptyStream;
+        if(bankInventory == null) return Stream::empty;
 
         Widget[] inventoryWidgets = bankInventory.getDynamicChildren();
 
