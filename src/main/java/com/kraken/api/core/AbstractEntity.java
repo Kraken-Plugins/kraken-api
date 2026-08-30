@@ -3,7 +3,10 @@ package com.kraken.api.core;
 import com.kraken.api.Context;
 import java.util.Objects;
 
-// T = Raw RuneLite type (NPC, TileObject, Widget)
+/**
+ * Base class for queries which return interactable entities in a scene.
+ * @param <T> Raw RuneLite type (NPC, TileObject, Widget, etc...)
+ */
 public abstract class AbstractEntity<T> implements Interactable<T> {
 
     protected final Context ctx;
@@ -16,16 +19,6 @@ public abstract class AbstractEntity<T> implements Interactable<T> {
 
     public T raw() {
         return raw;
-    }
-
-    @Override
-    public boolean isNull() {
-        return raw == null;
-    }
-
-    @Override
-    public boolean isPresent() {
-        return raw != null;
     }
 
     @Override

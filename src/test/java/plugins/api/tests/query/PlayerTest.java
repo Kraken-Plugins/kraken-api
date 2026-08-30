@@ -48,7 +48,7 @@ public class PlayerTest extends BaseApiTest {
             PlayerEntity target = allStreamedPlayers.get(0);
             int lvl = target.raw().getCombatLevel();
 
-            boolean foundByLevel = !ctx.players().withinLevel(lvl, lvl).first().isNull();
+            boolean foundByLevel = ctx.players().withinLevel(lvl, lvl).isPresent();
             if (!foundByLevel) {
                 log.error("Failed to find player via withinLevel(" + lvl + ", " + lvl + ")");
                 testsPassed = false;
@@ -56,7 +56,7 @@ public class PlayerTest extends BaseApiTest {
 
             // Test Greater Than
             if (lvl > 3) {
-                boolean foundByGreater = !ctx.players().combatLevelGreaterThan(lvl - 1).first().isNull();
+                boolean foundByGreater = ctx.players().combatLevelGreaterThan(lvl - 1).isPresent();
                 if (!foundByGreater) {
                     log.error("Failed to find player via combatLevelGreaterThan(" + (lvl - 1) + ")");
                     testsPassed = false;
@@ -65,7 +65,7 @@ public class PlayerTest extends BaseApiTest {
 
             // 4. Location Query (.at)
             WorldPoint targetLoc = ctx.runOnClientThread(() -> target.raw().getWorldLocation());
-            boolean foundByLoc = !ctx.players().at(targetLoc).first().isNull();
+            boolean foundByLoc = ctx.players().at(targetLoc).isPresent();
             if (!foundByLoc) {
                 log.error("Failed to find player via .at(" + targetLoc + ")");
                 testsPassed = false;
@@ -76,16 +76,15 @@ public class PlayerTest extends BaseApiTest {
             WorldPoint min = new WorldPoint(targetLoc.getX() - 1, targetLoc.getY() - 1, targetLoc.getPlane());
             WorldPoint max = new WorldPoint(targetLoc.getX() + 1, targetLoc.getY() + 1, targetLoc.getPlane());
 
-            boolean foundInArea = !ctx.players().withinArea(min, max).first().isNull();
+            boolean foundInArea = ctx.players().withinArea(min, max).isPresent();
             if (!foundInArea) {
                 log.error("Failed to find player via .withinArea()");
                 testsPassed = false;
             }
 
             // 6. Nearest
-            // Your API definition for nearest() returns PlayerEntity directly, not PlayerQuery
-            PlayerEntity nearestPlayer = ctx.players().nearest();
-            if (nearestPlayer == null || nearestPlayer.isNull()) {
+            PlayerEntity nearestPlayer = ctx.players().nearest().orElse(null);
+            if (nearestPlayer == null) {
                 log.error("nearest() returned null/empty despite players existing in stream");
                 testsPassed = false;
             } else {

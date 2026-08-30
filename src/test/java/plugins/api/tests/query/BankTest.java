@@ -49,9 +49,10 @@ public class BankTest extends BaseApiTest {
                 GameObjectEntity bank = ctx.gameObjects()
                         .withName("Bank booth")
                         .withAction("Bank")
-                        .nearest();
+                        .nearest()
+                        .orElse(null);
 
-                if (bank.isNull()) {
+                if (bank == null) {
                     log.error("Failed to find Bank booth with 'Bank' action");
                     return false;
                 }
@@ -68,16 +69,16 @@ public class BankTest extends BaseApiTest {
             testsPassed &= bankService.depositAllEquipment();
             SleepService.sleepFor(2);
 
-            testsPassed &= !ctx.bank().withName("Rune Platebody").first().isNull();
+            testsPassed &= ctx.bank().withName("Rune Platebody").isPresent();
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-            testsPassed &= ctx.bank().withName("Rune Platelegs").first().withdraw(1, true);
+            testsPassed &= ctx.bank().withName("Rune Platelegs").first().map(e -> e.withdraw(1, true)).orElse(false);
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-            testsPassed &= ctx.bank().withName("Rune full helm").first().withdraw(1, false);
+            testsPassed &= ctx.bank().withName("Rune full helm").first().map(e -> e.withdraw(1, false)).orElse(false);
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-            testsPassed &= ctx.bank().withId(373).first().withdraw(4, false); // swordfish
+            testsPassed &= ctx.bank().withId(373).first().map(e -> e.withdraw(4, false)).orElse(false); // swordfish
 
             SleepService.sleepFor(3);
-            BankEntity lobster = ctx.bank().withName("Lobster").first();
+            BankEntity lobster = ctx.bank().withName("Lobster").first().orElse(null);
             lobster.withdraw(6, false);
             SleepService.sleepFor(3);
             lobster.withdraw(7, true);

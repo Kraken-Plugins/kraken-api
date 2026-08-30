@@ -2,15 +2,23 @@ package com.kraken.api.query.npc;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.core.Locatable;
 import com.kraken.api.service.tile.GameArea;
 import lombok.SneakyThrows;
 import net.runelite.api.HeadIcon;
 import net.runelite.api.NPC;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
 
-public class NpcEntity extends AbstractEntity<NPC> {
+public class NpcEntity extends AbstractEntity<NPC> implements Locatable {
     public NpcEntity(Context ctx, NPC raw) {
         super(ctx, raw);
+    }
+
+    @Override
+    public WorldPoint getWorldLocation() {
+        NPC n = raw();
+        return n != null ? n.getWorldLocation() : null;
     }
 
     @Override

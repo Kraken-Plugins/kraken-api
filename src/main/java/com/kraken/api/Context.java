@@ -16,8 +16,10 @@ import com.kraken.api.query.container.shop.ShopInventoryQuery;
 import com.kraken.api.query.container.shop.ShopQuery;
 import com.kraken.api.query.equipment.EquipmentQuery;
 import com.kraken.api.query.gameobject.GameObjectQuery;
+import com.kraken.api.query.graphicsobject.GraphicsObjectQuery;
 import com.kraken.api.query.groundobject.GroundObjectQuery;
 import com.kraken.api.query.npc.NpcQuery;
+import com.kraken.api.query.projectile.ProjectileQuery;
 import com.kraken.api.query.tileobject.TileObjectQuery;
 import com.kraken.api.query.player.LocalPlayerEntity;
 import com.kraken.api.query.player.PlayerQuery;
@@ -356,7 +358,7 @@ public class Context {
 
     /**
      * Creates a new query builder for NPCs.
-     * Usage: {@code ctx.npcs().withName("Goblin").first().interact("Attack");}
+     * Usage: {@code ctx.npcs().withName("Goblin").interact("Attack");}
      *
      * @return NpcQuery object used to chain together predicates to select specific NPC's within the scene.
      */
@@ -367,7 +369,7 @@ public class Context {
     /**
      * Creates a new query builder for Players. This will also include the local player as well which can be
      * grabbed with {@code .local()}.
-     * Usage: {@code ctx.players().withName("Zezima").first().interact("Follow");}
+     * Usage: {@code ctx.players().withName("Zezima").interact("Follow");}
      * {@code ctx.players().local().getName();}
      *
      * @return PlayerQuery object used to chain together predicates to select specific Players's within the scene.
@@ -424,7 +426,7 @@ public class Context {
     /**
      * Creates a new query builder for the items on an open shop's shelves. This returns nothing when no
      * shop is open. For opening a shop, and for buying under price or coin limits, use {@code ShopService}.
-     * Usage: {@code ctx.shop().withName("Iron ore").first().buy(50);}
+     * Usage: {@code ctx.shop().withName("Iron ore").first().ifPresent(item -&gt; item.buy(50));}
      *
      * @return ShopQuery object used to chain together predicates to select specific items the shop sells.
      */
@@ -436,7 +438,7 @@ public class Context {
      * Creates a new query builder for the player's inventory as it is drawn beside an open shop. This should
      * only be used while the shop interface is open and you are selling items to the shop, since the shop
      * renders the inventory with its own widgets. For ordinary inventory work use {@code InventoryQuery}.
-     * Usage: {@code ctx.shopInventory().withName("Bones").first().sell(10);}
+     * Usage: {@code ctx.shopInventory().withName("Bones").first().ifPresent(item -&gt; item.sell(10));}
      *
      * @return ShopInventoryQuery object used to chain together predicates to select specific items or groups
      * of items within the players inventory while the shop interface is open.
@@ -447,7 +449,7 @@ public class Context {
 
     /**
      * Creates a new query builder for the equipment interface.
-     * Usage: {@code ctx.equipment().inSlot(EquipmentInventorySlot.HEAD).interact("Remove");}
+     * Usage: {@code ctx.equipment().inSlot(EquipmentInventorySlot.HEAD).ifPresent(e -&gt; e.interact("Remove"));}
      * {@code ctx.equipment().withId(1234).interact("Wield");}
      *
      * @return EquipmentQuery object used to chain together predicates to select specific items or groups of items within the players
@@ -460,7 +462,7 @@ public class Context {
     /**
      * Creates a new query builder for game objects. Game objects are objects in the game world like: Trees, ore, or fishing
      * spots which exist on tiles, can be interacted with, but cannot be picked up by the player. Usage:
-     * {@code ctx.gameObjects().withName("Oak Tree").nearest().interact("Chop");}
+     * {@code ctx.gameObjects().withName("Oak Tree").sortByDistance().interact("Chop");}
      *
      * @return GameObjectQuery used to chain together predicates to select specific game objects within the scene.
      */
@@ -471,7 +473,7 @@ public class Context {
     /**
      * Creates a new query builder for Ground Items. GroundItems are items that exist on a tile that the player can pick up
      * and store in their inventory. Examples include: bones dropped from an NPC or loot dropped by another player on a tile.
-     * Usage: {@code ctx.groundObjects().withName("Twisted Bow").nearest().interact("Take");}
+     * Usage: {@code ctx.groundObjects().withName("Twisted Bow").sortByDistance().interact("Take");}
      *
      * @return GroundObjectQuery used to chain together predicates to select specific ground items within the scene.
      */
@@ -482,12 +484,34 @@ public class Context {
     /**
      * Creates a new query builder for tile objects. Where {@link #gameObjects()} sees only game objects, this
      * query also sees wall, decorative and ground objects, which is what doors, gates and archways usually are.
-     * Usage: {@code ctx.tileObjects().withName("Door").nearest().interact("Open");}
+     * Usage: {@code ctx.tileObjects().withName("Door").sortByDistance().interact("Open");}
      *
      * @return TileObjectQuery used to chain together predicates to select scenery of any kind within the scene.
      */
     public TileObjectQuery tileObjects() {
         return new TileObjectQuery(this);
+    }
+
+    /**
+     * Creates a new query builder for projectiles currently in flight: boss attacks, spells, arrows.
+     * Projectiles cannot be interacted with; the query exists for dodge and prayer logic.
+     * Usage: {@code ctx.projectiles().withId(MAGIC_ATTACK).targetingMe().isPresent();}
+     *
+     * @return ProjectileQuery used to chain together predicates to select projectiles in flight.
+     */
+    public ProjectileQuery projectiles() {
+        return new ProjectileQuery(this);
+    }
+
+    /**
+     * Creates a new query builder for graphics objects playing in the scene: AOE impact markers,
+     * spell effects, boss telegraphs. Graphics objects cannot be interacted with; the query exists
+     * for hazard detection. Usage: {@code ctx.graphicsObjects().withId(TELEGRAPH).at(myTile).isPresent();}
+     *
+     * @return GraphicsObjectQuery used to chain together predicates to select active graphics objects.
+     */
+    public GraphicsObjectQuery graphicsObjects() {
+        return new GraphicsObjectQuery(this);
     }
 
     /**

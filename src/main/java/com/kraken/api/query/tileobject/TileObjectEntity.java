@@ -2,6 +2,7 @@ package com.kraken.api.query.tileobject;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.core.Locatable;
 import com.kraken.api.service.tile.GameArea;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.TileObject;
@@ -16,7 +17,7 @@ import net.runelite.api.widgets.Widget;
  * {@code DecorativeObject}s, so anything that needs to open a door has to work at the
  * {@link TileObject} level.</p>
  */
-public class TileObjectEntity extends AbstractEntity<TileObject> {
+public class TileObjectEntity extends AbstractEntity<TileObject> implements Locatable {
 
     public TileObjectEntity(Context ctx, TileObject raw) {
         super(ctx, raw);
@@ -68,6 +69,7 @@ public class TileObjectEntity extends AbstractEntity<TileObject> {
      *
      * @return the object's world location, or null when the object has despawned
      */
+    @Override
     public WorldPoint getWorldLocation() {
         TileObject raw = raw();
         return raw != null ? raw.getWorldLocation() : null;

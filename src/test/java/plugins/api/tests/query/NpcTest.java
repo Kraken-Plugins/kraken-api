@@ -55,7 +55,7 @@ public class NpcTest extends BaseApiTest {
             }
 
             if(ctx.npcs().filter(n -> n.getId() != 1147).withName("Guard").nearest().isPresent()) {
-                ctx.npcs().filter(n -> n.getId() != 1147).withName("Guard").nearest().attack();
+                ctx.npcs().filter(n -> n.getId() != 1147).withName("Guard").nearest().ifPresent(guard -> guard.attack());
                 return true;
             }
         } catch (Exception e) {

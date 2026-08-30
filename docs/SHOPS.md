@@ -75,7 +75,7 @@ item through before it starts to hold, and only when no quote was available.
 
 ```java
 shop.value("Iron ore");                            // what the shop charges for the next one
-ctx.shopInventory().withName("Bones").first().value();  // what the shop pays for the next one
+ctx.shopInventory().withName("Bones").first().map(ShopInventoryEntity::value);  // what the shop pays for the next one
 shop.coins();
 ```
 

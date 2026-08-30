@@ -57,8 +57,8 @@ public class WidgetSubActionTest extends BaseApiTest {
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        InventoryEntity ringOfDueling = ctx.inventory().nameContains(RING_OF_DUELING).first();
-        if (!assertTrue(ringOfDueling != null && ringOfDueling.isPresent(),
+        InventoryEntity ringOfDueling = ctx.inventory().nameContains(RING_OF_DUELING).first().orElse(null);
+        if (!assertTrue(ringOfDueling != null,
                 "Widget sub action test: no ring of dueling in the inventory")) {
             return false;
         }

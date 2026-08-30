@@ -10,6 +10,7 @@ import net.runelite.client.RuneLite;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import com.kraken.api.query.equipment.EquipmentEntity;
 
 @AllArgsConstructor
 public enum ElementalTome {
@@ -72,7 +73,8 @@ public enum ElementalTome {
     public static Map<Rune, Integer> getRunes() {
         Map<Rune, Integer> runes = new HashMap<>();
 
-        int tomeId = ctx().equipment().inSlot(EquipmentInventorySlot.SHIELD).getId();
+        int tomeId = ctx().equipment().inSlot(EquipmentInventorySlot.SHIELD)
+                .map(EquipmentEntity::getId).orElse(-1);
 
         if(tomeId == -1) {
             return Collections.emptyMap();

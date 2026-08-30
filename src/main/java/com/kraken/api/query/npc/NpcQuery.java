@@ -1,23 +1,19 @@
 package com.kraken.api.query.npc;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
-import com.kraken.api.service.tile.TileService;
+import com.kraken.api.core.AbstractSpatialQuery;
 import net.runelite.api.Actor;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
-import com.kraken.api.util.WorldAreaUtils;
-import net.runelite.api.coords.WorldPoint;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
+public class NpcQuery extends AbstractSpatialQuery<NpcEntity, NpcQuery, NPC> {
 
     public NpcQuery(Context ctx) {
         super(ctx);
@@ -53,18 +49,6 @@ public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
     }
 
     /**
-     * Filters and returns an {@code NpcQuery} containing NPCs located at the specified world point.
-     * <p>
-     * This method applies a filter to include only NPCs whose world location matches the given {@code location}.
-     *
-     * @param location the {@code WorldPoint} representing the target location to filter NPCs by.
-     * @return an {@code NpcQuery} containing NPCs at the specified {@code location}.
-     */
-    public NpcQuery at(WorldPoint location) {
-        return filter(n -> n.raw().getWorldLocation().equals(location));
-    }
-
-    /**
      * Returns Attackable NPC within the scene.
      * NPC's are considered attackable when:
      * - They are not dead
@@ -90,96 +74,12 @@ public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
     }
 
     /**
-     * Filters the NPCs to include only those that are reachable based on their world location.
-     * <p>
-     * This method applies a filter to the NPC query, ensuring that each NPC's raw data existence
-     * is validated and their world location is checked for reachability using the tile service.
-     * </p>
-     *
-     * @return A {@literal @}NpcQuery containing only the NPCs that are reachable.
-     */
-    public NpcQuery reachable() {
-        return filter(npc -> npc.raw() != null && ctx.getService(TileService.class).isTileReachable(npc.raw().getWorldLocation()));
-    }
-
-    /**
      * Filters for NPCs that are not interacting with anyone (null interaction).
      * This covers "not interacting with me" AND "not interacting with others".
      * @return NpcQuery
      */
     public NpcQuery idle() {
         return filter(npc -> npc.raw().getInteracting() == null);
-    }
-
-    /**
-     * Retrieves the nearest NPC entity to the local player's current position.
-     *
-     * <p>
-     * This method determines the NPC closest to the local player by comparing
-     * the distances between each NPC's local location and the local player's local location.
-     * The comparison is performed by sorting the NPCs based on their proximity,
-     * and the first (closest) NPC is selected.
-     * </p>
-     *
-     * <p>
-     * The result is typically used to quickly identify and interact with the most
-     * immediate NPC relative to the player's current position, which can assist
-     * in various gameplay interactions.
-     * </p>
-     *
-     * @return The {@code NpcEntity} nearest to the local player's current position,
-     *         as determined based on the shortest distance in the local coordinate system.
-     *         If no NPCs are available, the return value may be {@code null}.
-     */
-    public NpcEntity nearest() {
-        return sorted(Comparator.comparingInt(npc ->
-                npc.raw().getLocalLocation().distanceTo(ctx.getClient().getLocalPlayer().getLocalLocation())
-        )).first();
-    }
-
-    /**
-     * Sorts the current query results by determining the distance of each NPC's {@code WorldPoint} to a specified
-     * {@code WorldPoint} location and arranging them in ascending order of proximity.
-     *
-     * <p>
-     * This method calculates the distance between the provided {@code location} and each NPC's world location.
-     * The resulting query will contain NPCs sorted such that those closest to the specified location appear first.
-     * </p>
-     *
-     * @param location The {@link WorldPoint} to which NPCs' distances will be calculated.
-     *                 This parameter defines the point of reference for sorting NPCs by proximity.
-     * @return A {@code NpcQuery} containing NPCs sorted by their proximity to the specified {@code location}.
-     */
-    public NpcQuery nearestTo(WorldPoint location) {
-        return sorted(Comparator.comparingInt(npc ->
-                npc.raw().getWorldLocation().distanceTo(location)
-        ));
-    }
-
-    /**
-     * Sorts the NPC stream by distance from the local players' current location.
-     * @return NpcQuery
-     */
-    public NpcQuery sortByDistance() {
-        final WorldPoint playerLoc = ctx.players().local().location();
-        return sorted(Comparator.comparingInt(obj -> obj.raw().getWorldLocation().distanceTo(playerLoc)));
-    }
-
-    /**
-     * Filters the NPCs in the query to include only those within a specified distance from the local player's position.
-     * <p>
-     * This method calculates the distance between each NPC's world location and the local player's current world
-     * location, including only those NPCs with a distance less than or equal to the specified value.
-     * </p>
-     *
-     * @param distance The maximum distance (in tiles) from the local player within which NPCs should be included.
-     *                 This value must be greater than or equal to 0.
-     * @return A filtered {@code NpcQuery} containing only the NPCs within the specified distance from the local player.
-     */
-    public NpcQuery within(int distance) {
-        return filter(npc ->
-                npc.raw().getWorldLocation().distanceTo(ctx.players().local().location()) <= distance
-        );
     }
 
     /**
@@ -206,27 +106,6 @@ public class NpcQuery extends AbstractQuery<NpcEntity, NpcQuery, NPC> {
 
             return actions.contains(action.toLowerCase());
         });
-    }
-
-    /**
-     * Filters the query to include only NPCs that are located within a specified rectangular area.
-     * The area is defined by two corner points, {@code min} (lower-left) and {@code max} (upper-right),
-     * in the world map grid.
-     *
-     * <p>
-     * NPCs are included in the resulting query if their world point lies within the bounds created
-     * by the two corner points. The bounds are inclusive of the edges. This allows querying
-     * NPCs that exist within a specific area of interest.
-     * </p>
-     *
-     * @param min The {@link WorldPoint} representing the lower-left corner of the area.
-     *            This defines one bound of the rectangular query range.
-     * @param max The {@link WorldPoint} representing the upper-right corner of the area.
-     *            This defines the opposite bound of the rectangular query range.
-     * @return A filtered {@code NpcQuery} containing only the NPCs located within the specified area.
-     */
-    public NpcQuery withinArea(WorldPoint min, WorldPoint max) {
-        return filter(npc -> WorldAreaUtils.contains(npc.raw().getWorldLocation(), min, max));
     }
 
     /**

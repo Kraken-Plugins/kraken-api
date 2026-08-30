@@ -384,12 +384,11 @@ public class ObstacleRecovery {
     }
 
     private TileObjectEntity obstacleAt(WorldPoint tile) {
-        TileObjectEntity object = ctx.tileObjects()
+        return ctx.tileObjects()
                 .at(tile)
                 .filter(candidate -> isObstacle(candidate.getName()))
-                .first();
-
-        return object != null && object.isPresent() ? object : null;
+                .first()
+                .orElse(null);
     }
 
     private String[] actionsOf(TileObjectEntity obstacle) {

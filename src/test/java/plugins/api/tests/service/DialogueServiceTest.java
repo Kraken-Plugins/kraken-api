@@ -24,7 +24,7 @@ public class DialogueServiceTest extends BaseApiTest {
             return false;
         }
 
-        NpcEntity npc = ctx.npcs().within(10).withName("Banker").nearest();
+        NpcEntity npc = ctx.npcs().within(10).withName("Banker").nearest().orElse(null);
         if(npc != null) {
             npc.interact("Talk-to");
         }

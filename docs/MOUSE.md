@@ -333,7 +333,7 @@ private Context ctx;
 
 public void interactWithObject() {
     // Assume we have a method to find an object
-    GameObject bankBooth = ctx.gameObjects().withName("Bank booth").nearest();
+    GameObject bankBooth = ctx.gameObjects().withName("Bank booth").nearest().map(GameObjectEntity::raw).orElse(null);
     
     if (bankBooth != null) {
         // Move to the bank booth using the default strategy (note: this will not click the bank booth) you must

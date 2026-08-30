@@ -241,7 +241,7 @@ public class BankService {
             Widget widget = client.getWidget(786479);
             if (widget == null) return false;
 
-            ctxProvider.get().widgets().withId(786479).first().interact("Deposit inventory");
+            ctxProvider.get().widgets().withId(786479).interact("Deposit inventory");
             return true;
         });
     }
@@ -257,7 +257,7 @@ public class BankService {
             Widget widget = client.getWidget(786481);
             if (widget == null) return false;
 
-            ctxProvider.get().widgets().withId(786481).first().interact("Deposit worn items");
+            ctxProvider.get().widgets().withId(786481).interact("Deposit worn items");
             return true;
         });
     }
@@ -274,7 +274,7 @@ public class BankService {
             Widget widget = client.getWidget(786477);
             if (widget == null) return false;
 
-            ctxProvider.get().widgets().withId(786477).first().interact("Empty containers");
+            ctxProvider.get().widgets().withId(786477).interact("Empty containers");
             return true;
         });
     }

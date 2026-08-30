@@ -258,8 +258,8 @@ public class DpsServiceTest extends BaseApiTest {
 
     private boolean setupGear(Context ctx) {
         if (!bankService.isOpen()) {
-            GameObjectEntity booth = ctx.gameObjects().nameContains("Bank booth").withAction("Bank").nearest();
-            if (booth == null || booth.isNull()) {
+            GameObjectEntity booth = ctx.gameObjects().nameContains("Bank booth").withAction("Bank").nearest().orElse(null);
+            if (booth == null) {
                 log.error("Cannot set up the dps test, no bank booth nearby.");
                 return false;
             }
@@ -282,8 +282,8 @@ public class DpsServiceTest extends BaseApiTest {
         SleepService.sleepFor(1);
 
         for (SetupItem item : SETUP_ITEMS) {
-            BankEntity entity = ctx.bank().withName(item.name).first();
-            if (entity == null || entity.isNull()) {
+            BankEntity entity = ctx.bank().withName(item.name).first().orElse(null);
+            if (entity == null) {
                 log.error("Cannot run the dps test, '{}' is missing from the bank. See docs/TESTS.md.", item.name);
                 return false;
             }
@@ -540,8 +540,8 @@ public class DpsServiceTest extends BaseApiTest {
      */
     private NpcEntity findTarget(Context ctx) {
         for (String name : TARGET_NPCS) {
-            NpcEntity npc = ctx.npcs().withName(name).nearest();
-            if (npc != null && !npc.isNull() && dpsService.monster(npc) != null) {
+            NpcEntity npc = ctx.npcs().withName(name).nearest().orElse(null);
+            if (npc != null && dpsService.monster(npc) != null) {
                 return npc;
             }
         }
@@ -587,8 +587,8 @@ public class DpsServiceTest extends BaseApiTest {
             return true;
         }
 
-        EquipmentEntity item = ctx.equipment().inInventory().withId(itemId).first();
-        if (item == null || item.isNull()) {
+        EquipmentEntity item = ctx.equipment().inInventory().withId(itemId).first().orElse(null);
+        if (item == null) {
             log.error("Cannot equip {} ({}), it is not in the inventory", name, itemId);
             return false;
         }

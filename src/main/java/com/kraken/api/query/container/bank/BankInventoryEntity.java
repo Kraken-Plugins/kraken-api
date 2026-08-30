@@ -1,44 +1,14 @@
 package com.kraken.api.query.container.bank;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.query.container.AbstractContainerEntity;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.service.bank.BankService;
 
 
-public class BankInventoryEntity extends AbstractEntity<ContainerItem> {
+public class BankInventoryEntity extends AbstractContainerEntity {
     public BankInventoryEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
-    }
-
-    @Override
-    public String getName() {
-        ContainerItem raw = raw();
-        return raw != null ? raw.getName() : null;
-    }
-
-    @Override
-    public boolean interact(String action) {
-        ContainerItem raw = raw();
-
-        if (raw == null) return false;
-        return ctx.getInteractionManager().interact(raw, action);
-    }
-
-    @Override
-    public int getId() {
-        ContainerItem raw = raw();
-        return raw != null ? raw.getId() : -1;
-    }
-
-    /**
-     * Returns the quantity of the item in your inventory when the bank interface is open.
-     * @return The quantity of the bank inventory entity (the stack size of the item if it is noted, or
-     * the value of the item if it's coins), or 0 if the item is absent.
-     */
-    public int count() {
-        ContainerItem raw = raw();
-        return raw != null ? raw.getQuantity() : 0;
     }
 
     /**

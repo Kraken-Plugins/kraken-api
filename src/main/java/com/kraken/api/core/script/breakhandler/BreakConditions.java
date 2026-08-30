@@ -1,8 +1,6 @@
 package com.kraken.api.core.script.breakhandler;
 
 import com.kraken.api.Context;
-import com.kraken.api.query.container.bank.BankEntity;
-import com.kraken.api.query.container.bank.BankInventoryEntity;
 import com.kraken.api.service.bank.BankService;
 import net.runelite.api.Client;
 import net.runelite.api.Skill;
@@ -128,9 +126,7 @@ public class BreakConditions {
             public boolean shouldBreak() {
                if(ctx.getService(BankService.class).isOpen()) {
                    // Player does not have item in the bank or in the inventory
-                   BankEntity item = ctx.bank().withId(itemId).first();
-                   BankInventoryEntity inv = ctx.bankInventory().withId(itemId).first();
-                   return item == null && inv == null;
+                   return !ctx.bank().hasItem(itemId) && !ctx.bankInventory().hasItem(itemId);
                }
 
                return false;

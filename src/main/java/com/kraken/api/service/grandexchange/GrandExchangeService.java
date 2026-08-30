@@ -121,7 +121,7 @@ public class GrandExchangeService {
     public GrandExchangeSlot queueSellOrder(GrandExchangeSlot slot, int itemId, int amount, int price) {
         if(slot == null) return null;
         ctx.runOnClientThread(() -> {
-            InventoryEntity item = ctx.inventory().withId(itemId).first();
+            InventoryEntity item = ctx.inventory().withId(itemId).first().orElse(null);
             if(item == null) {
                 log.error("No item with id: {} found in inventory", itemId);
                 return;

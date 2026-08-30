@@ -663,7 +663,7 @@ public class PreconditionEngine {
      */
     private int bankQuantity(ItemRequirement item) {
         BankEntity entity = findInBank(item);
-        return entity == null ? 0 : entity.count();
+        return entity == null ? 0 : entity.getQuantity();
     }
 
     /**
@@ -703,11 +703,10 @@ public class PreconditionEngine {
      * @return the bank entity, or null when absent
      */
     private BankEntity findInBank(ItemRequirement item) {
-        BankEntity entity = item.byId()
+        return (item.byId()
                 ? ctx.bank().withId(item.getId()).first()
-                : ctx.bank().withName(item.getName()).first();
-
-        return entity == null || entity.isNull() ? null : entity;
+                : ctx.bank().withName(item.getName()).first())
+                .orElse(null);
     }
 
     /**
@@ -717,11 +716,10 @@ public class PreconditionEngine {
      * @return the inventory entity, or null when absent
      */
     private InventoryEntity findInInventory(ItemRequirement item) {
-        InventoryEntity entity = item.byId()
+        return (item.byId()
                 ? ctx.inventory().withId(item.getId()).first()
-                : ctx.inventory().withName(item.getName()).first();
-
-        return entity == null || entity.isNull() ? null : entity;
+                : ctx.inventory().withName(item.getName()).first())
+                .orElse(null);
     }
 
     /**
@@ -735,11 +733,10 @@ public class PreconditionEngine {
      * @return the bank-side inventory entity, or null when the item is not carried
      */
     private BankInventoryEntity findInBankInventory(ItemRequirement item) {
-        BankInventoryEntity entity = item.byId()
+        return (item.byId()
                 ? ctx.bankInventory().withId(item.getId()).first()
-                : ctx.bankInventory().withName(item.getName()).first();
-
-        return entity == null || entity.isNull() ? null : entity;
+                : ctx.bankInventory().withName(item.getName()).first())
+                .orElse(null);
     }
 
     /**
@@ -750,11 +747,10 @@ public class PreconditionEngine {
      * @return the equippable entity, or null when the item is not carried
      */
     private EquipmentEntity findEquippableInInventory(ItemRequirement item) {
-        EquipmentEntity entity = item.byId()
+        return (item.byId()
                 ? ctx.equipment().inInventory().withId(item.getId()).first()
-                : ctx.equipment().inInventory().withName(item.getName()).first();
-
-        return entity == null || entity.isNull() ? null : entity;
+                : ctx.equipment().inInventory().withName(item.getName()).first())
+                .orElse(null);
     }
 
     /**
@@ -775,8 +771,7 @@ public class PreconditionEngine {
      * @return a droppable item, or null when nothing carried can be dropped
      */
     private InventoryEntity findDroppableItem() {
-        InventoryEntity entity = ctx.inventory().withAction("Drop").first();
-        return entity == null || entity.isNull() ? null : entity;
+        return ctx.inventory().withAction("Drop").first().orElse(null);
     }
 
     /**

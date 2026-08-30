@@ -1,7 +1,7 @@
 package com.kraken.api.query.container.bank;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.query.container.AbstractContainerQuery;
 import com.kraken.api.query.container.ContainerItem;
 import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class BankInventoryQuery extends AbstractQuery<BankInventoryEntity, BankInventoryQuery, ContainerItem> {
+public class BankInventoryQuery extends AbstractContainerQuery<BankInventoryEntity, BankInventoryQuery, ContainerItem> {
 
     public BankInventoryQuery(Context ctx) {
         super(ctx);

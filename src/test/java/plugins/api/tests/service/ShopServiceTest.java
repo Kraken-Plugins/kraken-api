@@ -55,7 +55,7 @@ public class ShopServiceTest extends BaseApiTest {
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        NpcEntity shopkeeper = shopService.nearestShopkeeper();
+        NpcEntity shopkeeper = shopService.nearestShopkeeper().orElse(null);
         if (!assertNotNull(shopkeeper, "A shopkeeper offering Trade is in the scene")) {
             return false;
         }
@@ -68,7 +68,7 @@ public class ShopServiceTest extends BaseApiTest {
             return false;
         }
 
-        ShopEntity item = ctx.shop().withName(ITEM).first();
+        ShopEntity item = ctx.shop().withName(ITEM).first().orElse(null);
         if (!assertNotNull(item, "The shop stocks " + ITEM)) {
             return false;
         }

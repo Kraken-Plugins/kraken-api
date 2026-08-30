@@ -80,7 +80,7 @@ public class ExamplePlugin extends Plugin {
 
         ctx.npcs().withName("Goblin")
                 .except(n -> n.raw().isInteracting())
-                .nearest()
+                .sortByDistance()
                 .interact("Attack");
     }
 }
@@ -118,13 +118,44 @@ Key methods include:
 - `toRuneLite()`: Returns the underlying RuneLite entities wrapped by the API.
 - `count()`: Returns the number of objects in the stream.
 - `except(Predicate<T> predicate)`: Filters out elements that match the given predicate.
-- `random()`: Returns a random element from the filtered list.
+- `random()`: Returns a random matched element as an `Optional`, empty when nothing matched.
 - `distinct(Function<T, Object> keyExtractor)`: Filters the stream to include only distinct elements based on a property.
 - `sorted(Comparator<T> comparator)`: Sorts the stream using a comparator.
 - `list()` / `result()`: Collects the stream into a list.
 - `map()`: Collects the stream into a map keyed by entity ID.
-- `first()`: Returns the first element in the stream, or null if empty.
+- `first()`: Returns the first matched element as an `Optional`, empty when nothing matched.
+- `firstMatching(Predicate<T> predicate)`: Returns the first element that also satisfies the predicate, as an `Optional`.
+- `interact(String action)`: Interacts with the first matched element; returns false when nothing matched.
 - `take(int n)`: Returns the first N elements from the stream.
+
+##### Return conventions
+
+The query layer never returns a bare `null`. Collection-valued terminals (`list()`, `result()`, `map()`, `take(n)`) return empty collections, and single-valued terminals (`first()`, `firstMatching(...)`, `random()`, `nearest()`, `nearestTo(...)`) return `Optional`. A query that matches nothing is normal; handle it with `Optional` methods (`ifPresent`, `map`, `orElse`) or use the query-level `interact(...)`/`isPresent()`/`isEmpty()` terminals, which fold the empty case into their return value.
+
+#### AbstractSpatialQuery
+
+Queries over entities that occupy a tile — NPCs, players, game/tile objects, ground items, projectiles, and graphics objects — share one spatial vocabulary, defined once on `AbstractSpatialQuery`:
+
+- `within(int distance)`: Entities within the given tile distance of the local player, same plane only.
+- `within(WorldPoint anchor, int distance)`: The same, measured from an anchor point.
+- `withinArea(WorldPoint min, WorldPoint max)`: Entities inside the rectangle spanned by two corners.
+- `at(WorldPoint point)`: Entities standing on an exact tile, plane included.
+- `reachable()`: Entities the player can currently walk to.
+- `sortByDistance()` / `sortByDistanceTo(WorldPoint anchor)`: Order by proximity, closest first.
+- `nearest()` / `nearestTo(WorldPoint anchor)`: The closest match, as an `Optional`.
+
+Distances are Chebyshev tile distances between world locations in the coordinate space the client reports for the top-level world view — the same space the local player's location uses — so these filters remain valid inside instanced regions such as raids. Entities on another plane never match a distance filter and sort last. Player-anchored filters yield empty results when there is no local player (login screen, mid world-hop).
+
+#### AbstractContainerQuery
+
+Queries over the player's item containers — inventory, bank, bank-side inventory, deposit box, shop-side inventory — share one item vocabulary, defined once on `AbstractContainerQuery`:
+
+- `inSlot(int slot)`: The item occupying a slot.
+- `noted()` / `unnoted()`: Bank notes versus physical items.
+- `stackable()`: Items that stack.
+- `quantityGreaterThan(int amount)`: Stacks strictly larger than the amount.
+- `withAction(String action)`: Items offering a menu action in this container.
+- `hasItem(int id)` / `hasItem(String name)` / `hasItems(...)`: Presence checks.
 
 #### AbstractEntity
 
@@ -133,7 +164,6 @@ Key methods include:
 Key methods include:
 
 - `raw()`: Returns the underlying RuneLite API object.
-- `isNull()`: Checks if the wrapped entity is null.
 - `interact(String action)`: Performs an interaction with the entity (e.g., "Attack", "Talk-to").
 - `getId()`: Returns the ID of the entity.
 - `getName()`: Returns the name of the entity.

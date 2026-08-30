@@ -55,6 +55,6 @@ public final class HubResumePause {
         }
 
         WidgetEntity widget = ctx.widgets().get(LIST);
-        return widget != null && widget.isPresent();
+        return widget != null && widget.raw() != null;
     }
 }

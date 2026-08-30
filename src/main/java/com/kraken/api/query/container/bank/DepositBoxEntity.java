@@ -1,48 +1,16 @@
 package com.kraken.api.query.container.bank;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.query.container.AbstractContainerEntity;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.service.bank.DepositBoxService;
 import net.runelite.api.gameval.InterfaceID;
 
-import java.util.Arrays;
-
-public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
+public class DepositBoxEntity extends AbstractContainerEntity {
 
     public DepositBoxEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
     }
-
-    @Override
-    public String getName() {
-        ContainerItem item = raw();
-        return item != null ? item.getName() : null;
-    }
-
-    @Override
-    public boolean interact(String action) {
-        ContainerItem raw = raw();
-        if (raw == null) return false;
-        return ctx.getInteractionManager().interact(raw, action);
-    }
-
-    @Override
-    public int getId() {
-        ContainerItem item = raw();
-        return item != null ? item.getId() : -1;
-    }
-
-    /**
-     * Returns the quantity of the item in your inventory when the bank deposit box interface is open.
-     * @return The quantity of the deposit box entity (the stack size of the item if it is noted, or
-     * the value of the item if it's coins), or 0 if the item is absent.
-     */
-    public int count() {
-        ContainerItem raw = raw();
-        return raw != null ? raw.getQuantity() : 0;
-    }
-
 
     /**
      * Deposits one of the given item from the players inventory into the bank deposit box. This will **NOT** work
@@ -139,19 +107,4 @@ public class DepositBoxEntity extends AbstractEntity<ContainerItem> {
         return ctx.getInteractionManager().interact(raw, "Deposit-1");
     }
 
-    /**
-     * Checks if the specified action is available in the inventory actions of the container item.
-     *
-     * <p>This method retrieves the item's inventory actions and verifies if any action matches
-     * the provided action string, ignoring case sensitivity.</p>
-     *
-     * @param action a {@code String} representing the name of the action to check for.
-     *               It is case-insensitive, and null or empty actions are ignored.
-     * @return {@code true} if the specified action is available in the item's inventory actions;
-     *         {@code false} otherwise.
-     */
-    public boolean hasAction(String action) {
-        ContainerItem item = raw();
-        return Arrays.stream(item.getInventoryActions()).anyMatch(a -> a != null && a.equalsIgnoreCase(action));
-    }
 }

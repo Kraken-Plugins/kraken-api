@@ -1,21 +1,17 @@
 package com.kraken.api.query.gameobject;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.core.AbstractSpatialQuery;
 import com.kraken.api.service.tile.TileService;
 import net.runelite.api.GameObject;
 import net.runelite.api.ObjectComposition;
-import net.runelite.api.Perspective;
 import net.runelite.api.Tile;
-import net.runelite.api.coords.LocalPoint;
-import com.kraken.api.util.WorldAreaUtils;
-import net.runelite.api.coords.WorldPoint;
 
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class GameObjectQuery extends AbstractQuery<GameObjectEntity, GameObjectQuery, GameObject> {
+public class GameObjectQuery extends AbstractSpatialQuery<GameObjectEntity, GameObjectQuery, GameObject> {
 
     // A blacklist of actions for game objects (these are actions that are generally on NPC's).
     HashSet<String> ACTION_BLACKLIST = new HashSet<>();
@@ -137,70 +133,12 @@ public class GameObjectQuery extends AbstractQuery<GameObjectEntity, GameObjectQ
     }
 
     /**
-     * Finds game objects within a specified area. The min WorldPoint should be the southwest tile of the area
-     * and the max WorldPoint should be the northeast tile of the area.
-     * @param min The southwest minimum world point of the area to check
-     * @param max The northeast maximum world point of the area to check
+     * Filters for only game objects which are reachable from the players current tile. Uses the
+     * object-aware reachability check, which accounts for the object's footprint and adjacent tiles.
      * @return GameObjectQuery
      */
-    public GameObjectQuery withinArea(WorldPoint min, WorldPoint max) {
-        return filter(obj -> WorldAreaUtils.contains(obj.raw().getWorldLocation(), min, max));
-    }
-
-    /**
-     * Filters for only game objects which are reachable from the players current tile.
-     * @return GroundObjectQuery
-     */
+    @Override
     public GameObjectQuery reachable() {
         return filter(gameObject -> gameObject.raw() != null && ctx.getService(TileService.class).isObjectReachable(gameObject.raw()));
-    }
-
-    /**
-     * Sorts the stream of game objects to order them by manhattan distance to the local player.
-     * @return GameObjectQuery
-     */
-    public GameObjectEntity nearest() {
-        final WorldPoint playerLoc = ctx.players().local().location();
-        return sorted(Comparator.comparingInt(obj -> obj.raw().getWorldLocation().distanceTo(playerLoc))).first();
-    }
-
-    /**
-     * Sorts the game object stream by distance from the local players current location.
-     * @return GameObjectQuery
-     */
-    public GameObjectQuery sortByDistance() {
-        final WorldPoint playerLoc = ctx.players().local().location();
-        return sorted(Comparator.comparingInt(obj -> obj.raw().getWorldLocation().distanceTo(playerLoc)));
-    }
-
-    /**
-     * Filters for only objects whose location is within the specified distance from the anchor point.
-     * @param anchor The anchor local point.
-     * @param distance The maximum distance from the anchor point (in local units).
-     * @return True if the object is within the specified distance from the anchor point, false otherwise.
-     */
-    public GameObjectQuery within(LocalPoint anchor, int distance) {
-        int range = distance * Perspective.LOCAL_TILE_SIZE;
-        return filter(obj -> obj.raw().getLocalLocation().distanceTo(anchor) <= range);
-    }
-
-    /**
-     * Filters for only objects within the specified distance of the local player, measured in world
-     * tiles using Chebyshev distance. Use {@link #within(LocalPoint, int)} for sub-tile local-space filtering.
-     * @param distance The maximum distance from the player, in world tiles.
-     * @return A filtered {@code GameObjectQuery}.
-     */
-    public GameObjectQuery within(int distance) {
-        WorldPoint anchor = ctx.players().local().location();
-        return filter(obj -> obj.raw().getWorldLocation().distanceTo(anchor) <= distance);
-    }
-
-    /**
-     * Filters by exact WorldPoint.
-     * @param point The world point to filter for entities on
-     * @return GameObjectQuery
-     */
-    public GameObjectQuery at(WorldPoint point) {
-        return filter(obj -> obj.raw().getWorldLocation().equals(point));
     }
 }

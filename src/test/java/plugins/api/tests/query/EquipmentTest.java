@@ -27,9 +27,10 @@ public class EquipmentTest extends BaseApiTest {
                     GameObjectEntity bank = ctx.gameObjects()
                             .withName("Bank booth")
                             .withAction("Bank")
-                            .nearest();
+                            .nearest()
+                            .orElse(null);
 
-                    if (bank.isNull()) {
+                    if (bank == null) {
                         log.error("Failed to find Bank booth with 'Bank' action");
                         return false;
                     }
@@ -44,15 +45,15 @@ public class EquipmentTest extends BaseApiTest {
                 bankService.depositAllEquipment();
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
                 bankService.setWithdrawMode(false);
-                ctx.bank().withName("Rune Scimitar").first().withdraw(10);
+                ctx.bank().withName("Rune Scimitar").first().ifPresent(e -> e.withdraw(10));
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-                ctx.bank().withName("Rune Platebody").first().withdraw(10);
+                ctx.bank().withName("Rune Platebody").first().ifPresent(e -> e.withdraw(10));
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-                ctx.bank().withName("Rune full helm").first().withdraw(1);
+                ctx.bank().withName("Rune full helm").first().ifPresent(e -> e.withdraw(1));
                 Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-                ctx.bank().withName("Green d'hide body").first().withdraw(1);
+                ctx.bank().withName("Green d'hide body").first().ifPresent(e -> e.withdraw(1));
 
-                ctx.bank().nameContains("Team-29").first().withdraw(1);
+                ctx.bank().nameContains("Team-29").first().ifPresent(e -> e.withdraw(1));
                 bankService.close();
                 Thread.sleep(RandomUtils.randomIntBetween(1200, 1600));
             } else {
@@ -65,54 +66,54 @@ public class EquipmentTest extends BaseApiTest {
 
             SleepService.sleepFor(2);
 
-            ctx.equipment().nameContains("Team-29").first().wear();
+            ctx.equipment().nameContains("Team-29").first().ifPresent(EquipmentEntity::wear);
 
-            if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.BODY).isNull()) {
+            if(ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.BODY).isPresent()) {
                 log.info("Equipment tests failed, BODY slot should not have an item but is non-null");
                 testsPassed = false;
             }
 
-            if(!ctx.equipment().inInventory().nameContains("scimi").first().wield()) {
+            if(!ctx.equipment().inInventory().nameContains("scimi").first().map(EquipmentEntity::wield).orElse(false)) {
                 log.info("Equipment tests failed, could not wield scimitar");
                 testsPassed = false;
             }
             SleepService.sleepFor(2);
 
-            if(!ctx.equipment().inInventory().nameContains("plate").first().wear()) {
+            if(!ctx.equipment().inInventory().nameContains("plate").first().map(EquipmentEntity::wear).orElse(false)) {
                 log.info("Equipment tests failed, could not wield platebody");
                 testsPassed = false;
             }
             SleepService.sleepFor(2);
 
-            if(!ctx.equipment().inInventory().withId(1163).first().wear()) {
+            if(!ctx.equipment().inInventory().withId(1163).first().map(EquipmentEntity::wear).orElse(false)) {
                 log.info("Equipment tests failed, could not wear rune full helm");
                 testsPassed = false;
             }
             
             SleepService.sleepFor(2);
 
-            if(!ctx.equipment().inInventory().withName("Green d'hide body").first().wieldOrWear()) {
+            if(!ctx.equipment().inInventory().withName("Green d'hide body").first().map(EquipmentEntity::wieldOrWear).orElse(false)) {
                 log.error("Failed to wield Studded Body");
                 testsPassed = false;
             }
 
             SleepService.sleepFor(2);
 
-            if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.HEAD).remove()) {
+            if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.HEAD).map(EquipmentEntity::remove).orElse(false)) {
                 log.info("Equipment tests failed, could not remove HEAD slot.");
                 testsPassed = false;
             }
 
             SleepService.sleepFor(2);
 
-            if(!ctx.equipment().inSlot(EquipmentInventorySlot.CAPE).remove()) {
+            if(!ctx.equipment().inSlot(EquipmentInventorySlot.CAPE).map(EquipmentEntity::remove).orElse(false)) {
                 log.info("Equipment tests failed, could not remove CAPE slot.");
                 testsPassed = false;
             }
 
             SleepService.sleepFor(2);
 
-            if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.BODY).remove()) {
+            if(!ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.BODY).map(EquipmentEntity::remove).orElse(false)) {
                 log.info("Equipment tests failed, could not remove BODY slot.");
                 testsPassed = false;
             }

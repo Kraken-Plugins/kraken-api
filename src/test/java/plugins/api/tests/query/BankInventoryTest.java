@@ -29,9 +29,10 @@ public class BankInventoryTest extends BaseApiTest {
                 GameObjectEntity bank = ctx.gameObjects()
                         .withName("Bank booth")
                         .withAction("Bank")
-                        .nearest();
+                        .nearest()
+                        .orElse(null);
 
-                if (bank.isNull()) {
+                if (bank == null) {
                     log.error("Failed to find Bank booth with 'Bank' action");
                     return false;
                 }
@@ -45,9 +46,9 @@ public class BankInventoryTest extends BaseApiTest {
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
             bankService.setWithdrawMode(false);
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-            ctx.bank().withName("Swordfish").first().withdraw(10);
+            ctx.bank().withName("Swordfish").first().ifPresent(e -> e.withdraw(10));
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-            ctx.bank().withName("Rune full helm").first().withdraw(1);
+            ctx.bank().withName("Rune full helm").first().ifPresent(e -> e.withdraw(1));
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
 
             Map<String, String> map = new HashMap<>();
@@ -59,9 +60,9 @@ public class BankInventoryTest extends BaseApiTest {
                testsPassed &= map.containsKey(i.getName());
             }
 
-            ctx.bankInventory().withName("Swordfish").first().depositFive();
+            ctx.bankInventory().withName("Swordfish").first().ifPresent(e -> e.depositFive());
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-            ctx.bankInventory().nameContains("Rune").first().interact("Deposit-1");
+            ctx.bankInventory().nameContains("Rune").interact("Deposit-1");
         } catch (Exception e) {
             log.error("Exception during bank inventory test", e);
             return false;

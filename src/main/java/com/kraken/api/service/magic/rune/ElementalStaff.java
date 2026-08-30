@@ -8,6 +8,7 @@ import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.client.RuneLite;
 
 import java.util.*;
+import com.kraken.api.query.equipment.EquipmentEntity;
 
 @AllArgsConstructor
 public enum ElementalStaff {
@@ -97,7 +98,8 @@ public enum ElementalStaff {
     public static Map<Rune, Integer> getRunes() {
         Map<Rune, Integer> runes = new HashMap<>();
 
-        int staffId = ctx().equipment().inSlot(EquipmentInventorySlot.WEAPON).getId();
+        int staffId = ctx().equipment().inSlot(EquipmentInventorySlot.WEAPON)
+                .map(EquipmentEntity::getId).orElse(-1);
 
         if(staffId == -1) {
             return Collections.emptyMap();

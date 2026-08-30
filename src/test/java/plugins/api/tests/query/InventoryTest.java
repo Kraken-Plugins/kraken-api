@@ -53,9 +53,10 @@ public class InventoryTest extends BaseApiTest {
                 GameObjectEntity bank = ctx.gameObjects()
                         .withName("Bank booth")
                         .withAction("Bank")
-                        .nearest();
+                        .nearest()
+                        .orElse(null);
 
-                if (bank.isNull()) {
+                if (bank == null) {
                     log.error("Failed to find Bank booth with 'Bank' action");
                     return false;
                 }
@@ -67,31 +68,31 @@ public class InventoryTest extends BaseApiTest {
             bankService.setWithdrawMode(false);
 
             if(ctx.bank().withName("Swordfish").isPresent()) {
-                ctx.bank().withName("Swordfish").first().withdraw(5);
+                ctx.bank().withName("Swordfish").first().ifPresent(e -> e.withdraw(5));
             } else {
                 log.error("Failed to find Swordfish in the bank");
             }
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
 
             if(ctx.bank().withName("Lobster").isPresent()) {
-                ctx.bank().withName("Lobster").first().withdraw(5);
+                ctx.bank().withName("Lobster").first().ifPresent(e -> e.withdraw(5));
             } else {
                 log.error("No lobster present in the bank");
             }
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
 
-            assertTrue(ctx.inventory().inSlot(0).getName().equals("Swordfish"), "Swordfish is in slot 0");
-            assertTrue(ctx.inventory().inSlot(5).getName().equals("Lobster"), "Lobster is in slot 5");
-            assertNull(ctx.inventory().inSlot(27), "Nothing in slot 27");
+            assertTrue(ctx.inventory().inSlot(0).first().map(e -> e.getName().equals("Swordfish")).orElse(false), "Swordfish is in slot 0");
+            assertTrue(ctx.inventory().inSlot(5).first().map(e -> e.getName().equals("Lobster")).orElse(false), "Lobster is in slot 5");
+            assertNull(ctx.inventory().inSlot(27).first().orElse(null), "Nothing in slot 27");
 
             testsPassed &= ctx.inventory().food().count() > 0;
             testsPassed &= !ctx.inventory().isEmpty();
             testsPassed &= ctx.inventory().nameContains("Sword").count() > 0;
-            testsPassed &= ctx.inventory().filter(entity -> entity.getName().equalsIgnoreCase("Swordfish")).first().interact("Drop");
+            testsPassed &= ctx.inventory().filter(entity -> entity.getName().equalsIgnoreCase("Swordfish")).interact("Drop");
             Thread.sleep(RandomUtils.randomIntBetween(400, 900));
-            testsPassed &= ctx.inventory().food().nameContains("Lobster").first().interact("Eat");
+            testsPassed &= ctx.inventory().food().nameContains("Lobster").interact("Eat");
             SleepService.tick();
-            ctx.groundItems().filter(entity -> entity.getName().equalsIgnoreCase("Swordfish")).first().take();
+            ctx.groundItems().filter(entity -> entity.getName().equalsIgnoreCase("Swordfish")).first().ifPresent(item -> item.take());
 
             testsPassed &= !ctx.inventory().hasItem("Gold bar");
             testsPassed &= !ctx.inventory().hasItem(1607); // sapphire

@@ -14,9 +14,9 @@ public class GroundObjectTest extends BaseApiTest {
         boolean testsPassed = true;
 
         // Setup: We need an item to test with. Try to find the first droppable item in inventory.
-        var itemToDrop = ctx.inventory().withAction("Drop").first();
+        var itemToDrop = ctx.inventory().withAction("Drop").first().orElse(null);
 
-        if (itemToDrop.isNull()) {
+        if (itemToDrop == null) {
             log.error("Inventory is empty. Cannot run Ground Object test without an item to drop.");
             return false;
         }
@@ -50,7 +50,7 @@ public class GroundObjectTest extends BaseApiTest {
             // Existence & Name
             // Note: withName matches loose string, so strict ID check is safer,
             // but we test name here for query coverage.
-            if (ctx.groundItems().withName(itemName).first().isNull()) {
+            if (ctx.groundItems().withName(itemName).isEmpty()) {
                 log.error("Failed to find ground item by name: {}", itemName);
                 testsPassed = false;
             }
@@ -70,8 +70,8 @@ public class GroundObjectTest extends BaseApiTest {
             }
 
             // 6. Test: Nearest
-            GroundObjectEntity nearestItem = ctx.groundItems().withId(itemId).nearest();
-            if (nearestItem.isNull()) {
+            GroundObjectEntity nearestItem = ctx.groundItems().withId(itemId).nearest().orElse(null);
+            if (nearestItem == null) {
                 log.error("nearest() returned null for the dropped item");
                 testsPassed = false;
             } else {

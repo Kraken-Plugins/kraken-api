@@ -1,18 +1,14 @@
 package com.kraken.api.query.tileobject;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
-import com.kraken.api.service.tile.TileService;
-import com.kraken.api.util.WorldAreaUtils;
+import com.kraken.api.core.AbstractSpatialQuery;
 import net.runelite.api.GameObject;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.Tile;
 import net.runelite.api.TileObject;
-import net.runelite.api.coords.WorldPoint;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -28,7 +24,7 @@ import java.util.stream.Stream;
  * <p>Prefer {@code GameObjectQuery} when a game object is what you want; this query returns a wider
  * result set and therefore needs more specific filters to be useful.</p>
  */
-public class TileObjectQuery extends AbstractQuery<TileObjectEntity, TileObjectQuery, TileObject> {
+public class TileObjectQuery extends AbstractSpatialQuery<TileObjectEntity, TileObjectQuery, TileObject> {
 
     public TileObjectQuery(Context ctx) {
         super(ctx);
@@ -137,103 +133,4 @@ public class TileObjectQuery extends AbstractQuery<TileObjectEntity, TileObjectQ
         });
     }
 
-    /**
-     * Filters for objects standing on an exact tile.
-     *
-     * @param point the tile to match
-     * @return this query
-     */
-    public TileObjectQuery at(WorldPoint point) {
-        return filter(object -> {
-            WorldPoint location = object.getWorldLocation();
-            return location != null && location.equals(point);
-        });
-    }
-
-    /**
-     * Filters for objects within the given tile distance of a point.
-     *
-     * @param anchor the point to measure from
-     * @param distance the maximum distance in tiles
-     * @return this query
-     */
-    public TileObjectQuery near(WorldPoint anchor, int distance) {
-        return filter(object -> {
-            WorldPoint location = object.getWorldLocation();
-            return location != null && location.distanceTo(anchor) <= distance;
-        });
-    }
-
-    /**
-     * Filters for objects within the given tile distance of the local player.
-     *
-     * @param distance the maximum distance in tiles
-     * @return this query
-     */
-    public TileObjectQuery within(int distance) {
-        return near(ctx.players().local().location(), distance);
-    }
-
-    /**
-     * Filters for objects inside a rectangular area.
-     *
-     * @param min the south west corner
-     * @param max the north east corner
-     * @return this query
-     */
-    public TileObjectQuery withinArea(WorldPoint min, WorldPoint max) {
-        return filter(object -> {
-            WorldPoint location = object.getWorldLocation();
-            return location != null && WorldAreaUtils.contains(location, min, max);
-        });
-    }
-
-    /**
-     * Filters for objects the player can currently reach on foot.
-     *
-     * @return this query
-     */
-    public TileObjectQuery reachable() {
-        return filter(object -> {
-            WorldPoint location = object.getWorldLocation();
-            return location != null && ctx.getService(TileService.class).isTileReachable(location);
-        });
-    }
-
-    /**
-     * Sorts by distance from the local player.
-     *
-     * @return this query
-     */
-    public TileObjectQuery sortByDistance() {
-        final WorldPoint playerLocation = ctx.players().local().location();
-        return sorted(Comparator.comparingInt(object -> distanceOrMax(object, playerLocation)));
-    }
-
-    /**
-     * Returns the object closest to the local player.
-     *
-     * @return the nearest object, which may wrap null when nothing matched
-     */
-    public TileObjectEntity nearest() {
-        return sortByDistance().first();
-    }
-
-    /**
-     * Returns the object closest to a given point.
-     *
-     * @param anchor the point to measure from
-     * @return the nearest object, which may wrap null when nothing matched
-     */
-    public TileObjectEntity nearestTo(WorldPoint anchor) {
-        return sorted(Comparator.comparingInt(object -> distanceOrMax(object, anchor))).first();
-    }
-
-    private static int distanceOrMax(TileObjectEntity object, WorldPoint anchor) {
-        WorldPoint location = object.getWorldLocation();
-        if (location == null || anchor == null) {
-            return Integer.MAX_VALUE;
-        }
-        return location.distanceTo(anchor);
-    }
 }

@@ -35,14 +35,14 @@ public class MouseTest extends BaseApiTest {
         }
 
         // Find a random game object, move mouse to it
-        GameObjectEntity gameObject = ctx.gameObjects().within(7).random();
+        GameObjectEntity gameObject = ctx.gameObjects().within(7).random().orElse(null);
         log.info("Moving to random game object: {}", gameObject.getName());
         mouse.move(gameObject.raw());
 
         Thread.sleep(RandomService.between(600, 1200));
 
         // Find a random NPC, move mouse to it
-        NpcEntity npc = ctx.npcs().within(10).random();
+        NpcEntity npc = ctx.npcs().within(10).random().orElse(null);
         log.info("Moving to random NPC: {}", npc.getName());
         mouse.move(npc.raw());
 
@@ -50,7 +50,7 @@ public class MouseTest extends BaseApiTest {
 
 
         // Find a random player (if nearby)
-        PlayerEntity player = ctx.players().nearest();
+        PlayerEntity player = ctx.players().nearest().orElse(null);
         if(player != null) {
             log.info("Moving to random player: {}", player.getName());
             mouse.move(player.raw());

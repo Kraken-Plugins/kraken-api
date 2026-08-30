@@ -29,18 +29,17 @@ public class GameObjectTest extends BaseApiTest {
             // failed the whole test. Tree interaction is covered by the interaction tests instead.
 
             // 1. Basic Existence: Verify Bank booths exist in the query
-            boolean boothExists = !ctx.gameObjects().withName("Bank booth").first().isNull();
+            boolean boothExists = ctx.gameObjects().withName("Bank booth").isPresent();
             if (!boothExists) {
                 log.error("Failed to find any 'Bank booth'");
                 testsPassed = false;
             }
 
             // 2. Action Filtering: Verify "Bank" action works
-            boolean hasBankAction = !ctx.gameObjects()
+            boolean hasBankAction = ctx.gameObjects()
                     .withName("Bank booth")
                     .withAction("Bank")
-                    .first()
-                    .isNull();
+                    .isPresent();
 
             if (!hasBankAction) {
                 log.error("Failed to find Bank booth with 'Bank' action");
@@ -49,11 +48,11 @@ public class GameObjectTest extends BaseApiTest {
 
             // 3. Reachability: The nearest bank booth should be reachable
             // (Assuming player is standing in the bank)
-            boolean isReachable = !ctx.gameObjects()
+            boolean isReachable = ctx.gameObjects()
                     .withName("Bank booth")
                     .reachable()
                     .nearest()
-                    .isNull();
+                    .isPresent();
 
             if (!isReachable) {
                 log.error("Nearest Bank booth was not marked as reachable");
@@ -70,10 +69,10 @@ public class GameObjectTest extends BaseApiTest {
 
             // 5. Specific Location: Check a specific coordinate (Optional, but good for precision)
             // We get the location of the nearest booth, and query .at() that location to ensure it returns the booth.
-            var nearestBooth = ctx.gameObjects().withName("Bank booth").nearest();
-            if (!nearestBooth.isNull()) {
+            var nearestBooth = ctx.gameObjects().withName("Bank booth").nearest().orElse(null);
+            if (nearestBooth != null) {
                 WorldPoint boothLoc = nearestBooth.raw().getWorldLocation();
-                boolean retrievedByLoc = !ctx.gameObjects().at(boothLoc).withName("Bank booth").first().isNull();
+                boolean retrievedByLoc = ctx.gameObjects().at(boothLoc).withName("Bank booth").isPresent();
                 if (!retrievedByLoc) {
                     log.error("Failed to retrieve Bank booth via .at() coordinate query");
                     testsPassed = false;

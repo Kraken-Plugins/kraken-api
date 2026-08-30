@@ -236,7 +236,7 @@ BreakProfile profile = BreakProfile.builder()
         .logoutDuringBreak(true)
         .randomizeTimings(true)
         .addBreakCondition(BreakConditions.onLevelReached(context.getClient(), Skill.CRAFTING, 54))
-        .addBreakCondition(BreakConditions.customCondition(() -> ctx.groundItems().within(20).valueAbove(100000).first() != null, "I saw an item worth lots of GP"))
+        .addBreakCondition(BreakConditions.customCondition(() -> ctx.groundItems().within(20).valueAbove(100000).isPresent(), "I saw an item worth lots of GP"))
         .build();
 ```
 

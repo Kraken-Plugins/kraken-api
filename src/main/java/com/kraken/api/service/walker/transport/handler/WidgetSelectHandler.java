@@ -69,7 +69,7 @@ public class WidgetSelectHandler implements TransportHandler {
                 return false;
             }
             WidgetEntity widget = ctx.widgets().get(component);
-            return widget != null && widget.isPresent();
+            return widget != null && widget.raw() != null;
         }
 
         return findByText(ctx, type, displayInfo) != null;
@@ -101,8 +101,7 @@ public class WidgetSelectHandler implements TransportHandler {
             return null;
         }
 
-        WidgetEntity entry = ctx.widgets().inGroup(group).withText(label).first();
-        return entry != null && entry.isPresent() ? entry : null;
+        return ctx.widgets().inGroup(group).withText(label).first().orElse(null);
     }
 
     private boolean click(Context ctx, WidgetEntity widget) {

@@ -29,13 +29,13 @@ public class WidgetTargetWidgetTest extends BaseApiTest {
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        InventoryEntity chisel = context.inventory().withName("Chisel").first();
+        InventoryEntity chisel = context.inventory().withName("Chisel").first().orElse(null);
         if(chisel == null) {
             log.error("Inventory test failed, could not find a chisel");
             return false;
         }
 
-        InventoryEntity gem = context.inventory().withId(1623).first();
+        InventoryEntity gem = context.inventory().withId(1623).first().orElse(null);
         if (gem == null) {
             log.error("Widget test failed, could not find an uncut sapphire");
             return false;

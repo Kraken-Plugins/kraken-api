@@ -55,7 +55,7 @@ public class GrandExchangeServiceTest extends BaseApiTest {
     protected boolean runTest(Context ctx) throws Exception {
 
         // Setup
-        NpcEntity banker = ctx.npcs().withAction("Bank").nearest();
+        NpcEntity banker = ctx.npcs().withAction("Bank").nearest().orElse(null);
         if(banker == null) {
             log.error("Cannot open bank to withdraw items to sell");
             return false;
@@ -73,7 +73,7 @@ public class GrandExchangeServiceTest extends BaseApiTest {
             return false;
         }
 
-        BankEntity fireRune = ctx.bank().withName("Fire rune").first();
+        BankEntity fireRune = ctx.bank().withName("Fire rune").first().orElse(null);
         if(fireRune == null) {
             log.error("No fire runes in the bank to withdraw");
             return false;
@@ -85,7 +85,7 @@ public class GrandExchangeServiceTest extends BaseApiTest {
         SleepService.sleepWhile(bankService::isOpen, 5000);
 
         // Execute by selling fire runes
-        NpcEntity clerk = ctx.npcs().withAction("Exchange").nearest();
+        NpcEntity clerk = ctx.npcs().withAction("Exchange").nearest().orElse(null);
         if (clerk == null) {
             log.error("Could not find Grand Exchange Clerk");
             return false;

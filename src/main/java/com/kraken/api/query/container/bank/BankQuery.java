@@ -3,7 +3,7 @@ package com.kraken.api.query.container.bank;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.query.container.AbstractContainerQuery;
 import com.kraken.api.service.bank.BankService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Item;
@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 @Slf4j
-public class BankQuery extends AbstractQuery<BankEntity, BankQuery, BankItemWidget> {
+public class BankQuery extends AbstractContainerQuery<BankEntity, BankQuery, BankItemWidget> {
 
     // Item compositions are global and immutable, so the cache is shared across all BankQuery
     // instances rather than being rebuilt and discarded on every ctx.bank() call.
@@ -85,16 +85,6 @@ public class BankQuery extends AbstractQuery<BankEntity, BankQuery, BankItemWidg
             return bankItems.stream().map(i -> new BankEntity(ctx, i));
         };
     }
-
-    /**
-     * Filters for items in the bank which have a specified item id.
-     * @param id The item id to filter for
-     * @return BankQuery
-     */
-    public BankQuery withId(int id) {
-        return filter(item -> item.raw().getItemId() == id);
-    }
-
 
     /**
      * Determines whether the bank interface is currently open.

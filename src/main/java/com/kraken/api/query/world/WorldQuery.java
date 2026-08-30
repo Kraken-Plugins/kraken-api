@@ -17,6 +17,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import java.util.Optional;
 
 @Slf4j
 public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
@@ -391,18 +392,18 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
      *
      * @return The next {@literal WorldEntity} with a world ID greater than the current world ID,
      *         the first {@literal WorldEntity} in the list if no ID is greater,
-     *         or {@code null} if the list is empty.
+     *         or {@link Optional#empty()} if the list is empty.
      */
-    public WorldEntity next() {
+    public Optional<WorldEntity> next() {
         int currentWorld = ctx.getClient().getWorld();
         List<WorldEntity> results = sortByWorldNumberAsc().list();
         for (WorldEntity world : results) {
             if (world.getId() > currentWorld) {
-                return world;
+                return Optional.of(world);
             }
         }
 
-        return !results.isEmpty() ? results.get(0) : null;
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     /**
@@ -415,24 +416,24 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
      * </p>
      *
      * @return the previous {@literal World} in the sorted list, the last {@literal World} if no
-     *         smaller world exists, or {@code null} if the world list is empty.
+     *         smaller world exists, or {@link Optional#empty()} if the world list is empty.
      */
-    public WorldEntity previous() {
+    public Optional<WorldEntity> previous() {
         int currentWorld = ctx.getClient().getWorld();
         List<WorldEntity> results = sortByWorldNumberAsc().list();
 
         if (results.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         for (int i = results.size() - 1; i >= 0; i--) {
             WorldEntity world = results.get(i);
             if (world.getId() < currentWorld) {
-                return world;
+                return Optional.of(world);
             }
         }
 
         // Wraps around to the last world in the list if no smaller world is found
-        return results.get(results.size() - 1);
+        return Optional.of(results.get(results.size() - 1));
     }
 }

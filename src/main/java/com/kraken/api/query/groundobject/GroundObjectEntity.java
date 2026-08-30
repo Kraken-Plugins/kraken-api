@@ -2,12 +2,20 @@ package com.kraken.api.query.groundobject;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.core.Locatable;
 import com.kraken.api.service.tile.GameArea;
+import net.runelite.api.coords.WorldPoint;
 
-public class GroundObjectEntity extends AbstractEntity<GroundItem> {
+public class GroundObjectEntity extends AbstractEntity<GroundItem> implements Locatable {
 
     public GroundObjectEntity(Context ctx, GroundItem raw) {
         super(ctx, raw);
+    }
+
+    @Override
+    public WorldPoint getWorldLocation() {
+        GroundItem raw = raw();
+        return raw != null ? raw.getLocation() : null;
     }
 
 

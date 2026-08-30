@@ -43,7 +43,7 @@ public class BankServiceTest extends BaseApiTest {
         }
 
         log.info("Opening the bank.");
-        ctx.gameObjects().nameContains("Bank booth").nearest().interact("Bank");
+        ctx.gameObjects().nameContains("Bank booth").sortByDistance().interact("Bank");
         SleepService.sleepWhile(() -> bankService.isClosed(), 5000);
 
         log.info("Depositing all items");

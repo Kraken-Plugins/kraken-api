@@ -11,6 +11,8 @@ import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.coords.WorldPoint;
 
+import java.util.Optional;
+
 /**
  * Finds the thing a transport's object info refers to, and works out what to click on it.
  *
@@ -74,7 +76,7 @@ public final class TransportEntityResolver {
         }
 
         TileObjectEntity object = findObject(ctx, info, anchor, context.playerLocation());
-        if (object != null && object.isPresent()) {
+        if (object != null) {
             ObjectInfo refined = info.withEntityName(object.getName());
             String chosen = action != null ? action
                     : chooseAction(refined, object.getObjectComposition() != null
@@ -88,7 +90,7 @@ public final class TransportEntityResolver {
         }
 
         NpcEntity npc = findNpc(ctx, info, anchor);
-        if (npc != null && npc.isPresent()) {
+        if (npc != null) {
             ObjectInfo refined = info.withEntityName(npc.getName());
             String chosen = action != null ? action : chooseAction(refined, npcActions(ctx, npc));
             if (chosen == null) {
@@ -135,12 +137,12 @@ public final class TransportEntityResolver {
         }
 
         if (info.hasId()) {
-            TileObjectEntity byId = ctx.tileObjects()
+            Optional<TileObjectEntity> byId = ctx.tileObjects()
                     .withId(info.getId())
-                    .near(anchor, SEARCH_RADIUS)
+                    .within(anchor, SEARCH_RADIUS)
                     .nearestTo(anchor);
-            if (byId != null && byId.isPresent()) {
-                return byId;
+            if (byId.isPresent()) {
+                return byId.get();
             }
         }
 
@@ -148,11 +150,11 @@ public final class TransportEntityResolver {
             return null;
         }
 
-        TileObjectEntity byName = ctx.tileObjects()
+        return ctx.tileObjects()
                 .withName(info.getMenuTarget())
-                .near(anchor, NAME_SEARCH_RADIUS)
-                .nearestTo(anchor);
-        return byName != null && byName.isPresent() ? byName : null;
+                .within(anchor, NAME_SEARCH_RADIUS)
+                .nearestTo(anchor)
+                .orElse(null);
     }
 
     /**
@@ -162,17 +164,16 @@ public final class TransportEntityResolver {
      */
     private static NpcEntity findNpc(Context ctx, ObjectInfo info, WorldPoint anchor) {
         if (info.hasId()) {
-            NpcEntity byId = nearbyNpcs(ctx, anchor).withId(info.getId()).nearestTo(anchor).first();
-            if (byId != null && byId.isPresent()) {
-                return byId;
+            Optional<NpcEntity> byId = nearbyNpcs(ctx, anchor).withId(info.getId()).nearestTo(anchor);
+            if (byId.isPresent()) {
+                return byId.get();
             }
         }
 
-        NpcEntity byName = nearbyNpcs(ctx, anchor)
+        return nearbyNpcs(ctx, anchor)
                 .filter(npc -> info.namesEntity(npc.getName()))
                 .nearestTo(anchor)
-                .first();
-        return byName != null && byName.isPresent() ? byName : null;
+                .orElse(null);
     }
 
     private static NpcQuery nearbyNpcs(Context ctx, WorldPoint anchor) {

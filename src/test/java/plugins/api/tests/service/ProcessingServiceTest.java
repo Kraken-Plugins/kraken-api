@@ -69,14 +69,14 @@ public class ProcessingServiceTest extends BaseApiTest {
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        InventoryEntity chisel = ctx.inventory().withName(CHISEL).first();
-        if (!assertTrue(chisel != null && chisel.isPresent(),
+        InventoryEntity chisel = ctx.inventory().withName(CHISEL).first().orElse(null);
+        if (!assertTrue(chisel != null,
                 "Processing service test: no chisel in the inventory")) {
             return false;
         }
 
-        InventoryEntity uncut = ctx.inventory().withId(UNCUT_SAPPHIRE).first();
-        if (!assertTrue(uncut != null && uncut.isPresent(),
+        InventoryEntity uncut = ctx.inventory().withId(UNCUT_SAPPHIRE).first().orElse(null);
+        if (!assertTrue(uncut != null,
                 "Processing service test: no uncut sapphire in the inventory")) {
             return false;
         }
