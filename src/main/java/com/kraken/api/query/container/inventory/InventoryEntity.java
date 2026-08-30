@@ -1,45 +1,14 @@
 package com.kraken.api.query.container.inventory;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.query.container.AbstractContainerEntity;
 import com.kraken.api.query.container.ContainerItem;
 import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
 
-import java.util.Arrays;
-
-public class InventoryEntity extends AbstractEntity<ContainerItem> {
+public class InventoryEntity extends AbstractContainerEntity {
     public InventoryEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
-    }
-
-    @Override
-    public String getName() {
-        ContainerItem item = raw();
-        return item != null ? item.getName() : null;
-    }
-
-    @Override
-    public boolean interact(String action) {
-        ContainerItem raw = raw();
-        if (raw == null) return false;
-        return ctx.getInteractionManager().interact(raw, action);
-    }
-
-    @Override
-    public int getId() {
-        ContainerItem item = raw();
-        return item != null ? item.getId() : -1;
-    }
-
-    /**
-     * Returns true if the inventory item has the specified action. i.e "Swordfish" will have the action "Eat", "Drop", and "Examine" but not "Drink"
-     * @param action The action to check for
-     * @return True if the item has the action and false otherwise
-     */
-    public boolean hasAction(String action) {
-        ContainerItem item = raw();
-        return Arrays.stream(item.getInventoryActions()).anyMatch(a -> a != null && a.equalsIgnoreCase(action));
     }
 
     /**

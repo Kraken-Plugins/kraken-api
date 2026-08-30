@@ -48,16 +48,14 @@ public class WidgetTargetGameObjectTest extends BaseApiTest {
 
     @Override
     protected boolean runTest(Context ctx) throws Exception {
-        InventoryEntity bucket = ctx.inventory().withName(BUCKET).first();
-        // first() returns a wrapper rather than null when nothing matches, so isPresent is the
-        // correct emptiness check here; a plain null check silently passes on an empty result.
-        if (!assertTrue(bucket != null && bucket.isPresent(),
+        InventoryEntity bucket = ctx.inventory().withName(BUCKET).first().orElse(null);
+        if (!assertTrue(bucket != null,
                 "Widget target on object test: no empty bucket in the inventory")) {
             return false;
         }
 
-        GameObjectEntity fountain = ctx.gameObjects().withId(FOUNTAIN).nearest();
-        if (!assertTrue(fountain != null && fountain.isPresent(),
+        GameObjectEntity fountain = ctx.gameObjects().withId(FOUNTAIN).nearest().orElse(null);
+        if (!assertTrue(fountain != null,
                 "Widget target on object test: no fountain (object " + FOUNTAIN + ") nearby")) {
             return false;
         }

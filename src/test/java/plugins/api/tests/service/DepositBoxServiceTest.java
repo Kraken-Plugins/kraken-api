@@ -42,7 +42,7 @@ public class DepositBoxServiceTest extends BaseApiTest {
         }
 
         log.info("Opening the deposit box.");
-        ctx.gameObjects().nameContains("Bank deposit box").nearest().interact("Deposit");
+        ctx.gameObjects().nameContains("Bank deposit box").sortByDistance().interact("Deposit");
         SleepService.sleepWhile(depositBoxService::isClosed, 5000);
 
         if (depositBoxService.isClosed()) {

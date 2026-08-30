@@ -2,6 +2,7 @@ package plugins.api.tests.service;
 
 import com.google.inject.Inject;
 import com.kraken.api.Context;
+import com.kraken.api.query.container.bank.BankEntity;
 import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.magic.MagicService;
@@ -66,18 +67,18 @@ public class SpellServiceTest extends BaseApiTest {
             }
 
             bankService.depositAll();
-            ctx.bank().withName("Mind rune").first().withdrawTen();
+            ctx.bank().withName("Mind rune").first().ifPresent(BankEntity::withdrawTen);
             Thread.sleep(RandomUtils.randomIntBetween(700, 1000));
-            ctx.bank().withName("Fire rune").first().withdraw(50);
+            ctx.bank().withName("Fire rune").first().ifPresent(e -> e.withdraw(50));
             Thread.sleep(RandomUtils.randomIntBetween(700, 1000));
-            ctx.bank().withName("Air rune").first().withdrawFive();
+            ctx.bank().withName("Air rune").first().ifPresent(BankEntity::withdrawFive);
             Thread.sleep(RandomUtils.randomIntBetween(700, 1000));
             boolean hasRunes = magicService.hasRequiredRunes(Standard.VARROCK_TELEPORT);
             if(hasRunes) {
                 log.info("Spell Service tests failed, hasRequiredRunes returned true when player should not have VARROCK_TELEPORT runes");
                 return false;
             }
-            ctx.bank().withName("Law rune").first().withdrawOne();
+            ctx.bank().withName("Law rune").first().ifPresent(BankEntity::withdrawOne);
             bankService.close();
             Thread.sleep(RandomUtils.randomIntBetween(2400, 3200));
             boolean hasRunesTrue = magicService.hasRequiredRunes(Standard.VARROCK_TELEPORT);
@@ -87,7 +88,7 @@ public class SpellServiceTest extends BaseApiTest {
             }
 
 
-            NpcEntity guard = ctx.npcs().nameContains("Guard").nearest();
+            NpcEntity guard = ctx.npcs().nameContains("Guard").nearest().orElse(null);
             if(guard == null) {
                 log.error("Spell Service tests failed, could not find a guard");
                 return false;

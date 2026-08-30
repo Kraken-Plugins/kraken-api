@@ -22,6 +22,7 @@ import net.runelite.client.eventbus.Subscribe;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Optional;
 import java.awt.event.KeyEvent;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntSupplier;
@@ -155,9 +156,9 @@ public class ShopService {
     /**
      * The closest shopkeeper.
      *
-     * @return the nearest NPC offering "Trade", or null when there is none in the scene
+     * @return the nearest NPC offering "Trade", or {@link Optional#empty()} when there is none in the scene
      */
-    public NpcEntity nearestShopkeeper() {
+    public Optional<NpcEntity> nearestShopkeeper() {
         return shopkeepers().first();
     }
 
@@ -167,7 +168,7 @@ public class ShopService {
      * @return true when the shop is open when this returns
      */
     public boolean open() {
-        return open(nearestShopkeeper());
+        return open(nearestShopkeeper().orElse(null));
     }
 
     /**
@@ -177,7 +178,7 @@ public class ShopService {
      * @return true when the shop is open when this returns
      */
     public boolean open(String npcName) {
-        return open(shopkeepers().withName(npcName).first());
+        return open(shopkeepers().withName(npcName).first().orElse(null));
     }
 
     /**
@@ -205,7 +206,7 @@ public class ShopService {
             return true;
         }
 
-        if (shopkeeper == null || shopkeeper.isNull()) {
+        if (shopkeeper == null || shopkeeper.raw() == null) {
             log.warn("No shopkeeper found to trade with");
             return false;
         }
@@ -231,13 +232,13 @@ public class ShopService {
             return true;
         }
 
-        WidgetEntity closeButton = ctxProvider.get().widgets()
+        Optional<WidgetEntity> closeButton = ctxProvider.get().widgets()
                 .inGroup(InterfaceID.SHOPMAIN)
                 .withAction("Close")
                 .first();
 
-        if (closeButton != null) {
-            closeButton.interact("Close");
+        if (closeButton.isPresent()) {
+            closeButton.get().interact("Close");
         } else {
             keyboard.keyPress(KeyEvent.VK_ESCAPE);
         }
@@ -261,7 +262,7 @@ public class ShopService {
             return null;
         }
 
-        ShopEntity item = ctxProvider.get().shop().first();
+        ShopEntity item = ctxProvider.get().shop().first().orElse(null);
         if (item == null) {
             return null;
         }
@@ -359,7 +360,7 @@ public class ShopService {
      * @return the price in coins, or -1 when the item is gone or the shop did not answer in time
      */
     public int value(ShopEntity item) {
-        if (item == null || item.isNull()) {
+        if (item == null || item.raw() == null) {
             return -1;
         }
         return quote(item.getName(), false, () -> item.interact("Value"));
@@ -376,7 +377,7 @@ public class ShopService {
      * @return the price in coins, or -1 when the item is gone or the shop did not answer in time
      */
     public int value(ShopInventoryEntity item) {
-        if (item == null || item.isNull()) {
+        if (item == null || item.raw() == null) {
             return -1;
         }
         return quote(item.getName(), true, () -> item.interact("Value"));
@@ -389,7 +390,7 @@ public class ShopService {
      * @return the price in coins, or -1 when the shop does not stock it or did not answer in time
      */
     public int value(int itemId) {
-        return value(ctxProvider.get().shop().withId(itemId).first());
+        return value(ctxProvider.get().shop().withId(itemId).first().orElse(null));
     }
 
     /**
@@ -399,7 +400,7 @@ public class ShopService {
      * @return the price in coins, or -1 when the shop does not stock it or did not answer in time
      */
     public int value(String itemName) {
-        return value(ctxProvider.get().shop().withName(itemName).first());
+        return value(ctxProvider.get().shop().withName(itemName).first().orElse(null));
     }
 
     /**
@@ -497,7 +498,7 @@ public class ShopService {
      * @return true when at least one buy interaction was dispatched
      */
     public boolean buyNow(ShopEntity item, int amount) {
-        if (item == null || item.isNull() || amount < 1) {
+        if (item == null || item.raw() == null || amount < 1) {
             return false;
         }
         return tradeNow(item.raw().getActions(), amount, item::interact);
@@ -514,7 +515,7 @@ public class ShopService {
      * @return true when at least one sell interaction was dispatched
      */
     public boolean sellNow(ShopInventoryEntity item, int amount) {
-        if (item == null || item.isNull() || item.raw().getWidget() == null || amount < 1) {
+        if (item == null || item.raw() == null || item.raw().getWidget() == null || amount < 1) {
             return false;
         }
         return tradeNow(item.raw().getWidget().getActions(), amount, item::interact);
@@ -714,17 +715,17 @@ public class ShopService {
 
         if (order.isSelling()) {
             ShopInventoryEntity item = order.getItemName() == null
-                    ? ctx.shopInventory().withId(order.getItemId()).first()
-                    : ctx.shopInventory().withName(order.getItemName()).first();
+                    ? ctx.shopInventory().withId(order.getItemId()).first().orElse(null)
+                    : ctx.shopInventory().withName(order.getItemName()).first().orElse(null);
 
-            if (item == null || item.isNull()) {
+            if (item == null) {
                 return null;
             }
 
             // Stacked items sell out of one slot; unstacked ones occupy one slot each, so the whole
             // held amount is what is available either way.
             int held = ctx.shopInventory().withId(item.getId()).stream()
-                    .mapToInt(ShopInventoryEntity::count)
+                    .mapToInt(ShopInventoryEntity::getQuantity)
                     .sum();
 
             return new Tradeable(item.getId(), item.getName(), held, item.raw().getWidget(),
@@ -732,10 +733,10 @@ public class ShopService {
         }
 
         ShopEntity item = order.getItemName() == null
-                ? ctx.shop().withId(order.getItemId()).first()
-                : ctx.shop().withName(order.getItemName()).first();
+                ? ctx.shop().withId(order.getItemId()).first().orElse(null)
+                : ctx.shop().withName(order.getItemName()).first().orElse(null);
 
-        if (item == null || item.isNull()) {
+        if (item == null) {
             return null;
         }
 

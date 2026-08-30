@@ -16,6 +16,7 @@ import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
 import shortestpath.transport.requirement.ItemRequirement;
 import shortestpath.transport.requirement.TransportItems;
+import java.util.Optional;
 
 /**
  * Teleports using an item, whether it is worn or carried.
@@ -138,14 +139,14 @@ public class ItemTeleportHandler implements TransportHandler {
             }
 
             for (int id : ids) {
-                EquipmentEntity worn = ctx.equipment().inInterface().withId(id).first();
-                if (worn != null && worn.isPresent()) {
-                    return worn.raw();
+                Optional<EquipmentEntity> worn = ctx.equipment().inInterface().withId(id).first();
+                if (worn.isPresent()) {
+                    return worn.get().raw();
                 }
 
-                InventoryEntity carried = ctx.inventory().withId(id).first();
-                if (carried != null && carried.isPresent()) {
-                    return carried.raw();
+                Optional<InventoryEntity> carried = ctx.inventory().withId(id).first();
+                if (carried.isPresent()) {
+                    return carried.get().raw();
                 }
             }
         }

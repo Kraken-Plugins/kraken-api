@@ -35,7 +35,7 @@ public class WidgetTargetNpcTest extends BaseApiTest {
     @Override
     protected boolean runTest(Context ctx) throws Exception {
         // There is a "Guard" guarding the gate into south east varrock which is not attackable so exclude him
-        NpcEntity guard = context.npcs().filter(n -> n.getId() != 1147).nameContains("Guard").nearest();
+        NpcEntity guard = context.npcs().filter(n -> n.getId() != 1147).nameContains("Guard").nearest().orElse(null);
         if(guard == null) {
             log.error("Spell Service tests failed, could not find a guard");
             return false;

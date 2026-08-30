@@ -1,8 +1,8 @@
 package com.kraken.api.query.container.bank;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
 import com.kraken.api.query.ItemSource;
+import com.kraken.api.query.container.AbstractContainerQuery;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.bank.DepositBoxService;
@@ -44,7 +44,7 @@ import java.util.stream.Stream;
  * the appropriate thread context (e.g., client-side thread) to ensure proper behavior.
  */
 @Slf4j
-public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQuery, ContainerItem> {
+public class DepositBoxQuery extends AbstractContainerQuery<DepositBoxEntity, DepositBoxQuery, ContainerItem> {
 
     private ItemSource dataSource = ItemSource.BOTH;
 
@@ -149,9 +149,9 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
     /**
      * Returns the interactable equipment entity for a given equipment slot.
      * @param slot The {@code EquipmentInventorySlot} to retrieve.
-     * @return DepositBoxEntity
+     * @return The entity in that slot, or {@link Optional#empty()} when the slot is empty.
      */
-    public DepositBoxEntity inSlot(EquipmentInventorySlot slot) {
+    public Optional<DepositBoxEntity> inSlot(EquipmentInventorySlot slot) {
         // The container item returned from the raw().getSlot() will be the BankDepositBox.SLOT0,SLOT1,SLOT2, etc...
         // so in order to lookup an equipment slot 1-13 -> Id 12582924-31 we need to map the deposit box widget
         // otherwise we are comparing apples (1-13) to oranges (12582924-31)
@@ -160,97 +160,6 @@ public class DepositBoxQuery extends AbstractQuery<DepositBoxEntity, DepositBoxQ
 
         return source().get()
                 .filter(i -> i.raw().getSlot() == mappedIndex)
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * Filters for items in the deposit box that have the specified item id.
-     *
-     * <p>This method is used to refine the {@code DepositBoxQuery} by including only items
-     * within the deposit box that match the provided item id. It applies a filtering condition
-     * to the query and returns the updated query object.
-     *
-     * @param id The item id to filter for.
-     *           <ul>
-     *             <li>The id must represent a valid item within the deposit box.</li>
-     *             <li>If the id does not correspond to any item, the result will be an empty query.</li>
-     *           </ul>
-     * @return {@literal DepositBoxQuery} The updated {@code DepositBoxQuery} instance with the specified filter applied.
-     */
-    public DepositBoxQuery withId(int id) {
-        return filter(item -> item.getId() == id);
-    }
-
-    /**
-     * Filters the {@code DepositBoxQuery} to include only items that are noted.
-     *
-     * <p>An item is considered "noted" if it is a placeholder or tradeable voucher
-     * referring to a stackable quantity of the item rather than the physical item itself.
-     * This method relies on the {@code isNoted()} method of the underlying item's composition
-     * to determine its noted state.
-     *
-     * @return {@literal DepositBoxQuery} A refined query instance including only the items
-     *         from the deposit box that are in a noted state.
-     */
-    public DepositBoxQuery noted() {
-        return filter(item -> item.raw().isNoted());
-    }
-
-    /**
-     * Filters the {@code DepositBoxQuery} to include only items that are unnoted.
-     *
-     * <p>An item is considered "unnoted" if it is the actual physical item
-     * rather than a placeholder or tradeable voucher for a stackable quantity.
-     * This method relies on the {@code isNoted()} method of the raw item to
-     * determine its state, and excludes items that are noted.
-     *
-     * @return {@literal DepositBoxQuery} A refined query instance including only the
-     *         items from the deposit box that are in an unnoted state.
-     */
-    public DepositBoxQuery unnoted() {
-        return filter(item -> !item.raw().isNoted());
-    }
-
-    /**
-     * Filters the {@code DepositBoxQuery} to include only items that are stackable.
-     *
-     * <p>This method refines the {@code DepositBoxQuery} by applying a filtering condition
-     * that selects items from the deposit box which are deemed stackable. Stackable items
-     * allow multiple units to occupy a single inventory slot.
-     *
-     * <ul>
-     *   <li>An item is considered stackable if its {@code isStackable()} method returns {@code true}.</li>
-     *   <li>If no stackable items are found, the result of this query will be empty.</li>
-     * </ul>
-     *
-     * @return {@literal DepositBoxQuery} A refined {@code DepositBoxQuery} instance that
-     *         includes only the stackable items in the deposit box.
-     */
-    public DepositBoxQuery stackable() {
-        return filter(item -> item.raw().isStackable());
-    }
-
-    /**
-     * Filters the {@code DepositBoxQuery} to include only items with a quantity greater than the specified amount.
-     *
-     * <p>This method refines the {@code DepositBoxQuery} by applying a filtering condition that selects
-     * items from the deposit box where their quantity exceeds the given value. The resulting query will
-     * only include items meeting this criteria.
-     *
-     * <ul>
-     *   <li>If no items in the deposit box have a quantity greater than the provided amount, the query result will be empty.</li>
-     * </ul>
-     *
-     * @param amount The minimum quantity threshold for filtering items.
-     *               <ul>
-     *                 <li>Must be a non-negative integer.</li>
-     *                 <li>If {@code amount} is zero, all items with a positive quantity will be included in the result.</li>
-     *               </ul>
-     * @return {@literal DepositBoxQuery} An updated query instance including only items whose quantity
-     *                                    exceeds the specified amount.
-     */
-    public DepositBoxQuery quantityGreaterThan(int amount) {
-        return filter(item -> item.raw().getQuantity() > amount);
+                .findFirst();
     }
 }

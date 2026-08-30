@@ -106,14 +106,14 @@ public class SelfCheckTest extends BaseApiTest {
      * @return true when a bank booth or banker NPC is found nearby
      */
     private boolean checkObjectQuery(Context ctx) {
-        GameObjectEntity booth = ctx.gameObjects().withAction("Bank").nearest();
-        if (booth != null && booth.isPresent()) {
+        GameObjectEntity booth = ctx.gameObjects().withAction("Bank").nearest().orElse(null);
+        if (booth != null) {
             log.info("Self check: game object query resolved a bank via the 'Bank' action");
             return true;
         }
 
-        NpcEntity banker = ctx.npcs().withAction("Bank").nearest();
-        if (banker != null && banker.isPresent()) {
+        NpcEntity banker = ctx.npcs().withAction("Bank").nearest().orElse(null);
+        if (banker != null) {
             log.info("Self check: npc query resolved a banker via the 'Bank' action");
             return true;
         }
@@ -151,12 +151,12 @@ public class SelfCheckTest extends BaseApiTest {
      * @return true when the bank interface is open
      */
     private boolean openBank(Context ctx) {
-        GameObjectEntity booth = ctx.gameObjects().withAction("Bank").nearest();
-        if (booth != null && booth.isPresent()) {
+        GameObjectEntity booth = ctx.gameObjects().withAction("Bank").nearest().orElse(null);
+        if (booth != null) {
             booth.interact("Bank");
         } else {
-            NpcEntity banker = ctx.npcs().withAction("Bank").nearest();
-            if (banker == null || banker.isNull()) {
+            NpcEntity banker = ctx.npcs().withAction("Bank").nearest().orElse(null);
+            if (banker == null) {
                 return false;
             }
             banker.interact("Bank");
@@ -175,8 +175,8 @@ public class SelfCheckTest extends BaseApiTest {
      * @return true when an item round-trips from bank to inventory and back
      */
     private boolean checkBankContainer(Context ctx) {
-        BankEntity item = ctx.bank().first();
-        if (item == null || item.isNull()) {
+        BankEntity item = ctx.bank().first().orElse(null);
+        if (item == null) {
             return assertThat(false, "Self check: the bank is open but the bank query returned no items. "
                     + "Either your bank is empty or the bank container mapping has regressed");
         }
@@ -202,7 +202,7 @@ public class SelfCheckTest extends BaseApiTest {
         log.info("Self check: withdrew '{}' and observed the inventory update", itemName);
 
         // Put it straight back. bankInventory() is the correct container view while the bank is open.
-        if (!ctx.bankInventory().withId(itemId).first().depositAll()) {
+        if (!ctx.bankInventory().withId(itemId).first().map(e -> e.depositAll()).orElse(false)) {
             return assertThat(false, "Self check: could not deposit '" + itemName + "' back into the bank");
         }
 

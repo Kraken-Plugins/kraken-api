@@ -57,17 +57,15 @@ public class WorldEntity extends AbstractEntity<World> {
 
             }
 
-            return ctx.runOnClientThread(() -> {
-                WidgetEntity widget = ctx.widgets()
-                        .withId(InterfaceID.Worldswitcher.BUTTONS)
-                        .nameContains(String.valueOf(getId())).first();
-
-                if(widget == null) {
-                    log.error("world widget: {} is null", getId());
-                    return false;
-                }
-                return widget.interact("Switch");
-            });
+            return ctx.runOnClientThread(() -> ctx.widgets()
+                    .withId(InterfaceID.Worldswitcher.BUTTONS)
+                    .nameContains(String.valueOf(getId()))
+                    .first()
+                    .map(widget -> widget.interact("Switch"))
+                    .orElseGet(() -> {
+                        log.error("world widget: {} is null", getId());
+                        return false;
+                    }));
         } else {
             return ctx.runOnClientThread(() -> {
                 Client client = ctx.getClient();

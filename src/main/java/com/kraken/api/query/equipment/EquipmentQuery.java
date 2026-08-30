@@ -16,6 +16,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Optional;
 
 
 @Slf4j
@@ -228,14 +229,14 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
     /**
      * Returns the interactable equipment entity for a given equipment slot.
      * @param slot The {@code EquipmentInventorySlot} to retrieve.
-     * @return EquipmentEntity in that slot, or {@code null} if the slot is empty.
+     * @return The entity in that slot, or {@link Optional#empty()} when the slot is empty.
      */
-    public EquipmentEntity inSlot(EquipmentInventorySlot slot) {
-        if (slot == null) return null;
-        return ctx.runOnClientThread(() -> collectEquippedItems()
+    public Optional<EquipmentEntity> inSlot(EquipmentInventorySlot slot) {
+        if (slot == null) return Optional.empty();
+        return Optional.ofNullable(ctx.runOnClientThread(() -> collectEquippedItems()
                 .stream()
                 .filter(i -> i.raw() != null && i.raw().getSlot() == slot.getSlotIdx())
                 .findFirst()
-                .orElse(null));
+                .orElse(null)));
     }
 }

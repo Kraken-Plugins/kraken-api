@@ -14,9 +14,9 @@ public class WidgetTest extends BaseApiTest {
         try {
             // 1. Basic Text Search & Visibility
             // The "Public" chat filter button is almost always visible in the chatbox.
-            var publicChatButton = ctx.widgets().withText("Public").visible().first();
+            var publicChatButton = ctx.widgets().withText("Public").visible().first().orElse(null);
 
-            if (publicChatButton.isNull()) {
+            if (publicChatButton == null) {
                 log.error("Failed to find 'Public' chat button via text query");
                 testsPassed = false;
             } else {
@@ -28,7 +28,7 @@ public class WidgetTest extends BaseApiTest {
                 int index = publicChatButton.raw().getIndex();
 
                 // 2a. Test withId
-                boolean foundById = !ctx.widgets().withId(packedId).withIndex(index).first().isNull();
+                boolean foundById = ctx.widgets().withId(packedId).withIndex(index).isPresent();
                 if (!foundById) {
                     log.error("Failed to find widget by packed ID: " + packedId);
                     testsPassed = false;
@@ -43,7 +43,7 @@ public class WidgetTest extends BaseApiTest {
                 }
 
                 // 2c. Test withChildId
-                boolean foundByChild = !ctx.widgets().inGroup(groupId).withChildId(childId).withIndex(index).first().isNull();
+                boolean foundByChild = ctx.widgets().inGroup(groupId).withChildId(childId).withIndex(index).isPresent();
                 if (!foundByChild) {
                     log.error("Failed to find widget by Child ID: " + childId);
                     testsPassed = false;
@@ -53,10 +53,10 @@ public class WidgetTest extends BaseApiTest {
             // 3. Test Action Filter
             // We search for something with a generic action usually available.
             // "Report" is a common button text/action on the chatbox frame.
-            boolean abuse = !ctx.widgets().withAction("Report abuse").first().isNull();
+            boolean abuse = ctx.widgets().withAction("Report abuse").isPresent();
             if (!abuse) {
                 // Fallback: Try "Activate" (Quick prayer) or "Walk here" (Minimap)
-                boolean quickPrayers = !ctx.widgets().withAction("Activate Quick-prayers").first().isNull();
+                boolean quickPrayers = ctx.widgets().withAction("Activate Quick-prayers").isPresent();
                 if (!quickPrayers) {
                     log.warn("Could not find any widgets with 'Report abuse' or 'Activate Quick-prayers' actions (Unusual but possible if interfaces hidden)");
                 }
@@ -64,10 +64,10 @@ public class WidgetTest extends BaseApiTest {
 
             // 4. Test Sprite Filter
             // Find *any* widget with a valid sprite ID, then try to find it back.
-            var spriteWidget = ctx.widgets().filter(w -> w.raw().getSpriteId() > -1).first();
-            if (!spriteWidget.isNull()) {
+            var spriteWidget = ctx.widgets().filter(w -> w.raw().getSpriteId() > -1).first().orElse(null);
+            if (spriteWidget != null) {
                 int spriteId = spriteWidget.raw().getSpriteId();
-                boolean foundSprite = !ctx.widgets().withSprite(spriteId).first().isNull();
+                boolean foundSprite = ctx.widgets().withSprite(spriteId).isPresent();
                 if (!foundSprite) {
                     log.error("Failed to retrieve widget via withSprite(" + spriteId + ")");
                     testsPassed = false;
@@ -76,7 +76,7 @@ public class WidgetTest extends BaseApiTest {
 
             // 5. Test Listener
             // Find a widget that has a listener (buttons usually have these)
-            boolean hasListener = !ctx.widgets().withListener().first().isNull();
+            boolean hasListener = ctx.widgets().withListener().isPresent();
             if (!hasListener) {
                 log.error("Failed to find any widget with a listener (withListener)");
                 testsPassed = false;

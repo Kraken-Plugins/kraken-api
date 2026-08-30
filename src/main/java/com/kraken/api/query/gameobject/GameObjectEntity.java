@@ -2,17 +2,25 @@ package com.kraken.api.query.gameobject;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.core.Locatable;
 import com.kraken.api.service.tile.GameArea;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameObject;
 import net.runelite.api.ObjectComposition;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
 
 @Slf4j
-public class GameObjectEntity extends AbstractEntity<GameObject> {
+public class GameObjectEntity extends AbstractEntity<GameObject> implements Locatable {
 
     public GameObjectEntity(Context ctx, GameObject raw) {
         super(ctx, raw);
+    }
+
+    @Override
+    public WorldPoint getWorldLocation() {
+        GameObject raw = raw();
+        return raw != null ? raw.getWorldLocation() : null;
     }
 
     @Override

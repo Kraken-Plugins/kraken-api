@@ -113,8 +113,8 @@ public class BankHelper {
             return true;
         }
 
-        GameObjectEntity box = ctx.gameObjects().withAction("Deposit").nearest();
-        if (box == null || box.isNull()) {
+        GameObjectEntity box = ctx.gameObjects().withAction("Deposit").nearest().orElse(null);
+        if (box == null) {
             log.error("No bank deposit box nearby");
             return false;
         }
@@ -170,14 +170,14 @@ public class BankHelper {
      * @return true when something was clicked
      */
     private boolean clickNearestBank() {
-        GameObjectEntity booth = ctx.gameObjects().withAction("Bank").nearest();
-        if (booth != null && booth.isPresent()) {
+        GameObjectEntity booth = ctx.gameObjects().withAction("Bank").nearest().orElse(null);
+        if (booth != null) {
             booth.interact("Bank");
             return true;
         }
 
-        NpcEntity banker = ctx.npcs().withAction("Bank").nearest();
-        if (banker != null && banker.isPresent()) {
+        NpcEntity banker = ctx.npcs().withAction("Bank").nearest().orElse(null);
+        if (banker != null) {
             banker.interact("Bank");
             return true;
         }

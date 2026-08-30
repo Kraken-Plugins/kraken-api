@@ -1,7 +1,7 @@
 package com.kraken.api.query.container.shop;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.query.container.AbstractContainerQuery;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.service.shop.ShopService;
 import net.runelite.api.Item;
@@ -31,7 +31,7 @@ import java.util.stream.Stream;
  * ctx.shopInventory().sellable().list();
  * }</pre>
  */
-public class ShopInventoryQuery extends AbstractQuery<ShopInventoryEntity, ShopInventoryQuery, ContainerItem> {
+public class ShopInventoryQuery extends AbstractContainerQuery<ShopInventoryEntity, ShopInventoryQuery, ContainerItem> {
 
     private static final int PLACEHOLDER_ITEM_ID = 6512;
 
@@ -89,23 +89,13 @@ public class ShopInventoryQuery extends AbstractQuery<ShopInventoryEntity, ShopI
     }
 
     /**
-     * Filters for items in a specific inventory slot.
-     *
-     * @param slot the inventory slot, 0 to 27
-     * @return ShopInventoryQuery
-     */
-    public ShopInventoryQuery inSlot(int slot) {
-        return filter(item -> item.raw().getSlot() == slot);
-    }
-
-    /**
      * Filters for stacks of at least {@code quantity}.
      *
      * @param quantity the smallest acceptable stack size, inclusive
      * @return ShopInventoryQuery
      */
     public ShopInventoryQuery withMinimumQuantity(int quantity) {
-        return filter(item -> item.count() >= quantity);
+        return filter(item -> item.getQuantity() >= quantity);
     }
 
     /**
@@ -115,7 +105,7 @@ public class ShopInventoryQuery extends AbstractQuery<ShopInventoryEntity, ShopI
      * @return the total number held, 0 when none
      */
     public int count(int itemId) {
-        return withId(itemId).stream().mapToInt(ShopInventoryEntity::count).sum();
+        return withId(itemId).stream().mapToInt(ShopInventoryEntity::getQuantity).sum();
     }
 
     /**

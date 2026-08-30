@@ -36,16 +36,20 @@ public final class ActionResolver {
     /**
      * Compares a requested string with a candidate string to determine if they match as equal.
      * <p>
-     * The comparison is case-insensitive and applies sanitation to the candidate string
-     * before performing the comparison.
+     * Both sides are stripped of markup, have non-breaking spaces normalised and are compared
+     * case-insensitively. A caller may therefore ask for {@code "Make Sapphire necklace"} or for the
+     * fully tagged {@code "Make <col=ff9040>Sapphire necklace</col>"} the game puts on the widget,
+     * and either resolves. Stripping only the candidate made the colour tags part of the caller's
+     * contract, which is not something a caller can reasonably know up front.
      *
-     * @param requested The string to be matched against.
-     * @param candidate The string to check, potentially unsanitized.
+     * @param requested The action being asked for, tagged or plain.
+     *                  If {@code requested} is {@code null}, the method will return {@code false}.
+     * @param candidate The action the entity offers, as the game wrote it.
      *                  If {@code candidate} is {@code null}, the method will return {@code false}.
-     * @return {@code true} if the sanitized {@code candidate} matches {@code requested}
-     *         (case-insensitively); otherwise, {@code false}.
+     * @return {@code true} if the two name the same action; otherwise, {@code false}.
      */
     public static boolean matches(String requested, String candidate) {
-        return candidate != null && requested.equalsIgnoreCase(Text.sanitize(candidate));
+        return requested != null && candidate != null
+                && Text.standardize(requested).equals(Text.standardize(candidate));
     }
 }

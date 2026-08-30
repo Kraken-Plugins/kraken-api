@@ -193,7 +193,7 @@ public class DepositBoxService {
      *         the deposit operation fails.
      */
     public boolean depositWorn(int id) {
-        EquipmentEntity equipment = ctxProvider.get().equipment().inInterface().withId(id).first();
+        EquipmentEntity equipment = ctxProvider.get().equipment().inInterface().withId(id).first().orElse(null);
         if (equipment == null) {
             return false;
         }
@@ -223,7 +223,7 @@ public class DepositBoxService {
      *         {@literal false} if the item could not be located or deposited.
      */
     public boolean depositWorn(String name) {
-        EquipmentEntity equipment = ctxProvider.get().equipment().inInterface().withName(name).first();
+        EquipmentEntity equipment = ctxProvider.get().equipment().inInterface().withName(name).first().orElse(null);
         if (equipment == null) {
             return false;
         }

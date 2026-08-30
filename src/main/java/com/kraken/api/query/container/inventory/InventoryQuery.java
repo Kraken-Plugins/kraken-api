@@ -1,7 +1,7 @@
 package com.kraken.api.query.container.inventory;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.query.container.AbstractContainerQuery;
 import com.kraken.api.query.container.ContainerItem;
 import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
@@ -11,10 +11,9 @@ import net.runelite.api.widgets.Widget;
 
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class InventoryQuery extends AbstractQuery<InventoryEntity, InventoryQuery, ContainerItem> {
+public class InventoryQuery extends AbstractContainerQuery<InventoryEntity, InventoryQuery, ContainerItem> {
 
     public InventoryQuery(Context ctx) {
         super(ctx);
@@ -58,115 +57,6 @@ public class InventoryQuery extends AbstractQuery<InventoryEntity, InventoryQuer
     }
 
     /**
-     * Returns the inventory entity object given its inventory slot.
-     * @param slotId The slot to retrieve an item from (0-27).
-     * @return The inventory entity object given its inventory slot or null if no item is in the slot.
-     */
-    public InventoryEntity inSlot(int slotId) {
-        if(slotId < 0 || slotId > 27) {
-            throw new IllegalArgumentException("Invalid slotId must be between 0 and 27. Received: " + slotId);
-        }
-
-        InventoryQuery items = filter(i -> i.raw().getSlot() == slotId);
-        if(items == null || items.isEmpty()) {
-            return null;
-        }
-
-        return items.first();
-    }
-
-     /**
-     * Returns true when the inventory contains a specific item, found by its item id.
-     * @param id The id of the item to search for
-     * @return True if the inventory has the item and false otherwise
-     */
-    public boolean hasItem(int id) {
-        return filter(i -> i.getId() == id).count() > 0;
-    }
-
-    /**
-     * Returns true when the inventory contains a specific item, found by its name.
-     * This is case-insensitive but does require the entire item name.
-     * @param name The name of the item to search for
-     * @return True if the inventory has the item and false otherwise
-     */
-    public boolean hasItem(String name) {
-        if (name == null || name.isEmpty()) return false;
-        return filter(i -> i.getName().equalsIgnoreCase(name)).count() > 0;
-    }
-
-    /**
-     * Returns true ONLY if the inventory contains ALL of the specified item IDs.
-     * @param ids Variable argument of item IDs to search for.
-     * @return True if every single ID in the arguments exists in the inventory.
-     */
-    public boolean hasItems(int... ids) {
-        if (ids == null || ids.length == 0) return true;
-
-        // Collect all valid IDs currently in the inventory into a Set
-        // We use a Set for O(1) lookups and to handle duplicates automatically
-        Set<Integer> inventoryIds = stream()
-                .map(InventoryEntity::getId)
-                .collect(Collectors.toSet());
-
-        for (int id : ids) {
-            if (!inventoryIds.contains(id)) {
-                return false; // Return false immediately if ANY required item is missing
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Determines whether the inventory contains all items specified by the given list of IDs.
-     * <p>
-     * If the provided list of IDs is {@code null} or empty, the method returns {@code true}.
-     * Otherwise, it internally converts the list to an array and delegates the check to the
-     * {@code hasItems(int... ids)} method.
-     *
-     * @param ids A {@code List} of {@code Integer} IDs representing the items to search for.
-     *            Each ID corresponds to a specific inventory item.
-     *            <ul>
-     *                <li>If the list is {@code null} or empty, the method will return {@code true}.</li>
-     *                <li>All IDs in the list must exist in the inventory for the method to return {@code true}.</li>
-     *            </ul>
-     * @return {@code true} if the inventory contains all items specified in the list, or if the list is {@code null} or empty.
-     *         Otherwise, {@code false} is returned.
-     */
-    public boolean hasItems(List<Integer> ids) {
-        if (ids == null || ids.isEmpty()) return true;
-        return hasItems(ids.stream().mapToInt(Integer::intValue).toArray());
-    }
-
-    /**
-     * Returns true ONLY if the inventory contains ALL of the specified item names.
-     * This is case-insensitive.
-     * @param names Variable argument of item names to search for.
-     * @return True if every single name in the arguments exists in the inventory.
-     */
-    public boolean hasItems(String... names) {
-        if (names == null || names.length == 0) return true;
-
-        Set<String> inventoryNames = stream()
-                .map(InventoryEntity::getName)
-                .filter(Objects::nonNull)
-                .map(String::toLowerCase)
-                .collect(Collectors.toSet());
-
-        for (String name : names) {
-            if (name == null) continue;
-
-            // If the inventory set does not contain the required name, fail immediately
-            if (!inventoryNames.contains(name.toLowerCase())) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Sorts the inventory query results based on the specified {@code InventoryOrder}.
      * <p>
      * This method applies the given {@code InventoryOrder}'s comparator to
@@ -190,15 +80,6 @@ public class InventoryQuery extends AbstractQuery<InventoryEntity, InventoryQuer
      */
     public InventoryQuery orderBy(InventoryOrder order) {
          return sorted(order.getComparator());
-    }
-
-    /**
-     * Filters for inventory items with a specific action like: "Drop", "Eat", or "Examine".
-     * @param action The action to filter for
-     * @return InventoryQuery
-     */
-    public InventoryQuery withAction(String action) {
-        return filter(i -> i.hasAction(action.toLowerCase()));
     }
 
     /**
@@ -231,40 +112,5 @@ public class InventoryQuery extends AbstractQuery<InventoryEntity, InventoryQuer
      */
     public boolean hasFood() {
         return filter(i -> i.raw().isFood()).count() > 0;
-    }
-
-
-    /**
-     * Filters for items that are noted (cert).
-     * @return InventoryQuery
-     */
-    public InventoryQuery noted() {
-        return filter(item -> item.raw().isNoted());
-    }
-
-    /**
-     * Filters for un-noted items.
-     * @return InventoryQuery
-     */
-    public InventoryQuery unnoted() {
-        return filter(item -> !item.raw().isNoted());
-    }
-
-    /**
-     * Filters for items that stack (runes, arrows, noted items).
-     * @return InventoryQuery
-     */
-    public InventoryQuery stackable() {
-        return filter(item -> item.raw().isStackable());
-    }
-
-    /**
-     * Filters by item quantity. This filter is strictly greater than i.e {@code ctx.inventory().nameContains("karambwanji").quantityGreaterThan(500);}
-     * will only return a {@code ContainerItem} when 501 Karambwanji's are present.
-     * @param amount The amount of the stack to filter for.
-     * @return InventoryQuery
-     */
-    public InventoryQuery quantityGreaterThan(int amount) {
-        return filter(item -> item.raw().getQuantity() > amount);
     }
 }

@@ -137,7 +137,7 @@ Once you have the example plugin cloned and setup within Intellij, you can run t
 the example plugin loaded in the plugin panel within RuneLite's sidebar. See a recommended [Gradle example](#gradle-example-recommended) for more information on
 integrating the API into your plugins and build process.
 
-![example-plugin](./images/example-plugin.png)
+![example-plugin](./images/example-plugin-2.png)
 
 > If you are just looking to use pre-existing plugins, you can skip this repository and head over to our website: [kraken-plugins.com](https://kraken-plugins.com). 
 > For more documentation on the API and Kraken plugins, please see our [official documentation here](https://kraken-plugins.com/docs/).

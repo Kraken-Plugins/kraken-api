@@ -109,22 +109,20 @@ public final class WarningWidgets {
     }
 
     private static WidgetEntity findTitle(Context ctx, Predicate<Widget> match) {
-        WidgetEntity title = ctx.widgets().visible().filter(widget -> {
+        return ctx.widgets().visible().filter(widget -> {
             Widget raw = widget.raw();
             return raw != null && match.test(raw);
-        }).first();
-        return title != null && title.isPresent() ? title : null;
+        }).first().orElse(null);
     }
 
     private static boolean clickNamedButton(Context ctx, int group) {
         for (String action : DISMISS_ACTIONS) {
-            WidgetEntity button = ctx.widgets().inGroup(group).visible().withAction(action).first();
-            if (button != null && button.isPresent() && button.interact(action)) {
+            if (ctx.widgets().inGroup(group).visible().withAction(action).interact(action)) {
                 return true;
             }
 
-            WidgetEntity labelled = ctx.widgets().inGroup(group).visible().withText(action, true).first();
-            if (labelled == null || !labelled.isPresent()) {
+            WidgetEntity labelled = ctx.widgets().inGroup(group).visible().withText(action, true).first().orElse(null);
+            if (labelled == null) {
                 continue;
             }
             if (labelled.interact(action)) {

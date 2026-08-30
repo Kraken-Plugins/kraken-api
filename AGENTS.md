@@ -81,12 +81,12 @@ This section is the working guide for AI systems and humans asking AI systems to
 ### Mental model of the API
 
 - `Context` is the main entry point injected into plugins and scripts.
-- `query` is for dynamic entities in the world: NPCs, players, game objects, ground items, inventory, bank, equipment, widgets, and worlds.
+- `query` is for dynamic entities in the world: NPCs, players, game objects, ground items, projectiles, graphics objects, inventory, bank, equipment, widgets, and worlds.
 - `service` is for global or static systems: bank control, movement, prayer, magic, dialogue, camera, UI, GE, and related helpers.
-- Queries are fluent filters that end in selection with `first()`, `nearest()`, `take()`, `list()`, or similar terminal operations.
+- Queries are fluent filters that end in selection with `first()`, `nearest()`, `take()`, `list()`, or similar terminal operations. Single-valued terminals (`first()`, `nearest()`, `random()`, `firstMatching(...)`) return `Optional`; collection terminals return empty collections. The query layer never returns bare `null`.
 - Entity wrappers expose actions such as `interact()`, `attack()`, `take()`, `withdraw()`, `depositOne()`, `wield()`, `wear()`, and `logout()`.
 - Thread-sensitive work is handled by `Context.runOnClientThread(...)`, so query and service use is safe from normal plugin callbacks.
-- All queryable entities support the `raw()` method which will return the underlying RuneLite API object for the corresponding entity. i.e. `ctx.npcs().first().raw()` will return RuneLite's `NPC` object.
+- All queryable entities support the `raw()` method which will return the underlying RuneLite API object for the corresponding entity. i.e. `ctx.npcs().first().map(NpcEntity::raw)` will return RuneLite's `NPC` object as an `Optional`.
 
 ### Plugin authoring pattern
 
@@ -99,7 +99,8 @@ This section is the working guide for AI systems and humans asking AI systems to
 
 - Start from `ctx.<domain>()`, not from raw client objects, unless you need `raw()` for an explicit edge case.
 - Filter before you select: `withName`, `withId`, `nameContains`, `within`, `reachable`, `alive`, and similar query methods.
-- Use `.nearest()` or `.first()` only when the code needs a single target.
+- Use `.nearest()` or `.first()` only when the code needs to hold a single target; for interact-and-forget prefer the query-level `interact(action)` (with `sortByDistance()` when proximity matters).
+- Spatial vocabulary lives once on `AbstractSpatialQuery` (`within`, `withinArea`, `at`, `reachable`, `sortByDistance`, `nearest`, `nearestTo`); container-item vocabulary lives once on `AbstractContainerQuery` (`inSlot`, `noted`, `stackable`, `quantityGreaterThan`, `withAction`, `hasItem`). Add shared filters there, not on individual queries.
 - Use `bankInventory()` only while the bank interface is open, and you are depositing items from the inventory to the bank.
 - Use `bank()` only while the bank interface is open and you are withdrawing items from the bank into your inventory.
 - Use `inventory()` for ordinary inventory work and `depositBox()` for deposit box actions.

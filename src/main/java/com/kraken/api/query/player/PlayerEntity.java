@@ -2,11 +2,19 @@ package com.kraken.api.query.player;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.core.Locatable;
 import net.runelite.api.Player;
+import net.runelite.api.coords.WorldPoint;
 
-public class PlayerEntity extends AbstractEntity<Player> {
+public class PlayerEntity extends AbstractEntity<Player> implements Locatable {
     public PlayerEntity(Context ctx, Player raw) {
         super(ctx, raw);
+    }
+
+    @Override
+    public WorldPoint getWorldLocation() {
+        Player p = raw();
+        return p != null ? p.getWorldLocation() : null;
     }
 
     @Override

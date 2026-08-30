@@ -1,14 +1,11 @@
 package com.kraken.api.query.player;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.core.AbstractSpatialQuery;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.Player;
-import com.kraken.api.util.WorldAreaUtils;
-import net.runelite.api.coords.WorldPoint;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -16,7 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
-public class PlayerQuery extends AbstractQuery<PlayerEntity, PlayerQuery, Player> {
+public class PlayerQuery extends AbstractSpatialQuery<PlayerEntity, PlayerQuery, Player> {
 
     public PlayerQuery(Context ctx) {
         super(ctx);
@@ -42,36 +39,6 @@ public class PlayerQuery extends AbstractQuery<PlayerEntity, PlayerQuery, Player
      */
     public PlayerQuery interactingWith(Actor actor) {
         return filter(p -> p.raw().isInteracting() && p.raw().getInteracting() == actor);
-    }
-
-    /**
-     * Returns a stream of Players at a given world point.
-     * @param location The world point to check
-     * @return PlayerQuery
-     */
-    public PlayerQuery at(WorldPoint location) {
-        return filter(p -> ctx.runOnClientThread(() -> p.raw().getWorldLocation().equals(location)));
-    }
-
-    /**
-     * Filters for players within a specified area. The min WorldPoint should be the southwest tile of the area
-     * and the max WorldPoint should be the northeast tile of the area.
-     * @param minimum The southwest minimum world point of the area to check
-     * @param max The northeast maximum world point of the area to check
-     * @return NpcQuery
-     */
-    public PlayerQuery withinArea(WorldPoint minimum, WorldPoint max) {
-        return filter(p -> WorldAreaUtils.contains(p.raw().getWorldLocation(), minimum, max));
-    }
-
-    /**
-     * Filters the stream for players within a specified distance from the local player.
-     *
-     * @param distance The maximum distance from the local player.
-     * @return PlayerQuery
-     */
-    public PlayerQuery withinDistance(int distance) {
-        return filter(p -> p.raw().getWorldLocation().distanceTo(ctx.players().local().location()) <= distance);
     }
 
     /**
@@ -105,25 +72,6 @@ public class PlayerQuery extends AbstractQuery<PlayerEntity, PlayerQuery, Player
      */
     public PlayerQuery combatLevelGreaterThan(int level) {
         return filter(player -> player.raw().getCombatLevel() > level);
-    }
-
-    /**
-     * Finds the nearest player to the local player.
-     * @return PlayerQuery
-     */
-    public PlayerEntity nearest() {
-        return sorted(Comparator.comparingInt(p ->
-                p.raw().getLocalLocation().distanceTo(ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer().getLocalLocation()))
-        )).first();
-    }
-
-    /**
-     * Sorts the player stream by distance from the local players current location.
-     * @return PlayerQuery
-     */
-    public PlayerQuery sortByDistance() {
-        final WorldPoint playerLoc = ctx.players().local().location();
-        return sorted(Comparator.comparingInt(obj -> obj.raw().getWorldLocation().distanceTo(playerLoc)));
     }
 
     /**

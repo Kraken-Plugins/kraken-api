@@ -33,19 +33,4 @@ public interface Interactable<T> {
      * for various game objects.
      */
     String getName();
-
-    /**
-     * True when the game entity is null and false otherwise. This may happen when a game entity you expected to be present
-     * is no longer available i.e. The nearest Oak tree was just chopped down by another player and is now null.
-     * @return True when the game entity is null and false otherwise.
-     */
-    boolean isNull();
-
-
-    /**
-     * True when the game entity is not null and is present.
-     * @return True when the game entity is not null.
-     */
-    boolean isPresent();
-
 }

@@ -2,14 +2,17 @@ package com.kraken.api.query.container.bank;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.query.container.ItemEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.ui.UIService;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.gameval.VarbitID;
 
+import java.util.Arrays;
+
 @Slf4j
-public class BankEntity extends AbstractEntity<BankItemWidget> {
+public class BankEntity extends AbstractEntity<BankItemWidget> implements ItemEntity {
 
     /** How long to wait for the server to acknowledge a note-mode toggle. */
     private static final long MODE_TIMEOUT_MS = 2_000L;
@@ -45,9 +48,47 @@ public class BankEntity extends AbstractEntity<BankItemWidget> {
      * Returns the count of this item in the bank.
      * @return The number of the item within the bank, or 0 if the item is absent.
      */
-    public int count() {
+    @Override
+    public int getQuantity() {
         BankItemWidget raw = raw();
         return raw != null ? raw.getItemQuantity() : 0;
+    }
+
+    @Override
+    public int getSlot() {
+        BankItemWidget raw = raw();
+        return raw != null ? raw.getIndex() : -1;
+    }
+
+    /**
+     * Items are always stored un-noted in the bank, so this is constantly false. It exists so the
+     * shared container vocabulary holds for the bank; use the withdraw-mode controls on
+     * {@code BankService} to withdraw as notes.
+     * @return false, always.
+     */
+    @Override
+    public boolean isNoted() {
+        return false;
+    }
+
+    @Override
+    public boolean isStackable() {
+        int id = getId();
+        if (id == -1) return false;
+        return ctx.runOnClientThread(() -> ctx.getItemManager().getItemComposition(id).isStackable(), false);
+    }
+
+    /**
+     * Checks the withdraw actions currently offered on this bank item, e.g. "Withdraw-1",
+     * "Withdraw-All", "Examine". The available set depends on the bank's current quantity mode.
+     * @param action The action to check for, case-insensitive.
+     * @return True when the action is available on the item.
+     */
+    @Override
+    public boolean hasAction(String action) {
+        BankItemWidget raw = raw();
+        if (raw == null || raw.getActions() == null) return false;
+        return Arrays.stream(raw.getActions()).anyMatch(a -> a != null && a.equalsIgnoreCase(action));
     }
 
     /**

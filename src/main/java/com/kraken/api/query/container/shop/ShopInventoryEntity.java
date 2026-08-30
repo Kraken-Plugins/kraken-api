@@ -1,7 +1,7 @@
 package com.kraken.api.query.container.shop;
 
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractEntity;
+import com.kraken.api.query.container.AbstractContainerEntity;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.service.shop.ShopActions;
 import com.kraken.api.service.shop.ShopService;
@@ -20,42 +20,21 @@ import java.util.stream.Collectors;
  * than on the normal inventory tab. Obtained from {@code ctx.shopInventory()}.</p>
  */
 @Slf4j
-public class ShopInventoryEntity extends AbstractEntity<ContainerItem> {
+public class ShopInventoryEntity extends AbstractContainerEntity {
 
     public ShopInventoryEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
     }
 
-    @Override
-    public int getId() {
-        ContainerItem raw = raw();
-        return raw != null ? raw.getId() : -1;
-    }
-
-    @Override
-    public String getName() {
-        ContainerItem raw = raw();
-        return raw != null ? raw.getName() : null;
-    }
-
-    @Override
-    public boolean interact(String action) {
-        ContainerItem raw = raw();
-        if (raw == null) {
-            return false;
-        }
-
-        return ctx.getInteractionManager().interact(raw, action);
-    }
-
     /**
-     * The size of this stack.
-     *
-     * @return the quantity held in this slot, or 0 when the item has gone
+     * Checks the menu actions the shop panel offers on this item, e.g. "Value" or "Sell 10", rather
+     * than the item's normal inventory actions.
+     * @param action The action to check for, case-insensitive.
+     * @return True when the shop panel offers the action on this item.
      */
-    public int count() {
-        ContainerItem raw = raw();
-        return raw != null ? raw.getQuantity() : 0;
+    @Override
+    public boolean hasAction(String action) {
+        return actions().stream().anyMatch(a -> a.equalsIgnoreCase(action));
     }
 
     /**

@@ -30,7 +30,7 @@ public final class WidgetClicks {
      * @return true when an interaction was dispatched
      */
     public static boolean click(Context ctx, WidgetEntity widget) {
-        if (widget == null || widget.isNull()) {
+        if (widget == null || widget.raw() == null) {
             return false;
         }
 

@@ -46,7 +46,7 @@ public class DepositBoxTest extends BaseApiTest {
                     return false;
                 }
 
-                GameObjectEntity box = ctx.gameObjects().withAction("Deposit").nameContains("box").first();
+                GameObjectEntity box = ctx.gameObjects().withAction("Deposit").nameContains("box").first().orElse(null);
                 if(box != null) {
                     box.interact("Deposit");
                 }
@@ -94,22 +94,22 @@ public class DepositBoxTest extends BaseApiTest {
             testsPassed &= quantityGtMax;
             log.info("[{}] quantityGreaterThan(MAX) == 0", quantityGtMax ? "PASS" : "FAIL");
 
-            var first = ctx.depositBox().first();
+            var first = ctx.depositBox().first().orElse(null);
             boolean firstNotNull = first != null;
             testsPassed &= firstNotNull;
             log.info("[{}] first entity is not null", firstNotNull ? "PASS" : "FAIL");
 
-            boolean withIdFindsFirst = ctx.depositBox().withId(first.getId()).first() != null;
+            boolean withIdFindsFirst = ctx.depositBox().withId(first.getId()).isPresent();
             testsPassed &= withIdFindsFirst;
             log.info("[{}] withId({}) finds entity", withIdFindsFirst ? "PASS" : "FAIL", first.getId());
 
-            boolean firstCountAboveZero = first.count() > 0;
+            boolean firstCountAboveZero = first.getQuantity() > 0;
             testsPassed &= firstCountAboveZero;
-            log.info("[{}] first entity count({}) > 0", firstCountAboveZero ? "PASS" : "FAIL", first.count());
+            log.info("[{}] first entity count({}) > 0", firstCountAboveZero ? "PASS" : "FAIL", first.getQuantity());
 
             // --- Entity deposit action tests ---
 
-            var coins = ctx.depositBox().withId(995).first();
+            var coins = ctx.depositBox().withId(995).first().orElse(null);
             if (coins != null) {
                 boolean depositOne = coins.depositOne();
                 testsPassed &= depositOne;
@@ -119,11 +119,11 @@ public class DepositBoxTest extends BaseApiTest {
                 log.warn("[SKIP] No coins found, skipping depositOne test");
             }
 
-            var swordfish = ctx.depositBox().noted().withName("Swordfish").first();
+            var swordfish = ctx.depositBox().noted().withName("Swordfish").first().orElse(null);
             if (swordfish != null) {
-                boolean hasEnough = swordfish.count() >= 5;
+                boolean hasEnough = swordfish.getQuantity() >= 5;
                 testsPassed &= hasEnough;
-                log.info("[{}] swordfish noted count({}) >= 5", hasEnough ? "PASS" : "FAIL", swordfish.count());
+                log.info("[{}] swordfish noted count({}) >= 5", hasEnough ? "PASS" : "FAIL", swordfish.getQuantity());
 
                 boolean depositFive = swordfish.depositFive();
                 testsPassed &= depositFive;
@@ -133,11 +133,11 @@ public class DepositBoxTest extends BaseApiTest {
                 log.warn("[SKIP] No swordfish found, skipping depositFive test");
             }
 
-            var lobster = ctx.depositBox().noted().withName("Lobster").first();
+            var lobster = ctx.depositBox().noted().withName("Lobster").first().orElse(null);
             if (lobster != null) {
-                boolean hasEnough = lobster.count() >= 10;
+                boolean hasEnough = lobster.getQuantity() >= 10;
                 testsPassed &= hasEnough;
-                log.info("[{}] lobster noted count({}) >= 10", hasEnough ? "PASS" : "FAIL", lobster.count());
+                log.info("[{}] lobster noted count({}) >= 10", hasEnough ? "PASS" : "FAIL", lobster.getQuantity());
 
                 boolean depositTen = lobster.depositTen();
                 testsPassed &= depositTen;
@@ -147,11 +147,11 @@ public class DepositBoxTest extends BaseApiTest {
                 log.warn("[SKIP] No lobster found, skipping depositTen test");
             }
 
-            var fireRunes = ctx.depositBox().nameContains("Fire rune").first();
+            var fireRunes = ctx.depositBox().nameContains("Fire rune").first().orElse(null);
             if (fireRunes != null) {
-                boolean hasEnough = fireRunes.count() >= 3;
+                boolean hasEnough = fireRunes.getQuantity() >= 3;
                 testsPassed &= hasEnough;
-                log.info("[{}] fire rune count({}) >= 3", hasEnough ? "PASS" : "FAIL", fireRunes.count());
+                log.info("[{}] fire rune count({}) >= 3", hasEnough ? "PASS" : "FAIL", fireRunes.getQuantity());
 
                 boolean depositX = fireRunes.depositX(3);
                 testsPassed &= depositX;
@@ -161,21 +161,21 @@ public class DepositBoxTest extends BaseApiTest {
                 log.warn("[SKIP] No fire runes found, skipping depositX test");
             }
 
-            var lawRunes = ctx.depositBox().withName("Law rune").first();
+            var lawRunes = ctx.depositBox().withName("Law rune").first().orElse(null);
             if (lawRunes != null) {
                 int lawRuneId = lawRunes.getId();
                 boolean depositAll = lawRunes.depositAll();
                 testsPassed &= depositAll;
                 log.info("[{}] depositAll on law runes", depositAll ? "PASS" : "FAIL");
                 SleepService.sleepFor(3);
-                boolean goneAfterDeposit = ctx.depositBox().withId(lawRuneId).first() == null;
+                boolean goneAfterDeposit = ctx.depositBox().withId(lawRuneId).isEmpty();
                 testsPassed &= goneAfterDeposit;
                 log.info("[{}] law runes no longer in inventory after depositAll", goneAfterDeposit ? "PASS" : "FAIL");
             } else {
                 log.warn("[SKIP] No law runes found, skipping depositAll test");
             }
 
-            var helm = ctx.depositBox().inEquipment().inSlot(EquipmentInventorySlot.HEAD);
+            var helm = ctx.depositBox().inEquipment().inSlot(EquipmentInventorySlot.HEAD).orElse(null);
             if(helm != null) {
                 boolean success = helm.deposit();
                 log.info("[{}] deposit() on helm", success ? "PASS" : "FAIL");

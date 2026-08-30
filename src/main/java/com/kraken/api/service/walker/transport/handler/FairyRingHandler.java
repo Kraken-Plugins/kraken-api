@@ -110,12 +110,12 @@ public class FairyRingHandler implements TransportHandler {
 
     private boolean isRingInterfaceOpen(Context ctx) {
         WidgetEntity confirm = ctx.widgets().get(InterfaceID.Fairyrings.CONFIRM);
-        if (confirm != null && confirm.isPresent()) {
+        if (confirm != null && confirm.raw() != null) {
             return true;
         }
 
         WidgetEntity log = ctx.widgets().get(InterfaceID.FairyringsLog.CONTENTS);
-        return log != null && log.isPresent();
+        return log != null && log.raw() != null;
     }
 
     private boolean awaitRide(TransportContext context, WorldPoint before) {

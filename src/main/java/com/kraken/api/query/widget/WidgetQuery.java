@@ -126,7 +126,7 @@ public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget
 
         // Instead of iterating and constructing the entire widget tree, we use the RuneLite client to grab our
         // exact widget and construct a simplified stream with a single element. Faster this way.
-        return of(widget);
+        return widget == null ? empty() : of(widget);
     }
 
     /**

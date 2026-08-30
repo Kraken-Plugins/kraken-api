@@ -22,10 +22,12 @@ import java.util.stream.Stream;
  * never touch client state from a script thread.</p>
  *
  * <h3>Failure</h3>
- * <p>Collection-valued results are never {@code null}. If the client thread cannot answer — it is
- * blocked, or the client is loading — the query logs and yields an empty result, so callers can treat
- * "nothing matched" and "could not look" the same way when that is what they want. Callers who need to
- * distinguish them should ask {@link Context#runOnClientThread(java.util.concurrent.Callable)} directly.</p>
+ * <p>Collection-valued results are never {@code null}, and single-valued terminals ({@link #first()},
+ * {@link #firstMatching(Predicate)}, {@link #random()}) return {@link Optional} — the query layer never
+ * hands back a bare {@code null}. If the client thread cannot answer — it is blocked, or the client is
+ * loading — the query logs and yields an empty result, so callers can treat "nothing matched" and
+ * "could not look" the same way when that is what they want. Callers who need to distinguish them
+ * should ask {@link Context#runOnClientThread(java.util.concurrent.Callable)} directly.</p>
  *
  * <h3>Reuse</h3>
  * <p>A query may be evaluated repeatedly and returns fresh results each time. Filters, de-duplication
@@ -257,8 +259,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      * @return Boolean true if the interaction was successful and false otherwise.
      */
     public boolean interact(String action) {
-        T entity = first();
-        return entity != null && entity.interact(action);
+        return first().map(entity -> entity.interact(action)).orElse(false);
     }
 
     /**
@@ -269,19 +270,18 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      * @return Boolean true if the interaction was successful and false otherwise.
      */
     public boolean interactRandom(String action) {
-        T entity = random();
-        return entity != null && entity.interact(action);
+        return random().map(entity -> entity.interact(action)).orElse(false);
     }
 
     /**
      * Returns a random element from the matched entities.
      * Useful for anti-ban measures (e.g., picking a random cow to attack).
-     * @return T A random matched entity, or {@code null} if nothing matched.
+     * @return A random matched entity, or {@link Optional#empty()} if nothing matched.
      */
-    public T random() {
+    public Optional<T> random() {
         List<T> all = evaluate();
-        if (all.isEmpty()) return null;
-        return all.get(ThreadLocalRandom.current().nextInt(all.size()));
+        if (all.isEmpty()) return Optional.empty();
+        return Optional.ofNullable(all.get(ThreadLocalRandom.current().nextInt(all.size())));
     }
 
     /**
@@ -363,22 +363,22 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     }
 
     /**
-     * Returns the first matched entity (e.g., NpcEntity, WidgetEntity), or {@code null} if nothing matched.
-     * @return T The first matched entity, or {@code null}.
+     * Returns the first matched entity (e.g., NpcEntity, WidgetEntity).
+     * @return The first matched entity, or {@link Optional#empty()} if nothing matched.
      */
-    public T first() {
+    public Optional<T> first() {
         List<T> items = evaluate();
-        return items.isEmpty() ? null : items.get(0);
+        return items.isEmpty() ? Optional.empty() : Optional.ofNullable(items.get(0));
     }
 
     /**
      * Returns the first matched entity that also satisfies the provided predicate, respecting any
      * predicates already applied via {@link #filter}.
      * @param predicate The predicate to apply
-     * @return T the first matching entity, or {@code null}.
+     * @return The first matching entity, or {@link Optional#empty()} if nothing matched.
      */
-    public T firstMatching(Predicate<T> predicate) {
-        return evaluate().stream().filter(predicate).findFirst().orElse(null);
+    public Optional<T> firstMatching(Predicate<T> predicate) {
+        return evaluate().stream().filter(predicate).findFirst();
     }
 
     /**

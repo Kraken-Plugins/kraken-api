@@ -566,7 +566,7 @@ public class SceneOverlay extends Overlay {
 
     private void renderOtherPlayers(Graphics2D graphics) {
         List<PlayerEntity> players = ctx.players()
-                .withinDistance(config.playerRange())
+                .within(config.playerRange())
                 .list();
 
         for (PlayerEntity p : players) {
@@ -660,9 +660,9 @@ public class SceneOverlay extends Overlay {
     private void renderApiDebug(Graphics2D graphics) {
         // Debug 1: visualize the result of .nearest()
         // This draws a line from local player to the result of ctx.players().nearest()
-        PlayerEntity nearest = ctx.players().nearest();
+        PlayerEntity nearest = ctx.players().nearest().orElse(null);
 
-        if (nearest != null && !nearest.isNull()) {
+        if (nearest != null) {
             LocalPoint start = ctx.getClient().getLocalPlayer().getLocalLocation();
             LocalPoint end = nearest.raw().getLocalLocation();
 
