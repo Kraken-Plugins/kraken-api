@@ -156,28 +156,6 @@ jobs:
           fs.writeFileSync('changelog_entry.md', changelog);
           SCRIPT
 
-      - name: Update CHANGELOG.md
-        run: |
-          # Create or update CHANGELOG.md
-          if [ ! -f CHANGELOG.md ]; then
-            echo "# Changelog" > CHANGELOG.md
-            echo "" >> CHANGELOG.md
-          fi
-          
-          # Prepend new entry to existing changelog
-          cat changelog_entry.md > temp_changelog.md
-          echo "" >> temp_changelog.md
-          tail -n +3 CHANGELOG.md >> temp_changelog.md
-          mv temp_changelog.md CHANGELOG.md
-
-      - name: Commit changelog
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add CHANGELOG.md
-          git commit -m "docs: update changelog for PR #${{ github.event.pull_request.number }}" || exit 0
-          git push
-
       - name: Send Discord notification
         run: |
           # Read the changelog content

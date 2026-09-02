@@ -105,6 +105,22 @@ public class GroundObjectQuery extends AbstractSpatialQuery<GroundObjectEntity, 
     }
 
     /**
+     * Filters the stream of ground objects to only objects which have been dropped by the local player (you).
+     * @return GroundObjectQuery
+     */
+    public GroundObjectQuery ownedByLocalPlayer() {
+        return filter(obj -> obj.raw().isOwnedByLocalPlayer());
+    }
+
+    /**
+     * Filters the stream of ground objects to only objects which have been dropped by other players.
+     * @return GroundObjectQuery
+     */
+    public GroundObjectQuery ownedByOthers() {
+        return filter(obj -> !obj.raw().isOwnedByLocalPlayer());
+    }
+
+    /**
      * Filters for ground items where the Grand Exchange price is above a specific threshold. Stacks of items are NOT
      * considered with this method. Use {@code stackValueAbove()} to consider stacks of items.
      * @param value The value threshold for the items.

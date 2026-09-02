@@ -47,13 +47,13 @@
   "securityHooks": {
     "mouseHookDllClassName": "client",
     "mouseHookDllMethodName": "ig",
-    "clientLogFieldName": "lw",
+    "clientLogFieldName": "mx",
     "callStackClassName": "client",
     "callStackMethodName": "nv",
-    "cleanCallStackValue": "client65426yo\nclient55455lv\nnrc.RuneLite287start\nnrc.RuneLite264main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
+    "cleanCallStackValue": "client1486ya\nclient16815az\nnrc.RuneLite287start\nnrc.RuneLite264main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
     "platformInfoClassName": "vt",
     "platformInfoMethodName": "az",
-    "agentField": "cu",
+    "agentField": "cy",
     "callStackField": "cp",
     "isPlatformInfoMethodStatic": false,
     "platformInfoMethodArgCount": 2
