@@ -13,7 +13,7 @@
 </div>
 
 [![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/6UGZqXj22s)
-[![Release Kraken API](https://github.com/cbartram/kraken-api/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/cbartram/kraken-api/actions/workflows/release.yml)
+[![Release Kraken API](https://github.com/Kraken-Plugins/kraken-api/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/Kraken-Plugins/kraken-api/actions/workflows/release.yml)
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
@@ -57,7 +57,7 @@ repositories {
 }
 
 dependencies {
-  compileOnly group: 'com.github.kraken', name:'kraken-api', version: '1.0.0'
+  compileOnly group: 'com.github.kraken', name:'kraken-api', version: '5.0.0' // or the version you built with VERSION=...
 }
 ```
 
@@ -94,17 +94,17 @@ public class ExamplePlugin extends Plugin {
       
       if(!bank.isOpen()) {
           // Open a bank
-          ctx.gameObjects().withName("Bank booth").nearest().interact("Open");
+          ctx.gameObjects().withName("Bank booth").sortByDistance().interact("Open");
       } else {
           // Withdraw a Rune Scimitar
-          ctx.bank().nameContains("Rune scimitar").first().withdraw();
+          ctx.bank().nameContains("Rune scimitar").first().ifPresent(item -> item.withdraw(1));
       }
       
-      // Wield a Rune Scimitar
-      ctx.equipment().withId(1333).first().wield();
+      // Wield the Rune Scimitar from the inventory
+      ctx.inventory().withId(1333).interact("Wield");
       
       // Move to a new position
-      movement.moveTo(new WorldPoint(1234, 5678));
+      movement.moveTo(new WorldPoint(3253, 3420, 0));
       
       // Activate a protection prayer
       prayer.activatePrayer(Prayer.PROTECT_FROM_MELEE);
@@ -112,19 +112,19 @@ public class ExamplePlugin extends Plugin {
       // "Click" on a Goblin and attack it.
       ctx.npcs().withName("Goblin")
             .except(n -> n.raw().isInteracting())
-            .nearest()
+            .sortByDistance()
             .interact("Attack");
       
       
       // Take the goblin bones
-      ctx.groundItems().reachable()
+      ctx.groundItems().withName("Bones")
+              .reachable()
               .within(5)
-              .filter(item -> item.name().equalIgnoreCase("bones"))
-              .first()
-              .take();
+              .nearest()
+              .ifPresent(GroundObjectEntity::take);
       
       // Bury the bones
-      ctx.inventory().withName("Bones").first().interact("Bury");
+      ctx.inventory().withName("Bones").interact("Bury");
     }
 }
 ```
@@ -156,11 +156,11 @@ You can build the project with Gradle:
 ./gradlew clean build publishToMavenLocal shadowJar
 
 # Optionally you can set a specific version to build
-export VERSION=3.0.0-SNAPSHOT-LOCAL
+export VERSION=5.0.0-SNAPSHOT-LOCAL
 ./gradlew clean build publishToMavenLocal shadowJar
 
 # Will be found here:
-# ~/.m2/repository/com/github/kraken/kraken-api/1.0.0-SNAPSHOT-LOCAL/kraken-api-1.0.0-SNAPSHOT-LOCAL.jar
+# ~/.m2/repository/com/github/kraken/kraken-api/5.0.0-SNAPSHOT-LOCAL/kraken-api-5.0.0-SNAPSHOT-LOCAL.jar
 ```
 
 The output API `.jar` can be found in your `~/.m2/repository/com/github/kraken/kraken-api` directory and the default version is `1.0.0`.
@@ -180,10 +180,11 @@ dependencies {
 }
 ```
 
-This will also build a fat jar that includes additional dependencies such as `org.benf.cfr` and ByteBuddy located in:
+This also builds the shaded jar that is published and loaded by the Kraken client. It bundles the `shortest-path` pathfinding library and its data;
+RuneLite, Guice, Guava, Gson, SLF4J and Lombok are `compileOnly` and provided by RuneLite at runtime. It is located in:
 
 ```shell
-build/libs/kraken-api-1.0.0-all.jar
+build/libs/kraken-api-<version>.jar
 ```
 
 ## Gradle Example
@@ -282,8 +283,8 @@ to load an example simulation plugin alongside RuneLite.
 
 ### Colosseum Simulator 
 
-There is a separate port of the [Coloseum Line of Sight Simulation](https://los.colosim.com/) to Java contained within the Kraken API for reference
-that can be run in its own GUI in the `com.kraken.api.simulation.colosim` package.
+There is a separate port of the [Colosseum Line of Sight Simulation](https://los.colosim.com/) to Java contained in the repository's test sources for reference
+that can be run in its own GUI from the `colosim` package under `src/test/java`. It is not part of the published jar.
 
 ![colosseum-sim](./images/colosim.png)
 
@@ -312,7 +313,7 @@ that all submodules (shortest-path plugin) are cloned as well.
 ## Deployment
 
 The Kraken API is automatically built and deployed via GitHub actions on every push to the `master` branch.
-The latest version can be found in the [releases](https://github.com/cbartram/kraken-api/releases) section of the repository.
+The latest version can be found in the [releases](https://github.com/Kraken-Plugins/kraken-api/releases) section of the repository.
 
 The deployment is fully automated and consists of:
 
@@ -341,7 +342,7 @@ If you enjoy the API and want to support the development of the project, please 
 
 ## 🤝 Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+Fork the repository, branch from `master`, and open a pull request following the [development workflow](#development-workflow) above. Sign your commits with `git commit -s`.
 
 If you'd like to see the work in our backlog, check out this [project board](https://github.com/orgs/Kraken-Plugins/projects/1/views/1).
 
@@ -350,7 +351,7 @@ If you'd like to see the work in our backlog, check out this [project board](htt
 ## 🔖 Versioning
 
 We use [Semantic Versioning](http://semver.org/).
-See the [tags on this repository](https://github.com/cbartram/kraken-api/tags) for available releases.
+See the [tags on this repository](https://github.com/Kraken-Plugins/kraken-api/tags) for available releases.
 
 CI will automatically bump the patch version on each merge to master i.e. `1.1.4` -> `1.1.5`. If you want to bump 
 a minor or major version then update the `version.txt` file in the root of the repository with the new version you
@@ -376,13 +377,13 @@ This project is licensed under the [GNU General Public License 3.0](LICENSE).
 * **Microbot** — For clever ideas on client and plugin interaction using reflection.
 * **[Lucid](https://github.com/lucid-plugins/SideloadPlugins) & [Kotori](https://github.com/OreoCupcakes/kotori-plugins/blob/master/kotoriutils/src/main/java/com/theplug/kotori/kotoriutils/rlapi/table/TableComponent.java) plugins** — For their open source implementation on the Table UI element.
 
-[contributors-shield]: https://img.shields.io/github/contributors/cbartram/kraken-api.svg?style=for-the-badge
-[contributors-url]: https://github.com/cbartram/kraken-api/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/cbartram/kraken-api.svg?style=for-the-badge
-[forks-url]: https://github.com/cbartram/kraken-api/network/members
-[stars-shield]: https://img.shields.io/github/stars/cbartram/kraken-api.svg?style=for-the-badge
-[stars-url]: https://github.com/cbartram/kraken-api/stargazers
-[issues-shield]: https://img.shields.io/github/issues/cbartram/kraken-api.svg?style=for-the-badge
-[issues-url]: https://github.com/cbartram/kraken-api/issues
+[contributors-shield]: https://img.shields.io/github/contributors/Kraken-Plugins/kraken-api.svg?style=for-the-badge
+[contributors-url]: https://github.com/Kraken-Plugins/kraken-api/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/Kraken-Plugins/kraken-api.svg?style=for-the-badge
+[forks-url]: https://github.com/Kraken-Plugins/kraken-api/network/members
+[stars-shield]: https://img.shields.io/github/stars/Kraken-Plugins/kraken-api.svg?style=for-the-badge
+[stars-url]: https://github.com/Kraken-Plugins/kraken-api/stargazers
+[issues-shield]: https://img.shields.io/github/issues/Kraken-Plugins/kraken-api.svg?style=for-the-badge
+[issues-url]: https://github.com/Kraken-Plugins/kraken-api/issues
 [coffee-url]: https://ko-fi.com/runewraith
 
