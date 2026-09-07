@@ -291,7 +291,6 @@ public class InteractionManager {
         String targetVerb = src.getTargetVerb();
 
         Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
-        log.info("Target verb='{}', resolve source widget={}", targetVerb, srcResolved.get());
         if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
             return false;
         }
@@ -305,10 +304,8 @@ public class InteractionManager {
             log.warn("Failed to resolve dest widget for Widget→Widget: id={}, targetVerb={}", dest.getId(), targetVerb);
             return false;
         }
-        log.info("Resolved destination widget: {}", destResolved.get());
 
         String target = srcResolved.get().getTarget() + " -> " + destResolved.get().getTarget();
-        log.info("Option={}, Target: {}", destResolved.get().getOption(), target);
         return dispatcher.dispatch(UIService.getClickbox(dest), targetVerb,
                 new ResolvedMenuAction(destResolved.get().getOption(), target));
     }
