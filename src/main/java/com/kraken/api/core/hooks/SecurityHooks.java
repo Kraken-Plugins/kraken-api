@@ -13,8 +13,6 @@ public class SecurityHooks {
     String mouseHookDllClassName;
     String mouseHookDllMethodName;
     String clientLogFieldName;
-    String callStackClassName;
-    String callStackMethodName;
     String cleanCallStackValue;
     String platformInfoClassName;
     String platformInfoMethodName;

@@ -30,6 +30,11 @@ public class PacketFactory {
     public static PacketDefinition getResumeObjDialog() { return getPacket("RESUME_OBJDIALOG"); }
     public static PacketDefinition getStringDialog() { return getPacket("RESUME_STRINGDIALOG"); }
 
+    // Applet Focus
+    public static PacketDefinition getAppletFocus() {
+        return getPacket("EVENT_APPLET_FOCUS");
+    }
+
     // Movement and event packets
     public static PacketDefinition getMoveGameClick() { return getPacket("MOVE_GAMECLICK"); }
     public static PacketDefinition getEventMouseClick() { return getPacket("EVENT_MOUSE_CLICK"); }
