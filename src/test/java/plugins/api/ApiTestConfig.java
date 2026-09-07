@@ -43,6 +43,29 @@ public interface ApiTestConfig extends Config {
         return true;
     }
 
+
+    @ConfigItem(
+            name = "Queue Gained",
+            keyName = "foobar",
+            description = "",
+            position = -996,
+            section = general
+    )
+    default boolean queueGained() {
+        return true;
+    }
+
+    @ConfigItem(
+            name = "Queue Lost",
+            keyName = "barfoo",
+            description = "",
+            position = -996,
+            section = general
+    )
+    default boolean queueLost() {
+        return true;
+    }
+
     @ConfigItem(
             name = "Include Destructive Tests",
             keyName = "includeDestructive",

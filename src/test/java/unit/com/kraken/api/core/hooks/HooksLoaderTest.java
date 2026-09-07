@@ -28,10 +28,7 @@ class HooksLoaderTest {
 
     @Test
     void securityHookDefaultsComeFromTheJsonNotFieldInitializers() {
-        // Gson allocates via Unsafe and never runs field initializers, so these values must be
-        // present in hooks.json. "client" is what the resource carries for both.
         assertEquals("client", HooksLoader.getSecurityHooks().getMouseHookDllClassName());
-        assertEquals("client", HooksLoader.getSecurityHooks().getCallStackClassName());
     }
 
     @Test

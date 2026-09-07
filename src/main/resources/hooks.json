@@ -48,8 +48,6 @@
     "mouseHookDllClassName": "client",
     "mouseHookDllMethodName": "ig",
     "clientLogFieldName": "mx",
-    "callStackClassName": "client",
-    "callStackMethodName": "ya",
     "cleanCallStackValue": "client1486ya\nclient16815az\nnrc.RuneLite287start\nnrc.RuneLite264main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown S+",
     "platformInfoClassName": "vt",
     "platformInfoMethodName": "az",
@@ -59,6 +57,21 @@
     "platformInfoMethodArgCount": 2
   },
   "packets": {
+    "EVENT_APPLET_FOCUS": {
+      "packetName": "EVENT_APPLET_FOCUS",
+      "obfuscatedName": "br",
+      "writes": [
+        {
+          "param": "hasFocus",
+          "methodName": "ck",
+          "operations": [
+            {
+              "type": "RAW"
+            }
+          ]
+        }
+      ]
+    },
     "EVENT_MOUSE_CLICK": {
       "packetName": "EVENT_MOUSE_CLICK",
       "obfuscatedName": "bb",

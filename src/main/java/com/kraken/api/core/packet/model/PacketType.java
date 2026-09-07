@@ -29,6 +29,7 @@ public enum PacketType {
     OPOBJ,
     OPLOC,
     MOVE_GAMECLICK,
+    EVENT_APPLET_FOCUS,
     EVENT_MOUSE_CLICK,
     IF_BUTTONT,
     OPNPCT,
@@ -119,6 +120,9 @@ public enum PacketType {
         }
         if (this == PacketType.SET_HEADING) {
             params = List.of("direction");
+        }
+        if(this == PacketType.EVENT_APPLET_FOCUS) {
+            params = List.of("hasFocus");
         }
 
         return params;
