@@ -39,7 +39,7 @@ public class NpcMenuActionResolver implements MenuActionResolver<NPC> {
             int worldView = client.getTopLevelWorldView().getId();
             LocalPoint point = npc.getLocalLocation();
 
-            if (client.isWidgetSelected() && action.equalsIgnoreCase("Use")) {
+            if (client.isWidgetSelected() && ActionResolver.isTargetSelection(action)) {
                 return Optional.of(new ResolvedMenuAction(
                         new MenuOption(MenuAction.WIDGET_TARGET_ON_NPC, npc.getIndex(),
                                 point.getSceneX(), point.getSceneY(), -1, worldView),

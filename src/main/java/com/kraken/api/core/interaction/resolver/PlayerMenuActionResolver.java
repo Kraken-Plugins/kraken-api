@@ -43,7 +43,7 @@ public class PlayerMenuActionResolver implements MenuActionResolver<Player> {
             int worldView = client.getTopLevelWorldView().getId();
             LocalPoint point = player.getLocalLocation();
 
-            if (client.isWidgetSelected() && action.equalsIgnoreCase("Use")) {
+            if (client.isWidgetSelected() && ActionResolver.isTargetSelection(action)) {
                 return Optional.of(new ResolvedMenuAction(
                         new MenuOption(MenuAction.WIDGET_TARGET_ON_PLAYER, player.getId(),
                                 point.getSceneX(), point.getSceneY(), -1, worldView),
@@ -51,6 +51,9 @@ public class PlayerMenuActionResolver implements MenuActionResolver<Player> {
                 ));
             }
 
+            // getPlayerOptions holds only the standing options the client offers on any player
+            // (Follow, Trade with, Attack in PVP, Report, plugin-added entries). Spell target verbs
+            // are never in it - those resolve through the branch above once a spell is selected.
             return ActionResolver.findAction(action, client.getPlayerOptions(), i ->
                     i < PLAYER_ACTIONS.length
                             ? new MenuOption(PLAYER_ACTIONS[i], player.getId(),

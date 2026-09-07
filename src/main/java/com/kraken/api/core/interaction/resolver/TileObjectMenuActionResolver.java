@@ -49,7 +49,7 @@ public class TileObjectMenuActionResolver implements MenuActionResolver<TileObje
                 sceneY = lp.getSceneY();
             }
 
-            if (client.isWidgetSelected() && action.equalsIgnoreCase("Use")) {
+            if (client.isWidgetSelected() && ActionResolver.isTargetSelection(action)) {
                 return Optional.of(new ResolvedMenuAction(
                         new MenuOption(MenuAction.WIDGET_TARGET_ON_GAME_OBJECT,
                                 object.getId(), sceneX, sceneY, -1, worldView), ""

@@ -52,4 +52,16 @@ public final class ActionResolver {
         return requested != null && candidate != null
                 && Text.standardize(requested).equals(Text.standardize(candidate));
     }
+
+    /**
+     * Reports whether an action names the "use the currently selected widget on this entity" interaction.
+     * Callers ask for either the generic {@code "Use"} or {@code "Cast"}, the verb the game puts on a
+     * selected spell, and both mean the same target selection.
+     *
+     * @param action The action being asked for. If {@code null}, the method returns {@code false}.
+     * @return {@code true} if the action is a selected-widget target selection.
+     */
+    public static boolean isTargetSelection(String action) {
+        return action != null && (action.equalsIgnoreCase("Use") || action.equalsIgnoreCase("Cast"));
+    }
 }

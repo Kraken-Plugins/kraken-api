@@ -5,6 +5,7 @@ import com.kraken.api.core.AbstractEntity;
 import com.kraken.api.util.StringUtils;
 import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.widgets.Widget;
 
 public class WidgetEntity extends AbstractEntity<Widget> {
@@ -148,6 +149,17 @@ public class WidgetEntity extends AbstractEntity<Widget> {
         Widget w = raw();
         if(w == null) return false;
         return ctx.getInteractionManager().interact(w, destinationWidget);
+    }
+
+    /**
+     * Uses a widget on another player. (i.e. Ice Barrage {@literal ->} Player)
+     * @param target player to use this widget entity on
+     * @return True if the action is successful and false otherwise.
+     */
+    public boolean useOn(Player target) {
+        Widget w = raw();
+        if(w == null) return false;
+        return ctx.getInteractionManager().interact(w, target);
     }
 
     /**

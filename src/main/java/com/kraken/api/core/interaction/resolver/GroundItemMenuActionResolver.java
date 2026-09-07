@@ -46,7 +46,7 @@ public class GroundItemMenuActionResolver implements MenuActionResolver<GroundIt
                 return Optional.empty();
             }
 
-            if (client.isWidgetSelected() && action.equalsIgnoreCase("Use")) {
+            if (client.isWidgetSelected() && ActionResolver.isTargetSelection(action)) {
                 return Optional.of(new ResolvedMenuAction(
                         new MenuOption(MenuAction.WIDGET_TARGET_ON_GROUND_ITEM, item.getTileItem().getId(),
                                 point.getSceneX(), point.getSceneY(), -1, worldView),

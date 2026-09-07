@@ -5,6 +5,7 @@ import com.kraken.api.query.container.AbstractContainerEntity;
 import com.kraken.api.query.container.ContainerItem;
 import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 
 public class InventoryEntity extends AbstractContainerEntity {
     public InventoryEntity(Context ctx, ContainerItem raw) {
@@ -18,7 +19,7 @@ public class InventoryEntity extends AbstractContainerEntity {
      */
     public boolean combineWith(ContainerItem other) {
         ContainerItem item = raw();
-        if(item.getWidget() != null && other.getWidget() != null){
+        if(item.getWidget() != null && other.getWidget() != null) {
             return ctx.getInteractionManager().interact(item.getWidget(), other.getWidget());
         }
         return false;
@@ -58,6 +59,20 @@ public class InventoryEntity extends AbstractContainerEntity {
 
         if(item.getWidget() != null && gameObject != null) {
             return ctx.getInteractionManager().interact(item.getWidget(), gameObject);
+        }
+        return false;
+    }
+
+    /**
+     * Uses one item in the inventory on a Game object.
+     * @param player The Player to use the inventory item on.
+     * @return True if the use on item was successful and false otherwise
+     */
+    public boolean useOn(Player player) {
+        ContainerItem item = raw();
+
+        if(item.getWidget() != null && player != null) {
+            return ctx.getInteractionManager().interact(item.getWidget(), player);
         }
         return false;
     }
