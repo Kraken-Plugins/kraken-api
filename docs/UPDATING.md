@@ -5,8 +5,8 @@ Game updates can be broken down into two main categories (with relation to this 
 
 - RuneLite updates (~weekly)
 - Client Revision updates (~bi-monthly)
-    - Packet Updates
-    - Reflection Updates
+  - Packet Updates
+  - Reflection Updates
 
 ---
 
@@ -25,54 +25,66 @@ into what changed, where it went, and how to restore functionality in the API. L
 all that often despite weekly RuneLite updates.
 
 Detailed instructions for manually mapping each field can [be found here](https://kraken-plugins.com/docs/client-development/mapping/manual-mapping.html) although,
-for RuneLite updates, the only fields that will change are:
+for RuneLite updates, the fields that normally change are all under `securityHooks`:
 
 - `securityHooks.clientLogFieldName`
 - `securityHooks.callStackMethodName` (unused in the API at this point so doesn't technically need updated)
+- `securityHooks.cleanCallStackValue`, when RuneLite changes how it starts the client
 
-> :warning: **Note:** Care should still be taken in updating the RuneLite version as new detection methods for third party clients and plugins 
+> :warning: **Note:** Care should still be taken in updating the RuneLite version as new detection methods for third party clients and plugins
 > can be added at any point in time (even for minor patch versions).
+
+The Kraken client plugin is obfuscated against a signature cache of the RuneLite client jar (`mappings/client-<version>.jar.json` in its repository),
+which also needs regenerating for the new RuneLite version.
 
 ## Client Revision Updates
 
-Client revision updates are generally more work. The gampack JAR file will be re-obfuscated, and new mappings
+Client revision updates are generally more work. The gamepack JAR file will be re-obfuscated, and new mappings
 will need to be generated to call/update the right classes, fields, and methods in the client that RuneLite
-does not directly expose. 
+does not directly expose.
 
-Luckily, client revision updates are less common and generally occur bi-monthly or quarterly. The Kraken API uses a 
+Luckily, client revision updates are less common and generally occur bi-monthly or quarterly. The Kraken API uses a
 `hooks.json` file as its source of truth for packet mappings, reflection hooks, and client patches. This is the **only**
 file that needs updated after a revision update and is located in `./src/main/resources/hooks.json`. The [Kraken Updater
 CLI tool](https://github.com/Kraken-Plugins/kraken-updater) is specifically developed to analyze the newest game client (`injected-client.jar`)
-and automatically remap the necessary fields and packets in the exact format which this API expects. 
+and automatically remap the necessary fields and packets in the exact format which this API expects.
 
 More documentation can be found in the readme of the updater, but in short point the tool at the new version of RuneLite,
-and it will generate the mappings’ file: 
+and it will download the client jars and generate `mappings-<version>.json`:
 
 ```shell
-./gradlew :app:run --args="--version 1.12.28 --output build/output"
+./gradlew :app:run --args="--version 1.12.38 --output build/output"
 ```
+
+Useful flags:
+
+- `--version` / `-v` (required): the RuneLite client version to analyze
+- `--output` / `-o`: directory for the generated `mappings-<version>.json` (default `app/src/main/resources`)
+- `--input-dir` / `-i`: where the downloaded client jars are cached
+- `--diff` / `-d`: fetch the currently deployed `hooks.json` and log every field that changed, filling in any packet write the run could not resolve from the deployed copy
+
+![kraken-updater](../images/kraken-updater.png)
 
 ### Missing Maps
 
 The injected-client changes from revision to revision, so it is quite possible that the automated mapper may miss, omit, or
 get some mappings wrong. It is **CRITICAL** that each mapping is double-checked for accuracy. We recommend using a tool
 like [JStudio](https://github.com/Tonic-Box/JStudio/) to open and decompile the `injected-client.jar` file to manually
-check the mappings. 
+check the mappings.
 
-There is existing [documentation here](https://kraken-plugins.com/docs/client-development/mapping/manual-mapping.html#manual-client-mapping) on how to manually find and map each field in the `hooks.json` file.
+There is existing [documentation here](https://kraken-plugins.com/docs/client-development/mapping/manual-mapping.html) on how to manually find and map each field in the `hooks.json` file.
 If you are unfamiliar with mapping obfuscated code, then [this guide](https://kraken-plugins.com/docs/client-development/mapping/mapping.html) will help to get you familiar with specific structures you are looking for
 in the client. The mapping guide will include helpful pointers for mapping tricky packets write ordering, finding the `doAction` method, and discovering key packet sending reflection hooks.
 
 ## Finishing the Update
 
-Once the mappings have been generated by the Kraken updater and validated for correctness in the Kraken client, they can be tested within the API.
-Copy the mappings json file generated from the updater to `./src/main/resources/hooks.json`. Launch the API tests plugin by running the
-`PluginRunnerTest.java` file the `test` directory with the arguments: `plugins.api.ApiTestPlugin --developer-mode` and the VM args: `-ea`. This will launch the client
-using the latest hooks file with a plugin that can quickly execute core API functionalities to test that the new hooks work.
+Once the mappings have been generated by the Kraken updater and validated for correctness, they can be tested within the API.
+Copy the `mappings-<version>.json` file generated by the updater to `./src/main/resources/hooks.json`. Launch the API tests plugin with
+`./gradlew runelite`, or by running the `PluginRunnerTest.java` main class in the `src/test/java` directory with the arguments
+`plugins.api.ApiTestPlugin --developer-mode` and the VM args `-ea`. This will launch the client
+using the latest hooks file with a plugin that can quickly execute core API functionalities to test that the new hooks work. Start with the
+`SelfCheckTest` entry in the API Tests panel, which exercises every hook.
 
 More documentation on this plugin and its requirements can be [read here](https://github.com/Kraken-Plugins/kraken-api/blob/master/docs/TESTS.md).
 
-![example-plugin](../images/example-plugin.png)
-
-
-
+![example-plugin](../images/example-plugin-2.png)

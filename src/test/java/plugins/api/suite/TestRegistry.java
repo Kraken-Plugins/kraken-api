@@ -83,6 +83,7 @@ public class TestRegistry {
         register(injector, WidgetTargetNpcTest.class, "widgetTargetOnNpc", TestGroup.INTERACTION);
         register(injector, WidgetTargetGameObjectTest.class, "widgetTargetOnGameObject", TestGroup.INTERACTION);
         register(injector, WidgetTargetWidgetTest.class, "widgetTargetOnWidget", TestGroup.INTERACTION);
+        register(injector, WidgetTargetPlayerTest.class, "widgetTargetOnPlayer", TestGroup.INTERACTION);
 
         register(injector, MouseTest.class, "enableMouseTest", TestGroup.INPUT);
 

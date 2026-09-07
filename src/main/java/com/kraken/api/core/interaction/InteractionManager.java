@@ -286,21 +286,28 @@ public class InteractionManager {
     public boolean interact(Widget src, Widget dest) {
         if (src == null || dest == null) return false;
 
-        // First dispatch sets isWidgetSelected() = true on the client
-        if (!selectSource(src)) {
+        // Both halves carry the source's verb: the game writes "Use Chisel -> Uncut sapphire" and
+        // "Cast High Level Alchemy -> Yew logs", never the destination's own target verb.
+        String targetVerb = src.getTargetVerb();
+
+        Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
             return false;
         }
 
-        // Second resolve now sees isWidgetSelected() == true → WIDGET_TARGET_ON_WIDGET
+        // The dispatch above sets isWidgetSelected() = true, so this resolve produces WIDGET_TARGET_ON_WIDGET
         Optional<ResolvedMenuAction> destResolved = registry.getResolver(Widget.class)
-                .flatMap(r -> r.resolve(dest, dest.getTargetVerb()));
+                .flatMap(r -> r.resolve(dest, targetVerb));
+
 
         if (destResolved.isEmpty()) {
-            log.warn("Failed to resolve dest widget for Widget→Widget: id={}", dest.getId());
+            log.warn("Failed to resolve dest widget for Widget→Widget: id={}, targetVerb={}", dest.getId(), targetVerb);
             return false;
         }
 
-        return dispatcher.dispatch(UIService.getClickbox(dest), dest.getTargetVerb(), destResolved.get());
+        String target = srcResolved.get().getTarget() + " -> " + destResolved.get().getTarget();
+        return dispatcher.dispatch(UIService.getClickbox(dest), targetVerb,
+                new ResolvedMenuAction(destResolved.get().getOption(), target));
     }
 
     /**
@@ -384,6 +391,38 @@ public class InteractionManager {
     }
 
     /**
+     * Uses a widget on a Player (e.g., casting Ice Barrage {@literal ->} Player).
+     *
+     * @param src  The source widget (the item or spell).
+     * @param dest The destination Player.
+     * @return true if both the selection and the target action were dispatched, false otherwise.
+     */
+    public boolean interact(Widget src, Player dest) {
+        if (src == null || dest == null) return false;
+
+        Point destPoint = UIService.getClickbox(dest);
+        String targetVerb = src.getTargetVerb();
+
+        Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+            return false;
+        }
+
+        return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
+            Client client = ctxProvider.get().getClient();
+            int worldView = client.getTopLevelWorldView().getId();
+
+            String playerName = dest.getName() == null ? "" : dest.getName();
+            String target = srcResolved.get().getTarget() + " -> " + playerName;
+
+            MenuOption option = new MenuOption(MenuAction.WIDGET_TARGET_ON_PLAYER,
+                    dest.getId(), 0, 0, -1, worldView);
+
+            return dispatcher.dispatch(destPoint, targetVerb, new ResolvedMenuAction(option, target));
+        }));
+    }
+
+    /**
      * Uses a widget on a ground item (e.g., casting Telekinetic Grab on dropped loot).
      *
      * @param src  The source widget (the spell or item).
@@ -433,18 +472,6 @@ public class InteractionManager {
                     src.getId(), src.getTargetVerb());
         }
         return resolved;
-    }
-
-    /**
-     * Resolves and dispatches the selection half of a widget-on-target interaction.
-     *
-     * @param src The source widget being selected.
-     * @return true when the client is now in the "widget selected" state.
-     */
-    private boolean selectSource(Widget src) {
-        return resolveSource(src)
-                .map(resolved -> dispatcher.dispatch(UIService.getClickbox(src), src.getTargetVerb(), resolved))
-                .orElse(false);
     }
 
     /**

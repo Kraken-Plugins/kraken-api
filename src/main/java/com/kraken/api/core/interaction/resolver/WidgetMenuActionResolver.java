@@ -49,6 +49,11 @@ public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {
             return Optional.empty();
         }
 
+        if (action == null) {
+            log.info("Cannot resolve widget interaction without an action: id={}", widget.getId());
+            return Optional.empty();
+        }
+
         return ctxProvider.get().runOnClientThread(() -> {
             Client client = ctxProvider.get().getClient();
             int worldView = client.getTopLevelWorldView().getId();
@@ -101,15 +106,17 @@ public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {
     }
 
     private Optional<MenuOption> resolveOption(Client client, Widget widget, String action, int worldView) {
-        // Widget-target-on-widget takes priority when a widget is already selected
-        if (client.isWidgetSelected() && (action.equalsIgnoreCase("Use") || action.equalsIgnoreCase("Cast"))) {
+        // Widget-target-on-widget takes priority when a widget is already selected. WIDGET_TARGET_PLAYER|OBJECT|NPC are ]
+        // all individually resolved in their Player|NPC|TileObjectActionResolver classes. This one is specifically for
+        // widgets on widgets which is why its safe to assume the widget target on widget is the action that resolves here.
+        if (client.isWidgetSelected() && ActionResolver.isTargetSelection(action)) {
             return Optional.of(new MenuOption(MenuAction.WIDGET_TARGET_ON_WIDGET, 0,
                     widget.getIndex(), widget.getId(), widget.getItemId(), worldView));
         }
 
         // Match against the widget's target verb (e.g. "Use", "Cast")
         boolean targetable = widget.getTargetVerb() != null && !Text.sanitize(widget.getTargetVerb()).isBlank();
-        if (targetable && (ActionResolver.matches(action, widget.getTargetVerb()) || action.equalsIgnoreCase("Use"))) {
+        if (targetable && (ActionResolver.matches(action, widget.getTargetVerb()) || ActionResolver.isTargetSelection(action))) {
             return Optional.of(new MenuOption(MenuAction.WIDGET_TARGET, 0,
                     widget.getIndex(), widget.getId(), widget.getItemId(), worldView));
         }

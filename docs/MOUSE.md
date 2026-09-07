@@ -1,23 +1,29 @@
-# Mouse API Documentation
+# Mouse API
 
 The Mouse API in Kraken provides a comprehensive system for simulating mouse movements and interactions within the game client.
-It supports various movement strategies, including instant, linear, Bezier curves, and replay-based movements recorded from real user input.
+It supports various movement strategies, including instant, linear, Bezier curves, wind physics, and replay-based movements recorded from real user input.
+
+The mouse is optional. Interactions performed through queries and services (`interact(...)`, `walkTo(...)`, and so on) do **not** move or
+click the mouse; they go through the client's menu-action handler and packets directly (see [Interaction](INTERACTION.md)). Use `VirtualMouse`
+when you want the cursor to visibly move as well.
 
 ## Table of Contents
 - [VirtualMouse](#virtualmouse)
 - [Mouse Movement Strategies](#mouse-movement-strategies)
-  - [Bezier Strategy](#bezier-strategy)
-  - [Wind Strategy](#wind-strategy)
-  - [Linear Strategy](#linear-strategy)
-  - [Instant Strategy](#instant-strategy)
-  - [Replay Strategy](#replay-strategy)
+    - [Wind Strategy](#wind-strategy)
+    - [Bezier Strategy](#bezier-strategy)
+    - [Linear Strategy](#linear-strategy)
+    - [Instant Strategy](#instant-strategy)
+    - [No Movement Strategy](#no-movement-strategy)
+    - [Replay Strategy](#replay-strategy)
+- [Clicking](#clicking)
 - [Recording Mouse Gestures](#recording-mouse-gestures)
 - [Loading Gesture Libraries](#loading-gesture-libraries)
 - [Examples](#examples)
 
 ## VirtualMouse
 
-The `VirtualMouse` class is the main entry point for interacting with the mouse. 
+The `VirtualMouse` class is the main entry point for interacting with the mouse.
 It provides methods to move the mouse to various targets such as `Point`, `Actor`, `Tile`, `Widget`, and more.
 
 ### Basic Usage
@@ -48,8 +54,8 @@ You can set the default mouse movement strategy globally. The default strategy i
 // Set default strategy to Linear
 VirtualMouse.setMouseMovementStrategy(MouseMovementStrategy.LINEAR);
 
-// When using linear its important to set the amount of steps (points generated along the line).
-// If your line is short generate a short number of points, same for longer lines.
+// Selecting LINEAR this way gives it 50 steps by default. Tune the number of steps (points generated along the line)
+// to the distance: fewer for short lines, more for long ones. LinearStrategy refuses to move with 0 or fewer steps.
 LinearStrategy linear = (LinearStrategy) MouseMovementStrategy.LINEAR.getStrategy();
 linear.setSteps(100);
 ```
@@ -62,12 +68,21 @@ The `move` methods return the `VirtualMouse` instance, allowing for method chain
 virtualMouse.move(target1).move(target2);
 ```
 
+## Clicking
+
+`click()` presses and releases the left mouse button at the cursor's current position:
+
+```java
+virtualMouse.move(target).click();
+```
+
+There is no right-click or drag; `VirtualMouse` only moves and left-clicks.
+
 ## Mouse Movement Strategies
 
 The API supports several strategies defined in `MouseMovementStrategy`. You can pass a specific strategy to the `move` method to override the default for a single action.
 
-
-### Wind Strategy 
+### Wind Strategy
 **Enum:** `MouseMovementStrategy.WIND`
 
 If you want a strategy that creates truly unique, non-repeating paths, which has overshoot logic and asymmetric easing function, then the ["WindMouse"](https://ben.land/post/2021/04/25/windmouse-human-mouse-movement/) algorithm will
@@ -77,12 +92,10 @@ be your best choice. [This algorithm](https://ben.land/post/2021/04/25/windmouse
 - Wind: A chaotic random force pushing the mouse in varying directions.
 - Fluidity: Because it relies on velocity and momentum, the path loops and arcs naturally without ever looking like a pre-calculated curve.
 
-Here is the documentation formatted in clean, readable Markdown, suitable for a README or API wiki.
-
 ####  WindMouseConfig Configuration
 
-The `WindMouseConfig` class controls the physics simulation of the mouse cursor. 
-By tweaking these values, you can alter the "personality" of the mouse movement, 
+The `WindMouseConfig` class controls the physics simulation of the mouse cursor.
+By tweaking these values, you can alter the "personality" of the mouse movement,
 ranging from a steady, fast hand to a tired, wandering cursor.
 
 #### `gravity`
@@ -163,7 +176,8 @@ mouse.move(target, MouseMovementStrategy.WIND);
 WindMouseConfig config = WindMouseConfig.builder()
         .gravity(8.4)
         .wind(2.1)
-        .minWait(2.0);
+        .minWait(2.0)
+        .build();
 
 // Use custom configuration to move the mouse
 mouse.move(target, config);
@@ -201,7 +215,7 @@ virtualMouse.move(target, MouseMovementStrategy.BEZIER);
 Moves the mouse in a straight line with a specified number of steps. Useful for debugging or specific mechanical movements.
 
 **Note:** You must set the number of steps before using this strategy if you are accessing the underlying implementation directly,
-but via `VirtualMouse`, it uses default settings or requires configuration if exposed. 
+but via `VirtualMouse`, it uses default settings or requires configuration if exposed.
 
 
 ```java
@@ -222,6 +236,15 @@ It is not recommended to use this strategy in any form of automation script.
 
 ```java
 virtualMouse.move(target, MouseMovementStrategy.INSTANT);
+```
+
+### No Movement Strategy
+**Enum:** `MouseMovementStrategy.NO_MOVEMENT`
+
+Does not move the cursor at all. `move(...)` returns immediately, which is useful when you want to skip cursor movement without changing the rest of your code.
+
+```java
+virtualMouse.move(target, MouseMovementStrategy.NO_MOVEMENT);
 ```
 
 ### Replay Strategy
@@ -253,7 +276,7 @@ The `MouseRecorder` class allows you to record your own mouse movements to creat
 3.  **Stop Recording:** Call `stop()` to save the data to disk.
 
 The data is saved as JSON files in `user.home/.runelite/kraken/mouse_data/`. It is recommended to play between 30 minutes
-and 2 hours manually for best results. This ensures you have a wide variety of mouse movements and data points that can be selected
+and 2 hours manually for the best results. This ensures you have a wide variety of mouse movements and data points that can be selected
 when choosing gestures for the Replay strategy.
 
 ```java
@@ -332,15 +355,13 @@ private Client client;
 private Context ctx;
 
 public void interactWithObject() {
-    // Assume we have a method to find an object
-    GameObject bankBooth = ctx.gameObjects().withName("Bank booth").nearest().map(GameObjectEntity::raw).orElse(null);
-    
-    if (bankBooth != null) {
-        // Move to the bank booth using the default strategy (note: this will not click the bank booth) you must
-        // separately call the interact() method on the game entity to click it.
-        virtualMouse.move(bankBooth);
+    // nearest() returns an Optional; nothing happens when no bank booth is loaded
+    ctx.gameObjects().withName("Bank booth").nearest().ifPresent(bankBooth -> {
+        // Move to the bank booth using the default strategy. This does not click it; the interact()
+        // call below sends the actual "Open" action.
+        virtualMouse.move(bankBooth.raw());
         bankBooth.interact("Open");
-    }
+    });
 }
 ```
 

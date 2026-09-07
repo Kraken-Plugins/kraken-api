@@ -41,13 +41,6 @@ public class ProcessingServiceTest extends BaseApiTest {
 
     private static final String CHISEL = "Chisel";
 
-    /**
-     * The skill multi interface labels its options with the skill's verb. Gem cutting uses "Craft",
-     * but the option has been spelled "Make" in some interface revisions, so both are attempted and
-     * the one that worked is logged.
-     */
-    private static final String[] CRAFT_ACTIONS = {"Craft", "Make"};
-
     private static final int INTERFACE_TIMEOUT_MS = 5000;
     private static final int CRAFT_TIMEOUT_MS = 6000;
 

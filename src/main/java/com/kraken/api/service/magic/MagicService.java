@@ -11,11 +11,14 @@ import com.kraken.api.service.magic.rune.ElementalStaff;
 import com.kraken.api.service.magic.rune.ElementalTome;
 import com.kraken.api.service.magic.rune.Rune;
 import com.kraken.api.service.magic.rune.RunePouch;
+import com.kraken.api.service.magic.spellbook.Lunar;
 import com.kraken.api.service.magic.spellbook.Spellbook;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.Skill;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
 
 import java.util.HashMap;
@@ -55,6 +58,7 @@ public class MagicService {
      *   <li>Whether the spell is valid and belongs to the player's current spellbook</li>
      *   <li>Whether the player's boosted Magic level meets or exceeds the spell's required level</li>
      *   <li>Whether the player possesses the necessary runes to cast the spell</li>
+     *   <li>For Vengeance and Vengeance Other, whether the shared cooldown has elapsed</li>
      *   <li>For specific CastableSpell requiring prayer, whether the player has sufficient Prayer points</li>
      * </ul>
      * If any of these conditions fail, the method logs a warning and returns {@literal @false}.
@@ -76,6 +80,18 @@ public class MagicService {
             return false;
         }
 
+        // Vengeance and Vengeance Other share a 30 second cooldown, and Vengeance cannot be recast
+        // while its rebound is still armed. The client accepts the menu action in both cases and then
+        // drops it, so the cast is blocked here in order to be reported accurately.
+        if (spell == Lunar.VENGEANCE || spell == Lunar.VENGEANCE_OTHER) {
+            boolean onCooldown = ctx.getVarbitValue(VarbitID.VENGEANCE_TIMELIMIT) > 0;
+            boolean reboundActive = spell == Lunar.VENGEANCE && ctx.getVarbitValue(VarbitID.VENGEANCE_REBOUND) > 0;
+            if (onCooldown || reboundActive) {
+                log.warn("Cannot cast spell {}. On cooldown: {}, rebound already active: {}", spell.getName(), onCooldown, reboundActive);
+                return false;
+            }
+        }
+
         int boostedLevel = ctx.getClient().getBoostedSkillLevel(Skill.MAGIC);
         if (boostedLevel < spell.getLevel()) {
             log.warn("Cannot cast spell {}. Required magic level: {}, current level: {}",
@@ -84,7 +100,7 @@ public class MagicService {
         }
 
         if(!spell.isCastable()) {
-            log.warn("Cannot cast spell {}. Check required runes (CS2 script returning un-castable).", spell.getName());
+            log.warn("Cannot cast spell {}. Check required runes (CS2 un-castable).", spell.getName());
             return false;
         }
 
@@ -175,8 +191,7 @@ public class MagicService {
         WidgetEntity w = getSpellWidget(spell);
         if (w == null) return false;
 
-        w.useOn(target);
-        return true;
+        return w.useOn(target);
     }
 
     /**
@@ -209,8 +224,40 @@ public class MagicService {
         WidgetEntity w = getSpellWidget(spell);
         if (w == null) return false;
 
-        w.useOn(target);
-        return true;
+        return w.useOn(target);
+    }
+
+    /**
+     * Attempts to cast the given spell on a specified Player target.
+     *
+     * <p>This method checks whether the spell can be cast by invoking the {@code canCast} method.
+     * If the spell is valid and all necessary conditions for casting (e.g., current spellbook, required runes, etc.)
+     * are satisfied, it retrieves the spell's corresponding widget and performs the "use-on" action to cast the
+     * spell on the Player target.</p>
+     *
+     * @param spell The {@literal @CastableSpell} instance representing the spell to cast.
+     *              <ul>
+     *                <li>Must not be {@literal @null}.</li>
+     *                <li>The spell should exist in the player's current spellbook.</li>
+     *                <li>The spell must meet all prerequisites for casting, including level and resource requirements.</li>
+     *              </ul>
+     * @param target The {@literal @Player} instance representing the target of the spell.
+     *               <ul>
+     *                 <li>Must not be {@literal @null}.</li>
+     *                 <li>The Player must be a valid target for the selected spell.</li>
+     *               </ul>
+     *
+     * @return {@literal @true} if the spell was successfully cast on the Player target, {@literal @false} otherwise.
+     *         <p>Returns {@literal @false} if the spell is invalid, the conditions for casting are not met, the spell's widget
+     *         cannot be retrieved, or the player is not a valid target.</p>
+     */
+    public boolean castOn(CastableSpell spell, Player target) {
+        if (!canCast(spell)) return false;
+
+        WidgetEntity w = getSpellWidget(spell);
+        if (w == null) return false;
+
+        return w.useOn(target);
     }
 
     /**
@@ -230,8 +277,7 @@ public class MagicService {
         WidgetEntity w = getSpellWidget(spell);
         if (w == null) return false;
 
-        w.useOn(target);
-        return true;
+        return w.useOn(target);
     }
 
     /**

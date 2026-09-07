@@ -157,7 +157,7 @@ public class LocalPlayerEntity extends PlayerEntity {
 
     /**
      * Returns true when the spec is disabled and false otherwise
-     * @return True if speci is disabled and false otherwise
+     * @return True if spec is disabled and false otherwise
      */
     public boolean isSpecDisabled() {
         return ctx.getVarpValue(301) == 0;
@@ -215,7 +215,6 @@ public class LocalPlayerEntity extends PlayerEntity {
         return 0;
     }
 
-
     /**
      * Sets the special attack state if current special attack energy is greater than or equal to the required special
      * attack energy
@@ -223,7 +222,15 @@ public class LocalPlayerEntity extends PlayerEntity {
      * @param energyRequired int, 100 = 100%
      */
     public void toggleSpecialAttack(int energyRequired) {
-        toggleSpecialAttack(energyRequired, 300);
+        int currentSpecEnergy = ctx.getVarpValue(300) / 10;
+        if (currentSpecEnergy >= energyRequired && !isSpecEnabled()) {
+            ctx.getInteractionManager().interact(
+                    InterfaceID.CombatInterface.SPECIAL_ATTACK,
+                    -1,
+                    -1,
+                    1
+            );
+        }
     }
 
     /**

@@ -1,49 +1,49 @@
 # Automation Scripts
 
-The `Script` class is the foundational component for any automated process within the Kraken API.
-It acts as the entry point and primary orchestrator for your automation script's logic,
+The `Script` class (`com.kraken.api.core.script.Script`) is the foundational component for any long-running process within the Kraken API.
+It acts as the entry point and primary orchestrator for your script's logic, 
 providing a structured way to manage its lifecycle and interact with the game world.
 
 ## Core Concepts
 
-At its heart, a `Script` is designed to be a long-running process that executes a series of actions and works based off of
-RuneScape's natural tick (0.6s) system. It provides methods for initialization, execution, and termination, allowing you to define the behavior of your automation script
+At its heart, a `Script` is designed to be a long-running process that executes a series of actions and works based off of 
+RuneScape's natural tick (0.6s) system. It provides methods for initialization, execution, and termination, allowing you to define the behavior of your script
 from start to finish.
 
 ### Lifecycle Methods
 
-Every `Script` implementation will typically override the following methods:
+Every `Script` implementation overrides `loop()` and usually `onStart()` and `onStop()`:
 
--   **`onStart()`**: This method is called once when the script is first started. It's the ideal place to perform any initial setup, such as:
+-   **`onStart()`**: Called once when the script is started. It's the ideal place to perform any initial setup, such as:
     -   Loading configuration settings.
     -   Initializing variables.
     -   Setting up event listeners.
     -   Displaying initial GUI elements.
 
--   **`start()`**: This method should be called once when the plugin is first started. This calls `onStart()` under the hood.
-
--   **`stop()`**: This method should be called once when the plugin is stopped. This calls `onStop()` under the hood.
-
--   **`pause()`**: This method pauses the execution of the script's main loop. This will not pause methods that have been subscribed to within the RuneLite plugin.
-
--   **`resume()`**: This method resumes the execution of the script's main loop.
-
--   **`loop()`**: This is the core execution method of the script. It's called repeatedly in a continuous loop every game tick as long as the script is running. Within `loop()`, you'll typically:
+-   **`loop()`**: The core execution method of the script. It's called repeatedly, once per game tick, as long as the script is running, and returns the number of milliseconds to wait before the next call. Within `loop()`, you'll typically:
     -   Check the current state of the game.
     -   Determine the next action to take.
     -   Execute game interactions (e.g., clicking, walking, using items).
     -   Manage the flow of your script's logic.
 
--   **`onStop()`**: This method is called once when the script is stopped, either manually by the user or programmatically. Use `onStop()` to:
+-   **`onStop()`**: Called once when the script is stopped, either manually by the user or programmatically. Use `onStop()` to:
     -   Clean up resources (e.g., closing files, releasing network connections).
     -   Save any persistent data.
     -   Remove event listeners.
     -   Display final messages or statistics.
 
+The following methods are `final` and are called by your plugin, not overridden:
+
+-   **`start()`**: Call once when the plugin starts. This calls `onStart()` under the hood and subscribes the script to game ticks.
+-   **`stop()`**: Call once when the plugin stops. This cancels any loop in progress and calls `onStop()`. An overload `stop(Runnable callback)` runs the callback once the script has fully stopped.
+-   **`pause()`**: Pauses the execution of the script's main loop. This will not pause methods that have been subscribed to within the RuneLite plugin.
+-   **`resume()`**: Resumes the execution of the script's main loop.
+
 ## Script Loop
 
-The script's methodology warrants particular notice. The loop method operates asynchronously with each game tick,
-making it safe for `SleepService` and `Thread.sleep()` calls. Due to its asynchronous execution, calls will not run on the client thread unless the `Context` object is utilized.
+The script's methodology warrants particular notice. Each game tick, `loop()` is submitted to the script's own single background thread,
+making it safe for `SleepService` and `Thread.sleep()` calls. If the previous `loop()` call has not finished when the next tick arrives, that tick is skipped.
+Because it runs off the client thread, anything that reads or changes client state must go through the `Context` object.
 
 For example:
 
@@ -54,15 +54,12 @@ public class MyScript extends Script {
     @Inject
     private Context ctx;
     
-    @Inject
-    private SleepService sleepService;
-    
     @Override
     public int loop() {
         String playerName = ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer().getName());
         
         if(playerName.equalsIgnoreCase("foo")) {
-            sleepService.sleep(1000);
+            SleepService.sleep(1000);
             return 0;
         }
         
@@ -77,8 +74,10 @@ This helps ensure your plugin code is fully thread-safe, predictable, and easy t
 
 The loop method returns an integer which can be used to sleep the script for the specified number of milliseconds. Since the loop method is only called
 once every game tick (0.6 seconds) any value less than 600 will execute on the next game tick regardless. You can use the return value of the loop
-to sleep various durations depending on your scripts actions and requirements.
+to sleep various durations depending on your script actions and requirements.
 
+`SleepService` (`com.kraken.api.service.util.SleepService`) is a set of static helpers for waiting inside `loop()`: `sleep(ms)`, `sleep(min, max)`,
+`sleepGaussian(mean, stddev)`, `tick()`, `sleepFor(ticks)`, `sleepUntil(condition, timeoutMs)`, `sleepUntilIdle()`, `sleepUntilTile(x, y)`, and more.
 
 ## Using a `Script` inside a `Plugin`
 
@@ -105,13 +104,13 @@ public class FishingPlugin extends Plugin {
 
     @Override
     protected void startUp() {
-        ctx.initializePackets();
         script.start(); // Calls Script.onStart()
     }
 
     @Override
     protected void shutDown() {
         script.stop(); // Calls Script.onStop()
+        ctx.shutdown(); // Unregisters the Context's event bus and mouse listeners
     }
     
     // TODO Add a panel for your plugin with stop, start, pause, resume buttons to your Scripts UI.
@@ -122,40 +121,41 @@ public class FishingPlugin extends Plugin {
         final GameState gameState = event.getGameState();
         switch (gameState) {
             case LOGGED_IN:
-                startUp();
+                script.start();
                 break;
             case HOPPING:
             case LOGIN_SCREEN:
-                shutDown();
+                script.stop();
             default:
                 break;
         }
     }
-
-    public String getStatus() {
-        return script.getStatus();
-    }
 }
 ```
 
+There is nothing to initialize before using the API: packets and interaction hooks are set up when Guice builds the `Context`.
+Call `ctx.shutdown()` from `shutDown()` so the `Context`'s event bus subscriptions and mouse listener do not leak across
+plugin enable/disable cycles.
+
 ## Extending `Script` with the Loop and Task System
 
-While you can implement all your logic directly within `loop()`, for more complex scripts, this can quickly lead to
-unmanageable and difficult-to-debug code. Kraken provides a powerful **Loop and Task system** to help you structure your script's logic in a modular and maintainable way.
+While you can implement all your logic directly within `loop()`, for more complex scripts, this can quickly lead to 
+unmanageable and challenging-to-debug code. Kraken provides a **Loop and Task system** to help you structure your script's logic in a modular and maintainable way.
 
-The Loop and Task system encourages breaking down your script's overall goal into smaller, discrete units of work called `Task`s.
-These tasks are then managed and executed by the `Loop` within your `Script`.
+The Loop and Task system encourages breaking down your script's overall goal into smaller, discrete units of work called `Task`s. 
+These tasks are then managed and executed by the loop within your `Script`.
 
 ### The `Task` Interface
 
-The `Task` interface defines the contract for any individual unit of work your script needs to perform. It typically includes methods like:
+The `Task` interface (`com.kraken.api.core.script.Task`) defines the contract for any individual unit of work your script needs to perform:
 
--   **`validate()`**: This method determines if the task is currently applicable or ready to be executed. For example, a "chop tree" task might validate if there's a tree nearby and if the player has an axe.
--   **`execute()`**: This method contains the actual logic for performing the task. Following the "chop tree" example, this would involve clicking the tree and waiting for the chopping animation.
+-   **`boolean validate()`**: Determines if the task is currently applicable or ready to be executed. For example, a "chop tree" task might validate if there's a tree nearby and if the player has an axe.
+-   **`int execute()`**: Contains the actual logic for performing the task and returns the number of milliseconds the script should wait afterwards, exactly like `loop()`. Following the "chop tree" example, this would involve clicking the tree and waiting for the chopping animation.
+-   **`String status()`**: A short description of what the task is doing, useful for overlays and panels.
 
 ### The `AbstractTask` Class
-
-The Kraken API provides an `AbstractTask` class that offers a convenient base implementation with the game `Context` pre-injected for your tasks.
+ 
+The Kraken API provides an `AbstractTask` class that offers a convenient base implementation with the game `Context` pre-injected as `ctx`.
 
 ### Integrating Tasks into Your `Script`
 
@@ -164,21 +164,21 @@ To use the Loop and Task system, your `Script` will typically maintain a list of
 Here's a conceptual example of how you might structure a `Script` using `Task`s:
 
 ```java
-import com.kraken.script.Script;
-import com.kraken.task.Task;
-import com.kraken.task.AbstractTask;
+import com.kraken.api.core.script.Script;
+import com.kraken.api.core.script.Task;
+import com.kraken.api.core.script.AbstractTask;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MyBotScript extends Script {
 
-    private List<Task> tasks = new ArrayList<>();
+    private final List<Task> tasks = new ArrayList<>();
 
     @Override
     public void onStart() {
         log.info("MyBotScript started!");
-        // Initialize and add your tasks or inject in the constructor with Guice!
+        // Initialize and add your tasks or inject them with Guice!
         tasks.add(new WalkToBankTask());
         tasks.add(new DepositItemsTask());
         tasks.add(new WithdrawItemsTask());
@@ -187,16 +187,15 @@ public class MyBotScript extends Script {
     }
 
     @Override
-    public void loop() {
+    public int loop() {
         for (Task task : tasks) {
             if (task.validate()) {
                 log.debug("Executing task: " + task.getClass().getSimpleName());
-                task.execute();
-                // After executing a task, we typically break to re-evaluate tasks in the next loop iteration
-                // This ensures that higher-priority tasks are always checked first.
-                break;
+                // Return after the first valid task so higher-priority tasks are re-checked next tick
+                return task.execute();
             }
         }
+        return 600;
     }
 
     @Override
@@ -209,14 +208,14 @@ public class MyBotScript extends Script {
 
 ## Break Management
 
-Having your scripts take regular breaks can help reduce detection, add humanization, and ultimately reduce bans. The Kraken API
-exposes a high level `BreakManager` class to help you faciliate breaking within your scripts.
+Taking regular breaks makes a script's activity look more like a person playing. The Kraken API
+exposes a high level `BreakManager` class (`com.kraken.api.core.script.breakhandler`) to help you schedule breaks within your scripts.
 
-Breaks can be configured using pre-defined or custom `BreakProfiles`. A `BreakProfile` defines exactly how your breaks are
-executed. For example you can configure,
+Breaks are configured with pre-defined or custom `BreakProfile`s. A `BreakProfile` defines exactly how your breaks are
+executed. For example you can configure:
 
 - The min and max runtime of your script
-- The min and max time of your break
+- The min and max duration of your break
 - Whether to logout or just go idle during your breaks
 - Custom break conditions like:
   - Reaching a certain level
@@ -224,7 +223,8 @@ executed. For example you can configure,
   - Bank being depleted of a specific material
   - Any custom condition you can think of
 
-Here is an example of building a custom profile for breaking within a crafting plugin:
+`BreakProfile.createConservative()`, `createBalanced()` and `createAggressive()` return ready-made profiles. Here is an example of building
+a custom profile for a crafting plugin:
 
 ```java
 BreakProfile profile = BreakProfile.builder()
@@ -235,29 +235,30 @@ BreakProfile profile = BreakProfile.builder()
         .maxBreakDuration(java.time.Duration.ofMinutes(19))
         .logoutDuringBreak(true)
         .randomizeTimings(true)
-        .addBreakCondition(BreakConditions.onLevelReached(context.getClient(), Skill.CRAFTING, 54))
+        .addBreakCondition(BreakConditions.onLevelReached(ctx.getClient(), Skill.CRAFTING, 54))
         .addBreakCondition(BreakConditions.customCondition(() -> ctx.groundItems().within(20).valueAbove(100000).isPresent(), "I saw an item worth lots of GP"))
         .build();
 ```
 
-Frequent times you will want to only break once for certain conditions, i.e. `onLevelReached(Skill.WOODCUTTING, 53)`. Once you reach level 53
-you will take a break, log back in, and immediately break again because you’re still level 53 woodcutting. To handle situations like these
-its best to wrap certain break conditions with a `runOnce()` call.
+Frequently you will want to break only once for a given condition, i.e. `onLevelReached(Skill.WOODCUTTING, 53)`. Once you reach level 53
+you would take a break, log back in, and immediately break again because you're still level 53 woodcutting. To handle situations like these
+wrap the condition with `runOnce()` when building the profile:
 
 ```java
-// This will now only trigger one single break when ranarrs run out. 
-// When the bot logs back in, it will return false even if the bank is still empty.
-profile.addCondition(
+// Triggers one single break when ranarrs run out. After the script logs back in the condition stays false
+// even if the bank is still empty.
+.addBreakCondition(
     BreakConditions.runOnce(
         BreakConditions.onMaterialDepleted(ctx, ItemID.GRIMY_RANARR_WEED)
     )
-);
+)
 ```
-This can be helpful for chaining together multiple skill or experience level breaks.
+
+The available conditions are `onLevelReached`, `onExperienceGained`, `onMaterialDepleted`, `atSpecificTime`, `customCondition`, and the `runOnce` wrapper.
+
 It is recommended to initialize and configure the break manager in your `Plugin` class within the `startUp()` method like so:
 
 ```java
-
 class MyPlugin extends Plugin {
     
     @Inject
@@ -277,24 +278,26 @@ class MyPlugin extends Plugin {
                 .maxBreakDuration(java.time.Duration.ofMinutes(19))
                 .logoutDuringBreak(true)
                 .randomizeTimings(true)
-                .addBreakCondition(BreakConditions.onLevelReached(context.getClient(), Skill.CRAFTING, 54))
+                .addBreakCondition(BreakConditions.onLevelReached(ctx.getClient(), Skill.CRAFTING, 54))
                 .build();
 
         breakManager.attachScript(exampleScript, profile);
     }
     
-    
     @Override
     public void shutDown() {
-        breakManager.detachScript(exampleScript);
+        breakManager.detachScript();
+        breakManager.shutdown();
     }
 }
 ```
 
+`breakManager.triggerBreak("reason")` forces a break, and `isOnBreak()` tells you whether one is in progress.
+
 ## Continued Reading
 
 As you develop your skills as a scripter, you will likely run into issues where tasks need to be executed in some priority order where
-certain tasks take precedence over other ones. The Kraken API ships with a `PriorityTask` abstraction to help you implement your task
+certain tasks take precedence over other ones. The Kraken API ships with a `PriorityTask` abstraction (an `AbstractTask` with a `getPriority()` method) to help you implement your task
 execution logic using a data structure like an ordered list or a priority queue.
 
 By using the Loop and Task system, you achieve:
@@ -303,7 +306,7 @@ By using the Loop and Task system, you achieve:
 -   **Readability**: It's easier to understand what your script is doing by looking at its individual tasks.
 -   **Maintainability**: Changes to one task are less likely to affect others.
 -   **Testability**: Individual tasks can be tested in isolation.
--   **Flexibility**: You can reorder, add, or remove tasks to change your script's behavior.
+-   **Flexibility**: You can easily reorder, add, or remove tasks to change your script's behavior.
 
-If you are interested, you should check out the [Kraken Example Plugin,](https://github.com/cbartram/kraken-example-plugin) which provides a complete, best-practice
-example of using the API within a RuneLite plugin to create a fully automated script.
+If you are interested, you should check out the [Kraken Example Plugins](https://github.com/cbartram/kraken-example-plugin) which provide complete, best-practice
+examples of using the API within RuneLite plugins.
