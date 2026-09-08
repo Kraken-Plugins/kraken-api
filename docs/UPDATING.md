@@ -28,14 +28,10 @@ Detailed instructions for manually mapping each field can [be found here](https:
 for RuneLite updates, the fields that normally change are all under `securityHooks`:
 
 - `securityHooks.clientLogFieldName`
-- `securityHooks.callStackMethodName` (unused in the API at this point so doesn't technically need updated)
-- `securityHooks.cleanCallStackValue`, when RuneLite changes how it starts the client
+- `securityHooks.cleanCallStackValue`
 
 > :warning: **Note:** Care should still be taken in updating the RuneLite version as new detection methods for third party clients and plugins
 > can be added at any point in time (even for minor patch versions).
-
-The Kraken client plugin is obfuscated against a signature cache of the RuneLite client jar (`mappings/client-<version>.jar.json` in its repository),
-which also needs regenerating for the new RuneLite version.
 
 ## Client Revision Updates
 

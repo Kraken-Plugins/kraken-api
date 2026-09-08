@@ -228,7 +228,7 @@ class BufferUtilsTest {
 
         for (Map.Entry<String, Object[]> scenario : scenarios.entrySet()) {
             PacketDefinition def = HooksLoader.getPackets().get(scenario.getKey());
-            assertEquals(scenario.getKey(), def.getPacketName());
+            assertEquals(scenario.getKey(), def.getName());
 
             FakeBuffer buffer = newBuffer(0);
             ExpectedBytes expected = new ExpectedBytes();

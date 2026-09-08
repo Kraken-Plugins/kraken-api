@@ -144,7 +144,7 @@ public class PacketClient {
             for (PacketWrite write : def.getWrites()) {
                 Integer index = paramIndices.get(write.getParam());
                 if (index == null || index >= objects.length) {
-                    log.error("Missing packet value for {}.{} param {}", def.getPacketName(), def.getObfuscatedName(), write.getParam());
+                    log.error("Missing packet value for {}.{} param {}", def.getName(), def.getObfuscatedName(), write.getParam());
                     return;
                 }
 
