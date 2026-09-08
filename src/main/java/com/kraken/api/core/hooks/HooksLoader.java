@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Loads {@code hooks.json} once at class initialization and exposes the parsed hook groups.
@@ -53,7 +54,8 @@ public class HooksLoader {
                 throw new IllegalStateException("Parsed hooks file was null.");
             }
 
-            packets = gameHooks.getPackets();
+            packets = gameHooks.getPackets().stream()
+                    .collect(Collectors.toMap(PacketDefinition::getName, p -> p));
             reflectionHooks = gameHooks.getReflectionHooks();
             securityHooks = gameHooks.getSecurityHooks();
             loginHooks = gameHooks.getLoginHooks();

@@ -8,7 +8,7 @@ import lombok.*;
 @EqualsAndHashCode
 @AllArgsConstructor
 public class PacketDefinition {
-    private String packetName;
+    private String name;
     private String obfuscatedName;
     private PacketWrite[] writes;
 
@@ -17,10 +17,10 @@ public class PacketDefinition {
      * @return PacketType
      */
     public PacketType getType() {
-        if(packetName == null) {
-            throw new IllegalStateException("Unknown packet, packetName field is null.");
+        if(name == null) {
+            throw new IllegalStateException("Unknown packet, name field is null.");
         }
 
-        return PacketType.valueOf(packetName);
+        return PacketType.valueOf(name);
     }
 }

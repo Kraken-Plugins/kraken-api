@@ -56,9 +56,9 @@
     "isPlatformInfoMethodStatic": false,
     "platformInfoMethodArgCount": 2
   },
-  "packets": {
-    "EVENT_APPLET_FOCUS": {
-      "packetName": "EVENT_APPLET_FOCUS",
+  "packets": [
+    {
+      "name": "EVENT_APPLET_FOCUS",
       "obfuscatedName": "br",
       "writes": [
         {
@@ -72,8 +72,8 @@
         }
       ]
     },
-    "EVENT_MOUSE_CLICK": {
-      "packetName": "EVENT_MOUSE_CLICK",
+    {
+      "name": "EVENT_MOUSE_CLICK",
       "obfuscatedName": "bb",
       "writes": [
         {
@@ -128,8 +128,8 @@
         }
       ]
     },
-    "MOVE_GAMECLICK": {
-      "packetName": "MOVE_GAMECLICK",
+    {
+      "name": "MOVE_GAMECLICK",
       "obfuscatedName": "da",
       "writes": [
         {
@@ -181,8 +181,8 @@
         }
       ]
     },
-    "RESUME_COUNTDIALOG": {
-      "packetName": "RESUME_COUNTDIALOG",
+    {
+      "name": "RESUME_COUNTDIALOG",
       "obfuscatedName": "cy",
       "writes": [
         {
@@ -208,8 +208,8 @@
         }
       ]
     },
-    "RESUME_OBJDIALOG": {
-      "packetName": "RESUME_OBJDIALOG",
+    {
+      "name": "RESUME_OBJDIALOG",
       "obfuscatedName": "ab",
       "writes": [
         {
@@ -227,8 +227,8 @@
         }
       ]
     },
-    "RESUME_STRINGDIALOG": {
-      "packetName": "RESUME_STRINGDIALOG",
+    {
+      "name": "RESUME_STRINGDIALOG",
       "obfuscatedName": "cb",
       "writes": [
         {
@@ -251,5 +251,5 @@
         }
       ]
     }
-  }
+  ]
 }
