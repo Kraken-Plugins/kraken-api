@@ -341,12 +341,10 @@ public class DpsService {
      * @param config Search options
      * @return GearSearchResult with the best loadout found
      */
-    public GearSearchResult findBestGear(List<EquipmentItem> candidates, Map<GearSlot, EquipmentItem> currentWorn,
-                                         MonsterData monster, GearSearchConfig config) {
+    public GearSearchResult findBestGear(List<EquipmentItem> candidates, Map<GearSlot, EquipmentItem> currentWorn, MonsterData monster, GearSearchConfig config) {
         long start = System.currentTimeMillis();
         GearSearchResult result = new GearOptimizer(data).search(candidates, monster, config, currentWorn);
-        log.info("Gear search vs {} evaluated {} loadouts in {}ms", monster.getName(),
-                result.getEvaluations(), System.currentTimeMillis() - start);
+        log.debug("Gear search vs {} evaluated {} loadouts in {}ms", monster.getName(), result.getEvaluations(), System.currentTimeMillis() - start);
         return result;
     }
 
