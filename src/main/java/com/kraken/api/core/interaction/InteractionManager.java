@@ -52,16 +52,29 @@ public class InteractionManager {
     @Getter
     private WidgetPackets widgetPackets;
 
+    /**
+     * Resolves an action on an entity and dispatches it in a single client-thread block, so the menu
+     * state the resolver read is still the state the dispatch acts on.
+     *
+     * @param entity The entity to interact with.
+     * @param type   The entity's type, used to pick a resolver.
+     * @param action The action to perform.
+     * @param point  Canvas coordinates to click.
+     * @param <T>    The entity type.
+     * @return true if the action resolved and was dispatched, false otherwise.
+     */
     private <T> boolean interact(T entity, Class<T> type, String action, Point point) {
-        Optional<ResolvedMenuAction> resolved = registry.getResolver(type)
-                .flatMap(r -> r.resolve(entity, action));
+        return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
+            Optional<ResolvedMenuAction> resolved = registry.getResolver(type)
+                    .flatMap(r -> r.resolve(entity, action));
 
-        if (resolved.isEmpty()) {
-            log.warn("No resolver or resolution failed for type={} action={}", type.getSimpleName(), action);
-            return false;
-        }
+            if (resolved.isEmpty()) {
+                log.warn("No resolver or resolution failed for type={} action={}", type.getSimpleName(), action);
+                return false;
+            }
 
-        return dispatcher.dispatch(point, action, resolved.get());
+            return dispatcher.dispatch(point, action, resolved.get());
+        }, Boolean.FALSE));
     }
 
     /**

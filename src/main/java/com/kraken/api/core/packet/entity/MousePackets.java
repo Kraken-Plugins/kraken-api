@@ -3,6 +3,7 @@ package com.kraken.api.core.packet.entity;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
+import com.kraken.api.Context;
 import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.PacketClient;
 import com.kraken.api.core.packet.PacketFactory;
@@ -27,6 +28,9 @@ public class MousePackets {
     @Inject
     private Provider<PacketClient> packetSenderProvider;
 
+    @Inject
+    private Provider<Context> ctxProvider;
+
     /**
      * Idle-tick threshold at which a synthetic keypress is injected to reset the client's idle
      * counters, re-randomised each time it is crossed.
@@ -48,11 +52,31 @@ public class MousePackets {
      * Queues a click packet to send to the game server. The click packet should be sent before
      * any game interaction (Widget, Movement, Npc, Object etc...) packets are sent. The click packet
      * encapsulates the x and y coordinates of the canvas for the click that was made.
+     *
+     * <p>The timestamps this writes are the client's own, read and updated by the game thread on every
+     * frame, so the read-modify-write and the packet that carries its result are handed to the client
+     * thread as one unit. Blocks until that is done, which keeps a click ahead of the interaction it
+     * precedes.</p>
+     *
+     * @param x The x canvas coordinate.
+     * @param y The y canvas coordinate.
+     */
+    public void queueClickPacket(int x, int y) {
+        ctxProvider.get().runOnClientThread(() -> {
+            queueClickPacketOnClientThread(x, y);
+            return Boolean.TRUE;
+        }, Boolean.FALSE);
+    }
+
+    /**
+     * Stamps the client's mouse timestamps and sends the click packet carrying the delta between them.
+     * Runs on the client thread only.
+     *
      * @param x The x canvas coordinate.
      * @param y The y canvas coordinate.
      */
     @SneakyThrows
-    public void queueClickPacket(int x, int y) {
+    private void queueClickPacketOnClientThread(int x, int y) {
         long mouseHandlerMS = System.currentTimeMillis();
         setMouseHandlerLastMillis(mouseHandlerMS);
         long clientMS = getClientLastMillis();

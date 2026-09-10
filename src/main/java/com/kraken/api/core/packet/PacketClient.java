@@ -1,5 +1,7 @@
 package com.kraken.api.core.packet;
 
+import com.google.inject.Provider;
+import com.kraken.api.Context;
 import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.packet.model.BufferOperation;
 import com.kraken.api.core.packet.model.PacketDefinition;
@@ -35,6 +37,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * object it is applied to, so if the client ever supplies an object of a different class the handle
  * is re-resolved instead of being applied stale. Failed resolutions are never cached and are
  * retried on the next send.
+ * <p>
+ * Every send runs on the client thread. The packet writer, node pool and ISAAC cipher this class
+ * reaches through are the same objects the game thread uses for its own traffic, and nothing about
+ * them is thread safe, so {@link #sendPacket} hands the whole build-write-enqueue sequence to the
+ * client thread and {@link #sendPacketOnClientThread} refuses to run anywhere else.
  */
 @Slf4j
 @Singleton
@@ -42,6 +49,8 @@ public class PacketClient {
 
     @Getter
     private final Client client;
+
+    private final Provider<Context> ctxProvider;
 
     private final boolean isUsingClientAddNode;
 
@@ -60,10 +69,12 @@ public class PacketClient {
      * to determine the packet sending method.
      *
      * @param client The RuneLite Client instance.
+     * @param ctxProvider Supplies the {@link Context} used to hand each send to the client thread.
      */
     @Inject
-    public PacketClient(Client client) {
+    public PacketClient(Client client, Provider<Context> ctxProvider) {
         this.client = client;
+        this.ctxProvider = ctxProvider;
         // Some revs the packet add node method will be like client.aq.az() client.packetWriter.addNode() but other times
         // it may be on a static helper class like ap.aq.az() helper.packetWriter.addNode()
         this.isUsingClientAddNode = HooksLoader.getReflectionHooks().getAddNodeClassName().equalsIgnoreCase("client");
@@ -71,12 +82,38 @@ public class PacketClient {
 
     /**
      * Constructs and sends a packet to the game server.
-     * This is the primary public method of this class.
+     * This is the primary public method of this class, and the only entry point that may be called
+     * from a worker thread: it marshals the whole operation onto the client thread and blocks until
+     * the packet has been queued, so packets sent one after another reach the writer in that order.
      *
      * @param def     The {@link PacketDefinition} enumeration defining the packet structure.
      * @param objects The data (payload) for the packet, in the order defined by the PacketDefinition.
      */
     public void sendPacket(PacketDefinition def, Object... objects) {
+        boolean sent = ctxProvider.get().runOnClientThreadOptional(() -> {
+            sendPacketOnClientThread(def, objects);
+            return Boolean.TRUE;
+        }).isPresent();
+
+        if (!sent) {
+            log.error("Packet {} was not sent: the client thread did not accept it", def.getObfuscatedName());
+        }
+    }
+
+    /**
+     * Builds, writes and queues a packet. Runs on the client thread only.
+     *
+     * @param def     The {@link PacketDefinition} enumeration defining the packet structure.
+     * @param objects The data (payload) for the packet, in the order defined by the PacketDefinition.
+     * @throws IllegalStateException if called from any thread other than the client thread
+     */
+    private void sendPacketOnClientThread(PacketDefinition def, Object... objects) {
+        if (!client.isClientThread()) {
+            throw new IllegalStateException("Packets must be built and queued on the client thread; "
+                    + "reached from '" + Thread.currentThread().getName() + "' for packet " + def.getObfuscatedName()
+                    + ". Call sendPacket(), which marshals for you.");
+        }
+
         Object packetBufferNode = null;
         Method getPacketBufferNode = getGetPacketBufferNode();
         Class<?> clientPacket = getClientPacketClass();
