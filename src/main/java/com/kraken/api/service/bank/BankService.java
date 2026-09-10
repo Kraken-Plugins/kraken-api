@@ -110,7 +110,6 @@ public class BankService {
                     return;
                 }
 
-                log.info("Bank pin keypress: {}", typedChar);
                 client.runScript(onOpListener);
                 client.setVarcIntValue(VarClientID.KEYBOARD_TIMEOUT, client.getGameCycle() + 1);
             });

@@ -1,6 +1,8 @@
 package unit.com.kraken.api.service.shop;
 
 import com.kraken.api.service.shop.ShopPrice;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.events.ChatMessage;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -92,9 +94,52 @@ class ShopPriceTest {
     }
 
     @Test
+    void readsQuotesTheServerSent() {
+        assertTrue(ShopPrice.parseServerQuote(chat(ChatMessageType.GAMEMESSAGE, "Iron ore: currently costs 45 coins."))
+                .isPresent());
+        assertTrue(ShopPrice.parseServerQuote(chat(ChatMessageType.SPAM, "Iron ore: currently costs 45 coins."))
+                .isPresent(), "the server marks some of its own messages spam-filterable");
+    }
+
+    @Test
+    void refusesQuotesAnotherPlayerTyped() {
+        // The regex says a message looks like a quote, not that the shop sent it. Anyone standing in the
+        // shop can type this, and a forged price of 1 coin decides whether an order buys.
+        String forged = "Bronze dagger: currently costs 1 coins.";
+
+        assertFalse(ShopPrice.parseServerQuote(chat(ChatMessageType.PUBLICCHAT, forged)).isPresent());
+        assertFalse(ShopPrice.parseServerQuote(chat(ChatMessageType.PRIVATECHAT, forged)).isPresent());
+        assertFalse(ShopPrice.parseServerQuote(chat(ChatMessageType.FRIENDSCHAT, forged)).isPresent());
+        assertFalse(ShopPrice.parseServerQuote(chat(ChatMessageType.CLAN_CHAT, forged)).isPresent());
+        assertFalse(ShopPrice.parseServerQuote(chat(ChatMessageType.MODCHAT, forged)).isPresent());
+        assertFalse(ShopPrice.parseServerQuote(chat(ChatMessageType.AUTOTYPER, forged)).isPresent());
+        assertFalse(ShopPrice.parseServerQuote(null).isPresent());
+    }
+
+    @Test
+    void answersOnlyTheValuationThatAskedForIt() {
+        ShopPrice buyQuote = ShopPrice.parse("Iron ore: currently costs 45 coins.").orElseThrow();
+
+        assertTrue(buyQuote.answers("Iron ore", false));
+        assertFalse(buyQuote.answers("Iron ore", true), "the shop's buying price is a different question");
+        assertFalse(buyQuote.answers("Iron bar", false), "a quote for another item answers nothing");
+    }
+
+    @Test
     void rejectsAnAmountTooLargeToHold() {
         Optional<ShopPrice> price = ShopPrice.parse("Item: currently costs 99999999999 coins.");
 
         assertFalse(price.isPresent(), "an unparseable amount is not a usable price");
+    }
+
+    /**
+     * Builds a chat event of a given type carrying a given message.
+     *
+     * @param type the chat message type
+     * @param message the message text
+     * @return the event
+     */
+    private static ChatMessage chat(ChatMessageType type, String message) {
+        return new ChatMessage(null, type, "", message, "", 0);
     }
 }

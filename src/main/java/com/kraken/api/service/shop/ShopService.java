@@ -12,7 +12,9 @@ import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.ui.UIService;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.GameState;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.VarbitID;
@@ -93,25 +95,81 @@ public class ShopService {
     private KeyboardService keyboard;
 
     /**
-     * The most recent price the shop quoted.
+     * The valuation currently waiting for the shop to answer, or null when none is.
      *
-     * <p>Held rather than accumulated in a cache because a shop price is only true for the instant it
-     * was quoted — caching one would be caching something already stale. Written from the client
-     * thread by the event bus and read by whichever thread is waiting on a valuation.</p>
+     * <p>One at a time: a shop answers a Value click with a message that carries nothing tying it back
+     * to the click, so the only way to know which request a quote answers is for there to be exactly
+     * one request outstanding. Installed by the waiting thread, read and completed from the client
+     * thread by the event bus.</p>
      */
-    private final AtomicReference<ShopPrice> lastQuote = new AtomicReference<>();
+    private final AtomicReference<PendingQuote> pendingQuote = new AtomicReference<>();
 
     /**
-     * Records shop price quotes as they arrive.
+     * Answers the outstanding valuation, if a quote for it arrives.
      *
-     * <p>Registered on the event bus by {@link Context}. Every message is offered to the parser, which
-     * ignores everything that is not a quote, so unrelated chat costs one failed regex match.</p>
+     * <p>Registered on the event bus by {@link Context}. Costs nothing when no valuation is waiting,
+     * which is almost always.</p>
      *
      * @param event the chat message event
      */
     @Subscribe
     public void onChatMessage(ChatMessage event) {
-        ShopPrice.parse(event.getMessage()).ifPresent(lastQuote::set);
+        PendingQuote request = pendingQuote.get();
+        if (request != null) {
+            ShopPrice.parseServerQuote(event).ifPresent(request::offer);
+        }
+    }
+
+    /**
+     * Drops an outstanding valuation when the session changes underneath it.
+     *
+     * <p>A quote is only meaningful for the session that was asked, so a hop or a relog abandons the
+     * request rather than letting the new session's chat answer it.</p>
+     *
+     * @param event the game state change event
+     */
+    @Subscribe
+    public void onGameStateChanged(GameStateChanged event) {
+        if (event.getGameState() != GameState.LOGGED_IN) {
+            pendingQuote.set(null);
+        }
+    }
+
+    /**
+     * A single outstanding "Value" click and the quote that answered it.
+     *
+     * <p>The answer is written once. Whichever thread is waiting reads that one reference, so the quote
+     * it acts on is the same quote that satisfied the wait.</p>
+     */
+    private static final class PendingQuote {
+
+        private final String itemName;
+        private final boolean sellPrice;
+        private final AtomicReference<ShopPrice> answer = new AtomicReference<>();
+
+        PendingQuote(String itemName, boolean sellPrice) {
+            this.itemName = itemName;
+            this.sellPrice = sellPrice;
+        }
+
+        /**
+         * Completes this request when the quote is the one it asked for.
+         *
+         * @param price a quote parsed from a server message
+         */
+        void offer(ShopPrice price) {
+            if (price.answers(itemName, sellPrice)) {
+                answer.compareAndSet(null, price);
+            }
+        }
+
+        /**
+         * @return the quote that answered this request, or null while it is still outstanding
+         */
+        @Nullable
+        ShopPrice answer() {
+            return answer.get();
+        }
     }
 
     /**
@@ -676,32 +734,28 @@ public class ShopService {
             return -1;
         }
 
-        // Clearing first means a quote left over from an earlier item can never be mistaken for this
-        // one's, which matters because the two directions produce near identical messages.
-        lastQuote.set(null);
-        dispatch.run();
-
-        boolean quoted = SleepService.sleepUntil(() -> matches(lastQuote.get(), itemName, sellPrice), VALUE_TIMEOUT_MS);
-        if (!quoted) {
-            log.debug("Shop did not quote a {} price for {} within {}ms",
-                    sellPrice ? "sell" : "buy", itemName, VALUE_TIMEOUT_MS);
+        PendingQuote request = new PendingQuote(itemName, sellPrice);
+        if (!pendingQuote.compareAndSet(null, request)) {
+            log.warn("A valuation is already waiting for the shop, refusing to also value {}", itemName);
             return -1;
         }
 
-        ShopPrice price = lastQuote.get();
-        return price == null ? -1 : price.getAmount();
-    }
+        try {
+            dispatch.run();
+            SleepService.sleepUntil(() -> request.answer() != null, VALUE_TIMEOUT_MS);
 
-    /**
-     * Whether a quote is the one being waited for.
-     *
-     * @param price the quote to test, may be null
-     * @param itemName the item that was valued
-     * @param sellPrice the direction that was asked for
-     * @return true when the quote names the item and is for the right direction
-     */
-    private boolean matches(@Nullable ShopPrice price, String itemName, boolean sellPrice) {
-        return price != null && price.isSellPrice() == sellPrice && price.isFor(itemName);
+            ShopPrice price = request.answer();
+            if (price == null) {
+                log.debug("Shop did not quote a {} price for {} within {}ms",
+                        sellPrice ? "sell" : "buy", itemName, VALUE_TIMEOUT_MS);
+                return -1;
+            }
+            return price.getAmount();
+        } finally {
+            // Anything that arrives after this has nothing to answer, so a late reply cannot be read as
+            // the next valuation's.
+            pendingQuote.compareAndSet(request, null);
+        }
     }
 
     /**

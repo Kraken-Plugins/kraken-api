@@ -1,9 +1,13 @@
 package com.kraken.api.service.shop;
 
 import lombok.Value;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.client.util.Text;
 
+import java.util.EnumSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,6 +32,17 @@ public class ShopPrice {
                     + "\\s+(?<amount>[\\d,]+)\\s*(?<currency>[a-z][a-z' ]*?)?\\s*[.!]?$",
             Pattern.CASE_INSENSITIVE);
 
+    /**
+     * The chat message types the server itself originates.
+     *
+     * <p>The regex proves a message is shaped like a quote, not that the server sent it: a public chat
+     * line reading "Bronze dagger: currently costs 1 coins." parses exactly like the real thing, and a
+     * quote decides whether an order buys or sells. Anything a player can type is therefore thrown away
+     * before it reaches the parser.</p>
+     */
+    private static final Set<ChatMessageType> SERVER_QUOTE_TYPES =
+            EnumSet.of(ChatMessageType.GAMEMESSAGE, ChatMessageType.SPAM);
+
     /** The item the shop quoted, exactly as the message named it. */
     String itemName;
 
@@ -44,6 +59,22 @@ public class ShopPrice {
      * is what the player pays the shop.</p>
      */
     boolean sellPrice;
+
+    /**
+     * Parses a shop value message from the chat event that carried it.
+     *
+     * <p>Only messages the server originates are read; player-authored chat is discarded before
+     * parsing. This is the only entry point that should be used on event bus traffic.</p>
+     *
+     * @param event a chat message event; may be null
+     * @return the parsed price, or empty when the message is not a server quote
+     */
+    public static Optional<ShopPrice> parseServerQuote(ChatMessage event) {
+        if (event == null || !SERVER_QUOTE_TYPES.contains(event.getType())) {
+            return Optional.empty();
+        }
+        return parse(event.getMessage());
+    }
 
     /**
      * Parses a shop value message.
@@ -95,5 +126,19 @@ public class ShopPrice {
      */
     public boolean isFor(String name) {
         return name != null && itemName.equalsIgnoreCase(Text.removeTags(name).trim());
+    }
+
+    /**
+     * Whether this quote answers a valuation of the given item in the given direction.
+     *
+     * <p>The two directions produce near identical messages, so the direction is part of the identity
+     * of an answer and not just a field on it.</p>
+     *
+     * @param itemName the item that was valued, may be null
+     * @param sellPrice true when the shop's buying price was asked for rather than its selling price
+     * @return true when this quote names that item and is for that direction
+     */
+    public boolean answers(String itemName, boolean sellPrice) {
+        return this.sellPrice == sellPrice && isFor(itemName);
     }
 }
