@@ -28,7 +28,9 @@ and widget-on-target combinations). Each call is:
 3. Invoked by `DoActionInvoker`, a reflective call into the client's obfuscated `doAction` using the class and method names in `hooks.json`.
 
 The client then validates, constructs, and queues the packet exactly as it would for a real click. `interact(...)` returns `false` when nothing was sent (no
-matching action, entity gone, hooks missing), so retrying on a `false` result is safe.
+matching action, entity gone, hooks missing). If the client-thread wait ends after execution has begun,
+`ClientThreadException` propagates with `isOutcomeUnknown() == true`; observe the result before deciding whether to retry.
+An engine exception can also occur after a partial effect, so a failure result alone is not a general retry guarantee.
 
 ## Example: Attacking an NPC
 
@@ -45,7 +47,7 @@ When you call `ctx.npcs().withName("Goblin").interact("Attack")`, the following 
 The packet system covers the actions that do not go through `doAction`. It consists of several key components working together:
 
 1.  **Packet Definitions (`PacketDefinition`)**: These define the structure of each packet type, including the packet's name, the data fields it contains, the methods used to write that data, and the associated `PacketType`. They are loaded from the `packets` section of `hooks.json`.
-2.  **Packet Types (`PacketType`)**: An enumeration of the client packet kinds the API knows the shape of (`OPNPC`, `OPLOC`, `IF_BUTTON`, `MOVE_GAMECLICK`, and so on). Only the five with definitions in `hooks.json` are built and sent by the API: `EVENT_MOUSE_CLICK`, `MOVE_GAMECLICK`, `RESUME_COUNTDIALOG`, `RESUME_OBJDIALOG` and `RESUME_STRINGDIALOG`. Everything else is handled by `doAction`.
+2.  **Packet Types (`PacketType`)**: An enumeration of the client packet kinds the API knows the shape of (`OPNPC`, `OPLOC`, `IF_BUTTON`, `MOVE_GAMECLICK`, and so on). Only the six with definitions in `hooks.json` are built and sent by the API: `EVENT_MOUSE_CLICK`, `MOVE_GAMECLICK`, `RESUME_COUNTDIALOG`, `RESUME_OBJDIALOG`, `RESUME_STRINGDIALOG` and `EVENT_APPLET_FOCUS`. Everything else is handled by `doAction`.
 3.  **Packet Definition Factory (`PacketFactory`)**: A factory class that creates and caches `PacketDefinition` instances for the supported packet types.
 4.  **Packet Client (`PacketClient`)**: The core component responsible for constructing and sending packets. It uses the `reflectionHooks` from `hooks.json` (packet writer, buffer node, `addNode`, Isaac cipher) to access the client's internals so that packets are formatted correctly and queued for transmission.
 5.  **Entity Packet Helpers (`com.kraken.api.core.packet.entity`)**: `MousePackets`, `MovementPackets` and `WidgetPackets` wrap the packet client for the specific cases above. These classes are further abstracted by the Query and Service system.
@@ -59,9 +61,16 @@ The process of sending a packet involves the following steps:
 3.  **Retrieve Definition**: The `PacketFactory` provides the `PacketDefinition` for the packet type.
 4.  **Prepare Data**: The necessary data (e.g., the target coordinates) is collected.
 5.  **Send Packet**: The `PacketClient` is invoked with the `PacketDefinition` and the data.
-    *   It uses reflection to create a `PacketBufferNode`.
-    *   It writes the data into the packet's buffer using the methods specified in the definition.
-    *   It queues the packet to the client's `PacketWriter` to be sent to the server.
+    *   On the client thread, it resolves the factory, writer/cipher, packet constant, buffer fields, and enqueue signature.
+    *   It reads the live packet length and encodes the full payload into a scratch buffer using `BufferUtils`.
+        Argument count/types, write operations, null-free CP1252 strings, length prefixes, and factory capacity are checked here.
+    *   Only then does it create a `PacketBufferNode`, consuming one ISAAC value for the opcode, copy the prepared bytes
+        after that opcode, and enqueue through the already-resolved method.
+
+Preflight rejection consumes no cipher state. An unexpected failure after factory invocation is treated as a compromised
+transport: the sender rejects subsequent sends, requests `LOGIN_SCREEN` to leave normal game processing, and throws an
+unknown-outcome `ClientThreadException`. Restart the client; retrying or recreating only the sender cannot repair the cipher.
+The capacity rules and packet length hooks are client-version-sensitive; see [UPDATING.md](UPDATING.md).
 
 ## Key Parts
 

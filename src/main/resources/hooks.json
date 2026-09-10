@@ -5,6 +5,8 @@
     "addNodeClassName": "client",
     "addNodeGarbageValue": -1301097035,
     "clientPacketClassName": "js",
+    "clientPacketLengthField": "eo",
+    "clientPacketLengthMultiplier": -1758762607,
     "packetWriterClassName": "dj",
     "packetWriterFieldName": "ai",
     "classContainingPacketBufferNodeName": "ef",

@@ -2,10 +2,9 @@ package com.kraken.api.core.packet;
 
 import com.google.inject.Provider;
 import com.kraken.api.Context;
+import com.kraken.api.core.ClientThreadException;
 import com.kraken.api.core.hooks.HooksLoader;
-import com.kraken.api.core.packet.model.BufferOperation;
 import com.kraken.api.core.packet.model.PacketDefinition;
-import com.kraken.api.core.packet.model.PacketWrite;
 import com.kraken.api.util.GarbageValueUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -14,12 +13,11 @@ import net.runelite.api.Client;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -30,13 +28,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * Instead, it's recommended to use the higher level API's like {@code MousePackets}, {@code WidgetPackets}, or {@code NpcPackets} for
  * sending game packets to the server based on your specific entity interaction needs (clicking interfaces, NPC's, GameObjects, etc...
  * <p>
- * All reflective handles (classes, methods and fields) are resolved once and cached with the same
+ * Factory, writer, cipher, node-buffer and enqueue handles are cached with the same
  * double-checked-locking shape {@code DoActionInvoker} uses. Only the handles are cached — the
  * {@code PacketWriter} instance, ISAAC cipher and packet definition constants are re-read from the
  * live client on every send. Each instance-bound handle is guarded by the declaring class of the
  * object it is applied to, so if the client ever supplies an object of a different class the handle
  * is re-resolved instead of being applied stale. Failed resolutions are never cached and are
- * retried on the next send.
+ * retried on the next send. The live packet length is read reflectively during each preflight.
  * <p>
  * Every send runs on the client thread. The packet writer, node pool and ISAAC cipher this class
  * reaches through are the same objects the game thread uses for its own traffic, and nothing about
@@ -61,6 +59,7 @@ public class PacketClient {
     private volatile Field isaacField;
     private volatile Field packetBufferField;
     private volatile Method addNodeMethod;
+    private boolean transportCompromised;
     private final Map<String, Field> packetDefinitionFields = new ConcurrentHashMap<>();
 
     /**
@@ -88,8 +87,10 @@ public class PacketClient {
      *
      * @param def     The {@link PacketDefinition} enumeration defining the packet structure.
      * @param objects The data (payload) for the packet, in the order defined by the PacketDefinition.
+     * @throws ClientThreadException if execution has an unknown outcome or transport recovery is required
      */
     public void sendPacket(PacketDefinition def, Object... objects) {
+        Objects.requireNonNull(def, "Packet definition is required");
         boolean sent = ctxProvider.get().runOnClientThreadOptional(() -> {
             sendPacketOnClientThread(def, objects);
             return Boolean.TRUE;
@@ -114,160 +115,110 @@ public class PacketClient {
                     + ". Call sendPacket(), which marshals for you.");
         }
 
-        Object packetBufferNode = null;
-        Method getPacketBufferNode = getGetPacketBufferNode();
-        Class<?> clientPacket = getClientPacketClass();
-        Object isaac = getIsaacObject();
-
-        if (getPacketBufferNode == null || clientPacket == null || isaac == null) {
-            log.error("Failed to get critical reflection components for sending packet: {}", def.getObfuscatedName());
-            return;
+        if (transportCompromised) {
+            throw new ClientThreadException("Packet transport is compromised; restart the client before sending again", null, true);
         }
 
+        boolean factoryInvoked = false;
         try {
-            Field packetField = fetchPacketField(def.getObfuscatedName());
-            if (packetField == null) {
-                log.error("Could not find packet field for: {}", def.getObfuscatedName());
-                return;
-            }
-            Object packetDefInstance = packetField.get(clientPacket);
-
-            // The factory method takes (packetDefinition, isaac, garbage). The obfuscator re-rolls the
-            // trailing garbage parameter's primitive width every revision, so the value is boxed at
-            // whatever width the resolved method actually declares.
-            Class<?>[] parameterTypes = getPacketBufferNode.getParameterTypes();
-            if (parameterTypes.length != 3) {
-                log.error("getPacketBufferNode has an unexpected parameter count ({}) for packet: {}", parameterTypes.length, def.getObfuscatedName());
-                return;
-            }
-
-            Object garbageArgument = GarbageValueUtils.coerceToParameterType(parameterTypes[2], HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue());
-            if (garbageArgument == null) {
-                log.error("Unsupported getPacketBufferNode garbage value type '{}' for packet: {}", parameterTypes[2].getName(), def.getObfuscatedName());
-                return;
-            }
-
-            packetBufferNode = getPacketBufferNode.invoke(null, packetDefInstance, isaac, garbageArgument);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            log.error("Failed to invoke getPacketBufferNode: ", e);
-        }
-
-        if (packetBufferNode == null) {
-            log.error("PacketBufferNode was null after creation attempt for packet: {}", def.getObfuscatedName());
-            return;
-        }
-
-        // Get the raw 'buffer' object from the 'packetBufferNode' to write data into.
-        Object buffer;
-        try {
-            buffer = getPacketBufferField(packetBufferNode.getClass()).get(packetBufferNode);
-        } catch (IllegalAccessException | NoSuchFieldException e) {
-            log.error("Failed to get packet buffer from node: ", e);
-            return;
-        }
-
-        // Map the PacketType to the expected parameter order.
-        // This is necessary because the varargs 'objects' must be written in a specific
-        // sequence defined by the packet structure, not just the order they are passed in.
-        List<String> params = def.getType().getParams();
-
-        // If the packet type is recognized, write the data into the buffer.
-        if (params != null) {
-            Map<String, Integer> paramIndices = new HashMap<>();
-            for (int i = 0; i < params.size(); i++) {
-                paramIndices.put(params.get(i), i);
-            }
-
-            for (PacketWrite write : def.getWrites()) {
-                Integer index = paramIndices.get(write.getParam());
-                if (index == null || index >= objects.length) {
-                    log.error("Missing packet value for {}.{} param {}", def.getName(), def.getObfuscatedName(), write.getParam());
-                    return;
-                }
-
-                Object writeValue = objects[index];
-                for (BufferOperation operation : write.getOperations()) {
-                    BufferUtils.writeOperation(operation, writeValue, buffer);
-                }
-            }
-
-            // Get the PacketWriter field and queue the fully constructed packet node.
+            Method factory = getGetPacketBufferNode();
             Field writerField = getPacketWriterField();
-            if (writerField == null) {
-                log.error("Could not get PacketWriter field to queue packet.");
+            if (factory == null || writerField == null) {
+                log.error("Missing packet factory or writer hooks; packet was not sent");
                 return;
             }
-
-            try {
-                Object packetWriter = writerField.get(null);
-                if (packetWriter != null) {
-                    addNode(packetWriter, packetBufferNode);
-                } else {
-                    log.error("PacketWriter object was null.");
-                }
-            } catch (Exception e) {
-                log.error("Failed to add packet node to queue: ", e);
+            Object writer = writerField.get(null);
+            if (writer == null) {
+                throw new IllegalStateException("Packet writer is unavailable");
             }
-        } else {
-            log.warn("Unrecognized packet type, packet not sent: {}", def.getType());
+            Object isaac = getIsaacField(writer.getClass()).get(writer);
+            Field packetField = fetchPacketField(def.getObfuscatedName());
+            if (packetField == null || !Modifier.isStatic(packetField.getModifiers())) {
+                throw new IllegalStateException("Missing static packet definition field");
+            }
+            Object packet = packetField.get(null);
+            Class<?>[] factoryTypes = factory.getParameterTypes();
+            if (!Modifier.isStatic(factory.getModifiers()) || factoryTypes.length != 3
+                    || !factoryTypes[0].isInstance(packet) || !factoryTypes[1].isInstance(isaac)) {
+                throw new IllegalStateException("Invalid packet factory signature or live arguments");
+            }
+            Object factoryGarbage = requireGarbage(factoryTypes[2],
+                    HooksLoader.getReflectionHooks().getPacketBufferNodeGarbageValue());
+            Class<?> nodeClass = factory.getReturnType();
+            Field bufferField = getPacketBufferField(nodeClass);
+            if (Modifier.isStatic(bufferField.getModifiers())) {
+                throw new IllegalStateException("Packet buffer must be an instance field");
+            }
+            Method enqueue = getAddNodeMethod(writer, nodeClass);
+            if (enqueue == null) {
+                throw new IllegalStateException("Missing packet enqueue method");
+            }
+            Class<?>[] enqueueTypes = enqueue.getParameterTypes();
+            Object[] enqueueArguments;
+            if (isUsingClientAddNode) {
+                if (Modifier.isStatic(enqueue.getModifiers()) || enqueueTypes.length != 2
+                        || !enqueueTypes[0].isAssignableFrom(nodeClass)) {
+                    throw new IllegalStateException("Invalid instance enqueue signature");
+                }
+                enqueueArguments = new Object[]{null, requireGarbage(enqueueTypes[1],
+                        HooksLoader.getReflectionHooks().getAddNodeGarbageValue())};
+            } else {
+                if (!Modifier.isStatic(enqueue.getModifiers())
+                        || (enqueueTypes.length != 2 && enqueueTypes.length != 3)
+                        || !enqueueTypes[0].isInstance(writer) || !enqueueTypes[1].isAssignableFrom(nodeClass)) {
+                    throw new IllegalStateException("Invalid static enqueue signature");
+                }
+                enqueueArguments = enqueueTypes.length == 2 ? new Object[]{writer, null}
+                        : new Object[]{writer, null, requireGarbage(enqueueTypes[2],
+                        HooksLoader.getReflectionHooks().getAddNodeGarbageValue())};
+            }
+
+            // Read the live packet length before the factory can advance ISAAC. These two hooks
+            // must be re-vetted along with the factory capacity rules on every client revision.
+            Field lengthField = packet.getClass().getDeclaredField(
+                    HooksLoader.getReflectionHooks().getClientPacketLengthField());
+            lengthField.setAccessible(true);
+            if (lengthField.getType() != int.class || Modifier.isStatic(lengthField.getModifiers())) {
+                throw new IllegalStateException("Invalid packet length field");
+            }
+            int length = lengthField.getInt(packet) * HooksLoader.getReflectionHooks().getClientPacketLengthMultiplier();
+            BufferUtils.BufferAccess bufferAccess = BufferUtils.validateFields(bufferField.getType());
+            byte[] payload = PacketPayload.encode(def, objects, length);
+
+            // No payload conversion or reflection resolution is allowed beyond this boundary.
+            factoryInvoked = true;
+            Object node = factory.invoke(null, packet, isaac, factoryGarbage);
+            Object buffer = bufferField.get(node);
+            byte[] array = (byte[]) bufferAccess.array.get(buffer);
+            int offset = bufferAccess.offset.getInt(buffer) * HooksLoader.getReflectionHooks().getIndexMultiplier();
+            if (offset != 1 || array == null || payload.length > array.length - offset) {
+                throw new IllegalStateException("Factory buffer violates the vetted opcode/capacity contract");
+            }
+            System.arraycopy(payload, 0, array, offset, payload.length);
+            bufferAccess.offset.setInt(buffer, (offset + payload.length) * HooksLoader.getReflectionHooks().getOffsetMultiplier());
+            enqueueArguments[isUsingClientAddNode ? 0 : 1] = node;
+            enqueue.invoke(isUsingClientAddNode ? writer : null, enqueueArguments);
+        } catch (Exception | LinkageError e) {
+            if (factoryInvoked) {
+                transportCompromised = true;
+                log.error("Packet construction failed after possible ISAAC consumption; stopping game traffic. Restart the client.", e);
+                try {
+                    client.setGameState(net.runelite.api.GameState.LOGIN_SCREEN);
+                } catch (Exception recoveryFailure) {
+                    e.addSuppressed(recoveryFailure);
+                }
+                throw new ClientThreadException("Packet transport is compromised; restart the client", e, true);
+            }
+            throw new IllegalArgumentException("Packet rejected before ISAAC consumption", e);
         }
     }
 
-    /**
-     * Queues a fully constructed {@code PacketBufferNode} to the client's {@code PacketWriter} for network dispatch.
-     * <p>
-     * Due to the client's dynamic obfuscation patterns across different revisions, the underlying
-     * packet-queueing method manifests in one of two distinct structural paths:
-     * <ul>
-     * <li><b>Path 1 (Instance Method):</b> The method exists directly on the {@code PacketWriter} class.
-     * It takes the buffer as an argument (e.g., {@code client.packetWriter.addNode(buffer)}).</li>
-     * <li><b>Path 2 (Static Utility):</b> The method is detached into an unrelated static utility class.
-     * Because it lacks instance context, it strictly requires the {@code PacketWriter} to be passed
-     * in as its first argument (e.g., {@code RandomClass.addNode(packetWriter, buffer)}).</li>
-     * </ul>
-     * <p>
-     * This method acts as a unified wrapper, abstracting away this instability. It seamlessly executes
-     * the correct reflection call — the anti-reversing dummy "garbage value" is boxed at whatever
-     * primitive width the resolved method declares for it.
-     *
-     * @param packetWriter     The client's {@code PacketWriter} instance responsible for handling network I/O.
-     * @param packetBufferNode The fully constructed packet node containing the payload to be sent.
-     */
-    private void addNode(Object packetWriter, Object packetBufferNode) {
-        try {
-            Method addNode = getAddNodeMethod(packetWriter, packetBufferNode);
-            if (addNode == null) {
-                log.error("Failed to locate addNode method: {} in class {}: ", HooksLoader.getReflectionHooks().getAddNodeMethodName(), HooksLoader.getReflectionHooks().getAddNodeClassName());
-                return;
-            }
-
-            Class<?>[] parameterTypes = addNode.getParameterTypes();
-            if (isUsingClientAddNode) {
-                // Path 1: instance method on the PacketWriter — addNode(packetBufferNode, garbage).
-                Object garbageArgument = GarbageValueUtils.coerceToParameterType(parameterTypes[1], HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
-                if (garbageArgument == null) {
-                    log.error("Unsupported addNode garbage value type '{}'", parameterTypes[1].getName());
-                    return;
-                }
-                addNode.invoke(packetWriter, packetBufferNode, garbageArgument);
-            } else {
-                // Path 2: static utility method — addNode(packetWriter, packetBufferNode[, garbage]).
-                if (parameterTypes.length == 2) {
-                    addNode.invoke(null, packetWriter, packetBufferNode);
-                } else if (parameterTypes.length == 3) {
-                    Object garbageArgument = GarbageValueUtils.coerceToParameterType(parameterTypes[2], HooksLoader.getReflectionHooks().getAddNodeGarbageValue());
-                    if (garbageArgument == null) {
-                        log.error("Unsupported addNode garbage value type '{}'", parameterTypes[2].getName());
-                        return;
-                    }
-                    addNode.invoke(null, packetWriter, packetBufferNode, garbageArgument);
-                } else {
-                    log.error("addNode method has an unexpected parameter count: {}", parameterTypes.length);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Failed during addNode packet queueing: ", e);
+    private static Object requireGarbage(Class<?> type, Integer value) {
+        Object argument = GarbageValueUtils.coerceToParameterType(type, value);
+        if (argument == null) {
+            throw new IllegalArgumentException("Unsupported garbage parameter: " + type.getName());
         }
+        return argument;
     }
 
     /**
@@ -279,13 +230,12 @@ public class PacketClient {
      * for the life of the client.
      *
      * @param packetWriter     The live {@code PacketWriter} instance.
-     * @param packetBufferNode The packet node about to be queued.
+     * @param packetBufferNodeClass The factory return type, resolved before allocation.
      * @return The resolved {@code addNode} method with its accessible flag set, or {@code null} if it cannot be found.
      */
-    private Method getAddNodeMethod(Object packetWriter, Object packetBufferNode) {
+    private Method getAddNodeMethod(Object packetWriter, Class<?> packetBufferNodeClass) {
         if (isUsingClientAddNode) {
             Class<?> packetWriterClass = packetWriter.getClass();
-            Class<?> packetBufferNodeClass = packetBufferNode.getClass();
             Method cached = addNodeMethod;
             if (isAddNodeCacheValid(cached, packetWriterClass, packetBufferNodeClass)) {
                 return cached;
@@ -343,7 +293,7 @@ public class PacketClient {
      * the historically verified resolution for the current hooks. Only if that signature does not
      * exist does this fall back to scanning for a same-named two-parameter method taking the packet
      * node and a primitive numeric garbage parameter, whose declared width then drives the
-     * argument coercion in {@link #addNode(Object, Object)}.
+     * argument coercion in the preflight phase.
      *
      * @param packetWriterClass     The live {@code PacketWriter}'s class.
      * @param packetBufferNodeClass The packet node class the method must accept.
@@ -448,10 +398,12 @@ public class PacketClient {
                     return null;
                 }
 
-                // Find the method within the accessor class that returns a PacketBufferNode.
-                // This is fragile and assumes only one such method exists.
+                // Resolve the mapped factory name and signature, not an arbitrary node-returning method.
                 Method resolved = Arrays.stream(packetBufferNodeAccessorClass.getDeclaredMethods())
-                        .filter(m -> m.getReturnType().equals(packetBufferNodeClass))
+                        .filter(m -> m.getName().equals(HooksLoader.getReflectionHooks().getPacketBufferNodeFactoryMethodName()))
+                        .filter(m -> Modifier.isStatic(m.getModifiers()) && m.getReturnType().equals(packetBufferNodeClass))
+                        .filter(m -> m.getParameterCount() == 3 && m.getParameterTypes()[0] == getClientPacketClass()
+                                && GarbageValueUtils.isSupportedParameterType(m.getParameterTypes()[2]))
                         .findFirst()
                         .orElse(null);
                 if (resolved != null) {
@@ -537,31 +489,6 @@ public class PacketClient {
             }
             return null;
         }
-    }
-
-    /**
-     * Retrieves the {@code IsaacCipher} object from the {@code PacketWriter}.
-     * The cipher is needed to correctly construct the packet header. The cipher instance is
-     * read from the live {@code PacketWriter} on every call; only the field handle is cached.
-     *
-     * @return The {@code IsaacCipher} instance, or null if failed.
-     */
-    private Object getIsaacObject() {
-        try {
-            Field writerField = getPacketWriterField();
-            if (writerField == null) return null;
-
-            Object packetWriter = writerField.get(null); // Get static field
-            if (packetWriter == null) {
-                 log.error("PacketWriter object is null, cannot get ISAAC cipher.");
-                 return null;
-            }
-
-            return getIsaacField(packetWriter.getClass()).get(packetWriter); // Get instance field
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            log.error("Failed to get ISAAC object: ", e);
-        }
-        return null;
     }
 
     /**

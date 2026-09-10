@@ -110,7 +110,13 @@ callable methods need to execute on RuneLite's client thread, they will be sched
 This helps ensure your plugin code is fully thread-safe, predictable, and easy to read.
 
 `ctx.runOnClientThread(Callable)` blocks for up to three seconds and throws `ClientThreadException` if the client thread does not
-answer in time. `ctx.runOnClientThreadOptional(Callable)` never throws: a failed hand-off and a `null` result both return an empty `Optional`.
+answer in time. Timeout or interruption cancels work that has not started, so it cannot execute later.
+If execution has already started, `ClientThreadException.isOutcomeUnknown()` is true: the action may still finish.
+Both `runOnClientThreadOptional(Callable)` and the fallback overload propagate unknown outcomes; ordinary failures
+still yield an empty `Optional` or the supplied fallback. Do not blindly retry an unknown outcome.
+`shutdown()` revokes pending commands and rejects new submissions. The `Runnable` overload remains asynchronous
+for worker callers, with the same queue deadline and shutdown cancellation; asynchronous failures are logged.
+These rules use the existing Context disposal boundary; they do not add script-run ownership or restartable Context lifecycles.
 
 To see specific examples of various queries, check out the [API tests](https://github.com/Kraken-Plugins/kraken-api/tree/master/src/test/java/plugins/api) which utilize a real RuneLite plugin to query and find
 various game entities around Varrock East Bank.
@@ -183,7 +189,7 @@ Queries over the player's item containers (inventory, bank, bank-side inventory,
 Key methods include:
 
 - `raw()`: Returns the underlying RuneLite API object.
-- `interact(String action)`: Performs an interaction with the entity (e.g., "Attack", "Talk-to"). Returns `false` if nothing was sent, so it is safe to retry on.
+- `interact(String action)`: Performs an interaction with the entity (e.g., "Attack", "Talk-to"). Returns `false` on an ordinary dispatch failure. An expired/interrupted wait after execution starts throws an unknown-outcome `ClientThreadException`; observe state before retrying.
 - `getId()`: Returns the ID of the entity.
 - `getName()`: Returns the name of the entity.
 

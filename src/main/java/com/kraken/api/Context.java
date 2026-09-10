@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.core.ClientThreadException;
+import com.kraken.api.core.ClientThreadGateway;
 import com.kraken.api.core.Services;
 import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.interaction.InteractionManager;
@@ -40,7 +41,7 @@ import net.runelite.client.game.ItemManager;
 
 import java.lang.reflect.Field;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
 
 @Slf4j
 @Singleton
@@ -85,6 +86,7 @@ public class Context {
     private final Provider<CameraService> cameraServiceProvider;
 
     private volatile boolean shutdown = false;
+    private final ClientThreadGateway commandGateway;
 
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
@@ -93,6 +95,7 @@ public class Context {
         this.cameraServiceProvider = cameraServiceProvider;
         this.client = client;
         this.clientThread = clientThread;
+        this.commandGateway = new ClientThreadGateway(client, clientThread, CLIENT_THREAD_TIMEOUT_MS);
         this.mouse = mouse;
         this.itemManager = itemManager;
         this.interactionManager = interactionManager;
@@ -134,6 +137,7 @@ public class Context {
      * <p>Safe to call more than once; subsequent calls do nothing.</p>
      */
     public void shutdown() {
+        commandGateway.close();
         if (shutdown) {
             return;
         }
@@ -241,7 +245,8 @@ public class Context {
      * example). If the work could not be performed at all — the client thread did not answer within
      * {@link #CLIENT_THREAD_TIMEOUT_MS}, the callable threw, or this thread was interrupted — a
      * {@link ClientThreadException} is thrown instead. Both execution paths behave identically in this
-     * respect, so a call does not change its failure mode depending on which thread issued it.</p>
+     * respect. Pending work is revoked on timeout, interruption or shutdown. If execution already
+     * began, timeout/interruption reports an unknown outcome and cannot undo its effects.</p>
      *
      * <p>Use {@link #runOnClientThread(Callable, Object)} or {@link #runOnClientThreadOptional(Callable)}
      * when degrading is preferable to failing.</p>
@@ -252,46 +257,16 @@ public class Context {
      * @throws ClientThreadException if the work could not be completed on the client thread
      */
     public <T> T runOnClientThread(Callable<T> method) {
-        if (method == null) {
-            throw new IllegalArgumentException("Callable passed to runOnClientThread must not be null");
-        }
-
-        if (client.isClientThread()) {
-            try {
-                return method.call();
-            } catch (Exception e) {
-                throw new ClientThreadException("Client-thread work threw an exception", e);
-            }
-        }
-
-        final CompletableFuture<T> future = new CompletableFuture<>();
-
-        clientThread.invoke(() -> {
-            try {
-                future.complete(method.call());
-            } catch (Exception e) {
-                future.completeExceptionally(e);
-            }
-        });
-
-        try {
-            return future.get(CLIENT_THREAD_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            throw new ClientThreadException("Client thread did not respond within " + CLIENT_THREAD_TIMEOUT_MS + "ms; it is likely blocked or the client is loading", e);
-        } catch (ExecutionException e) {
-            throw new ClientThreadException("Client-thread work threw an exception", e.getCause());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ClientThreadException("Interrupted while waiting on the client thread", e);
-        }
+        return commandGateway.call(method);
     }
 
     /**
      * Run a method on the client thread, falling back to a supplied value when the work could not be
      * completed.
      *
-     * <p>This never throws {@link ClientThreadException}; it is the explicit "I would rather degrade
-     * than fail" form. A genuine {@code null} result is returned as {@code null}, not replaced by the
+     * <p>Failures use the fallback unless execution started before a timeout or interruption;
+     * an unknown outcome is propagated as {@link ClientThreadException}. A genuine {@code null}
+     * result is returned as {@code null}, not replaced by the
      * fallback — the fallback stands in only for a failed hand-off.</p>
      *
      * @param method The method to call
@@ -303,29 +278,29 @@ public class Context {
         try {
             return runOnClientThread(method);
         } catch (ClientThreadException e) {
+            if (e.isOutcomeUnknown()) {
+                throw e;
+            }
             log.debug("Falling back after client-thread failure: {}", e.getMessage());
             return fallback;
         }
     }
 
     /**
-     * Runs a method on the client thread without returning a result.
+     * Runs inline on the client thread, otherwise queues work without waiting. Pending work expires
+     * after the client-thread timeout and is cancelled by shutdown; asynchronous failures are logged.
      * @param method Runnable method to execute
      */
     public void runOnClientThread(Runnable method) {
-        if (client.isClientThread()) {
-            method.run();
-            return;
-        }
-
-        clientThread.invoke(method);
+        commandGateway.execute(method);
     }
 
     /**
      * Run a method on the client thread, returning an optional of the result.
      *
-     * <p>Never throws: a failed hand-off and a genuine {@code null} result both yield an empty
-     * {@link Optional}. Use {@link #runOnClientThread(Callable)} when you need to tell those apart.</p>
+     * <p>A failed hand-off and a genuine {@code null} result both yield an empty
+     * {@link Optional}. Unknown outcomes after execution starts are thrown, so callers do not
+     * mistake an in-flight action for a safe-to-retry failure.</p>
      *
      * @param method The method to call
      * @param <T> The type of the method's return value
@@ -335,6 +310,9 @@ public class Context {
         try {
             return Optional.ofNullable(runOnClientThread(method));
         } catch (ClientThreadException e) {
+            if (e.isOutcomeUnknown()) {
+                throw e;
+            }
             log.debug("Client-thread work did not complete: {}", e.getMessage());
             return Optional.empty();
         }

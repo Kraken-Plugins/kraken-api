@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-08-19
+- Last updated: 2026-09-10
 - Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
@@ -154,6 +154,8 @@ Do not treat these as hand-edited sources.
   (tick engine, planner, live plugin).
 - `docs/TESTS.md` documents the client-based test harness and environment requirements.
 - `docs/UPDATING.md` is the reference for packet and reflection updates after client revisions.
+  Packet preflight also requires the live packet length field/multiplier and vetted factory capacities;
+  run `./gradlew test` to cover byte fixtures, zero-consumption rejection, and the pinned injected-client ABI.
 - `docs/ai-integration.md` redirects here.
 
 ## Code style and formatting
