@@ -1,12 +1,17 @@
 package com.kraken.api.service.util.dps.model;
 
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
- * A combat spell loaded from the bundled OSRS wiki spell data.
+ * A combat spell loaded from the bundled OSRS wiki spell data. Instances are read-only once loaded
+ * and shared by every caller of {@link com.kraken.api.service.util.dps.data.DpsDataStore}.
  */
-@Data
+@Getter
+@EqualsAndHashCode
+@ToString
 @NoArgsConstructor
 public class SpellData {
     private String name;

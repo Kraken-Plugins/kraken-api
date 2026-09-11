@@ -5,6 +5,9 @@ import com.kraken.api.core.AbstractSpatialQuery;
 import com.kraken.api.core.Interactable;
 import com.kraken.api.core.Locatable;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.Player;
+import java.util.Comparator;
+import static org.mockito.Mockito.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -181,4 +184,85 @@ class AbstractSpatialQueryTest {
 
         assertEquals(List.of(2, 3, 1), ids);
     }
+    @Test
+    void reusedFiltersAndSortCaptureOneFreshAnchorPerEvaluation() {
+        Context ctx = QueryTestSupport.contextWithPlayerAt(PLAYER);
+        Player player = ctx.getClient().getLocalPlayer();
+        FakeEntity oldTarget = new FakeEntity(1, PLAYER);
+        FakeEntity newTarget = new FakeEntity(2, new WorldPoint(3210, 3200, 0));
+        FakeSpatialQuery query = new FakeSpatialQuery(ctx, oldTarget, newTarget)
+                .within(20).within(1).sortByDistance();
+        verify(player, never()).getWorldLocation();
+        assertEquals(List.of(oldTarget), query.list());
+        verify(player, times(1)).getWorldLocation();
+
+        when(player.getWorldLocation()).thenReturn(newTarget.location);
+        assertEquals(List.of(newTarget), query.list());
+        verify(player, times(2)).getWorldLocation();
+        assertEquals(Optional.of(newTarget), query.nearest());
+        verify(player, times(3)).getWorldLocation();
+    }
+
+    @Test
+    void reusedSortTracksPlayerAndLastSortDeclarationWins() {
+        Context ctx = QueryTestSupport.contextWithPlayerAt(PLAYER);
+        FakeEntity first = new FakeEntity(1, PLAYER);
+        FakeEntity second = new FakeEntity(2, new WorldPoint(3210, 3200, 0));
+        FakeSpatialQuery query = new FakeSpatialQuery(ctx, first, second).sortByDistance();
+        assertEquals(List.of(first, second), query.list());
+        when(ctx.getClient().getLocalPlayer().getWorldLocation()).thenReturn(second.location);
+        assertEquals(List.of(second, first), query.list());
+        assertEquals(List.of(first, second), query.sortByDistanceTo(PLAYER).list());
+        assertEquals(List.of(second, first), query.sortByDistance().list());
+        assertEquals(List.of(first, second), query.sorted(Comparator.comparingInt(FakeEntity::getId)).list());
+        assertEquals(List.of(first, second), query.sortByDistance().sorted(null).list());
+    }
+
+    @Test
+    void missingPlayerDoesNotPermanentlyEmptyReusableQueries() {
+        Context ctx = QueryTestSupport.contextWithPlayerAt(null);
+        FakeEntity entity = new FakeEntity(1, PLAYER);
+        FakeSpatialQuery query = new FakeSpatialQuery(ctx, entity).within(Integer.MAX_VALUE);
+        assertTrue(query.list().isEmpty());
+        Player player = mock(Player.class);
+        when(player.getWorldLocation()).thenReturn(PLAYER);
+        when(ctx.getClient().getLocalPlayer()).thenReturn(player);
+        assertEquals(List.of(entity), query.list());
+        when(ctx.getClient().getLocalPlayer()).thenReturn(null);
+        assertTrue(query.list().isEmpty());
+        assertTrue(query.nearest().isEmpty());
+        when(ctx.getClient().getLocalPlayer()).thenReturn(player);
+        assertEquals(Optional.of(entity), query.nearest());
+    }
+
+    @Test
+    void explicitAnchorRemainsFixedAndNoPlayerSortKeepsSourceOrder() {
+        Context ctx = QueryTestSupport.contextWithPlayerAt(PLAYER);
+        FakeEntity near = new FakeEntity(1, PLAYER);
+        FakeEntity far = new FakeEntity(2, new WorldPoint(3210, 3200, 0));
+        FakeSpatialQuery fixed = new FakeSpatialQuery(ctx, near, far).within(PLAYER, 1);
+        when(ctx.getClient().getLocalPlayer()).thenReturn(null);
+        assertEquals(List.of(near), fixed.list());
+        assertEquals(Optional.of(near), fixed.nearestTo(PLAYER));
+        assertEquals(List.of(far, near), new FakeSpatialQuery(ctx, far, near).sortByDistance().list());
+    }
+
+    @Test
+    void nestedEvaluationCannotReplaceOuterAnchor() {
+        Context ctx = QueryTestSupport.contextWithPlayerAt(PLAYER);
+        Player player = ctx.getClient().getLocalPlayer();
+        FakeEntity entity = new FakeEntity(1, PLAYER);
+        boolean[] nested = {false};
+        FakeSpatialQuery query = new FakeSpatialQuery(ctx, entity);
+        query.filter(ignored -> {
+            if (!nested[0]) {
+                nested[0] = true;
+                when(player.getWorldLocation()).thenReturn(new WorldPoint(3300, 3300, 0));
+                assertTrue(query.list().isEmpty());
+            }
+            return true;
+        }).within(1);
+        assertEquals(List.of(entity), query.list());
+    }
+
 }

@@ -40,8 +40,10 @@ public class PlayerMenuActionResolver implements MenuActionResolver<Player> {
     public Optional<ResolvedMenuAction> resolve(Player player, String action) {
         return ctxProvider.get().runOnClientThread(() -> {
             Client client = ctxProvider.get().getClient();
-            int worldView = client.getTopLevelWorldView().getId();
+            if (player == null || player.getWorldView() == null) return Optional.empty();
+            int worldView = player.getWorldView().getId();
             LocalPoint point = player.getLocalLocation();
+            if (point == null) return Optional.empty();
 
             if (client.isWidgetSelected() && ActionResolver.isTargetSelection(action)) {
                 return Optional.of(new ResolvedMenuAction(

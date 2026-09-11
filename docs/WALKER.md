@@ -23,6 +23,22 @@ none. Following that stub cannot create a boat that is not in the graph, so the 
 leave a complete remaining walk. An incomplete stub whose last tile is already within walk
 tolerance is followed, because arriving there is success.
 
+## Global search execution
+
+All blocking `GlobalPathfinder` entry points reject the client thread with `IllegalStateException`.
+Run them from a script loop or another worker. Static resource loading happens on that worker;
+live transport eligibility is captured into a separate configuration for each request on the client
+thread. Searches do not hold a monitor while waiting for capture, and another request cannot refresh
+the configuration a search is using. `lastResult` is the last request to finish.
+
+`GlobalPathfinderConfig` has two hard search limits: `maxSearchMillis` (default 10,000 ms, monotonic)
+and `maxSearchNodes` (default 1,000,000 allocated graph nodes, including queued transports).
+Both must be positive. The existing `calculationCutoffMillis` remains a separate no-progress limit.
+Limits apply to graph expansion, excluding resource loading, client capture and result construction;
+checks occur between expansions and before every node allocation. Thread interruption and script
+cancellation stop expansion too. A limit returns an incomplete best-effort `PathResult`; list-returning
+helpers return an empty list for incomplete routes. These are cooperative limits, not JVM preemption.
+
 ## Usage
 
 ```java

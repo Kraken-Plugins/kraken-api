@@ -8,6 +8,8 @@ import net.runelite.api.coords.WorldPoint;
 
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 
 /**
  * Base class for queries over entities that occupy a tile in the loaded scene (NPCs, players,
@@ -25,15 +27,17 @@ import java.util.Optional;
  * exact match including the plane.</p>
  *
  * <h3>No local player</h3>
- * <p>Filters anchored on the local player (the no-argument {@code within}, {@code sortByDistance},
- * {@code nearest}) degrade to empty results when there is no local player — at the login screen or
- * mid world-hop — rather than throwing.</p>
+ * <p>{@code within(distance)} and {@code nearest()} yield empty results when there is no local
+ * player — at the login screen or mid world-hop — rather than throwing. {@code sortByDistance()} preserves source order. Player
+ * anchors are captured once per evaluation; explicit anchor overloads remain fixed.</p>
  *
  * @param <T> The type of entity being queried, which must expose a world location
  * @param <Q> The concrete query class
  * @param <R> The raw RuneLite type
  */
 public abstract class AbstractSpatialQuery<T extends Interactable<R> & Locatable, Q extends AbstractSpatialQuery<T, Q, R>, R> extends AbstractQuery<T, Q, R> {
+
+    private final Supplier<WorldPoint> playerAnchor = this::localPlayerLocation;
 
     public AbstractSpatialQuery(Context ctx) {
         super(ctx);
@@ -68,7 +72,19 @@ public abstract class AbstractSpatialQuery<T extends Interactable<R> & Locatable
      * @return Q entities within range of the local player.
      */
     public Q within(int distance) {
-        return within(localPlayerLocation(), distance);
+        return filterRelativeToPlayer((entity, anchor) -> distanceOrMax(entity.getWorldLocation(), anchor) <= distance);
+    }
+
+    /**
+     * Adds a player-relative predicate using the shared anchor captured for each evaluation.
+     * @param predicate The test to apply with a non-null player location.
+     * @return This query; no entities match while the local player is absent.
+     */
+    protected final Q filterRelativeToPlayer(BiPredicate<T, WorldPoint> predicate) {
+        return filterForEvaluation(evaluation -> {
+            WorldPoint anchor = evaluation.get(playerAnchor);
+            return entity -> anchor != null && predicate.test(entity, anchor);
+        });
     }
 
     /**
@@ -127,7 +143,10 @@ public abstract class AbstractSpatialQuery<T extends Interactable<R> & Locatable
      * @return Q sorted by proximity to the local player.
      */
     public Q sortByDistance() {
-        return sortByDistanceTo(localPlayerLocation());
+        return sortedForEvaluation(evaluation -> {
+            WorldPoint anchor = evaluation.get(playerAnchor);
+            return Comparator.comparingInt(entity -> distanceOrMax(entity.getWorldLocation(), anchor));
+        });
     }
 
     /**
@@ -145,11 +164,9 @@ public abstract class AbstractSpatialQuery<T extends Interactable<R> & Locatable
      *         local player.
      */
     public Optional<T> nearest() {
-        WorldPoint anchor = localPlayerLocation();
-        if (anchor == null) {
-            return Optional.empty();
-        }
-        return nearestTo(anchor);
+        sortByDistance();
+        return evaluate((evaluation, items) -> evaluation.get(playerAnchor) == null || items.isEmpty()
+                ? Optional.empty() : Optional.ofNullable(items.get(0)), Optional.empty());
     }
 
     /**

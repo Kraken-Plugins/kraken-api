@@ -60,6 +60,13 @@ public enum NamedLocation {
             EnumSet.of(Facility.BANKER_NPC, Facility.GRAND_EXCHANGE_CLERK,
                     Facility.DEPOSIT_BOX, Facility.OTHER_PLAYERS)),
 
+    LUMBRIDGE_GRAVEYARD(
+            "Lumbridge Graveyard",
+            new WorldPoint(3244, 3197, 0),
+            new WorldArea(3237, 3190, 16, 14, 0),
+            6,
+            EnumSet.of(Facility.OTHER_PLAYERS)),
+
     ANYWHERE("Anywhere", null, null, 0, EnumSet.noneOf(Facility.class));
 
     private final String displayName;

@@ -3,6 +3,7 @@ package com.kraken.api.input.mouse.strategy.replay;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.input.mouse.model.NormalizedPath;
+import com.kraken.api.input.InputDispatch;
 import com.kraken.api.input.mouse.strategy.MoveableMouse;
 import com.kraken.api.input.mouse.strategy.bezier.BezierStrategy;
 import lombok.extern.slf4j.Slf4j;
@@ -108,7 +109,7 @@ public class ReplayStrategy implements MoveableMouse {
                     System.currentTimeMillis(),
                     0, p.x, p.y, 0, false
             );
-            client.getCanvas().dispatchEvent(event);
+            InputDispatch.dispatch(client.getCanvas(), event);
         }
     }
 

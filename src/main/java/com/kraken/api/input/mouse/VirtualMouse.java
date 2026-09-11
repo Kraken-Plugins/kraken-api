@@ -1,6 +1,7 @@
 package com.kraken.api.input.mouse;
 
 import com.google.inject.Singleton;
+import com.kraken.api.input.InputDispatch;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.input.mouse.strategy.wind.WindMouseConfig;
@@ -38,23 +39,17 @@ public class VirtualMouse implements MouseListener {
 
     private final Client client;
 
+    /**
+     * Last known cursor position, written by the AWT listener on the EDT and by movement calls on
+     * script workers, so it is published volatile.
+     */
     @Getter
-    private Point lastPoint;
+    private volatile Point lastPoint;
 
-    private static MouseMovementStrategy defaultMouseMovementStrategy = MouseMovementStrategy.BEZIER;
+    private static volatile MouseMovementStrategy defaultMouseMovementStrategy = MouseMovementStrategy.BEZIER;
 
 
     private final MouseManager mouseManager;
-
-    /**
-     * Detaches this mouse from RuneLite's shared {@link MouseManager}.
-     *
-     * <p>The manager outlives any single plugin, so a listener left registered keeps receiving events
-     * and keeps its plugin's classloader reachable. Called by {@link com.kraken.api.Context#shutdown()}.</p>
-     */
-    public void shutdown() {
-        mouseManager.unregisterMouseListener(this);
-    }
 
     @Inject
     public VirtualMouse(MouseManager mouseManager, Client client) {
@@ -212,8 +207,13 @@ public class VirtualMouse implements MouseListener {
      * @return The {@link VirtualMouse} instance for method chaining.
      */
     public VirtualMouse move(Point target, WindMouseConfig config) {
+        if (lastPoint.getX() == 0 && lastPoint.getY() == 0) {
+            updatePosition();
+        }
+
         WindStrategy strategy = (WindStrategy) MouseMovementStrategy.WIND.getStrategy();
         strategy.move(lastPoint, target, config);
+        this.lastPoint = target;
         return this;
     }
 
@@ -447,27 +447,23 @@ public class VirtualMouse implements MouseListener {
     }
 
     /**
-     * Clicks the mouse at the current position.
+     * Clicks the left mouse button at the current position. The press, release and click events are
+     * queued on the event dispatch thread in order; this method returns without waiting for them.
      *
      * @return The VirtualMouse instance for chaining.
      */
     public VirtualMouse click() {
-        if (client.getCanvas() == null) {
+        Canvas canvas = client.getCanvas();
+        if (canvas == null) {
             return this;
         }
 
         Point point = lastPoint;
-        Canvas canvas = client.getCanvas();
         long time = System.currentTimeMillis();
 
-        MouseEvent pressed = new MouseEvent(canvas, MouseEvent.MOUSE_PRESSED, time, InputEvent.BUTTON1_DOWN_MASK, point.getX(), point.getY(), 1, false, MouseEvent.BUTTON1);
-        canvas.dispatchEvent(pressed);
-
-        MouseEvent released = new MouseEvent(canvas, MouseEvent.MOUSE_RELEASED, time, 0, point.getX(), point.getY(), 1, false, MouseEvent.BUTTON1);
-        canvas.dispatchEvent(released);
-
-        MouseEvent clicked = new MouseEvent(canvas, MouseEvent.MOUSE_CLICKED, time, 0, point.getX(), point.getY(), 1, false, MouseEvent.BUTTON1);
-        canvas.dispatchEvent(clicked);
+        InputDispatch.dispatch(canvas, new MouseEvent(canvas, MouseEvent.MOUSE_PRESSED, time, InputEvent.BUTTON1_DOWN_MASK, point.getX(), point.getY(), 1, false, MouseEvent.BUTTON1));
+        InputDispatch.dispatch(canvas, new MouseEvent(canvas, MouseEvent.MOUSE_RELEASED, time, 0, point.getX(), point.getY(), 1, false, MouseEvent.BUTTON1));
+        InputDispatch.dispatch(canvas, new MouseEvent(canvas, MouseEvent.MOUSE_CLICKED, time, 0, point.getX(), point.getY(), 1, false, MouseEvent.BUTTON1));
 
         return this;
     }

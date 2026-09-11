@@ -45,6 +45,11 @@ public class BreakManager {
     private ScheduledExecutorService scheduler = KrakenThreads.newScheduler("break-manager");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("hh:mm:ss a").withZone(ZoneId.systemDefault());
 
+    /*
+     * Every field below is owned by the client thread. Public entry points hop onto it, the event
+     * handlers already run on it, and the scheduled end-of-break callback re-enters through it, so no
+     * two threads ever mutate break state at once.
+     */
     private Script activeScript;
     private BreakProfile activeProfile;
     private boolean initialized = false;
@@ -52,11 +57,22 @@ public class BreakManager {
     private ScheduledFuture<?> scheduledBreakEnd;
 
     /**
+     * Incremented whenever a break is started or its scheduled end is cancelled. The end-of-break
+     * callback carries the value it was scheduled with and is ignored when it no longer matches, so a
+     * callback that was already running when the manager shut down or reset cannot resume a script.
+     */
+    private int generation;
+
+    /**
      * Initializes the break handler and registers it to the event bus.
-     * Safe to call multiple times - will only initialize once.
+     * Safe to call multiple times - will only initialize once. Runs on the client thread; when called
+     * from another thread the work is queued and this method returns immediately.
      */
     public void initialize() {
-        if (!initialized) {
+        ctx.runOnClientThread((Runnable) () -> {
+            if (initialized) {
+                return;
+            }
             // A scheduler shut down by a previous shutdown() cannot accept work again, so a
             // re-initialised manager gets a fresh one.
             if (scheduler.isShutdown()) {
@@ -65,33 +81,53 @@ public class BreakManager {
             eventBus.register(this);
             initialized = true;
             log.info("Break Manager initialized");
-        }
+        });
     }
 
     /**
-     * Shuts down the break handler and cleans up resources.
+     * Shuts down the break handler and cleans up resources. Runs on the client thread; when called
+     * from another thread the work is queued and this method returns immediately.
      */
     public void shutdown() {
-        if (initialized) {
-            eventBus.unregister(this);
-            if (scheduledBreakEnd != null && !scheduledBreakEnd.isDone()) {
-                scheduledBreakEnd.cancel(false);
+        ctx.runOnClientThread((Runnable) () -> {
+            if (!initialized) {
+                return;
             }
+            eventBus.unregister(this);
+            cancelScheduledBreakEnd();
             scheduler.shutdownNow();
             initialized = false;
             breakScheduled = false;
             state.reset();
             log.info("Break Manager shut down");
-        }
+        });
     }
 
     /**
      * Attaches a script to the break handler with a specific profile.
-     * Prevents duplicate attachments and handles resuming from breaks.
+     * Prevents duplicate attachments and handles resuming from breaks. Runs on the client thread;
+     * when called from another thread the work is queued and this method returns immediately.
      * @param script An instance of a class extending the Script class
      * @param profile The break profile to use
      */
     public void attachScript(Script script, BreakProfile profile) {
+        ctx.runOnClientThread((Runnable) () -> attach(script, profile));
+    }
+
+    /**
+     * Detaches the current script from the break handler. Runs on the client thread; when called
+     * from another thread the work is queued and this method returns immediately.
+     */
+    public void detachScript() {
+        ctx.runOnClientThread((Runnable) this::detach);
+    }
+
+    /**
+     * Attaches a script on the client thread.
+     * @param script The script to attach
+     * @param profile The break profile to use
+     */
+    private void attach(Script script, BreakProfile profile) {
         // If same script is already attached, don't re-attach (plugin restart scenario)
         if (activeScript == script && activeProfile == profile) {
             // If we were on break and logged back in, handle resume logic
@@ -112,6 +148,7 @@ public class BreakManager {
 
         // Only reset state if we're not currently managing a break
         if (!state.isOnBreak() && !state.isAwaitingLogin()) {
+            cancelScheduledBreakEnd();
             this.state.reset();
         } else {
             log.info("Reattached script while break is active or pending");
@@ -121,9 +158,9 @@ public class BreakManager {
     }
 
     /**
-     * Detaches the current script from the break handler.
+     * Detaches the current script on the client thread.
      */
-    public void detachScript() {
+    private void detach() {
         if (activeScript == null) {
             return;
         }
@@ -134,6 +171,7 @@ public class BreakManager {
             this.activeScript = null;
             this.activeProfile = null;
             this.breakScheduled = false;
+            cancelScheduledBreakEnd();
             this.state.reset();
         } else {
             log.info("Script: {} detached but break state preserved", activeScript.getClass().getName());
@@ -245,17 +283,32 @@ public class BreakManager {
             log.info("Break started with logout - will resume after login at: {}", TIME_FORMATTER.format(breakEndTime));
         }
 
-        scheduledBreakEnd = scheduler.schedule(this::endBreak, breakDuration.toMillis(), TimeUnit.MILLISECONDS);
+        int expected = ++generation;
+        scheduledBreakEnd = scheduler.schedule(() -> ctx.runOnClientThread((Runnable) () -> endBreak(expected)),
+                breakDuration.toMillis(), TimeUnit.MILLISECONDS);
         String formattedTime = TIME_FORMATTER.format(breakEndTime);
         log.info("Break will end in {} minutes at: {}", breakDuration.toMinutes(), formattedTime);
         return true;
     }
 
     /**
-     * Ends the current break and resumes the script (if logged in).
+     * Invalidates any scheduled end-of-break callback, whether or not it has already started running.
      */
-    private void endBreak() {
-        if (!state.isOnBreak()) return;
+    private void cancelScheduledBreakEnd() {
+        generation++;
+        if (scheduledBreakEnd != null) {
+            scheduledBreakEnd.cancel(false);
+            scheduledBreakEnd = null;
+        }
+    }
+
+    /**
+     * Ends the current break and resumes the script (if logged in). Runs on the client thread.
+     * @param expected The generation the break was scheduled under; a mismatch means the break was
+     *                 cancelled or replaced after this callback was scheduled and it must do nothing.
+     */
+    private void endBreak(int expected) {
+        if (expected != generation || !state.isOnBreak()) return;
         log.info("Break period ended");
 
         if (state.isAwaitingLogin() && client.getGameState() != GameState.LOGGED_IN) {
@@ -310,15 +363,13 @@ public class BreakManager {
     }
 
     /**
-     * Manually triggers a break.
+     * Manually triggers a break. Safe to call from a script loop or any other thread; the break is
+     * started on the client thread and this call waits for the result.
      * @param reason The reason for why the break is being taken (this shows up in the logs).
      * @return True when a break was triggered successfully and false otherwise.
      */
     public boolean triggerBreak(String reason) {
-        if (activeScript != null && !state.isOnBreak()) {
-            return startBreak(reason);
-        }
-        return false;
+        return ctx.runOnClientThread(() -> activeScript != null && !state.isOnBreak() && startBreak(reason), false);
     }
 
     /**

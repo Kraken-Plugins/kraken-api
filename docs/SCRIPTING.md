@@ -34,10 +34,11 @@ Every `Script` implementation overrides `loop()` and usually `onStart()` and `on
 
 The following methods are `final` and are called by your plugin, not overridden:
 
--   **`start()`**: Call once when the plugin starts. This calls `onStart()` under the hood and subscribes the script to game ticks.
--   **`stop()`**: Call once when the plugin stops. This cancels any loop in progress and calls `onStop()`. An overload `stop(Runnable callback)` runs the callback once the script has fully stopped.
--   **`pause()`**: Pauses the execution of the script's main loop. This will not pause methods that have been subscribed to within the RuneLite plugin.
--   **`resume()`**: Resumes the execution of the script's main loop.
+-   **`start()`**: Calls `onStart()` and subscribes to game ticks. A start requested during stopping is deferred until the old loop, `onStop()`, and stop callback return. A deferred `onStart()` runs on the outgoing worker; marshal any UI/client work appropriately. Startup failure unregisters the script and returns it to `STOPPED`.
+-   **`stop()`**: Requests cooperative cancellation. Once startup and the in-flight loop return, it calls `onStop()` and the optional `stop(Runnable callback)` callback. Repeated stops do not add callbacks and cancel any pending restart. A failed startup does not call `onStop()`.
+-   **`pause()`**: Prevents new loop submissions. An already submitted iteration may finish its actions. Plugin event subscriptions continue running.
+-   **`resume()`**: Resumes only a paused run; it cannot start or revive a stopped script.
+-   **`stopAsync()`**: Requests stop and returns a `CompletionStage<Void>` for that run. Restarting does not change which run it observes. `awaitStopped(timeoutMs)` waits for the run current at entry. Do not block on either completion from the client thread or the script's own hooks/loop.
 
 ## Script Loop
 
@@ -72,7 +73,7 @@ The entire query and service API's are designed to be thread-safe, so any querie
 callable methods need to execute on RuneLite's client thread, they will be scheduled there, blocking until the method executes.
 This helps ensure your plugin code is fully thread-safe, predictable, and easy to read.
 
-The loop method returns an integer which can be used to sleep the script for the specified number of milliseconds. Since the loop method is only called
+The loop method returns an integer which can be used to delay the script for the specified number of milliseconds. Stop wakes this delay immediately. Arbitrary user code and `Thread.sleep()` remain cooperative: they must return before cleanup or restart can run. Since the loop method is only called
 once every game tick (0.6 seconds) any value less than 600 will execute on the next game tick regardless. You can use the return value of the loop
 to sleep various durations depending on your script actions and requirements.
 
@@ -110,7 +111,6 @@ public class FishingPlugin extends Plugin {
     @Override
     protected void shutDown() {
         script.stop(); // Calls Script.onStop()
-        ctx.shutdown(); // Unregisters the Context's event bus and mouse listeners
     }
     
     // TODO Add a panel for your plugin with stop, start, pause, resume buttons to your Scripts UI.
@@ -134,8 +134,8 @@ public class FishingPlugin extends Plugin {
 ```
 
 There is nothing to initialize before using the API: packets and interaction hooks are set up when Guice builds the `Context`.
-Call `ctx.shutdown()` from `shutDown()` so the `Context`'s event bus subscriptions and mouse listener do not leak across
-plugin enable/disable cycles.
+The `Context` is shared by every plugin and lives for the life of the client, so `shutDown()` only needs to stop what the
+plugin itself started.
 
 ## Extending `Script` with the Loop and Task System
 

@@ -19,6 +19,8 @@ public final class ReflectionHooks {
     private final Integer addNodeGarbageValue;
 
     private final String clientPacketClassName;
+    private final String clientPacketLengthField;
+    private final Integer clientPacketLengthMultiplier;
 
     private final String packetWriterClassName;
     private final String packetWriterFieldName;

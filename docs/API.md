@@ -100,17 +100,37 @@ The queries available on `Context` are `npcs()`, `players()`, `gameObjects()`, `
 ### Lifecycle
 
 - `Context` is a Guice singleton; inject it with `@Inject`. Packets and interaction hooks are set up when Guice constructs it, so there is nothing to initialize.
-- Call `ctx.shutdown()` from your plugin's `shutDown()`. Otherwise the `Context`'s event bus subscriptions and mouse listener leak across plugin enable/disable cycles.
+- There is one `Context` per client and every plugin shares it. RuneLite's root injector owns it and every Kraken `@Singleton` service, so `ctx.getService(...)` and an injected field return the same instance. Do not bind Kraken types in your plugin module; that creates a private copy the rest of the API cannot see.
+- The `Context` lives for the life of the client and is never shut down by a plugin. A plugin's `shutDown()` stops the scripts and break handling it started, nothing more.
 - Code that cannot be injected (static helpers, for example) can use `com.kraken.api.core.Services.context()`, which resolves against RuneLite's root injector.
 
 ### Query Thread Safety
 
-The entire query API is designed to be thread-safe, so any queries, filters, or interactions can be run on non-client threads. When
-callable methods need to execute on RuneLite's client thread, they will be scheduled there, blocking until the method executes.
-This helps ensure your plugin code is fully thread-safe, predictable, and easy to read.
+Query builders are mutable and thread-confined. A builder may be reused sequentially from a worker,
+but must not be mutated or evaluated concurrently, or mutated by an evaluation callback.
+Source traversal, declared filters, distinct keys, sorting, `firstMatching(predicate)`, and `map()` ID
+extraction execute on the client thread in one evaluation. Keep these callbacks short and nonblocking.
+
+Entity wrappers implement `EntityView` through `Interactable`: they retain live actors/widgets. `list()`,
+`stream()`, `first()`, and other entity terminals copy membership only. Stream and Optional callbacks
+run on the consuming thread; view getters and `raw()` state require the client thread unless the
+specific getter documents its own handoff. `toRuneLite()` also returns live objects.
+
+Use `snapshot(mapper)` to project values during client-thread evaluation before processing them on a worker:
+
+```java
+List<WorldPoint> positions = ctx.npcs().withName("Goblin").snapshot(NpcEntity::getWorldLocation);
+```
+
+The snapshot list is unmodifiable. The mapper must return immutable values or copy all mutable data;
+returning a wrapper, raw object, mutable array, or lazy stream does not detach its state.
 
 `ctx.runOnClientThread(Callable)` blocks for up to three seconds and throws `ClientThreadException` if the client thread does not
-answer in time. `ctx.runOnClientThreadOptional(Callable)` never throws: a failed hand-off and a `null` result both return an empty `Optional`.
+answer in time. Timeout or interruption cancels work that has not started, so it cannot execute later.
+If execution has already started, `ClientThreadException.isOutcomeUnknown()` is true: the action may still finish.
+Both `runOnClientThreadOptional(Callable)` and the fallback overload propagate unknown outcomes; ordinary failures
+still yield an empty `Optional` or the supplied fallback. Do not blindly retry an unknown outcome.
+The `Runnable` overload remains asynchronous for worker callers, with the same queue deadline; asynchronous failures are logged.
 
 To see specific examples of various queries, check out the [API tests](https://github.com/Kraken-Plugins/kraken-api/tree/master/src/test/java/plugins/api) which utilize a real RuneLite plugin to query and find
 various game entities around Varrock East Bank.
@@ -135,7 +155,8 @@ Key methods include:
 - `except(Predicate<T> predicate)`: Filters out elements that match the given predicate.
 - `distinct(Function<T, Object> keyExtractor)` / `distinctById()` / `unique()`: Remove duplicates.
 - `sorted(Comparator<T> comparator)`, `shuffle()`, `reverse()`: Reorder the stream.
-- `stream()`: Returns the raw stream of elements, allowing for manual filtering and matching.
+- `stream()`: Returns a membership copy of live views; downstream callbacks run on the consuming thread.
+- `snapshot(mapper)`: Captures projected values on the client thread into an unmodifiable list.
 - `toRuneLite()`: Returns the underlying RuneLite entities wrapped by the API.
 - `count()`, `isEmpty()`, `isPresent()`: How many matched, and whether anything did.
 - `list()` / `result()`: Collects the stream into a list.
@@ -159,11 +180,17 @@ Queries over entities that occupy a tile (NPCs, players, game/tile objects, grou
 - `within(WorldPoint anchor, int distance)`: The same, measured from an anchor point.
 - `withinArea(WorldPoint min, WorldPoint max)`: Entities inside the rectangle spanned by two corners.
 - `at(WorldPoint point)`: Entities standing on an exact tile, plane included.
-- `reachable()`: Entities the player can currently walk to.
+- `reachable()`: Geometric reachability from the player. For game objects this uses the live scene footprint or a cardinal approach with no separating movement wall; it does not guarantee object-specific access rules or server acceptance.
 - `sortByDistance()` / `sortByDistanceTo(WorldPoint anchor)`: Order by proximity, closest first.
 - `nearest()` / `nearestTo(WorldPoint anchor)`: The closest match, as an `Optional`.
 
 Distances are Chebyshev tile distances between world locations in the coordinate space the client reports for the top-level world view, the same space the local player's location uses, so these filters remain valid inside instanced regions such as raids. Entities on another plane never match a distance filter and sort last. Player-anchored filters yield empty results when there is no local player (login screen, mid world-hop).
+
+Player-relative `within(distance)`, `sortByDistance()`, `nearest()`, and projectile `landingWithin(distance)`
+share one current player anchor per evaluation. Reusing a query after moving or logging in refreshes
+that anchor. Explicit `within(anchor, distance)`, `sortByDistanceTo(anchor)`, and `nearestTo(anchor)` stay
+fixed. Without a local player, player-relative filters and `nearest()` yield nothing; `sortByDistance()`
+preserves source order.
 
 #### AbstractContainerQuery
 
@@ -178,12 +205,12 @@ Queries over the player's item containers (inventory, bank, bank-side inventory,
 
 #### AbstractEntity
 
-`AbstractEntity` wraps a raw RuneLite API object (e.g., `NPC`, `TileObject`, `Widget`) and implements the `Interactable` interface. It provides a consistent way to interact with different types of game entities.
+`AbstractEntity` is a live `EntityView`, not a state snapshot. It wraps a raw RuneLite API object (e.g., `NPC`, `TileObject`, `Widget`) and implements the `Interactable` interface. It provides a consistent way to interact with different types of game entities.
 
 Key methods include:
 
 - `raw()`: Returns the underlying RuneLite API object.
-- `interact(String action)`: Performs an interaction with the entity (e.g., "Attack", "Talk-to"). Returns `false` if nothing was sent, so it is safe to retry on.
+- `interact(String action)`: Performs an interaction with the entity (e.g., "Attack", "Talk-to"). Returns `false` on an ordinary dispatch failure. An expired/interrupted wait after execution starts throws an unknown-outcome `ClientThreadException`; observe state before retrying.
 - `getId()`: Returns the ID of the entity.
 - `getName()`: Returns the name of the entity.
 
@@ -229,3 +256,20 @@ an API which works **without** client modifications. Events are added with cauti
 | Event Name  | Trigger                                                      | Example Usage                                 |
 |-------------|--------------------------------------------------------------|-----------------------------------------------|
 | Packet Sent | Invoked when a packet is sent from the client to the server. | `@Subscribe onPacketSent(PacketSent e) {...}` |
+
+## Tile geometry and world views
+
+`TileService.isTileReachable` tests walkable tiles using collision flags on both sides of each edge.
+`isObjectReachable` uses `GameObject` scene min/max bounds, which already reflect rotation and even
+sizes. Diagonal corner contact alone does not count as an approach. Object checks require the player
+and object to share a world view; tile checks use the top-level view. Collision snapshots and floods
+are owned by the client thread. Cache reuse requires matching tick, view, scene, base, plane, player
+origin and exact collision contents, including changes within a tick.
+
+Instance conversion delegates to RuneLite's coordinate helpers. `toInstance` returns every matching
+occurrence, or an empty list for an absent template. `fromWorldInstance` returns the first occurrence
+on the active scene plane, or null. Template planes are preserved; tile reachability checks every
+matching occurrence on the active plane.
+
+NPC, player and tile-object menu actions carry the entity's owning world-view ID through dispatch,
+including selected-widget targets. Missing owners are rejected rather than assigned the top-level ID.

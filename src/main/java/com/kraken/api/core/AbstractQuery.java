@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -16,10 +17,11 @@ import java.util.stream.Stream;
  * on streams of game objects like NPC's, Ground Items, Tile Objects, Players and Widgets.
  *
  * <h3>Threading</h3>
- * <p>Every terminal operation funnels through a single evaluation that runs entirely on the client
- * thread and returns a materialised snapshot. Nothing lazy escapes: the {@link Stream} handed back by
- * {@link #stream()} iterates that snapshot, not the live scene, so filters and downstream operations
- * never touch client state from a script thread.</p>
+ * <p>Source traversal, declared filters, distinct keys, sorting, {@link #firstMatching(Predicate)}
+ * and {@link #snapshot(Function)} projections run on the client thread. Entity results are live
+ * {@link EntityView views}: materialization copies membership, not actor/widget state. Streams and
+ * Optional callbacks supplied by the caller run on the consuming thread; accessing view state there
+ * requires the client thread. Use {@code snapshot(mapper)} to capture detached values for workers.</p>
  *
  * <h3>Failure</h3>
  * <p>Collection-valued results are never {@code null}, and single-valued terminals ({@link #first()},
@@ -31,7 +33,8 @@ import java.util.stream.Stream;
  *
  * <h3>Reuse</h3>
  * <p>A query may be evaluated repeatedly and returns fresh results each time. Filters, de-duplication
- * and sorting are declarations, not consumed state.</p>
+ * and sorting are declarations, not consumed state. Builders are mutable and thread-confined:
+ * do not mutate or evaluate the same builder concurrently, or mutate it from evaluation callbacks.</p>
  *
  * @param <T> The type of object being queried (e.g., NpcEntity, WidgetEntity)
  * @param <Q> The concrete query class (e.g., NpcQuery)
@@ -40,9 +43,9 @@ import java.util.stream.Stream;
 @Slf4j
 public abstract class AbstractQuery<T extends Interactable<R>, Q extends AbstractQuery<T, Q, R>, R> {
     protected final Context ctx;
-    private final List<Predicate<T>> filters = new ArrayList<>();
+    private final List<Function<Evaluation, Predicate<T>>> filters = new ArrayList<>();
     private final List<Function<T, Object>> distinctKeys = new ArrayList<>();
-    private Comparator<T> comparator = null;
+    private Function<Evaluation, Comparator<T>> comparator = null;
     private Supplier<Stream<T>> override = null;
 
     public AbstractQuery(Context ctx) {
@@ -52,45 +55,89 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     protected abstract Supplier<Stream<T>> source();
 
     /**
-     * Evaluates the query on the client thread and returns a materialised snapshot.
-     *
-     * <p>This is the single place the source is read. The collect happens inside the client-thread block
-     * so that traversal of live game state stays on the client thread regardless of which thread the
-     * caller is on.</p>
-     *
-     * @return the matching entities, never {@code null}; empty if nothing matched or the client thread
-     *         could not be reached.
+     * Per-evaluation values, shared by declarations without retaining state on the builder.
      */
+    protected static final class Evaluation {
+        private final Map<Supplier<?>, Object> values = new IdentityHashMap<>();
+
+        /**
+         * Resolves a value once in this evaluation, including a null result.
+         * @param supplier The stable supplier identifying the value.
+         * @param <V> The supplied value type.
+         * @return The value captured for this evaluation.
+         */
+        @SuppressWarnings("unchecked")
+        public <V> V get(Supplier<V> supplier) {
+            if (!values.containsKey(supplier)) {
+                values.put(supplier, supplier.get());
+            }
+            return (V) values.get(supplier);
+        }
+    }
+
     private List<T> evaluate() {
+        return evaluate((evaluation, items) -> items, Collections.emptyList());
+    }
+
+    /**
+     * Reads membership and applies a terminal in the same client-thread evaluation.
+     * @param terminal The terminal; it must not return lazy access to client state.
+     * @param fallback The result when evaluation fails.
+     * @param <V> The terminal result type.
+     * @return The terminal result, or fallback after a client-thread failure.
+     */
+    protected final <V> V evaluate(BiFunction<Evaluation, List<T>, V> terminal, V fallback) {
         try {
             return ctx.runOnClientThread(() -> {
+                Evaluation evaluation = new Evaluation();
+                List<Predicate<T>> resolvedFilters = filters.stream()
+                        .map(factory -> factory.apply(evaluation)).collect(Collectors.toList());
+                Comparator<T> resolvedComparator = comparator == null ? null : comparator.apply(evaluation);
                 Stream<T> stream = (override != null ? override : source()).get();
                 if (stream == null) {
-                    return Collections.emptyList();
+                    stream = Stream.empty();
                 }
-
-                for (Predicate<T> filter : filters) {
+                // Even a custom parallel source must execute client-state callbacks on this thread.
+                stream = stream.sequential();
+                for (Predicate<T> filter : resolvedFilters) {
                     stream = stream.filter(filter);
                 }
-
                 List<T> items = stream.collect(Collectors.toList());
-
-                // De-duplication uses a set built per evaluation, so re-running the query does not
-                // inherit the keys seen by a previous run.
                 for (Function<T, Object> keyExtractor : distinctKeys) {
                     Set<Object> seen = new HashSet<>();
                     items.removeIf(item -> !seen.add(keyExtractor.apply(item)));
                 }
-
-                if (comparator != null) {
-                    items.sort(comparator);
+                if (resolvedComparator != null) {
+                    items.sort(resolvedComparator);
                 }
-                return items;
+                return terminal.apply(evaluation, items);
             });
         } catch (ClientThreadException e) {
             log.warn("Query could not be evaluated: {}", e.getMessage());
-            return Collections.emptyList();
+            return fallback;
         }
+    }
+
+    /**
+     * Adds a filter whose context is captured on the client thread once per evaluation.
+     * @param factory Creates the filter for this evaluation.
+     * @return This query.
+     */
+    @SuppressWarnings("unchecked")
+    protected final Q filterForEvaluation(Function<Evaluation, Predicate<T>> factory) {
+        filters.add(factory);
+        return (Q) this;
+    }
+
+    /**
+     * Sets sorting whose context is captured on the client thread once per evaluation.
+     * @param factory Creates the comparator for this evaluation, or null to clear sorting.
+     * @return This query.
+     */
+    @SuppressWarnings("unchecked")
+    protected final Q sortedForEvaluation(Function<Evaluation, Comparator<T>> factory) {
+        comparator = factory;
+        return (Q) this;
     }
 
     /**
@@ -138,7 +185,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     @SuppressWarnings("unchecked")
     public Q filter(Predicate<T> predicate) {
         if (predicate != null) {
-            filters.add(predicate);
+            filterForEvaluation(evaluation -> predicate);
         }
         return (Q) this;
     }
@@ -209,8 +256,8 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     /**
      * Returns the matched entities as a stream.
      *
-     * <p>The stream iterates a snapshot taken on the client thread, so it is safe to consume from any
-     * thread and will not observe entities spawning or despawning mid-traversal.</p>
+     * <p>Only membership is copied. Elements remain live views, and downstream callbacks run on
+     * the consuming thread. Use {@link #snapshot(Function)} to read detached values on workers.</p>
      *
      * @return Stream of entities
      */
@@ -223,10 +270,11 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      * {@code ctx.gameObjects().toRuneLite()} returns a list of {@code TileObjects}. You will not be
      * able to perform any interactions on these objects after calling {@code toRuneLite} as they lose
      * their {@code Interactable} wrapping.
+     * <p>These are live objects; read their state only on the client thread.</p>
      * @return Stream of RuneLite API objects
      */
     public Stream<R> toRuneLite() {
-        return evaluate().stream().map(T::raw);
+        return snapshot(T::raw).stream();
     }
 
     /**
@@ -246,7 +294,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
     @SuppressWarnings("unchecked")
     public Q except(Predicate<T> predicate) {
         if (predicate != null) {
-            filters.add(predicate.negate());
+            filterForEvaluation(evaluation -> predicate.negate());
         }
         return (Q) this;
     }
@@ -327,7 +375,7 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      */
     @SuppressWarnings("unchecked")
     public Q sorted(Comparator<T> comparator) {
-        this.comparator = comparator;
+        sortedForEvaluation(comparator == null ? null : evaluation -> comparator);
         return (Q) this;
     }
 
@@ -337,6 +385,21 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      */
     public List<T> list() {
         return evaluate();
+    }
+
+    /**
+     * Captures projected values during the same client-thread evaluation as filtering and sorting.
+     * The list is unmodifiable; the mapper must copy mutable data and return immutable values for
+     * a detached snapshot. Returning an entity, raw object, array, or lazy stream does not freeze it.
+     * For example, {@code ctx.npcs().snapshot(NpcEntity::getWorldLocation)} captures tile values.
+     * @param mapper Projects each matching live view into a value on the client thread.
+     * @param <S> The projected value type.
+     * @return An unmodifiable list of projected values, empty on no matches or evaluation failure.
+     */
+    public <S> List<S> snapshot(Function<? super T, ? extends S> mapper) {
+        Objects.requireNonNull(mapper, "mapper");
+        return evaluate((evaluation, items) -> Collections.unmodifiableList(
+                items.stream().map(mapper).collect(Collectors.toList())), Collections.emptyList());
     }
 
     /**
@@ -358,8 +421,9 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
      * @return Map of entities keyed by their id.
      */
     public Map<Integer, T> map() {
-        return evaluate().stream()
-                .collect(Collectors.toMap(T::getId, Function.identity(), (first, duplicate) -> first));
+        return evaluate((evaluation, items) -> items.stream()
+                .collect(Collectors.toMap(T::getId, Function.identity(), (first, duplicate) -> first)),
+                Collections.emptyMap());
     }
 
     /**
@@ -373,12 +437,13 @@ public abstract class AbstractQuery<T extends Interactable<R>, Q extends Abstrac
 
     /**
      * Returns the first matched entity that also satisfies the provided predicate, respecting any
-     * predicates already applied via {@link #filter}.
+     * predicates already applied via {@link #filter}. The extra predicate runs on the client thread
+     * after sorting and de-duplication, and is not retained on the builder.
      * @param predicate The predicate to apply
      * @return The first matching entity, or {@link Optional#empty()} if nothing matched.
      */
     public Optional<T> firstMatching(Predicate<T> predicate) {
-        return evaluate().stream().filter(predicate).findFirst();
+        return evaluate((evaluation, items) -> items.stream().filter(predicate).findFirst(), Optional.empty());
     }
 
     /**

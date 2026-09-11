@@ -68,10 +68,16 @@ little less. There are exactly two ways to learn one, and the service uses both:
 Orders run on the measured price and only pay for a quote when they have no measurement yet, or when
 told to `revalue(true)`.
 
-This degrades gracefully. If the shop never answers a quote — an unfamiliar message format, a shop
-that does not support "Value" — an order with a price limit trades a **single** item first, reads what
-it cost from the coin stack, and enforces the limit from there. So a price limit can let exactly one
-item through before it starts to hold, and only when no quote was available.
+A limit can only be enforced against a price the order knows. If the shop does not answer a quote —
+an unfamiliar message format, a shop that does not support "Value" — an order with a price or coin
+limit stops with `PRICE_UNKNOWN` rather than trading blind. With `revalue(true)` that applies before
+every step, so a quote that fails mid-order stops it instead of reusing an earlier price.
+
+**Limits are best-effort unless you ask for `revalue(true).step(1)`.** By default the price the order
+checks against is the average of the previous step, so a step can overshoot a price or coin limit by
+however much the price rose since. Quoting and buying one item at a time is the only way to hold a
+limit to the exact item, and even then a quote is not a reservation: another player can move the
+price between the quote and the click.
 
 ```java
 shop.value("Iron ore");                            // what the shop charges for the next one
@@ -123,9 +129,11 @@ Two knobs control the trade off:
 
 - `step(int)` — the most items per click, default 50 (the largest single trade a shop offers). Limits
   are only re-checked between steps, so the step size is also the granularity at which they hold.
-  `step(1)` enforces a price limit to the exact item, at one click per item.
 - `revalue(boolean)` — ask the shop for a fresh quote before every step. Off by default. Turn it on
   when the order must react to the price of the *next* item rather than the average of the last step.
+  `revalue(true).step(1)` is the hard-limit mode: every item is quoted before it is bought.
+
+Orders on one `ShopService` run one at a time; a second order waits for the first to finish.
 
 The quantities available are read back from the widget every time rather than assumed, so a client
 revision that reorders or renames a "Buy" option changes what the service reports, not whether it

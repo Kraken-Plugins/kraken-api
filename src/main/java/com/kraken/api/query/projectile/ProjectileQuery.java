@@ -75,11 +75,7 @@ public class ProjectileQuery extends AbstractSpatialQuery<ProjectileEntity, Proj
      * @return ProjectileQuery projectiles landing near the local player.
      */
     public ProjectileQuery landingWithin(int distance) {
-        WorldPoint anchor = localPlayerLocation();
-        if (anchor == null) {
-            return empty();
-        }
-        return filter(p -> {
+        return filterRelativeToPlayer((p, anchor) -> {
             WorldPoint target = p.getTargetPoint();
             return target != null && target.distanceTo(anchor) <= distance;
         });

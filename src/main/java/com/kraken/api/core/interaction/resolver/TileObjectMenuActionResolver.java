@@ -34,17 +34,20 @@ public class TileObjectMenuActionResolver implements MenuActionResolver<TileObje
     public Optional<ResolvedMenuAction> resolve(TileObject object, String action) {
         return ctxProvider.get().runOnClientThread(() -> {
             Client client = ctxProvider.get().getClient();
-            int worldView = client.getTopLevelWorldView().getId();
+            if (object == null || object.getWorldView() == null) return Optional.empty();
+            int worldView = object.getWorldView().getId();
 
             // Multi-tile objects must use south-west tile
             int sceneX, sceneY;
 
             if (object instanceof GameObject) {
                 GameObject go = (GameObject) object;
+                if (go.getSceneMinLocation() == null) return Optional.empty();
                 sceneX = go.getSceneMinLocation().getX();
                 sceneY = go.getSceneMinLocation().getY();
             } else {
                 LocalPoint lp = object.getLocalLocation();
+                if (lp == null) return Optional.empty();
                 sceneX = lp.getSceneX();
                 sceneY = lp.getSceneY();
             }

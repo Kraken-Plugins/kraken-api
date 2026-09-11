@@ -36,8 +36,10 @@ public class NpcMenuActionResolver implements MenuActionResolver<NPC> {
     public Optional<ResolvedMenuAction> resolve(NPC npc, String action) {
         return ctxProvider.get().runOnClientThread(() -> {
             Client client = ctxProvider.get().getClient();
-            int worldView = client.getTopLevelWorldView().getId();
+            if (npc == null || npc.getWorldView() == null) return Optional.empty();
+            int worldView = npc.getWorldView().getId();
             LocalPoint point = npc.getLocalLocation();
+            if (point == null) return Optional.empty();
 
             if (client.isWidgetSelected() && ActionResolver.isTargetSelection(action)) {
                 return Optional.of(new ResolvedMenuAction(

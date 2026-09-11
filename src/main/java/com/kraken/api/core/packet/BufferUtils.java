@@ -25,6 +25,35 @@ public class BufferUtils {
     private static final Map<Class<?>, Field> OFFSET_FIELDS = new ConcurrentHashMap<>();
     private static final Map<Class<?>, Field> ARRAY_FIELDS = new ConcurrentHashMap<>();
 
+    static final class ScratchBuffer {
+        private int offset;
+        private byte[] array;
+
+        ScratchBuffer(int capacity) {
+            array = new byte[capacity];
+        }
+    }
+
+    static BufferAccess validateFields(Class<?> bufferClass) {
+        Field offset = resolveField(OFFSET_FIELDS, bufferClass, HooksLoader.getReflectionHooks().getBufferOffsetField());
+        Field array = resolveField(ARRAY_FIELDS, bufferClass, HooksLoader.getReflectionHooks().getBufferArrayField());
+        if (offset.getType() != int.class || array.getType() != byte[].class
+                || java.lang.reflect.Modifier.isStatic(offset.getModifiers())
+                || java.lang.reflect.Modifier.isFinal(offset.getModifiers())
+                || java.lang.reflect.Modifier.isStatic(array.getModifiers())
+                || HooksLoader.getReflectionHooks().getOffsetMultiplier()
+                * HooksLoader.getReflectionHooks().getIndexMultiplier() != 1) {
+            throw new IllegalStateException("Invalid buffer fields or offset multipliers");
+        }
+        return new BufferAccess(offset, array);
+    }
+
+    @lombok.AllArgsConstructor
+    static final class BufferAccess {
+        final Field offset;
+        final Field array;
+    }
+
     /**
      * Resolves and caches the public field with the given hooked name on the buffer's concrete class.
      * @param cache The per-class cache to resolve through.
@@ -60,6 +89,10 @@ public class BufferUtils {
      * @param offset         The new offset value to set.
      */
     public static void setOffset(Object bufferInstance, int offset) {
+        if (bufferInstance instanceof ScratchBuffer) {
+            ((ScratchBuffer) bufferInstance).offset = offset;
+            return;
+        }
         try {
             offsetField(bufferInstance).setInt(bufferInstance, offset);
         } catch (IllegalAccessException e) {
@@ -74,6 +107,9 @@ public class BufferUtils {
      * @return The current offset.
      */
     public static int getOffset(Object bufferInstance) {
+        if (bufferInstance instanceof ScratchBuffer) {
+            return ((ScratchBuffer) bufferInstance).offset;
+        }
         try {
             return offsetField(bufferInstance).getInt(bufferInstance);
         } catch (IllegalAccessException e) {
@@ -88,6 +124,10 @@ public class BufferUtils {
      * @param array          The new byte[] to set as the buffer's data.
      */
     public static void setArray(Object bufferInstance, byte[] array) {
+        if (bufferInstance instanceof ScratchBuffer) {
+            ((ScratchBuffer) bufferInstance).array = array;
+            return;
+        }
         try {
             arrayField(bufferInstance).set(bufferInstance, array);
         } catch (IllegalAccessException e) {
@@ -102,6 +142,9 @@ public class BufferUtils {
      * @return The buffer's byte[] data.
      */
     public static byte[] getArray(Object bufferInstance) {
+        if (bufferInstance instanceof ScratchBuffer) {
+            return ((ScratchBuffer) bufferInstance).array;
+        }
         try {
             return (byte[]) arrayField(bufferInstance).get(bufferInstance);
         } catch (IllegalAccessException e) {
