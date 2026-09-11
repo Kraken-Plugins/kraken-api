@@ -9,6 +9,15 @@ import lombok.ToString;
 @Builder(toBuilder = true)
 public class GlobalPathfinderConfig {
 
+    /** Hard elapsed search limit, independent of heuristic progress. Must be positive. */
+    @Builder.Default
+    private final long maxSearchMillis = 10000L;
+
+    /** Maximum allocated graph nodes, including queued transports. Must be positive. */
+    @Builder.Default
+    private final int maxSearchNodes = 1000000;
+
+    /** Maximum interval without heuristic progress, in milliseconds. */
     @Builder.Default
     private final long calculationCutoffMillis = 3000L;
 

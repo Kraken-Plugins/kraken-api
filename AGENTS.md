@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-09-10
+- Last updated: 2026-09-11
 - Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
@@ -57,6 +57,12 @@
   - runtime hooks for packet/mouse behavior
   - client-thread helpers so callers do not need to manage RuneLite thread rules manually
 - `Script` is the main long-running automation primitive. It handles lifecycle, game-tick execution, pause/resume, and break management.
+  Restart requests during stop wait for the old loop and cleanup; `stopAsync()` captures run-specific
+  completion. Pause allows an already submitted iteration to finish. See `docs/SCRIPTING.md`.
+- Global pathfinding is worker-only. Each request owns its captured configuration; hard time/node
+  limits and cancellation bound graph expansion. See `docs/WALKER.md`.
+- Tile reachability uses live scene bounds and exact collision snapshots on the client thread.
+  Entity menu actions use their owning world view; see `docs/API.md`.
 
 ## AI integration and plugin authoring
 

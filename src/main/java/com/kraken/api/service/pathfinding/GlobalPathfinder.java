@@ -1,6 +1,7 @@
 package com.kraken.api.service.pathfinding;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.script.ScriptCancellation;
 import com.kraken.api.service.walker.transport.AlKharidGate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,8 +38,6 @@ public class GlobalPathfinder {
     @Inject
     private Client client;
 
-    private final MutableShortestPathConfigAdapter configAdapter = new MutableShortestPathConfigAdapter(DEFAULT_CONFIG);
-    private PathfinderConfig reusablePathfinderConfig;
 
     @Getter
     private volatile PathResult lastResult = EMPTY_RESULT;
@@ -234,7 +233,8 @@ public class GlobalPathfinder {
      * This method performs the pathfinding operation and returns a {@code PathResult} object containing the path details.
      * If the provided source or destination is {@code null}, an empty {@code PathResult} is returned.
      *
-     * <p><b>Thread-safety:</b> This method is synchronized to ensure thread safety during execution.</p>
+     * <p>Blocking calls on the client thread are rejected. Each request owns its captured configuration.
+     * Search limits return an incomplete best-effort route; lastResult is the last request to finish.</p>
      *
      * @param source The starting point of the pathfinding operation. Must be a valid {@code WorldPoint}.
      *               If {@code null}, an empty {@code PathResult} is returned.
@@ -248,28 +248,40 @@ public class GlobalPathfinder {
      *         includes details such as the computed path, resolved configuration, and other related metadata.
      */
     public PathResult findPathResult(WorldPoint source, WorldPoint destination, GlobalPathfinderConfig config) {
-        synchronized (this) {
-            GlobalPathfinderConfig resolvedConfig = Objects.requireNonNullElse(config, DEFAULT_CONFIG);
-            if (source == null || destination == null) {
-                PathResult emptyResult = PathResult.empty(resolvedConfig, source, destination);
-                lastResult = emptyResult;
-                return emptyResult;
-            }
-
-            PreparedPathfinder prepared = ctx.runOnClientThread(() -> prepare(source, destination, resolvedConfig));
-            if (prepared == null || prepared.targets.isEmpty()) {
-                PathResult emptyResult = PathResult.empty(resolvedConfig, source, destination);
-                lastResult = emptyResult;
-                return emptyResult;
-            }
-
-            SearchState searchState = search(prepared.start, prepared.targets, prepared.pathfinderConfig);
-            PathResult result = buildResult(
-                    source, destination, resolvedConfig, prepared.pathfinderConfig, searchState,
-                    prepared.alKharidGateFree);
-            lastResult = result;
-            return result;
+        requireWorkerThread();
+        GlobalPathfinderConfig resolvedConfig = Objects.requireNonNullElse(config, DEFAULT_CONFIG);
+        if (resolvedConfig.getMaxSearchMillis() <= 0 || resolvedConfig.getMaxSearchNodes() <= 0) {
+            throw new IllegalArgumentException("Search time and node limits must be positive");
         }
+        if (source == null || destination == null || searchCancelled()) {
+            return lastResult = PathResult.empty(resolvedConfig, source, destination);
+        }
+
+        // Load static graph resources on the worker. The client capture refreshes only this request's
+        // configuration; no subsequent capture can mutate the inputs while this worker searches.
+        PathfinderConfig requestConfig = createRequestConfig(resolvedConfig);
+        PreparedPathfinder prepared = ctx.runOnClientThread(() -> prepare(source, destination, requestConfig));
+        if (prepared == null || prepared.targets.isEmpty() || searchCancelled()) {
+            return lastResult = PathResult.empty(resolvedConfig, source, destination);
+        }
+        SearchState searchState = search(prepared.start, prepared.targets, prepared.pathfinderConfig, resolvedConfig);
+        return lastResult = buildResult(source, destination, resolvedConfig, prepared.pathfinderConfig,
+                searchState, prepared.alKharidGateFree);
+    }
+
+    /** Creates a private search configuration; static resource loading must stay on the worker. */
+    PathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
+        return new PathfinderConfig(client, new ShortestPathConfigAdapter(config));
+    }
+
+    private void requireWorkerThread() {
+        if (client.isClientThread()) {
+            throw new IllegalStateException("Global pathfinding must run off the client thread");
+        }
+    }
+
+    private static boolean searchCancelled() {
+        return Thread.currentThread().isInterrupted() || ScriptCancellation.currentThreadCancelled();
     }
 
     /** Clears the cached route used by overlays and callers inspecting the last result. */
@@ -277,15 +289,9 @@ public class GlobalPathfinder {
         lastResult = EMPTY_RESULT;
     }
 
-    /** Refreshes the reusable shortest-path config and packs the search inputs. */
-    private PreparedPathfinder prepare(WorldPoint source, WorldPoint destination, GlobalPathfinderConfig config) {
-        configAdapter.setConfig(config);
-        if (reusablePathfinderConfig == null) {
-            reusablePathfinderConfig = new PathfinderConfig(client, configAdapter);
-        }
-
-        reusablePathfinderConfig.bank = client.getItemContainer(InventoryID.BANK);
-        PathfinderConfig pathfinderConfig = reusablePathfinderConfig;
+    /** Captures live eligibility into a request-owned config on the client thread. */
+    private PreparedPathfinder prepare(WorldPoint source, WorldPoint destination, PathfinderConfig pathfinderConfig) {
+        pathfinderConfig.bank = client.getItemContainer(InventoryID.BANK);
         pathfinderConfig.refresh();
         int gateVarp = client.getVarpValue(AlKharidGate.GATE_VARP);
         boolean princeAliFinished = QuestState.FINISHED.equals(Quest.PRINCE_ALI_RESCUE.getState(client));
@@ -302,135 +308,139 @@ public class GlobalPathfinder {
 
         return new PreparedPathfinder(
                 WorldPointUtil.packWorldPoint(source),
-                targets,
+                Collections.unmodifiableSet(targets),
                 pathfinderConfig,
                 AlKharidGate.isFree(gateVarp, princeAliFinished));
     }
 
     /** Runs the shortest-path graph search over walkable tiles and transport edges. */
-    private SearchState search(int start, Set<Integer> targets, PathfinderConfig config) {
+    private SearchState search(int start, Set<Integer> targets, PathfinderConfig config, GlobalPathfinderConfig limits) {
         CollisionMap map = config.getMap();
         VisitedTiles visited = new VisitedTiles(map);
-        NodeGraph graph = new NodeGraph(1 << 14);
+        SearchBudget budget = new SearchBudget(limits.getMaxSearchMillis(), limits.getMaxSearchNodes(), System::nanoTime);
+        NodeGraph graph = new BudgetedNodeGraph(budget);
 
         IntDeque boundary = new IntDeque(4096);
         IntMinHeap pending = new IntMinHeap(graph, 256);
         boolean targetInWilderness = WildernessChecker.isInWilderness(targets);
 
-        boundary.addFirst(graph.createStart(start));
-
         int bestDistance = Integer.MAX_VALUE;
         long bestHeuristic = Integer.MAX_VALUE;
-        long cutoffDurationMillis = config.getCalculationCutoffMillis();
-        long cutoffTimeMillis = System.currentTimeMillis() + cutoffDurationMillis;
+        long cutoffDurationNanos = java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(
+                Math.max(0, config.getCalculationCutoffMillis()));
+        long lastProgressNanos = System.nanoTime();
         int wildernessLevel = 31;
         int nodesChecked = 0;
         int transportsChecked = 0;
         int bestLastNode = NodeGraph.NO_NODE;
         boolean complete = false;
 
-        while (!boundary.isEmpty() || !pending.isEmpty()) {
-            int boundaryHead = boundary.peekFirst();
-            int pendingHead = pending.peek();
-            int node;
+        try {
+            try {
+                boundary.addFirst(graph.createStart(start));
+                while (!boundary.isEmpty() || !pending.isEmpty()) {
+                    if (budget.exhausted() || System.nanoTime() - lastProgressNanos >= cutoffDurationNanos) break;
+                    int boundaryHead = boundary.peekFirst();
+                    int pendingHead = pending.peek();
+                    int node;
 
-            if (pendingHead != NodeGraph.NO_NODE
-                    && (boundaryHead == NodeGraph.NO_NODE || graph.compareCost(pendingHead) < graph.cost(boundaryHead))) {
-                node = pending.poll();
+                    if (pendingHead != NodeGraph.NO_NODE
+                            && (boundaryHead == NodeGraph.NO_NODE || graph.compareCost(pendingHead) < graph.cost(boundaryHead))) {
+                        node = pending.poll();
 
-                if (graph.isDelayedVisit(node)) {
-                    int packed = graph.packedPosition(node);
-                    boolean bank = graph.bankVisited(node);
-                    if (visited.get(packed, bank)) {
+                        if (graph.isDelayedVisit(node)) {
+                            int packed = graph.packedPosition(node);
+                            boolean bank = graph.bankVisited(node);
+                            if (visited.get(packed, bank)) {
+                                continue;
+                            }
+                            visited.set(packed, bank);
+                        }
+                    } else {
+                        node = boundary.pollFirst();
+                    }
+
+                    if (node == NodeGraph.NO_NODE) {
                         continue;
                     }
-                    visited.set(packed, bank);
-                }
-            } else {
-                node = boundary.pollFirst();
-            }
 
-            if (node == NodeGraph.NO_NODE) {
-                continue;
-            }
+                    final boolean nodeIsTile = graph.isTile(node);
+                    final int nodePacked = nodeIsTile ? graph.packedPosition(node) : WorldPointUtil.UNDEFINED;
 
-            final boolean nodeIsTile = graph.isTile(node);
-            final int nodePacked = nodeIsTile ? graph.packedPosition(node) : WorldPointUtil.UNDEFINED;
+                    if (nodeIsTile && wildernessLevel > 0) {
+                        if (wildernessLevel > 30 && !WildernessChecker.isInLevel30Wilderness(nodePacked)) {
+                            wildernessLevel = 30;
+                        }
+                        if (wildernessLevel > 20 && !WildernessChecker.isInLevel20Wilderness(nodePacked)) {
+                            wildernessLevel = 20;
+                        }
+                        if (wildernessLevel > 0 && !WildernessChecker.isInWilderness(nodePacked)) {
+                            wildernessLevel = 0;
+                        }
+                    }
 
-            if (nodeIsTile && wildernessLevel > 0) {
-                if (wildernessLevel > 30 && !WildernessChecker.isInLevel30Wilderness(nodePacked)) {
-                    wildernessLevel = 30;
-                }
-                if (wildernessLevel > 20 && !WildernessChecker.isInLevel20Wilderness(nodePacked)) {
-                    wildernessLevel = 20;
-                }
-                if (wildernessLevel > 0 && !WildernessChecker.isInWilderness(nodePacked)) {
-                    wildernessLevel = 0;
-                }
-            }
-
-            if (nodeIsTile && targets.contains(nodePacked)) {
-                bestLastNode = node;
-                complete = true;
-                break;
-            }
-
-            if (nodeIsTile) {
-                for (int target : targets) {
-                    int distance = WorldPointUtil.distanceBetween(nodePacked, target);
-                    long heuristic = distance + (long) WorldPointUtil.distanceBetween(nodePacked, target, 2);
-                    if (heuristic < bestHeuristic || (heuristic <= bestHeuristic && distance < bestDistance)) {
+                    if (nodeIsTile && targets.contains(nodePacked)) {
                         bestLastNode = node;
-                        bestDistance = distance;
-                        bestHeuristic = heuristic;
-                        cutoffTimeMillis = System.currentTimeMillis() + cutoffDurationMillis;
+                        complete = true;
+                        break;
+                    }
+
+                    if (nodeIsTile) {
+                        for (int target : targets) {
+                            int distance = WorldPointUtil.distanceBetween(nodePacked, target);
+                            long heuristic = distance + (long) WorldPointUtil.distanceBetween(nodePacked, target, 2);
+                            if (heuristic < bestHeuristic || (heuristic <= bestHeuristic && distance < bestDistance)) {
+                                bestLastNode = node;
+                                bestDistance = distance;
+                                bestHeuristic = heuristic;
+                                lastProgressNanos = System.nanoTime();
+                            }
+                        }
+                    }
+
+                    PrimitiveIntList neighbors = map.getNeighbors(node, visited, config, wildernessLevel, targetInWilderness, graph);
+                    final int count = neighbors.size();
+                    for (int i = 0; i < count; i++) {
+                        int neighbor = neighbors.get(i);
+                        final boolean neighborIsTile = graph.isTile(neighbor);
+
+                        if (nodeIsTile && neighborIsTile) {
+                            final int neighborPacked = graph.packedPosition(neighbor);
+                            if (config.avoidWilderness(nodePacked, neighborPacked, targetInWilderness)) {
+                                continue;
+                            }
+                        }
+
+                        final boolean neighborIsTransport = graph.isTransport(neighbor);
+                        if (!(neighborIsTransport && graph.isDelayedVisit(neighbor))) {
+                            visited.set(neighbor, graph);
+                        }
+
+                        if (neighborIsTransport) {
+                            pending.add(neighbor);
+                            transportsChecked++;
+                        } else {
+                            boundary.addLast(neighbor);
+                            nodesChecked++;
+                        }
                     }
                 }
+            } catch (SearchBudget.Exhausted e) {
+                // A neighbor expansion reached a hard limit before allocating another graph node.
             }
 
-            if (System.currentTimeMillis() > cutoffTimeMillis) {
-                break;
+            List<PathStep> pathSteps = Collections.emptyList();
+            if (bestLastNode != NodeGraph.NO_NODE) {
+                pathSteps = graph.getPathSteps(bestLastNode);
             }
 
-            PrimitiveIntList neighbors = map.getNeighbors(node, visited, config, wildernessLevel, targetInWilderness, graph);
-            final int count = neighbors.size();
-            for (int i = 0; i < count; i++) {
-                int neighbor = neighbors.get(i);
-                final boolean neighborIsTile = graph.isTile(neighbor);
-
-                if (nodeIsTile && neighborIsTile) {
-                    final int neighborPacked = graph.packedPosition(neighbor);
-                    if (config.avoidWilderness(nodePacked, neighborPacked, targetInWilderness)) {
-                        continue;
-                    }
-                }
-
-                final boolean neighborIsTransport = graph.isTransport(neighbor);
-                if (!(neighborIsTransport && graph.isDelayedVisit(neighbor))) {
-                    visited.set(neighbor, graph);
-                }
-
-                if (neighborIsTransport) {
-                    pending.add(neighbor);
-                    transportsChecked++;
-                } else {
-                    boundary.addLast(neighbor);
-                    nodesChecked++;
-                }
-            }
+            return new SearchState(pathSteps, complete, nodesChecked, transportsChecked);
+        } finally {
+            boundary.clear();
+            pending.clear();
+            visited.clear();
+            graph.release();
         }
-
-        List<PathStep> pathSteps = Collections.emptyList();
-        if (bestLastNode != NodeGraph.NO_NODE) {
-            pathSteps = graph.getPathSteps(bestLastNode);
-        }
-
-        boundary.clear();
-        pending.clear();
-        visited.clear();
-        graph.release();
-
-        return new SearchState(pathSteps, complete, nodesChecked, transportsChecked);
     }
 
     /** Converts the final node chain into the API-facing route result object. */
@@ -624,6 +634,7 @@ public class GlobalPathfinder {
 
     /** Resolves the local player's current world point on the client thread. */
     private WorldPoint resolveLocalPlayerPoint() {
+        requireWorkerThread();
         return ctx.runOnClientThread(() -> {
             Player player = client.getLocalPlayer();
             if (player == null) {
@@ -809,16 +820,11 @@ public class GlobalPathfinder {
         return useTeleportationItems ? TeleportationItem.INVENTORY : TeleportationItem.NONE;
     }
 
-    private static final class MutableShortestPathConfigAdapter implements ShortestPathConfig {
-        private volatile GlobalPathfinderConfig config;
+    private static final class ShortestPathConfigAdapter implements ShortestPathConfig {
+        private final GlobalPathfinderConfig config;
 
         /** Wraps the Kraken config in the shortest-path config interface. */
-        private MutableShortestPathConfigAdapter(GlobalPathfinderConfig config) {
-            this.config = config;
-        }
-
-        /** Swaps in the config used for the next search. */
-        private void setConfig(GlobalPathfinderConfig config) {
+        private ShortestPathConfigAdapter(GlobalPathfinderConfig config) {
             this.config = config;
         }
 

@@ -346,7 +346,8 @@ public class InteractionManager {
         // construct it explicitly to mirror the original behavior.
         return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
             Client client = ctxProvider.get().getClient();
-            int worldView = client.getTopLevelWorldView().getId();
+            if (dest.getWorldView() == null) return false;
+            int worldView = dest.getWorldView().getId();
 
             Point scenePoint;
 
@@ -390,8 +391,8 @@ public class InteractionManager {
         }
 
         return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
-            Client client = ctxProvider.get().getClient();
-            int worldView = client.getTopLevelWorldView().getId();
+            if (dest.getWorldView() == null) return false;
+            int worldView = dest.getWorldView().getId();
 
             String npcName = dest.getName() == null ? "" : dest.getName();
             String target = srcResolved.get().getTarget() + " -> " + npcName;
@@ -422,8 +423,8 @@ public class InteractionManager {
         }
 
         return Boolean.TRUE.equals(ctxProvider.get().runOnClientThread(() -> {
-            Client client = ctxProvider.get().getClient();
-            int worldView = client.getTopLevelWorldView().getId();
+            if (dest.getWorldView() == null) return false;
+            int worldView = dest.getWorldView().getId();
 
             String playerName = dest.getName() == null ? "" : dest.getName();
             String target = srcResolved.get().getTarget() + " -> " + playerName;

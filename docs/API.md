@@ -181,7 +181,7 @@ Queries over entities that occupy a tile (NPCs, players, game/tile objects, grou
 - `within(WorldPoint anchor, int distance)`: The same, measured from an anchor point.
 - `withinArea(WorldPoint min, WorldPoint max)`: Entities inside the rectangle spanned by two corners.
 - `at(WorldPoint point)`: Entities standing on an exact tile, plane included.
-- `reachable()`: Entities the player can currently walk to.
+- `reachable()`: Geometric reachability from the player. For game objects this uses the live scene footprint or a cardinal approach with no separating movement wall; it does not guarantee object-specific access rules or server acceptance.
 - `sortByDistance()` / `sortByDistanceTo(WorldPoint anchor)`: Order by proximity, closest first.
 - `nearest()` / `nearestTo(WorldPoint anchor)`: The closest match, as an `Optional`.
 
@@ -257,3 +257,20 @@ an API which works **without** client modifications. Events are added with cauti
 | Event Name  | Trigger                                                      | Example Usage                                 |
 |-------------|--------------------------------------------------------------|-----------------------------------------------|
 | Packet Sent | Invoked when a packet is sent from the client to the server. | `@Subscribe onPacketSent(PacketSent e) {...}` |
+
+## Tile geometry and world views
+
+`TileService.isTileReachable` tests walkable tiles using collision flags on both sides of each edge.
+`isObjectReachable` uses `GameObject` scene min/max bounds, which already reflect rotation and even
+sizes. Diagonal corner contact alone does not count as an approach. Object checks require the player
+and object to share a world view; tile checks use the top-level view. Collision snapshots and floods
+are owned by the client thread. Cache reuse requires matching tick, view, scene, base, plane, player
+origin and exact collision contents, including changes within a tick.
+
+Instance conversion delegates to RuneLite's coordinate helpers. `toInstance` returns every matching
+occurrence, or an empty list for an absent template. `fromWorldInstance` returns the first occurrence
+on the active scene plane, or null. Template planes are preserved; tile reachability checks every
+matching occurrence on the active plane.
+
+NPC, player and tile-object menu actions carry the entity's owning world-view ID through dispatch,
+including selected-widget targets. Missing owners are rejected rather than assigned the top-level ID.
