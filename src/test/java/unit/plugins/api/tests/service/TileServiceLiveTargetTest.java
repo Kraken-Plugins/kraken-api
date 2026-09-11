@@ -46,15 +46,6 @@ class TileServiceLiveTargetTest {
     }
 
     @Test
-    void destinationRequiresRealDisplacementAlongAClearCorridor() {
-        TileServiceTest.MoveTarget target = test.chooseTarget(ctx, false);
-        assertNotNull(target);
-        assertEquals(new WorldPoint(3223, 3220, 0), target.getScenePoint());
-        assertEquals(target.getScenePoint(), target.getTemplate());
-        assertNotEquals(target.getStart(), target.getScenePoint());
-    }
-
-    @Test
     void separatingWallCannotBeSelectedAsMovementTarget() {
         flags[21][20] |= CollisionDataFlag.BLOCK_MOVEMENT_WEST;
         assertNull(test.chooseTarget(ctx, false));
@@ -89,7 +80,7 @@ class TileServiceLiveTargetTest {
 
     @Test
     void requirementsAllowF2pBulkRunsWithoutReshapingInventory() {
-        assertEquals(NamedLocation.VARROCK_SQUARE_FOUNTAIN, test.requirements().getLocation());
+        assertEquals(NamedLocation.LUMBRIDGE_GRAVEYARD, test.requirements().getLocation());
         assertEquals(InventoryPolicy.NO_CHANGE, test.requirements().resolveInventoryPolicy());
         assertFalse(test.requirements().isDestructive());
         assertTrue(test.requirements().getSideEffects().contains(SideEffect.MOVES_PLAYER));

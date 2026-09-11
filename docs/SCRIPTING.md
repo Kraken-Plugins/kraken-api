@@ -111,7 +111,6 @@ public class FishingPlugin extends Plugin {
     @Override
     protected void shutDown() {
         script.stop(); // Calls Script.onStop()
-        ctx.shutdown(); // Unregisters the Context's event bus and mouse listeners
     }
     
     // TODO Add a panel for your plugin with stop, start, pause, resume buttons to your Scripts UI.
@@ -135,8 +134,8 @@ public class FishingPlugin extends Plugin {
 ```
 
 There is nothing to initialize before using the API: packets and interaction hooks are set up when Guice builds the `Context`.
-Call `ctx.shutdown()` from `shutDown()` so the `Context`'s event bus subscriptions and mouse listener do not leak across
-plugin enable/disable cycles.
+The `Context` is shared by every plugin and lives for the life of the client, so `shutDown()` only needs to stop what the
+plugin itself started.
 
 ## Extending `Script` with the Loop and Task System
 

@@ -67,6 +67,12 @@ public enum ShopStopReason {
      */
     NO_PROGRESS("A trade was attempted but nothing changed hands", false),
 
+    /**
+     * The order has a price or coin limit but the shop would not quote a price to enforce it against,
+     * so nothing was traded rather than trading blind.
+     */
+    PRICE_UNKNOWN("The shop would not quote a price, so the order's limit could not be enforced", false),
+
     /** The order asked for nothing, so nothing was done. */
     NOTHING_REQUESTED("The order requested no items", true);
 

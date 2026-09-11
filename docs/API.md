@@ -100,7 +100,8 @@ The queries available on `Context` are `npcs()`, `players()`, `gameObjects()`, `
 ### Lifecycle
 
 - `Context` is a Guice singleton; inject it with `@Inject`. Packets and interaction hooks are set up when Guice constructs it, so there is nothing to initialize.
-- Call `ctx.shutdown()` from your plugin's `shutDown()`. Otherwise the `Context`'s event bus subscriptions and mouse listener leak across plugin enable/disable cycles.
+- There is one `Context` per client and every plugin shares it. RuneLite's root injector owns it and every Kraken `@Singleton` service, so `ctx.getService(...)` and an injected field return the same instance. Do not bind Kraken types in your plugin module; that creates a private copy the rest of the API cannot see.
+- The `Context` lives for the life of the client and is never shut down by a plugin. A plugin's `shutDown()` stops the scripts and break handling it started, nothing more.
 - Code that cannot be injected (static helpers, for example) can use `com.kraken.api.core.Services.context()`, which resolves against RuneLite's root injector.
 
 ### Query Thread Safety
@@ -129,9 +130,7 @@ answer in time. Timeout or interruption cancels work that has not started, so it
 If execution has already started, `ClientThreadException.isOutcomeUnknown()` is true: the action may still finish.
 Both `runOnClientThreadOptional(Callable)` and the fallback overload propagate unknown outcomes; ordinary failures
 still yield an empty `Optional` or the supplied fallback. Do not blindly retry an unknown outcome.
-`shutdown()` revokes pending commands and rejects new submissions. The `Runnable` overload remains asynchronous
-for worker callers, with the same queue deadline and shutdown cancellation; asynchronous failures are logged.
-These rules use the existing Context disposal boundary; they do not add script-run ownership or restartable Context lifecycles.
+The `Runnable` overload remains asynchronous for worker callers, with the same queue deadline; asynchronous failures are logged.
 
 To see specific examples of various queries, check out the [API tests](https://github.com/Kraken-Plugins/kraken-api/tree/master/src/test/java/plugins/api) which utilize a real RuneLite plugin to query and find
 various game entities around Varrock East Bank.

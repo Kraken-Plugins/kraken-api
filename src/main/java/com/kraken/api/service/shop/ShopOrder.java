@@ -78,8 +78,8 @@ public abstract class ShopOrder<T extends ShopOrder<T>> {
      *
      * <p>Limits are only re-checked between steps, so the step size is also the granularity at which
      * they are enforced. The default of 50 is the largest single trade a shop offers and is right for
-     * bulk work. Dropping to 1 enforces a price limit to the exact item, at the cost of one click per
-     * item.</p>
+     * bulk work. Dropping to 1 checks the limits before every item, at the cost of one click per item;
+     * combined with {@code revalue(true)} that check uses the exact price of the next item.</p>
      *
      * @param step the largest number of items to trade at once; clamped to at least 1
      * @return this order
@@ -94,8 +94,9 @@ public abstract class ShopOrder<T extends ShopOrder<T>> {
      *
      * <p>Off by default, because the price paid per item is already measured exactly from the player's
      * coin stack after each step, which costs nothing extra. Turn it on when the order must react to
-     * the price of the <em>next</em> item rather than the average of the last step — for instance when
-     * buying in steps of 50 with a tight per item limit.</p>
+     * the price of the <em>next</em> item rather than the average of the last step. With it on, a
+     * limited order that cannot get a quote stops with {@link ShopStopReason#PRICE_UNKNOWN} instead of
+     * reusing a price from an earlier step.</p>
      *
      * @param revalue true to value the item before each step
      * @return this order

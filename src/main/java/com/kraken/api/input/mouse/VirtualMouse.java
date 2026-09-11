@@ -51,16 +51,6 @@ public class VirtualMouse implements MouseListener {
 
     private final MouseManager mouseManager;
 
-    /**
-     * Detaches this mouse from RuneLite's shared {@link MouseManager}.
-     *
-     * <p>The manager outlives any single plugin, so a listener left registered keeps receiving events
-     * and keeps its plugin's classloader reachable. Called by {@link com.kraken.api.Context#shutdown()}.</p>
-     */
-    public void shutdown() {
-        mouseManager.unregisterMouseListener(this);
-    }
-
     @Inject
     public VirtualMouse(MouseManager mouseManager, Client client) {
         this.mouseManager = mouseManager;

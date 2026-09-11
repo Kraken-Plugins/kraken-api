@@ -1,13 +1,19 @@
 package com.kraken.api.service.util.dps.model;
 
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * A piece of equipment with its full combat stats, loaded from the bundled OSRS wiki
  * equipment data. Field structure intentionally mirrors the JSON so Gson can map it directly.
+ * Instances are read-only once loaded: {@link com.kraken.api.service.util.dps.data.DpsDataStore}
+ * hands out its cached definitions directly, so per-calculation changes belong on a {@link Loadout}.
  */
-@Data
+@Getter
+@EqualsAndHashCode
+@ToString
 @NoArgsConstructor
 public class EquipmentItem {
 
@@ -15,7 +21,9 @@ public class EquipmentItem {
      * Strength-type bonuses of an item: melee strength, ranged strength, magic damage
      * (in tenths of a percent) and prayer bonus.
      */
-    @Data
+    @Getter
+@EqualsAndHashCode
+@ToString
     @NoArgsConstructor
     public static class Bonuses {
         private int str;
@@ -27,7 +35,9 @@ public class EquipmentItem {
     /**
      * Accuracy (offensive) or defensive bonuses of an item, one value per combat style type.
      */
-    @Data
+    @Getter
+@EqualsAndHashCode
+@ToString
     @NoArgsConstructor
     public static class Styles {
         private int stab;

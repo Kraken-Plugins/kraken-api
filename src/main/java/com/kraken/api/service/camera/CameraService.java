@@ -20,7 +20,6 @@ import net.runelite.client.plugins.camera.CameraPlugin;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.Objects;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -361,23 +360,12 @@ public class CameraService {
      * @param npcId the ID of the NPC to track
      */
     public synchronized void trackNpc(int npcId) {
-        if (trackingTask != null && !trackingTask.isCancelled()) {
+        if (isTrackingNpc()) {
             log.error("Already tracking an NPC, cannot track another one.");
             return;
         }
 
         trackingTask = scheduler.scheduleAtFixedRate(() -> trackingJob(npcId), 0, 200, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Stops any tracking job and releases the camera scheduler.
-     *
-     * <p>Called by {@link com.kraken.api.Context#shutdown()}; plugins do not need to invoke this
-     * directly.</p>
-     */
-    public synchronized void shutdown() {
-        stopTrackingNpc();
-        scheduler.shutdownNow();
     }
 
     /**
@@ -391,30 +379,44 @@ public class CameraService {
     }
 
     /**
-     * Checks if a NPC is being tracked
+     * Checks if a NPC is being tracked. A tracking task that died from an error counts as not tracking.
      *
      * @return true if a NPC is being tracked, false otherwise
      */
     public synchronized boolean isTrackingNpc() {
-        return trackingTask != null;
+        return trackingTask != null && !trackingTask.isDone();
     }
 
     /**
-     * Job which runs every 200ms to track an NPC with the camera.
+     * Job which runs every 200ms to track an NPC with the camera. The scene lookup and the camera
+     * write are queued onto the client thread, which owns both. If the work cannot be queued the task
+     * ends and the failure is logged, after which {@link #isTrackingNpc()} reports false and tracking
+     * can be started again.
      * @param id The npc id to track.
      */
     private void trackingJob(int id) {
-        if (!(ctx.getClient().getGameState() == GameState.LOGGED_IN)) {
-            return;
+        try {
+            ctx.runOnClientThread(() -> {
+                if (ctx.getClient().getGameState() != GameState.LOGGED_IN) {
+                    return;
+                }
+
+                NPC npc = ctx.getClient().getTopLevelWorldView().npcs().stream()
+                        .filter(Objects::nonNull)
+                        .filter(n -> n.getId() == id)
+                        .findFirst()
+                        .orElse(null);
+
+                if (npc == null) {
+                    return;
+                }
+
+                ctx.getClient().setCameraYawTarget(calculateCameraYaw(angleToTile(npc)));
+            });
+        } catch (RuntimeException e) {
+            log.error("NPC tracking stopped: could not hand the camera update to the client thread", e);
+            throw e;
         }
-
-        NPC npc = ctx.getClient().getTopLevelWorldView().npcs().stream().filter(Objects::nonNull).filter(n -> n.getId() == id).findFirst().orElse(null);
-
-        if(npc == null) {
-            return;
-        }
-
-        ctx.getClient().setCameraYawTarget(calculateCameraYaw(angleToTile(npc)));
     }
 
     /**

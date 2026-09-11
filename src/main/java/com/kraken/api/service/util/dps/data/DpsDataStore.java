@@ -24,6 +24,9 @@ import java.util.Map;
  * Loads and indexes the bundled OSRS wiki combat data (equipment stats, monster stats,
  * spells, and equipment aliases) used by the DPS calculator. Data is loaded lazily on
  * first access and cached for the lifetime of the client.
+ *
+ * <p>Equipment and spell definitions are read-only and shared between callers; monster data
+ * exposes mutable defence reductions and is therefore copied on every lookup.</p>
  */
 @Slf4j
 @Singleton
@@ -118,7 +121,7 @@ public class DpsDataStore {
      * Looks up an item's combat stats by item id, resolving cosmetic/locked variants
      * to their base item.
      * @param itemId The item id
-     * @return EquipmentItem or null when the item is not equippable / unknown
+     * @return Shared read-only EquipmentItem, or null when the item is not equippable / unknown
      */
     public EquipmentItem equipment(int itemId) {
         ensureLoaded();
@@ -160,7 +163,7 @@ public class DpsDataStore {
     /**
      * Looks up a spell by its exact name, e.g. "Fire Surge" or "Ice Barrage".
      * @param name The spell name
-     * @return SpellData or null when unknown
+     * @return Shared read-only SpellData, or null when unknown
      */
     public SpellData spell(String name) {
         ensureLoaded();
@@ -169,7 +172,7 @@ public class DpsDataStore {
 
     /**
      * Gets all loaded spells.
-     * @return Map of spell name to spell data
+     * @return Unmodifiable map of spell name to read-only spell data
      */
     public Map<String, SpellData> spells() {
         ensureLoaded();

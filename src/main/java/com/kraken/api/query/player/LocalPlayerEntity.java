@@ -28,15 +28,6 @@ public class LocalPlayerEntity extends PlayerEntity {
         super(ctx, ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer(), null));
     }
 
-    /**
-     * Releases the scheduler backing delayed actions such as special-attack activation.
-     *
-     * <p>Called by {@link Context#shutdown()}; plugins do not need to invoke this directly.</p>
-     */
-    public void shutdown() {
-        executor.shutdownNow();
-    }
-
     @Override
     public Player raw() {
         return ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer());

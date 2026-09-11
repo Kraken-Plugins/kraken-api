@@ -1,7 +1,6 @@
 package com.kraken.api;
 
 import com.google.inject.Inject;
-import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.core.ClientThreadException;
 import com.kraken.api.core.ClientThreadGateway;
@@ -27,7 +26,6 @@ import com.kraken.api.query.player.PlayerQuery;
 import com.kraken.api.query.widget.WidgetQuery;
 import com.kraken.api.query.world.WorldQuery;
 import com.kraken.api.service.bank.BankService;
-import com.kraken.api.service.camera.CameraService;
 import com.kraken.api.service.shop.ShopService;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,6 +41,21 @@ import java.lang.reflect.Field;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
+/**
+ * The single entry point to the Kraken API.
+ *
+ * <p>One Context exists per game client and every plugin shares it. RuneLite gives each plugin a
+ * child injector, but Guice places a just-in-time singleton in the outermost injector that can
+ * satisfy its dependencies, and every Kraken type depends only on RuneLite and other Kraken types.
+ * The root injector therefore owns this Context and every {@code @Singleton} service it exposes,
+ * and {@link #getService(Class)} returns the same instances a plugin has injected. Do not bind Kraken
+ * types in a plugin module: an explicit child binding creates a second, private copy that the rest of
+ * the API cannot see.</p>
+ *
+ * <p>Because the Context is client-wide, it lives for the life of the client. Plugins do not release
+ * it; a plugin's own {@code shutDown()} should stop the scripts and break handling it started and
+ * nothing more.</p>
+ */
 @Slf4j
 @Singleton
 public class Context {
@@ -74,40 +87,19 @@ public class Context {
     @Getter
     private final InteractionManager interactionManager;
 
-    private final EventBus eventBus;
-    private final BankService bankService;
-    private final ShopService shopService;
-
-    /**
-     * Held as a Provider so that resolving the camera service does not pull it into Context's own
-     * construction, and so that shutdown releases the instance from this Context's injector rather
-     * than whatever the root injector holds.
-     */
-    private final Provider<CameraService> cameraServiceProvider;
-
-    private volatile boolean shutdown = false;
     private final ClientThreadGateway commandGateway;
 
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
                    final ItemManager itemManager, final BankService bankService, final ShopService shopService,
-                   final InteractionManager interactionManager, final Provider<CameraService> cameraServiceProvider) {
-        this.cameraServiceProvider = cameraServiceProvider;
+                   final InteractionManager interactionManager) {
         this.client = client;
         this.clientThread = clientThread;
         this.commandGateway = new ClientThreadGateway(client, clientThread, CLIENT_THREAD_TIMEOUT_MS);
         this.mouse = mouse;
         this.itemManager = itemManager;
         this.interactionManager = interactionManager;
-        this.eventBus = eventBus;
-        this.bankService = bankService;
-        this.shopService = shopService;
         this.localPlayer = new LocalPlayerEntity(this);
-        eventBus.register(bankService);
-
-        // ShopService learns shop prices from the game messages the "Value" action produces, which is
-        // the only place the client ever sees them.
-        eventBus.register(shopService);
 
         // RuneLite injects some logging into doAction when a menu action can't be found by the client but is still being
         // invoked with coordinates where the menu action should appear. This simply mutes those verbose logs.
@@ -123,67 +115,14 @@ public class Context {
             log.warn("Failed modify log level for RuneLite doAction method. You may encounter more verbose logging.", e);
         }
 
+        // Registered last so that a constructor failure above leaves nothing attached to the event bus.
+        eventBus.register(bankService);
+
+        // ShopService learns shop prices from the game messages the "Value" action produces, which is
+        // the only place the client ever sees them.
+        eventBus.register(shopService);
+
         log.info("Game context initialized successfully, loaded {} packet definitions", HooksLoader.getPackets().size());
-    }
-
-    /**
-     * Releases everything this context registered or started.
-     *
-     * <p>Call this from your plugin's {@code shutDown()}. RuneLite gives each plugin its own child
-     * injector, so each plugin holds its own {@code Context} with its own EventBus subscriptions,
-     * schedulers, and mouse listener — all attached to objects that outlive the plugin. Without this
-     * call they survive a disable and accumulate across enable/disable cycles.</p>
-     *
-     * <p>Safe to call more than once; subsequent calls do nothing.</p>
-     */
-    public void shutdown() {
-        commandGateway.close();
-        if (shutdown) {
-            return;
-        }
-        shutdown = true;
-
-        unregisterQuietly(localPlayer);
-        unregisterQuietly(bankService);
-        unregisterQuietly(shopService);
-
-        closeQuietly("local player", localPlayer::shutdown);
-        closeQuietly("camera service", () -> cameraServiceProvider.get().shutdown());
-        closeQuietly("virtual mouse", mouse::shutdown);
-
-        log.info("Game context shut down");
-    }
-
-    /**
-     * Unregisters an EventBus subscriber, tolerating one that was never registered.
-     *
-     * @param subscriber The object to unregister.
-     */
-    private void unregisterQuietly(Object subscriber) {
-        if (subscriber == null) {
-            return;
-        }
-        try {
-            eventBus.unregister(subscriber);
-        } catch (Exception e) {
-            log.debug("Failed to unregister {}: {}", subscriber.getClass().getSimpleName(), e.toString());
-        }
-    }
-
-    /**
-     * Runs one teardown step, logging and continuing if it fails.
-     *
-     * <p>Teardown steps are independent, so one failing must not strand the others.</p>
-     *
-     * @param what Human-readable name of the resource being released, used for logging.
-     * @param step The teardown action.
-     */
-    private void closeQuietly(String what, Runnable step) {
-        try {
-            step.run();
-        } catch (Exception e) {
-            log.warn("Failed to release {}: {}", what, e.toString());
-        }
     }
 
     /**
@@ -245,7 +184,7 @@ public class Context {
      * example). If the work could not be performed at all — the client thread did not answer within
      * {@link #CLIENT_THREAD_TIMEOUT_MS}, the callable threw, or this thread was interrupted — a
      * {@link ClientThreadException} is thrown instead. Both execution paths behave identically in this
-     * respect. Pending work is revoked on timeout, interruption or shutdown. If execution already
+     * respect. Pending work is revoked on timeout or interruption. If execution already
      * began, timeout/interruption reports an unknown outcome and cannot undo its effects.</p>
      *
      * <p>Use {@link #runOnClientThread(Callable, Object)} or {@link #runOnClientThreadOptional(Callable)}
@@ -288,7 +227,7 @@ public class Context {
 
     /**
      * Runs inline on the client thread, otherwise queues work without waiting. Pending work expires
-     * after the client-thread timeout and is cancelled by shutdown; asynchronous failures are logged.
+     * after the client-thread timeout; asynchronous failures are logged.
      * @param method Runnable method to execute
      */
     public void runOnClientThread(Runnable method) {
@@ -321,9 +260,9 @@ public class Context {
     /**
      * Retrieves an instance of a specified service class.
      *
-     * <p>Resolves against RuneLite's root injector. Because each plugin gets its own child injector,
-     * a service obtained here is not necessarily the same instance as one injected into your plugin.
-     * Prefer injecting the service directly; use this only where injection is not available.</p>
+     * <p>Resolves against RuneLite's root injector, which owns every Kraken singleton, so this returns
+     * the same instance a plugin has injected. Prefer injecting the service directly; use this only
+     * where injection is not available.</p>
      *
      * @param serviceClass The class of the service to retrieve.
      * @param <T>          The type of the service.

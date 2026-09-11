@@ -583,12 +583,14 @@ public class ShopService {
      * Runs a configured order against the open shop.
      *
      * <p>Called by {@link ShopOrder#execute()}. Trades in steps, re-reading stock, price and the
-     * player's coins between each one, and stops at the first limit that bites.</p>
+     * player's coins between each one, and stops at the first limit that bites. Orders are serialized:
+     * a second order waits for the first to finish, since both would otherwise read the same coin stack
+     * and inventory and attribute each other's trades to themselves.</p>
      *
      * @param order the buy or sell order to run
      * @return what was traded and why it stopped
      */
-    ShopTransaction execute(ShopOrder<?> order) {
+    synchronized ShopTransaction execute(ShopOrder<?> order) {
         String name = order.getItemName();
         int itemId = order.getItemId();
         int traded = 0;
@@ -635,11 +637,15 @@ public class ShopService {
 
             // A fresh quote is only worth its round trip when a limit depends on the price of the
             // next item specifically. Otherwise the price measured from the last step is both free
-            // and exact for what it describes.
+            // and exact for what it describes. A limit can only be enforced against a price the
+            // order actually knows, so a failed quote stops a limited order instead of letting it
+            // trade blind or fall back to a price the shop no longer charges.
             if (order.isRevalue() || (unitPrice < 0 && needsPrice(order))) {
                 int quoted = tradeable.value();
                 if (quoted >= 0) {
                     unitPrice = quoted;
+                } else if (needsPrice(order)) {
+                    return result(order, itemId, name, traded, coinsMoved, ShopStopReason.PRICE_UNKNOWN);
                 }
             }
 
@@ -870,13 +876,6 @@ public class ShopService {
     private int affordableQuantity(ShopOrder<?> order, Tradeable tradeable, int unitPrice, int traded, int coinsLeft) {
         int wanted = Math.min(order.getStep(), order.getQuantity() - traded);
         wanted = Math.min(wanted, tradeable.available);
-
-        // A limit that depends on the price cannot be respected without knowing it, and the shop did
-        // not quote one. Trade a single item to discover the price from what it costs, rather than
-        // committing a full step to a price nobody has seen.
-        if (unitPrice < 1 && (order.hasPriceLimit() || order.hasCoinLimit())) {
-            wanted = Math.min(wanted, 1);
-        }
 
         // Only a purchase is bounded by coins; a sale brings them in.
         if (!order.isSelling()) {
