@@ -1,13 +1,12 @@
 package com.kraken.api.input;
 
 
-import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 
 import javax.inject.Inject;
-import java.awt.*;
+import java.awt.Canvas;
 import java.awt.event.KeyEvent;
 
 import static java.awt.event.KeyEvent.CHAR_UNDEFINED;
@@ -18,33 +17,12 @@ public class KeyboardService {
     private Client client;
     
     /**
-     * Executes a given action with the canvas temporarily made focusable if it wasn't already.
-     * This ensures key events are properly dispatched to the game client.
-     *
-     * @param action the code to run while the canvas is focusable
-     */
-    private void withFocusCanvas(Runnable action) {
-        Canvas canvas = client.getCanvas();
-        boolean originalFocus = canvas.isFocusable();
-        if (!originalFocus) canvas.setFocusable(true);
-
-        try {
-            action.run();
-        } finally {
-            if (!originalFocus) canvas.setFocusable(false);
-        }
-    }
-
-    /**
      * Types a single character.
      * Useful for things like Bank Pins where you want control over the timing between digits.
      * @param c the character to type
      */
     public void typeChar(char c) {
-        withFocusCanvas(() -> {
-            int delay = RandomService.between(20, 100);
-            dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, c, delay);
-        });
+        dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, c);
     }
 
     /**
@@ -54,50 +32,50 @@ public class KeyboardService {
      * @param maxSleep The max the thread should be slept between key strokes
      */
     public void typeString(String text, int minSleep, int maxSleep) {
-        withFocusCanvas(() -> {
-            for (char c : text.toCharArray()) {
-                int delay = RandomService.between(20, 100);
-                dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, c, delay);
-                SleepService.sleep(minSleep, maxSleep);
-            }
-        });
+        for (char c : text.toCharArray()) {
+            dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, c);
+            SleepService.sleep(minSleep, maxSleep);
+        }
     }
 
     /**
-     * Dispatches a low-level KeyEvent to the canvas after a specified delay.
+     * Queues a KeyEvent for the canvas on the event dispatch thread.
+     *
+     * <p>The canvas is made focusable for the duration of the dispatch when it is not already, because
+     * AWT's focus manager drops key events targeted at a component that cannot own focus. Both the focus
+     * toggle and the dispatch run on the EDT so they cannot interleave with real input handling.</p>
      *
      * @param id       the KeyEvent type (e.g. KEY_TYPED, KEY_PRESSED, etc.)
      * @param keyCode  the key code from {@link KeyEvent}
      * @param keyChar  the character to type, if applicable
-     * @param delay    the delay in milliseconds before the event time is set
      */
-    private void dispatchKeyEvent(int id, int keyCode, char keyChar, int delay) {
-        KeyEvent event = new KeyEvent(
-                client.getCanvas(),
-                id,
-                System.currentTimeMillis() + delay,
-                0,
-                keyCode,
-                keyChar
-        );
-        client.getCanvas().dispatchEvent(event);
+    private void dispatchKeyEvent(int id, int keyCode, char keyChar) {
+        Canvas canvas = client.getCanvas();
+        if (canvas == null) return;
+        KeyEvent event = new KeyEvent(canvas, id, System.currentTimeMillis(), 0, keyCode, keyChar);
+        InputDispatch.onEventThread(() -> {
+            boolean originalFocus = canvas.isFocusable();
+            if (!originalFocus) canvas.setFocusable(true);
+            try {
+                canvas.dispatchEvent(event);
+            } finally {
+                if (!originalFocus) canvas.setFocusable(false);
+            }
+        });
     }
 
     /**
-     * Types out a string character-by-character using KEY_TYPED events.
-     * Each character is sent with a short randomized delay and sleep between characters.
+     * Types out a string character-by-character using KEY_TYPED events with a randomized pause between
+     * characters.
      *
      * @param word the string to type into the game
      */
     public void typeString(final String word) {
-        withFocusCanvas(() -> {
-            for (char c : word.toCharArray())
-            {
-                int delay = RandomService.between(20, 200);
-                dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, c, delay);
-                SleepService.sleep(100, 200);
-            }
-        });
+        for (char c : word.toCharArray())
+        {
+            dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, c);
+            SleepService.sleep(100, 200);
+        }
     }
 
     /**
@@ -106,30 +84,21 @@ public class KeyboardService {
      * @param key the character to press
      */
     public void keyPress(final char key) {
-        withFocusCanvas(() -> {
-            int delay = RandomService.between(20, 200);
-            dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, key, delay);
-        });
+        dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, key);
     }
 
     /**
      * Simulates holding the Shift key using a KEY_PRESSED event.
      */
     public void holdShift() {
-        withFocusCanvas(() -> {
-            int delay = RandomService.between(20, 200);
-            dispatchKeyEvent(KeyEvent.KEY_PRESSED, KeyEvent.VK_SHIFT, CHAR_UNDEFINED, delay);
-        });
+        dispatchKeyEvent(KeyEvent.KEY_PRESSED, KeyEvent.VK_SHIFT, CHAR_UNDEFINED);
     }
 
     /**
      * Simulates releasing the Shift key using a KEY_RELEASED event.
      */
     public void releaseShift() {
-        withFocusCanvas(() -> {
-            int delay = RandomService.between(20, 200);
-            dispatchKeyEvent(KeyEvent.KEY_RELEASED, KeyEvent.VK_SHIFT, CHAR_UNDEFINED, delay);
-        });
+        dispatchKeyEvent(KeyEvent.KEY_RELEASED, KeyEvent.VK_SHIFT, CHAR_UNDEFINED);
     }
 
     /**
@@ -138,9 +107,7 @@ public class KeyboardService {
      * @param key the key code from {@link KeyEvent}
      */
     public void keyHold(int key) {
-        withFocusCanvas(() ->
-                dispatchKeyEvent(KeyEvent.KEY_PRESSED, key, CHAR_UNDEFINED, 0)
-        );
+        dispatchKeyEvent(KeyEvent.KEY_PRESSED, key, CHAR_UNDEFINED);
     }
 
     /**
@@ -149,10 +116,7 @@ public class KeyboardService {
      * @param key the key code from {@link KeyEvent}
      */
     public void keyRelease(int key) {
-        withFocusCanvas(() -> {
-            int delay = RandomService.between(20, 200);
-            dispatchKeyEvent(KeyEvent.KEY_RELEASED, key, CHAR_UNDEFINED, delay);
-        });
+        dispatchKeyEvent(KeyEvent.KEY_RELEASED, key, CHAR_UNDEFINED);
     }
 
     /**
@@ -171,7 +135,7 @@ public class KeyboardService {
      */
     public void enter() {
         if (!(client.getGameState() == GameState.LOGGED_IN)) {
-            dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, '\n', 0);
+            dispatchKeyEvent(KeyEvent.KEY_TYPED, KeyEvent.VK_UNDEFINED, '\n');
             return;
         }
 

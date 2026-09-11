@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kraken.api.input.mouse.model.MouseGesture;
 import com.kraken.api.input.mouse.model.RecordedPoint;
+import com.kraken.api.input.mouse.strategy.replay.PathLibrary;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.input.MouseListener;
 import net.runelite.client.input.MouseManager;
@@ -18,152 +19,173 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
- * The <code>MouseRecorder</code> class is responsible for recording mouse gestures
- * such as clicks, movements, and drags. It captures the sequence of mouse events,
- * organizes them into gestures, and writes them to disk for later analysis.
+ * Records mouse gestures (the movement leading up to each click) and appends them as JSON lines to a
+ * file named after the recording label, for later replay by the REPLAY movement strategy.
  *
- * <p>This class is designed as a singleton and interacts closely with the
- * <code>MouseManager</code> to register and deregister itself as a listener for mouse events.
- * The recorded gestures can be categorized using labels provided during the recording start,
- * and the gestures are stored in JSON format in a designated directory.
- *
- * <p>Some features of the <code>MouseRecorder</code> include:
- * <ul>
- * <li>Categorizing gestures with user-defined labels</li>
- * <li>Buffering gestures in memory and flushing them to disk in batches</li>
- * <li>Asynchronous writing to avoid blocking event-handling threads</li>
- * </ul>
- *
- * <h3>Thread-Safety</h3>
- * <p>While most operations are single-threaded, writing gestures to the disk is
- * executed asynchronously to ensure that mouse event processing is not blocked.
- * Internal buffers for gesture storage are synchronized to ensure thread safety during flush operations.
+ * <p>Listener callbacks arrive on the AWT event dispatch thread; {@link #start} and {@link #stop} may be
+ * called from any thread. All in-memory state is guarded by this object's monitor. Disk writes go through
+ * a single-threaded writer that the recorder owns for the lifetime of one recording: each job carries its
+ * own target path and batch, jobs run in submission order, and {@link #stop} does not return until every
+ * job for that recording has been written and the writer thread has exited.</p>
  */
 @Slf4j
 @Singleton
 public class MouseRecorder implements MouseListener {
 
+    /** Completed gestures held in memory before a write is scheduled. */
+    public static final int BATCH_SIZE = 500;
+
+    /** Longest movement kept for a single gesture; longer hovers are discarded and restarted. */
+    public static final int MAX_POINTS_PER_GESTURE = 5_000;
+
+    /** Batches allowed to wait for the writer before the submitting thread writes one itself. */
+    private static final int MAX_PENDING_BATCHES = 4;
+
     private final MouseManager mouseManager;
-    private final Gson gson;
+    private final Path dataDir;
+    private final Gson gson = new GsonBuilder().create();
 
-    private boolean isRecording = false;
+    private volatile boolean isRecording = false;
     private String currentLabel = "default";
+    private Path currentFile;
+    private ThreadPoolExecutor writer;
 
-    // Immediate buffer for the current drag/move action
     private final List<RecordedPoint> movementBuffer = new ArrayList<>();
-
-    // Buffer for completed gestures waiting to be written to disk
-    private final List<MouseGesture> gestureBuffer = Collections.synchronizedList(new ArrayList<>());
-
+    private final List<MouseGesture> gestureBuffer = new ArrayList<>();
     private long gestureStartTime = -1;
-
-    // Flush to disk every X gestures to save memory
-    private static final int BATCH_SIZE = 500;
-
-    private static final String DATA_DIR = System.getProperty("user.home") + "/.runelite/kraken/mouse_data/";
 
     @Inject
     public MouseRecorder(MouseManager mouseManager) {
+        this(mouseManager, Paths.get(PathLibrary.DATA_DIR));
+    }
+
+    /**
+     * Creates a recorder writing into the given directory.
+     * @param mouseManager RuneLite's mouse manager to listen on
+     * @param dataDir Directory that receives one JSON-lines file per label
+     */
+    public MouseRecorder(MouseManager mouseManager, Path dataDir) {
         this.mouseManager = mouseManager;
-        this.gson = new GsonBuilder().create();
+        this.dataDir = dataDir.toAbsolutePath().normalize();
 
         try {
-            Files.createDirectories(Paths.get(DATA_DIR));
+            Files.createDirectories(this.dataDir);
         } catch (IOException e) {
             log.error("Failed to create mouse data directory", e);
         }
     }
 
     /**
-     * Starts recording mouse movements and gestures with the given label.
-     * <p>
-     * This method initializes buffers, sets the current label, and begins recording mouse events.
-     *
-     * @param label The label to identify the recording session. Spaces in the label are replaced with underscores.
+     * Resolves the file a label is written to. Every character outside {@code [A-Za-z0-9._-]} becomes an
+     * underscore so a label can only ever name a file directly inside the data directory.
+     * @param label The recording label
+     * @return The path of the label's JSON-lines file
      */
-    public void start(String label) {
-        if (isRecording) return;
-
-        this.currentLabel = label.replaceAll(" ", "_");
-        this.isRecording = true;
-        this.movementBuffer.clear();
-        this.gestureBuffer.clear();
-        this.gestureStartTime = System.currentTimeMillis();
-
-        mouseManager.registerMouseListener(this);
-        log.info("Mouse Recording STARTED: {}", label);
+    public Path fileFor(String label) {
+        String safe = label == null ? "" : label.replaceAll("[^A-Za-z0-9._-]", "_");
+        if (safe.isEmpty() || safe.chars().allMatch(c -> c == '.')) safe = "default";
+        Path file = dataDir.resolve(safe + ".json").normalize();
+        if (!file.getParent().equals(dataDir)) {
+            throw new IllegalArgumentException("Label escapes the mouse data directory: " + label);
+        }
+        return file;
     }
 
     /**
-     * Stops the recording of mouse movements and gestures.
-     * <p>
-     * This method halts the recording session, flushes any pending gestures
-     * to disk, and unregisters the mouse listener to stop capturing events.
-     * <p>
-     * Steps performed:
-     * <ul>
-     *   <li>Checks if recording is active and proceeds only if it is.</li>
-     *   <li>Flushes unsaved gestures to persistent storage.</li>
-     *   <li>Unregisters the mouse listener to stop event monitoring.</li>
-     *   <li>Logs the action completion with the associated label.</li>
-     * </ul>
+     * Starts recording mouse gestures under the given label. Does nothing when already recording.
+     * @param label The label naming the output file; characters outside {@code [A-Za-z0-9._-]} become underscores
+     */
+    public synchronized void start(String label) {
+        if (isRecording) return;
+
+        currentFile = fileFor(label);
+        currentLabel = currentFile.getFileName().toString().replaceAll("\\.json$", "");
+        movementBuffer.clear();
+        gestureBuffer.clear();
+        gestureStartTime = System.currentTimeMillis();
+        writer = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(MAX_PENDING_BATCHES),
+                runnable -> {
+                    Thread thread = new Thread(runnable, "kraken-mouse-recorder");
+                    thread.setDaemon(true);
+                    return thread;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        isRecording = true;
+
+        mouseManager.registerMouseListener(this);
+        log.info("Mouse Recording STARTED: {}", currentLabel);
+    }
+
+    /**
+     * Stops recording, writes any buffered gestures, and blocks until every pending write for this
+     * recording has completed.
      */
     public void stop() {
-        if (!isRecording) return;
+        ThreadPoolExecutor toDrain;
+        synchronized (this) {
+            if (!isRecording) return;
+            isRecording = false;
+            mouseManager.unregisterMouseListener(this);
+            flushGestures();
+            toDrain = writer;
+            writer = null;
+        }
 
-        this.isRecording = false;
-        flushGestures(true);
-        mouseManager.unregisterMouseListener(this);
+        toDrain.shutdown();
+        try {
+            if (!toDrain.awaitTermination(30, TimeUnit.SECONDS)) {
+                log.error("Timed out waiting for mouse gestures to be written: {}", currentLabel);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         log.info("Mouse Recording STOPPED: {}", currentLabel);
     }
 
     @Override
-    public MouseEvent mousePressed(MouseEvent e) {
+    public synchronized MouseEvent mousePressed(MouseEvent e) {
         if (!isRecording) return e;
 
-        // A press indicates the previous movement/hover is 'complete' or constitutes a click action
         saveGesture(e);
-
         movementBuffer.clear();
         gestureStartTime = System.currentTimeMillis();
-
         return e;
     }
 
     @Override
-    public MouseEvent mouseMoved(MouseEvent e) {
-        if (!isRecording) return e;
-        recordPoint(e);
+    public synchronized MouseEvent mouseMoved(MouseEvent e) {
+        if (isRecording) recordPoint(e);
         return e;
     }
 
     @Override
-    public MouseEvent mouseDragged(MouseEvent e) {
-        if (!isRecording) return e;
-        recordPoint(e);
+    public synchronized MouseEvent mouseDragged(MouseEvent e) {
+        if (isRecording) recordPoint(e);
         return e;
     }
 
     /**
-     * Records the coordinates and time offset of a mouse event.
-     * <p>
-     * This method captures the position of the mouse when triggered by a {@link MouseEvent}
-     * and adds it to the movement buffer for tracking. It prevents duplicate entries if
-     * the mouse position has not changed since the last recorded point.
+     * Appends the event's position to the current gesture, skipping repeats of the last point. When the
+     * gesture reaches {@link #MAX_POINTS_PER_GESTURE} it is discarded and a fresh one begins, so a click
+     * always ends a gesture whose tail is contiguous.
      *
-     * @param e The {@link MouseEvent} containing the current mouse position to record.
+     * @param e The mouse event to record
      */
     private void recordPoint(MouseEvent e) {
+        if (movementBuffer.size() >= MAX_POINTS_PER_GESTURE) {
+            movementBuffer.clear();
+            gestureStartTime = System.currentTimeMillis();
+        }
         if (gestureStartTime == -1) {
             gestureStartTime = System.currentTimeMillis();
         }
-
-        long offset = System.currentTimeMillis() - gestureStartTime;
 
         if (!movementBuffer.isEmpty()) {
             RecordedPoint last = movementBuffer.get(movementBuffer.size() - 1);
@@ -172,76 +194,53 @@ public class MouseRecorder implements MouseListener {
             }
         }
 
-        movementBuffer.add(new RecordedPoint(e.getX(), e.getY(), offset));
+        movementBuffer.add(new RecordedPoint(e.getX(), e.getY(), System.currentTimeMillis() - gestureStartTime));
     }
 
     /**
-     * Saves the recorded mouse gesture triggered by an event.
-     * <p>
-     * This method captures a snapshot of the mouse movement data accumulated
-     * during a gesture and stores it as a {@link MouseGesture} object for later use.
-     * If the buffer reaches its defined batch size, it triggers a memory flush.
+     * Turns the buffered movement into a gesture ending at the triggering click and schedules a write
+     * once {@link #BATCH_SIZE} gestures have accumulated.
      *
-     * @param triggerEvent The {@link MouseEvent} that finalized the gesture, e.g., a mouse click.
+     * @param triggerEvent The click that ended the gesture
      */
     private void saveGesture(MouseEvent triggerEvent) {
         if (movementBuffer.isEmpty()) return;
 
         RecordedPoint startPoint = movementBuffer.get(0);
-        long totalDuration = System.currentTimeMillis() - gestureStartTime;
-        // Create a copy of points for the object
-        List<RecordedPoint> pointsCopy = new ArrayList<>(movementBuffer);
-
-        MouseGesture gesture = new MouseGesture(
+        gestureBuffer.add(new MouseGesture(
                 currentLabel,
-                totalDuration,
+                System.currentTimeMillis() - gestureStartTime,
                 startPoint.getX(), startPoint.getY(),
                 triggerEvent.getX(), triggerEvent.getY(),
                 triggerEvent.getButton(),
-                pointsCopy
-        );
+                new ArrayList<>(movementBuffer)
+        ));
 
-        gestureBuffer.add(gesture);
-
-        // Check if we need to flush memory
         if (gestureBuffer.size() >= BATCH_SIZE) {
-            log.info("Gesture buffer full, flushing to disk");
-            flushGestures(false);
+            flushGestures();
         }
     }
 
     /**
-     * Flushes the current in-memory buffer to the disk.
-     * Use CompletableFuture to avoid blocking the MouseListener (EDT) with File I/O.
+     * Hands the buffered gestures to the writer as one job bound to the current file. Called with the
+     * monitor held; the job itself touches no recorder state.
      */
-    private void flushGestures(boolean sync) {
-        List<MouseGesture> batchToWrite;
+    private void flushGestures() {
+        if (gestureBuffer.isEmpty()) return;
+        List<MouseGesture> batch = new ArrayList<>(gestureBuffer);
+        gestureBuffer.clear();
+        Path target = currentFile;
+        writer.execute(() -> write(target, batch));
+    }
 
-        // Synchronize just long enough to swap the lists
-        synchronized (gestureBuffer) {
-            if (gestureBuffer.isEmpty()) return;
-            batchToWrite = new ArrayList<>(gestureBuffer);
-            gestureBuffer.clear();
-        }
-
-        Runnable writeTask = () -> {
-            String fileName = currentLabel + ".json";
-            Path path = Paths.get(DATA_DIR + fileName);
-
-            try (BufferedWriter writer = Files.newBufferedWriter(path, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
-                for (MouseGesture g : batchToWrite) {
-                    writer.write(gson.toJson(g));
-                    writer.newLine();
-                }
-            } catch (IOException e) {
-                log.error("Failed to flush mouse gestures to disk", e);
+    private void write(Path target, List<MouseGesture> batch) {
+        try (BufferedWriter out = Files.newBufferedWriter(target, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+            for (MouseGesture gesture : batch) {
+                out.write(gson.toJson(gesture));
+                out.newLine();
             }
-        };
-
-        if (sync) {
-            writeTask.run(); // Run immediately if stopping
-        } else {
-            CompletableFuture.runAsync(writeTask); // Run in background if mid-recording
+        } catch (IOException e) {
+            log.error("Failed to write mouse gestures to {}", target, e);
         }
     }
 

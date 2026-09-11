@@ -4,10 +4,10 @@ import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
 import com.kraken.api.core.Locatable;
 import com.kraken.api.service.tile.GameArea;
-import lombok.SneakyThrows;
 import net.runelite.api.HeadIcon;
 import net.runelite.api.NPC;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.widgets.Widget;
 
 public class NpcEntity extends AbstractEntity<NPC> implements Locatable {
@@ -34,44 +34,47 @@ public class NpcEntity extends AbstractEntity<NPC> implements Locatable {
     }
 
     /**
-     * Gets the health percentage of the NPC.
+     * Gets the health percentage of the NPC. The client only reports health for NPCs whose health bar
+     * has been shown recently; both ratio and scale are -1 before then.
      * @return Health percentage (0-100), or -1 if unknown
      */
     public double getHealthPercentage() {
         NPC raw = raw();
-        int ratio = raw.getHealthRatio();
-        int scale = raw.getHealthScale();
-
-        if (scale == 0) return -1;
-        return (double) ratio / (double) scale * 100.0;
+        if (raw == null) return -1;
+        return ctx.runOnClientThread(() -> {
+            int ratio = raw.getHealthRatio();
+            int scale = raw.getHealthScale();
+            if (ratio < 0 || scale <= 0) return -1.0;
+            return ratio / (double) scale * 100.0;
+        }, -1.0);
     }
 
     /**
-     * Retrieves the head icon associated with the NPC, if it exists.
+     * Retrieves the protection prayer head icon shown above the NPC, if any.
      * <p>
-     * A head icon represents an overhead visual indicator, such as combat prayers or effects
-     * like Hunllef's prayers or Nex's deflect melee. This is determined from the NPC's overhead sprite IDs.
+     * NPCs can display several overhead sprites at once, each drawn from a sprite archive. Only sprites
+     * from the prayer head-icon archive map onto {@link HeadIcon} (by sprite index); sprites from any
+     * other archive, such as Nex's deflect icons drawn from custom archives, are ignored.
      * </p>
      *
-     * <ul>
-     *   <li>If no head icons are defined for the NPC, this will return {@code null}.</li>
-     *   <li>If a valid head icon is found, it will be returned as a {@code HeadIcon} enum.</li>
-     * </ul>
-     *
-     * @return The {@code HeadIcon} for the NPC, or {@code null} if no valid head icon exists.
+     * @return The {@code HeadIcon} for the NPC, or {@code null} if it shows no supported prayer icon.
      */
-    @SneakyThrows
     public HeadIcon getHeadIcon() {
         NPC raw = raw();
-        if (raw.getOverheadSpriteIds() == null) return null;
+        if (raw == null) return null;
+        return ctx.runOnClientThread(() -> {
+            int[] archiveIds = raw.getOverheadArchiveIds();
+            short[] spriteIds = raw.getOverheadSpriteIds();
+            if (archiveIds == null || spriteIds == null) return null;
 
-        for (int i = 0; i < raw.getOverheadSpriteIds().length; i++) {
-            int overheadSpriteId = raw.getOverheadSpriteIds()[i];
-            if (overheadSpriteId == -1) continue;
-            return HeadIcon.values()[overheadSpriteId];
-        }
-
-        return null;
+            HeadIcon[] icons = HeadIcon.values();
+            for (int i = 0; i < Math.min(archiveIds.length, spriteIds.length); i++) {
+                if (archiveIds[i] != SpriteID.HEADICONS_PRAYER) continue;
+                int index = spriteIds[i];
+                if (index >= 0 && index < icons.length) return icons[index];
+            }
+            return null;
+        }, null);
     }
 
     /**
