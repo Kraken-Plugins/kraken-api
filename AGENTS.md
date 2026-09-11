@@ -85,7 +85,8 @@ This section is the working guide for AI systems and humans asking AI systems to
 - `service` is for global or static systems: bank control, movement, prayer, magic, dialogue, camera, UI, GE, and related helpers.
 - Queries are fluent filters that end in selection with `first()`, `nearest()`, `take()`, `list()`, or similar terminal operations. Single-valued terminals (`first()`, `nearest()`, `random()`, `firstMatching(...)`) return `Optional`; collection terminals return empty collections. The query layer never returns bare `null`.
 - Entity wrappers expose actions such as `interact()`, `attack()`, `take()`, `withdraw()`, `depositOne()`, `wield()`, `wear()`, and `logout()`.
-- Thread-sensitive work is handled by `Context.runOnClientThread(...)`, so query and service use is safe from normal plugin callbacks.
+- Query evaluation runs through `Context.runOnClientThread(...)`. Builders are mutable and thread-confined; returned `EntityView` wrappers retain live state. Downstream stream/Optional callbacks run on the caller thread. Use `snapshot(mapper)` with immutable projected values for worker processing; see `docs/API.md`.
+- Player-relative spatial anchors refresh once per evaluation, including projectile `landingWithin(...)`; explicit anchor overloads stay fixed.
 - All queryable entities support the `raw()` method which will return the underlying RuneLite API object for the corresponding entity. i.e. `ctx.npcs().first().map(NpcEntity::raw)` will return RuneLite's `NPC` object as an `Optional`.
 
 ### Plugin authoring pattern

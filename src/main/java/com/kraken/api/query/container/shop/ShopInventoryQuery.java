@@ -105,7 +105,7 @@ public class ShopInventoryQuery extends AbstractContainerQuery<ShopInventoryEnti
      * @return the total number held, 0 when none
      */
     public int count(int itemId) {
-        return withId(itemId).stream().mapToInt(ShopInventoryEntity::getQuantity).sum();
+        return withId(itemId).snapshot(ShopInventoryEntity::getQuantity).stream().mapToInt(Integer::intValue).sum();
     }
 
     /**

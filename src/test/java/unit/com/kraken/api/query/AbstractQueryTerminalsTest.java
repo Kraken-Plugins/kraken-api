@@ -6,6 +6,7 @@ import com.kraken.api.core.Interactable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -147,4 +148,18 @@ class AbstractQueryTerminalsTest {
         assertNotNull(query().list());
         assertTrue(query().list().isEmpty());
     }
+    @Test
+    void terminalPredicateAndProjectionRespectFilterDistinctAndSortOrder() {
+        FakeEntity first = new FakeEntity(1, "first");
+        FakeEntity duplicate = new FakeEntity(1, "duplicate");
+        FakeEntity second = new FakeEntity(2, "second");
+        FakeQuery query = query(first, duplicate, second, new FakeEntity(3, "excluded"))
+                .filter(entity -> entity.id < 3).distinctById()
+                .sorted(Comparator.comparingInt(FakeEntity::getId).reversed());
+        assertEquals(Optional.of(second), query.firstMatching(entity -> true));
+        assertTrue(query.firstMatching(entity -> entity == duplicate).isEmpty());
+        assertEquals(List.of("second", "first"), query.snapshot(FakeEntity::getName));
+        assertEquals(List.of("second", "first"), query.snapshot(FakeEntity::getName));
+    }
+
 }

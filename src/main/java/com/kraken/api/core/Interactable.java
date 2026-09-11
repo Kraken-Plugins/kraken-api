@@ -1,6 +1,6 @@
 package com.kraken.api.core;
 
-public interface Interactable<T> {
+public interface Interactable<T> extends EntityView<T> {
     /**
      * Interacts with the entity using the given action verb.
      *
@@ -17,6 +17,7 @@ public interface Interactable<T> {
      * Returns the wrapped (raw) RuneLite API object for this interactable game entity. This
      * is useful to provide easy access to familiar and underlying RuneLite game data. For example:
      * an {@code EquipmentEntity} will expose the RuneLite {@code Widget} object for the interactable piece of equipment.
+     * <p>This is a live object; access its state on the client thread.</p>
      * @return T wrapped RuneLite API object.
      */
     T raw();

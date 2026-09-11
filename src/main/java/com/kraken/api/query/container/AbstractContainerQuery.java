@@ -108,7 +108,7 @@ public abstract class AbstractContainerQuery<T extends Interactable<R> & ItemEnt
     public boolean hasItems(int... ids) {
         if (ids == null || ids.length == 0) return true;
 
-        Set<Integer> held = stream().map(Interactable::getId).collect(Collectors.toSet());
+        Set<Integer> held = snapshot(Interactable::getId).stream().collect(Collectors.toSet());
         for (int id : ids) {
             if (!held.contains(id)) {
                 return false;
@@ -136,8 +136,7 @@ public abstract class AbstractContainerQuery<T extends Interactable<R> & ItemEnt
     public boolean hasItems(String... names) {
         if (names == null || names.length == 0) return true;
 
-        Set<String> held = stream()
-                .map(Interactable::getName)
+        Set<String> held = snapshot(Interactable::getName).stream()
                 .filter(Objects::nonNull)
                 .map(String::toLowerCase)
                 .collect(Collectors.toSet());

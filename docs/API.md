@@ -105,9 +105,24 @@ The queries available on `Context` are `npcs()`, `players()`, `gameObjects()`, `
 
 ### Query Thread Safety
 
-The entire query API is designed to be thread-safe, so any queries, filters, or interactions can be run on non-client threads. When
-callable methods need to execute on RuneLite's client thread, they will be scheduled there, blocking until the method executes.
-This helps ensure your plugin code is fully thread-safe, predictable, and easy to read.
+Query builders are mutable and thread-confined. A builder may be reused sequentially from a worker,
+but must not be mutated or evaluated concurrently, or mutated by an evaluation callback.
+Source traversal, declared filters, distinct keys, sorting, `firstMatching(predicate)`, and `map()` ID
+extraction execute on the client thread in one evaluation. Keep these callbacks short and nonblocking.
+
+Entity wrappers implement `EntityView` through `Interactable`: they retain live actors/widgets. `list()`,
+`stream()`, `first()`, and other entity terminals copy membership only. Stream and Optional callbacks
+run on the consuming thread; view getters and `raw()` state require the client thread unless the
+specific getter documents its own handoff. `toRuneLite()` also returns live objects.
+
+Use `snapshot(mapper)` to project values during client-thread evaluation before processing them on a worker:
+
+```java
+List<WorldPoint> positions = ctx.npcs().withName("Goblin").snapshot(NpcEntity::getWorldLocation);
+```
+
+The snapshot list is unmodifiable. The mapper must return immutable values or copy all mutable data;
+returning a wrapper, raw object, mutable array, or lazy stream does not detach its state.
 
 `ctx.runOnClientThread(Callable)` blocks for up to three seconds and throws `ClientThreadException` if the client thread does not
 answer in time. Timeout or interruption cancels work that has not started, so it cannot execute later.
@@ -141,7 +156,8 @@ Key methods include:
 - `except(Predicate<T> predicate)`: Filters out elements that match the given predicate.
 - `distinct(Function<T, Object> keyExtractor)` / `distinctById()` / `unique()`: Remove duplicates.
 - `sorted(Comparator<T> comparator)`, `shuffle()`, `reverse()`: Reorder the stream.
-- `stream()`: Returns the raw stream of elements, allowing for manual filtering and matching.
+- `stream()`: Returns a membership copy of live views; downstream callbacks run on the consuming thread.
+- `snapshot(mapper)`: Captures projected values on the client thread into an unmodifiable list.
 - `toRuneLite()`: Returns the underlying RuneLite entities wrapped by the API.
 - `count()`, `isEmpty()`, `isPresent()`: How many matched, and whether anything did.
 - `list()` / `result()`: Collects the stream into a list.
@@ -171,6 +187,12 @@ Queries over entities that occupy a tile (NPCs, players, game/tile objects, grou
 
 Distances are Chebyshev tile distances between world locations in the coordinate space the client reports for the top-level world view, the same space the local player's location uses, so these filters remain valid inside instanced regions such as raids. Entities on another plane never match a distance filter and sort last. Player-anchored filters yield empty results when there is no local player (login screen, mid world-hop).
 
+Player-relative `within(distance)`, `sortByDistance()`, `nearest()`, and projectile `landingWithin(distance)`
+share one current player anchor per evaluation. Reusing a query after moving or logging in refreshes
+that anchor. Explicit `within(anchor, distance)`, `sortByDistanceTo(anchor)`, and `nearestTo(anchor)` stay
+fixed. Without a local player, player-relative filters and `nearest()` yield nothing; `sortByDistance()`
+preserves source order.
+
 #### AbstractContainerQuery
 
 Queries over the player's item containers (inventory, bank, bank-side inventory, deposit box, shop-side inventory) share one item vocabulary, defined once on `AbstractContainerQuery`:
@@ -184,7 +206,7 @@ Queries over the player's item containers (inventory, bank, bank-side inventory,
 
 #### AbstractEntity
 
-`AbstractEntity` wraps a raw RuneLite API object (e.g., `NPC`, `TileObject`, `Widget`) and implements the `Interactable` interface. It provides a consistent way to interact with different types of game entities.
+`AbstractEntity` is a live `EntityView`, not a state snapshot. It wraps a raw RuneLite API object (e.g., `NPC`, `TileObject`, `Widget`) and implements the `Interactable` interface. It provides a consistent way to interact with different types of game entities.
 
 Key methods include:
 

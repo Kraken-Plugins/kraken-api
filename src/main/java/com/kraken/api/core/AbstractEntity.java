@@ -4,7 +4,8 @@ import com.kraken.api.Context;
 import java.util.Objects;
 
 /**
- * Base class for queries which return interactable entities in a scene.
+ * Base class for live, interactable entity views in a scene. Query materialization does not
+ * freeze their state; see {@link EntityView} for the client-thread read contract.
  * @param <T> Raw RuneLite type (NPC, TileObject, Widget, etc...)
  */
 public abstract class AbstractEntity<T> implements Interactable<T> {
