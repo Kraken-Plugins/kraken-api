@@ -320,7 +320,7 @@ The deployment is fully automated and consists of:
 -  Building the API JAR
 - Publishing a new version to the GitHub Releases section
   - This will be picked up by Github Packages for easy integration into other gradle projects.
-- Uploading the JAR file to the Minio storage server used by the Kraken Client at runtime.
+- Uploading the JAR file to the SeaweedFS storage server used by the Kraken Client at runtime.
 
 ---
 
