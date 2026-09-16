@@ -10,11 +10,14 @@ import javax.annotation.Nullable;
  * actually declares for its trailing dummy parameter.
  * <p>
  * The obfuscator re-rolls this parameter every revision — it has been {@code int}, {@code short}
- * and {@code byte} in different releases — and reflection performs no widening or narrowing, so
- * passing an {@code Integer} to a {@code byte} parameter fails with "argument type mismatch".
- * The value itself is never read by the client; only its declared type matters. Inspecting the
+ * and {@code byte} in different releases — and reflection never narrows, so passing an
+ * {@code Integer} to a {@code byte} parameter fails with "argument type mismatch". Inspecting the
  * resolved method's parameter type is therefore authoritative, unlike inferring the width from
  * the magnitude of the configured value.
+ * <p>
+ * The value is not decorative: obfuscated methods routinely compare it against constants and
+ * throw or return early on a mismatch, so callers pass the verified value from the hooks
+ * verbatim and never substitute a default.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GarbageValueUtils {

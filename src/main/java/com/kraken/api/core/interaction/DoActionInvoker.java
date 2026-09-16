@@ -4,22 +4,30 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.core.hooks.HookResolver;
 import com.kraken.api.core.hooks.HooksLoader;
+import com.kraken.api.core.hooks.ReflectionHooks;
 import com.kraken.api.util.GarbageValueUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /**
  * Encapsulates the reflection-based invocation of the RuneLite doAction method.
- * Caches the resolved class and method after the first successful lookup.
+ * Caches the resolved method after the first successful lookup; failed lookups are retried on the next call.
  */
 @Slf4j
 @Singleton
 public class DoActionInvoker {
+
+    /** The engine's ten fixed parameters; a revision may append one primitive garbage parameter. */
+    private static final Class<?>[] FIXED_PARAMETER_TYPES = {
+            int.class, int.class, int.class, int.class, int.class, int.class,
+            String.class, String.class, int.class, int.class};
 
     private volatile Method doActionMethod;  // written once, read many times
     private final Object lock = new Object();
@@ -45,8 +53,8 @@ public class DoActionInvoker {
      * @param target       Target entity or in-game object related to the action.
      * @param canvasX      X-coordinate on the game's canvas where the action occurs.
      * @param canvasY      Y-coordinate on the game's canvas where the action occurs.
-     * @return true if the engine call was made, false if the hooks could not be resolved, the
-     *         signature did not match, or the invocation failed.
+     * @return true if the engine call was made, false if the hooks could not be resolved or the
+     *         invocation failed.
      */
     public boolean invoke(int param0, int param1, int opcode, int identifier, int itemId, int worldViewId, String option, String target, int canvasX, int canvasY) {
         ensureMethodLoaded();
@@ -57,9 +65,6 @@ public class DoActionInvoker {
 
         final Method method = doActionMethod;
         final Object[] args = buildArguments(method, param0, param1, opcode, identifier, itemId, worldViewId, option, target, canvasX, canvasY);
-        if (args == null) {
-            return false;
-        }
 
         Context ctx = ctxProvider.get();
         // doAction is void, so its own return value cannot signal success — the sentinel below is
@@ -78,15 +83,15 @@ public class DoActionInvoker {
     }
 
     /**
-     * Builds the argument array for the resolved doAction method, coercing the trailing "garbage value"
-     * to whatever primitive width the current client revision declares for it.
+     * Builds the argument array for the resolved doAction method, appending the configured garbage
+     * value at the primitive width the method declares for it.
      *
      * <p>The obfuscator re-rolls this dummy parameter every revision - it has been {@code int}, {@code short}
-     * and {@code byte} in different releases - and reflection performs no widening or narrowing, so passing an
-     * {@code Integer} to a {@code byte} parameter fails with "argument type mismatch". The value itself is never
-     * read by the client, only its type matters.</p>
+     * and {@code byte} in different releases - and reflection performs no widening or narrowing, so the value
+     * is boxed at the declared width. Obfuscated methods may compare the value against constants, so it is
+     * passed verbatim from the hooks and never substituted.</p>
      *
-     * @return the argument array, or {@code null} if the resolved method has an unexpected signature.
+     * @return the argument array matching the resolved method's parameter count.
      */
     private Object[] buildArguments(Method method, int param0, int param1, int opcode, int identifier, int itemId, int worldViewId, String option, String target, int canvasX, int canvasY) {
         Object[] fixed = {param0, param1, opcode, identifier, itemId, worldViewId, option, target, canvasX, canvasY};
@@ -96,27 +101,25 @@ public class DoActionInvoker {
             return fixed;
         }
 
-        if (parameterTypes.length != fixed.length + 1) {
-            log.error("Resolved doAction method has an unexpected signature: {}. Expected {} or {} parameters.",
-                    describe(parameterTypes), fixed.length, fixed.length + 1);
-            return null;
-        }
-
-        Integer garbageValue = HooksLoader.getReflectionHooks().getDoActionGarbageValue();
-        if (garbageValue == null) {
-            garbageValue = 0;
-        }
-
-        Class<?> garbageType = parameterTypes[fixed.length];
-        Object garbageArgument = GarbageValueUtils.coerceToParameterType(garbageType, garbageValue);
-        if (garbageArgument == null) {
-            log.error("Unsupported doAction garbage value type '{}' in signature {}", garbageType.getName(), describe(parameterTypes));
-            return null;
-        }
-
         Object[] args = Arrays.copyOf(fixed, fixed.length + 1);
-        args[fixed.length] = garbageArgument;
+        args[fixed.length] = GarbageValueUtils.coerceToParameterType(parameterTypes[fixed.length], HooksLoader.getReflectionHooks().getDoActionGarbageValue());
         return args;
+    }
+
+    /**
+     * Reports whether a declared method has the engine's shape: static, the ten fixed parameter
+     * types in order, and optionally one trailing primitive garbage parameter.
+     *
+     * @param method The candidate declared on the hooked class.
+     * @return True if the method can be invoked as doAction.
+     */
+    static boolean isDoActionSignature(Method method) {
+        Class<?>[] types = method.getParameterTypes();
+        int fixed = FIXED_PARAMETER_TYPES.length;
+        return Modifier.isStatic(method.getModifiers())
+                && (types.length == fixed || types.length == fixed + 1)
+                && Arrays.equals(Arrays.copyOf(types, fixed), FIXED_PARAMETER_TYPES)
+                && (types.length == fixed || GarbageValueUtils.isSupportedParameterType(types[fixed]));
     }
 
     private static String describe(Class<?>[] types) {
@@ -130,35 +133,27 @@ public class DoActionInvoker {
     }
 
     /**
-     * Ensures that the doAction method in the client is real and the obfuscated names in the hooks.json
-     * match and can find the method at runtime.
+     * Resolves the hooked doAction method once, requiring exactly one declared method with the
+     * engine's signature and a configured garbage value whenever the signature declares one.
+     * Nothing is cached when resolution fails, so a later call retries.
      */
     private void ensureMethodLoaded() {
         if (doActionMethod != null) return;
         synchronized (lock) {
             if (doActionMethod != null) return;  // double-checked locking
+            ReflectionHooks hooks = HooksLoader.getReflectionHooks();
             try {
                 Client client = ctxProvider.get().getClient();
-                String className  = HooksLoader.getReflectionHooks().getDoActionClassName();
-                String methodName = HooksLoader.getReflectionHooks().getDoActionMethodName();
-                Class<?> clazz = client.getClass().getClassLoader().loadClass(className);
+                Class<?> clazz = client.getClass().getClassLoader().loadClass(hooks.getDoActionClassName());
+                Method resolved = HookResolver.requireUnique(clazz, hooks.getDoActionMethodName(), DoActionInvoker::isDoActionSignature);
 
-                // The obfuscated class can hold several overloads sharing a name, so prefer one whose
-                // signature actually looks like doAction before falling back to a plain name match.
-                Method resolved = Arrays.stream(clazz.getDeclaredMethods())
-                        .filter(m -> m.getName().equalsIgnoreCase(methodName))
-                        .findFirst()
-                        .orElse(null);
-
-                if (resolved == null) {
-                    log.error("Could not find doAction method '{}' on class '{}'", methodName, className);
-                    return;
+                if (resolved.getParameterCount() > FIXED_PARAMETER_TYPES.length && hooks.getDoActionGarbageValue() == null) {
+                    throw new IllegalStateException("doAction declares a garbage parameter but hooks.json has no doActionGarbageValue");
                 }
 
-                resolved.setAccessible(true);
                 doActionMethod = resolved;
-            } catch (ClassNotFoundException e) {
-                log.error("Could not load doAction class", e);
+            } catch (ClassNotFoundException | IllegalStateException e) {
+                log.error("Could not resolve doAction hook {}.{}", hooks.getDoActionClassName(), hooks.getDoActionMethodName(), e);
             }
         }
     }

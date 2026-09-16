@@ -3,7 +3,9 @@ package com.kraken.api.core.packet;
 import com.google.inject.Provider;
 import com.kraken.api.Context;
 import com.kraken.api.core.ClientThreadException;
+import com.kraken.api.core.hooks.HookResolver;
 import com.kraken.api.core.hooks.HooksLoader;
+import com.kraken.api.core.hooks.ReflectionHooks;
 import com.kraken.api.core.packet.model.PacketDefinition;
 import com.kraken.api.util.GarbageValueUtils;
 import lombok.Getter;
@@ -15,7 +17,6 @@ import javax.inject.Singleton;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -231,7 +232,8 @@ public class PacketClient {
      *
      * @param packetWriter     The live {@code PacketWriter} instance.
      * @param packetBufferNodeClass The factory return type, resolved before allocation.
-     * @return The resolved {@code addNode} method with its accessible flag set, or {@code null} if it cannot be found.
+     * @return The resolved {@code addNode} method with its accessible flag set, or {@code null} if the Path 2 method cannot be found.
+     * @throws IllegalStateException If the Path 1 writer class declares zero or several candidates.
      */
     private Method getAddNodeMethod(Object packetWriter, Class<?> packetBufferNodeClass) {
         if (isUsingClientAddNode) {
@@ -246,10 +248,7 @@ public class PacketClient {
                     return cached;
                 }
                 Method resolved = resolveAddNodeOnPacketWriter(packetWriterClass, packetBufferNodeClass);
-                if (resolved != null) {
-                    resolved.setAccessible(true);
-                    addNodeMethod = resolved;
-                }
+                addNodeMethod = resolved;
                 return resolved;
             }
         }
@@ -287,38 +286,20 @@ public class PacketClient {
     }
 
     /**
-     * Resolves the Path 1 {@code addNode} method on the {@code PacketWriter} class.
-     * <p>
-     * The exact signature implied by the garbage value's magnitude is looked up first, preserving
-     * the historically verified resolution for the current hooks. Only if that signature does not
-     * exist does this fall back to scanning for a same-named two-parameter method taking the packet
-     * node and a primitive numeric garbage parameter, whose declared width then drives the
-     * argument coercion in the preflight phase.
+     * Resolves the Path 1 {@code addNode} method on the {@code PacketWriter} class: the single
+     * same-named two-parameter method taking the packet node and a primitive garbage parameter,
+     * whose declared width drives the argument coercion in the preflight phase.
      *
      * @param packetWriterClass     The live {@code PacketWriter}'s class.
      * @param packetBufferNodeClass The packet node class the method must accept.
-     * @return The resolved method, or {@code null} if no candidate exists.
+     * @return The resolved method with its accessible flag set.
+     * @throws IllegalStateException If zero or several candidates match.
      */
     private Method resolveAddNodeOnPacketWriter(Class<?> packetWriterClass, Class<?> packetBufferNodeClass) {
-        String methodName = HooksLoader.getReflectionHooks().getAddNodeMethodName();
-        long garbageMagnitude = Math.abs(HooksLoader.getReflectionHooks().getAddNodeGarbageValue().longValue());
-        Class<?> preferredGarbageType = garbageMagnitude < 256 ? byte.class : garbageMagnitude < 32768 ? short.class : int.class;
-
-        try {
-            return packetWriterClass.getDeclaredMethod(methodName, packetBufferNodeClass, preferredGarbageType);
-        } catch (NoSuchMethodException e) {
-            log.debug("addNode signature ({}, {}) not found, falling back to declared-type scan", packetBufferNodeClass.getName(), preferredGarbageType.getName());
-        }
-
-        for (Method method : packetWriterClass.getDeclaredMethods()) {
-            if (method.getName().equals(methodName)
-                    && method.getParameterCount() == 2
-                    && method.getParameterTypes()[0] == packetBufferNodeClass
-                    && GarbageValueUtils.isSupportedParameterType(method.getParameterTypes()[1])) {
-                return method;
-            }
-        }
-        return null;
+        return HookResolver.requireUnique(packetWriterClass, HooksLoader.getReflectionHooks().getAddNodeMethodName(),
+                method -> method.getParameterCount() == 2
+                        && method.getParameterTypes()[0] == packetBufferNodeClass
+                        && GarbageValueUtils.isSupportedParameterType(method.getParameterTypes()[1]));
     }
 
     /**
@@ -333,25 +314,18 @@ public class PacketClient {
      * or the target class fails to load.
      */
     private Method findStaticAddNodeMethod() {
+        ReflectionHooks hooks = HooksLoader.getReflectionHooks();
         try {
-            Class<?> addNodeClass = client.getClass().getClassLoader().loadClass(HooksLoader.getReflectionHooks().getAddNodeClassName());
+            Class<?> addNodeClass = client.getClass().getClassLoader().loadClass(hooks.getAddNodeClassName());
 
-            for (Method method : addNodeClass.getDeclaredMethods()) {
-                // Identify the static utility variant of addNode (Path 2).
-                // Because this method is detached from the PacketWriter class, it cannot access the
-                // writer implicitly. Therefore, its signature MUST explicitly accept the PacketWriter
-                // as its first argument (e.g., `ab.az(packetWriter, buffer)` instead of
-                // `packetWriter.az(buffer)`). We filter the class methods based on this requirement.
-                if (method.getName().equals(HooksLoader.getReflectionHooks().getAddNodeMethodName())
-                        && method.getParameterCount() > 0
-                        && method.getParameterTypes()[0].getSimpleName().equals(HooksLoader.getReflectionHooks().getPacketWriterClassName())) {
-                    return method;
-                }
-            }
-        } catch (ClassNotFoundException e) {
-            log.error("Failed to locate addNode method: {} in class {}: ", HooksLoader.getReflectionHooks().getAddNodeMethodName(), HooksLoader.getReflectionHooks().getAddNodeClassName(), e);
+            // The static variant is detached from the PacketWriter class, so it must accept the
+            // writer explicitly as its first argument (`ab.az(packetWriter, buffer)`).
+            return HookResolver.requireUnique(addNodeClass, hooks.getAddNodeMethodName(),
+                    method -> method.getParameterCount() > 0
+                            && method.getParameterTypes()[0].getSimpleName().equals(hooks.getPacketWriterClassName()));
+        } catch (ClassNotFoundException | IllegalStateException e) {
+            log.error("Failed to locate addNode method {} in class {}", hooks.getAddNodeMethodName(), hooks.getAddNodeClassName(), e);
         }
-
         return null;
     }
 
@@ -398,18 +372,13 @@ public class PacketClient {
                     return null;
                 }
 
-                // Resolve the mapped factory name and signature, not an arbitrary node-returning method.
-                Method resolved = Arrays.stream(packetBufferNodeAccessorClass.getDeclaredMethods())
-                        .filter(m -> m.getName().equals(HooksLoader.getReflectionHooks().getPacketBufferNodeFactoryMethodName()))
-                        .filter(m -> Modifier.isStatic(m.getModifiers()) && m.getReturnType().equals(packetBufferNodeClass))
-                        .filter(m -> m.getParameterCount() == 3 && m.getParameterTypes()[0] == getClientPacketClass()
-                                && GarbageValueUtils.isSupportedParameterType(m.getParameterTypes()[2]))
-                        .findFirst()
-                        .orElse(null);
-                if (resolved != null) {
-                    resolved.setAccessible(true);
-                    getPacketBufferNodeMethod = resolved;
-                }
+                // Resolve the mapped factory name and signature, refusing to guess between overloads.
+                Method resolved = HookResolver.requireUnique(packetBufferNodeAccessorClass,
+                        HooksLoader.getReflectionHooks().getPacketBufferNodeFactoryMethodName(),
+                        m -> Modifier.isStatic(m.getModifiers()) && m.getReturnType().equals(packetBufferNodeClass)
+                                && m.getParameterCount() == 3 && m.getParameterTypes()[0] == getClientPacketClass()
+                                && GarbageValueUtils.isSupportedParameterType(m.getParameterTypes()[2]));
+                getPacketBufferNodeMethod = resolved;
                 return resolved;
             } catch (Exception e) {
                 log.error("Failed to get packet buffer node method: ", e);

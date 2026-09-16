@@ -2,6 +2,8 @@ package com.kraken.api.service.util;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.kraken.api.core.hooks.HookResolver;
+import com.kraken.api.util.GarbageValueUtils;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -92,7 +94,7 @@ public class ReflectionService {
     public Object invoke(String className, String methodName, Integer garbageValue, Object instance, Object... args) {
         try {
             Method method = getMethod(className, methodName, garbageValue, args.length);
-            Object[] finalArgs = prepareArgs(garbageValue, args);
+            Object[] finalArgs = prepareArgs(method, garbageValue, args);
             return method.invoke(instance, finalArgs);
         } catch (Exception e) {
             log.error("Failed to invoke {}.{}", className, methodName, e);
@@ -114,47 +116,38 @@ public class ReflectionService {
         });
     }
 
+    /**
+     * Resolves and caches the single declared method with the mapped name and the expected
+     * parameter count. When a garbage value is supplied, the trailing parameter must be a
+     * primitive the value can be coerced to, which is what separates the hooked overload from
+     * same-arity siblings.
+     */
     private Method getMethod(String className, String methodName, Integer garbageValue, int argCount) throws Exception {
         int expectedParams = argCount + (garbageValue != null ? 1 : 0);
         MethodLookup lookup = new MethodLookup(className, methodName, expectedParams);
         return methodCache.computeIfAbsent(lookup, key -> {
             try {
                 Class<?> clazz = classLoader.loadClass(key.getClassName());
-
-                for (Method method : clazz.getDeclaredMethods()) {
-                    if (method.getName().equals(key.getMethodName())
-                            && method.getParameterCount() == key.getParameterCount()) {
-                        method.setAccessible(true);
-                        return method;
-                    }
-                }
-                throw new NoSuchMethodException(
-                        String.format("Method %s with %d params not found in %s",
-                                key.getMethodName(), key.getParameterCount(), key.getClassName())
-                );
+                return HookResolver.requireUnique(clazz, key.getMethodName(), method ->
+                        method.getParameterCount() == key.getParameterCount()
+                                && (garbageValue == null || GarbageValueUtils.isSupportedParameterType(
+                                method.getParameterTypes()[key.getParameterCount() - 1])));
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load method: " + key, e);
             }
         });
     }
 
-    private Object[] prepareArgs(Integer garbageValue, Object[] args) {
+    /**
+     * Appends the garbage value, boxed at the width the resolved method declares for its trailing parameter.
+     */
+    private Object[] prepareArgs(Method method, Integer garbageValue, Object[] args) {
         if (garbageValue == null) {
             return args;
         }
 
         Object[] newArgs = Arrays.copyOf(args, args.length + 1);
-        int gVal = garbageValue;
-
-        // Determine primitive type based on value range
-        if (gVal >= Byte.MIN_VALUE && gVal <= Byte.MAX_VALUE) {
-            newArgs[args.length] = (byte) gVal;
-        } else if (gVal >= Short.MIN_VALUE && gVal <= Short.MAX_VALUE) {
-            newArgs[args.length] = (short) gVal;
-        } else {
-            newArgs[args.length] = gVal;
-        }
-
+        newArgs[args.length] = GarbageValueUtils.coerceToParameterType(method.getParameterTypes()[args.length], garbageValue);
         return newArgs;
     }
 

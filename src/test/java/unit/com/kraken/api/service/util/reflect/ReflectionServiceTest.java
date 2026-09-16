@@ -81,6 +81,33 @@ class ReflectionServiceTest {
         assertEquals(70000, ReflectionTarget.lastIntGarbage);
     }
 
+    @Test
+    void coercesTheGarbageValueToTheDeclaredWidthRegardlessOfMagnitude() {
+        reflectionService.invoke(
+                ReflectionTarget.class.getName(),
+                "applyByteGarbage",
+                300,
+                null,
+                5
+        );
+
+        assertEquals(5, ReflectionTarget.loginIndex);
+        assertEquals((byte) 300, ReflectionTarget.lastByteGarbage);
+    }
+
+    @Test
+    void refusesToInvokeWhenSameArityOverloadsAreAmbiguous() {
+        reflectionService.invoke(
+                ReflectionTarget.class.getName(),
+                "ambiguous",
+                7,
+                null,
+                5
+        );
+
+        assertEquals(-1, ReflectionTarget.loginIndex);
+    }
+
     private Client createClientProxy() {
         return (Client) Proxy.newProxyInstance(
                 Client.class.getClassLoader(),
@@ -110,6 +137,14 @@ class ReflectionServiceTest {
         private static void applyIntGarbage(int value, int garbage) {
             loginIndex = value;
             lastIntGarbage = garbage;
+        }
+
+        private static void ambiguous(int value, byte garbage) {
+            loginIndex = value;
+        }
+
+        private static void ambiguous(int value, short garbage) {
+            loginIndex = value;
         }
 
         private static void reset() {
