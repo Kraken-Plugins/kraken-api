@@ -157,16 +157,13 @@ public class PacketClient {
             Class<?>[] enqueueTypes = enqueue.getParameterTypes();
             Object[] enqueueArguments;
             if (isUsingClientAddNode) {
-                if (Modifier.isStatic(enqueue.getModifiers()) || enqueueTypes.length != 2
-                        || !enqueueTypes[0].isAssignableFrom(nodeClass)) {
+                if (Modifier.isStatic(enqueue.getModifiers()) || enqueueTypes.length != 2 || !enqueueTypes[0].isAssignableFrom(nodeClass)) {
                     throw new IllegalStateException("Invalid instance enqueue signature");
                 }
                 enqueueArguments = new Object[]{null, requireGarbage(enqueueTypes[1],
                         HooksLoader.getReflectionHooks().getAddNodeGarbageValue())};
             } else {
-                if (!Modifier.isStatic(enqueue.getModifiers())
-                        || (enqueueTypes.length != 2 && enqueueTypes.length != 3)
-                        || !enqueueTypes[0].isInstance(writer) || !enqueueTypes[1].isAssignableFrom(nodeClass)) {
+                if (!Modifier.isStatic(enqueue.getModifiers()) || (enqueueTypes.length != 2 && enqueueTypes.length != 3) || !enqueueTypes[0].isInstance(writer) || !enqueueTypes[1].isAssignableFrom(nodeClass)) {
                     throw new IllegalStateException("Invalid static enqueue signature");
                 }
                 enqueueArguments = enqueueTypes.length == 2 ? new Object[]{writer, null}
@@ -176,9 +173,9 @@ public class PacketClient {
 
             // Read the live packet length before the factory can advance ISAAC. These two hooks
             // must be re-vetted along with the factory capacity rules on every client revision.
-            Field lengthField = packet.getClass().getDeclaredField(
-                    HooksLoader.getReflectionHooks().getClientPacketLengthField());
+            Field lengthField = packet.getClass().getDeclaredField(HooksLoader.getReflectionHooks().getClientPacketLengthField());
             lengthField.setAccessible(true);
+
             if (lengthField.getType() != int.class || Modifier.isStatic(lengthField.getModifiers())) {
                 throw new IllegalStateException("Invalid packet length field");
             }

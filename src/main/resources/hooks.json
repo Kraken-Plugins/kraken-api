@@ -33,10 +33,10 @@
     "loginIndexGarbageValue": 2004336579,
     "loginIndexMethodName": "am",
     "loginIndexClassName": "ac",
-    "sessionFieldName": "lb",
-    "sessionClassName": "at",
-    "accountIdFieldName": "ly",
-    "accountIdClassName": "ec",
+    "sessionClassName": "client",
+    "sessionMethodName": "kf",
+    "accountIdClassName": "client",
+    "accountIdMethodName": "oj",
     "displayNameFieldName": "cm",
     "displayNameClassName": "bf",
     "accountCheckFieldName": "dm",
@@ -48,12 +48,12 @@
   },
   "securityHooks": {
     "mouseHookDllClassName": "client",
-    "mouseHookDllMethodName": "ig",
-    "clientLogFieldName": "mx",
-    "cleanCallStackValue": "client1486ya\nclient16815az\nnrc.RuneLite287start\nnrc.RuneLite264main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown S+",
+    "mouseHookDllMethodName": "aez",
+    "clientLogFieldName": "tk",
+    "cleanCallStackValue": "client54966do\nclient4895kd\nnrc.RuneLite288start\nnrc.RuneLite265main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown S+",
     "platformInfoClassName": "vt",
     "platformInfoMethodName": "az",
-    "agentField": "cy",
+    "agentField": "ca",
     "callStackField": "cp",
     "isPlatformInfoMethodStatic": false,
     "platformInfoMethodArgCount": 2
@@ -65,7 +65,7 @@
       "writes": [
         {
           "param": "hasFocus",
-          "methodName": "ck",
+          "methodName": "zu",
           "operations": [
             {
               "type": "RAW"
@@ -80,7 +80,7 @@
       "writes": [
         {
           "param": "0",
-          "methodName": "uq",
+          "methodName": "zu",
           "operations": [
             {
               "type": "RAW"
@@ -103,7 +103,7 @@
         },
         {
           "param": "mouseInfo",
-          "methodName": "bv",
+          "methodName": "bz",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -136,7 +136,7 @@
       "writes": [
         {
           "param": "5",
-          "methodName": "uq",
+          "methodName": "zu",
           "operations": [
             {
               "type": "RAW"
@@ -189,7 +189,7 @@
       "writes": [
         {
           "param": "var0",
-          "methodName": "bz",
+          "methodName": "cy",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -211,31 +211,12 @@
       ]
     },
     {
-      "name": "RESUME_OBJDIALOG",
-      "obfuscatedName": "ab",
-      "writes": [
-        {
-          "param": "var0",
-          "methodName": "bv",
-          "operations": [
-            {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
-            },
-            {
-              "type": "RAW"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "RESUME_STRINGDIALOG",
       "obfuscatedName": "cb",
       "writes": [
         {
           "param": "length",
-          "methodName": "uq",
+          "methodName": "zu",
           "operations": [
             {
               "type": "RAW"
@@ -248,6 +229,25 @@
           "operations": [
             {
               "type": "STRING_CP1252_NULL_TERMINATED"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RESUME_OBJDIALOG",
+      "obfuscatedName": "ab",
+      "writes": [
+        {
+          "param": "var0",
+          "methodName": "bz",
+          "operations": [
+            {
+              "type": "RIGHT_SHIFT",
+              "operand": 8
+            },
+            {
+              "type": "RAW"
             }
           ]
         }

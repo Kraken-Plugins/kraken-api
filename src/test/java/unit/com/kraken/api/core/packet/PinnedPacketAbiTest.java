@@ -1,7 +1,8 @@
-package com.kraken.api.core.packet;
+package unit.com.kraken.api.core.packet;
 
 import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.hooks.ReflectionHooks;
+import com.kraken.api.core.packet.BufferUtils;
 import com.kraken.api.core.packet.model.PacketDefinition;
 import com.kraken.api.util.GarbageValueUtils;
 import org.junit.jupiter.api.Test;
@@ -11,10 +12,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /** Offline ABI checks against the injected client pinned by the test runtime dependencies. */
 class PinnedPacketAbiTest {
+
     @Test
     void livePacketLengthsAndFactoryCapacitiesMatchPreflightContract() throws Exception {
         ReflectionHooks hooks = HooksLoader.getReflectionHooks();

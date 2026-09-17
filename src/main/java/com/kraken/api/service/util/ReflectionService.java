@@ -93,13 +93,36 @@ public class ReflectionService {
      */
     public Object invoke(String className, String methodName, Integer garbageValue, Object instance, Object... args) {
         try {
-            Method method = getMethod(className, methodName, garbageValue, args.length);
-            Object[] finalArgs = prepareArgs(method, garbageValue, args);
-            return method.invoke(instance, finalArgs);
+            return doInvoke(className, methodName, garbageValue, instance, args);
         } catch (Exception e) {
             log.error("Failed to invoke {}.{}", className, methodName, e);
             return null;
         }
+    }
+
+    /**
+     * Invokes a method exactly like {@link #invoke} but reports whether the call happened. Use this for
+     * void methods, where {@code invoke} returns null on success and on failure alike.
+     * @param className The class name to load
+     * @param methodName The method name to invoke
+     * @param garbageValue The garbage value to invoke them method with as the last parameter
+     * @param instance The instance of the object on which to invoke
+     * @param args The arguments to pass to the method being invoked
+     * @return {@code true} if the method was resolved and invoked, {@code false} otherwise
+     */
+    public boolean tryInvoke(String className, String methodName, Integer garbageValue, Object instance, Object... args) {
+        try {
+            doInvoke(className, methodName, garbageValue, instance, args);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to invoke {}.{}", className, methodName, e);
+            return false;
+        }
+    }
+
+    private Object doInvoke(String className, String methodName, Integer garbageValue, Object instance, Object[] args) throws Exception {
+        Method method = getMethod(className, methodName, garbageValue, args.length);
+        return method.invoke(instance, prepareArgs(method, garbageValue, args));
     }
 
     private Field getField(String className, String fieldName) {

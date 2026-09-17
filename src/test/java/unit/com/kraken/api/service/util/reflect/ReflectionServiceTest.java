@@ -122,7 +122,17 @@ class ReflectionServiceTest {
         private static short lastShortGarbage;
         private static int lastIntGarbage;
 
+        private static String session;
+
         private String instanceValue = "initial";
+
+        private static void storeSession(String value) {
+            session = value;
+        }
+
+        private static void storeSession(int value) {
+            loginIndex = value;
+        }
 
         private static void applyByteGarbage(int value, byte garbage) {
             loginIndex = value;
@@ -148,6 +158,7 @@ class ReflectionServiceTest {
         }
 
         private static void reset() {
+            session = "untouched";
             loginIndex = -1;
             lastByteGarbage = 0;
             lastShortGarbage = 0;
