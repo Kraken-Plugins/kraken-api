@@ -23,7 +23,6 @@ class PacketFactoryHooksTest {
         assertEquals(loginHooksJson.get("loginIndexMethodName").getAsString(), hooks.getLoginIndexMethodName());
         assertEquals(loginHooksJson.get("loginIndexClassName").getAsString(), hooks.getLoginIndexClassName());
         assertEquals(loginHooksJson.get("loginIndexGarbageValue").getAsInt(), hooks.getLoginIndexGarbageValue());
-        assertEquals(loginHooksJson.get("sessionFieldName").getAsString(), hooks.getSessionFieldName());
         assertEquals(loginHooksJson.get("sessionClassName").getAsString(), hooks.getSessionClassName());
         assertEquals(loginHooksJson.get("accountCheckFieldName").getAsString(), hooks.getAccountCheckFieldName());
         assertEquals(loginHooksJson.get("jagexValueFieldName").getAsString(), hooks.getJagexValueFieldName());

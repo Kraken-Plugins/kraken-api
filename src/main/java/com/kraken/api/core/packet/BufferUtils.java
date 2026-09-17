@@ -34,7 +34,7 @@ public class BufferUtils {
         }
     }
 
-    static BufferAccess validateFields(Class<?> bufferClass) {
+    public static BufferAccess validateFields(Class<?> bufferClass) {
         Field offset = resolveField(OFFSET_FIELDS, bufferClass, HooksLoader.getReflectionHooks().getBufferOffsetField());
         Field array = resolveField(ARRAY_FIELDS, bufferClass, HooksLoader.getReflectionHooks().getBufferArrayField());
         if (offset.getType() != int.class || array.getType() != byte[].class

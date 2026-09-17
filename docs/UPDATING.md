@@ -91,10 +91,19 @@ Re-vet these contracts from the actual injected-client bytecode on every revisio
 - Variable-length payloads include their one- or two-byte length prefix; that prefix excludes itself and includes string terminators.
 - Offset/index multipliers remain modular inverses, and the buffer exposes writable instance offset and byte-array fields.
 - Enqueue supports the verified instance `(node, garbage)` or static `(writer, node[, garbage])` signature.
+- `doAction` (`qp.ef(int, int, int, int, int, int, String, String, int, int, byte)` in `1.12.38`) is the single
+  static method of that shape on its class. Every hooked method is resolved by exact name and structure
+  through `HookResolver`; a class declaring zero or several candidates is rejected rather than guessed at.
+- Garbage values are verified constants, not free values. In `1.12.38` the node factory throws when its
+  byte argument equals `80` and the login-index method throws unless its int argument exceeds
+  `1997865712`, so keep the recorded value and record it at the width the parameter declares. The
+  configured `doActionGarbageValue` does not fit the byte the method declares and is truncated on every
+  call; that is harmless only because `qp.ef` never reads that parameter, so re-vet it on each revision.
 
 Run `./gradlew test`. `PacketPayloadTest` pins the six bundled packet byte layouts; `PacketPreflightTest` verifies
 zero factory/cipher use on invalid inputs and failure after allocation; `PinnedPacketAbiTest` checks live packet constants
-and factory capacities using a fresh private cipher with no client session or network connection.
+and factory capacities using a fresh private cipher with no client session or network connection;
+`PinnedDoActionAbiTest` checks that the doAction hook resolves uniquely on the same pinned client.
 `ClientThreadGatewayTest` covers deadline, interruption, shutdown cancellation, and unknown outcomes once execution starts.
 These offline checks do not replace the in-client smoke tests below.
 

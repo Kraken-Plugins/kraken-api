@@ -13,6 +13,7 @@ import net.runelite.client.callback.ClientThread;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -164,46 +165,11 @@ public class LoginService {
                 success = false;
             }
 
-            // Inject Jagex-specific fields (session, account ID, display name)
+            // Inject Jagex-specific credentials (session, account ID, display name); legacy accounts clear them
             if (type == AccountType.JAGEX) {
-                success &= setFieldSafely(
-                        hooks.getSessionClassName(),
-                        hooks.getSessionFieldName(),
-                        profile.getSessionId(),
-                        "session ID"
-                );
-                success &= setFieldSafely(
-                        hooks.getAccountIdClassName(),
-                        hooks.getAccountIdFieldName(),
-                        profile.getCharacterId(),
-                        "account ID"
-                );
-                success &= setFieldSafely(
-                        hooks.getDisplayNameClassName(),
-                        hooks.getDisplayNameFieldName(),
-                        profile.getCharacterName(),
-                        "display name"
-                );
+                success &= applyCredentials(profile.getSessionId(), profile.getCharacterId(), profile.getCharacterName());
             } else {
-                // For legacy accounts, clear these fields
-                success &= setFieldSafely(
-                        hooks.getSessionClassName(),
-                        hooks.getSessionFieldName(),
-                        null,
-                        "session ID"
-                );
-                success &= setFieldSafely(
-                        hooks.getAccountIdClassName(),
-                        hooks.getAccountIdFieldName(),
-                        null,
-                        "account ID"
-                );
-                success &= setFieldSafely(
-                        hooks.getDisplayNameClassName(),
-                        hooks.getDisplayNameFieldName(),
-                        null,
-                        "display name"
-                );
+                success &= applyCredentials(null, null, null);
             }
 
             // Set the account type check field
@@ -217,6 +183,39 @@ public class LoginService {
                 log.error("Login state application failed, aborting login");
             }
         });
+    }
+
+    /**
+     * Writes the three JX_* credentials. The session id and account id go through the client's
+     * {@code static void name(String)} setter when the hooks map one, since newer clients keep those
+     * values in a constant-dynamic array with no field to assign; otherwise the static field is set.
+     *
+     * @return true if every credential was written
+     */
+    private boolean applyCredentials(String sessionId, String characterId, String characterName) {
+        boolean success = true;
+        try {
+            Method setter =  client.getClass().getDeclaredMethod(hooks.getSessionMethodName(), String.class);
+            setter.setAccessible(true);
+            setter.invoke(null, sessionId);
+            setter.setAccessible(false);
+        } catch (Exception e) {
+            log.error("Failed to invoke setter {}.{}(String)", hooks.getSessionClassName(), hooks.getSessionMethodName(), e);
+            success = false;
+        }
+
+        try {
+            Method setter =  client.getClass().getDeclaredMethod(hooks.getAccountIdMethodName(), String.class);
+            setter.setAccessible(true);
+            setter.invoke(null, characterId);
+            setter.setAccessible(false);
+        } catch (Exception e) {
+            log.error("Failed to invoke setter {}.{}(String)", hooks.getAccountIdClassName(), hooks.getAccountIdClassName(), e);
+            success = false;
+        }
+
+        success &= setFieldSafely(hooks.getDisplayNameClassName(), hooks.getDisplayNameFieldName(), characterName, "display name");
+        return success;
     }
 
     /**

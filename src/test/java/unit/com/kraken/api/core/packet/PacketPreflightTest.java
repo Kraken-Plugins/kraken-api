@@ -53,6 +53,25 @@ class PacketPreflightTest {
             writer.enqueue(node, (byte) garbage);
         }
     }
+    public static class AmbiguousFactories {
+        public static Node create(Packet definition, Cipher cipher, byte garbage) {
+            return PacketPreflightTest.create(definition, cipher, garbage);
+        }
+        public static Node create(Packet definition, Cipher cipher, short garbage) {
+            return PacketPreflightTest.create(definition, cipher, (byte) garbage);
+        }
+    }
+    public static class AmbiguousWriter {
+        public Cipher cipher = new Cipher();
+        Node queued;
+        public void enqueue(Node node, byte garbage) {
+            queued = node;
+        }
+        public void enqueue(Node node, short garbage) {
+            queued = node;
+        }
+    }
+    public static AmbiguousWriter ambiguousWriter = new AmbiguousWriter();
     public static Node unrelatedFactory(Packet definition, Cipher cipher, byte garbage) {
         throw new AssertionError("Unmapped factory must not be selected");
     }
@@ -165,6 +184,24 @@ class PacketPreflightTest {
         sender.sendPacket(definition(), 1);
         assertNotNull(writer.queued);
         assertEquals(1, writer.cipher.consumed);
+    }
+
+    @Test
+    void ambiguousFactoryOverloadsRejectBeforeAllocation() throws Exception {
+        JsonObject hooks = new Gson().toJsonTree(HooksLoader.getReflectionHooks()).getAsJsonObject();
+        hooks.addProperty("classContainingPacketBufferNodeName", AmbiguousFactories.class.getName());
+        install(new Gson().fromJson(hooks, ReflectionHooks.class));
+        sender = sender();
+        sender.sendPacket(definition(), 1);
+        assertEquals(0, allocations);
+        assertNull(writer.queued);
+    }
+
+    @Test
+    void ambiguousEnqueueOverloadsRejectBeforeAllocation() throws Exception {
+        set(sender, "packetWriterField", PacketPreflightTest.class.getField("ambiguousWriter"));
+        reject(definition(), 1);
+        assertNull(ambiguousWriter.queued);
     }
 
     @Test
