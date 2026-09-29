@@ -1,5 +1,6 @@
 package com.kraken.api.query.groundobject;
 
+import com.google.common.primitives.Ints;
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractSpatialQuery;
 import net.runelite.api.ItemComposition;
@@ -68,7 +69,9 @@ public class GroundObjectQuery extends AbstractSpatialQuery<GroundObjectEntity, 
             groundItem.setHaPrice(1);
             groundItem.setGePrice(1);
         } else {
-            groundItem.setGePrice(ctx.getItemManager().getItemPrice(realItemId));
+            // RuneLite 1.13.0 returns long prices. Preserve Kraken's public int API without
+            // wrapping values above Integer.MAX_VALUE into negative prices.
+            groundItem.setGePrice(Ints.saturatedCast(ctx.getItemManager().getItemPrice(realItemId)));
         }
 
         return groundItem;

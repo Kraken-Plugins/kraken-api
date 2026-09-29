@@ -12,13 +12,13 @@ class PacketPayloadTest {
     @Test
     void bundledPacketWireBytesArePinned() {
         assertArrayEquals(new byte[]{1}, encode("EVENT_APPLET_FOCUS", 1, 1));
-        assertArrayEquals(new byte[]{0, (byte) 147, 1, 4, (byte) 210, (byte) 222, 1},
+        assertArrayEquals(new byte[]{(byte) 147, 1, (byte) 222, 1, 4, 82, 0},
                 encode("EVENT_MOUSE_CLICK", 7, 1234, 350, 275, 0));
         assertArrayEquals(new byte[]{0, 15, 66, 64}, encode("RESUME_COUNTDIALOG", 4, 1_000_000));
         assertArrayEquals(new byte[]{3, (byte) 227}, encode("RESUME_OBJDIALOG", 2, 995));
         assertArrayEquals(new byte[]{5, 'T', 'e', 's', 't', 0}, encode("RESUME_STRINGDIALOG", -1, 5, "Test"));
-        // MOVE_GAMECLICK: one-byte body length, encoded coordinates, modifier.
-        assertArrayEquals(new byte[]{5, 18, 12, (byte) 255, 21, 12},
+        // Revision 241: length, modifier+128, Y big-endian-add, X big-endian-add.
+        assertArrayEquals(new byte[]{5, (byte) 129, 12, 18, 12, 21},
                 encode("MOVE_GAMECLICK", -1, 3221, 3218, 1, 5));
     }
 
