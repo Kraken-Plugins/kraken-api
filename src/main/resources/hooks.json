@@ -56,7 +56,7 @@
     "mouseHookDllClassName": "client",
     "mouseHookDllMethodName": "sj",
     "clientLogFieldName": "ic",
-    "cleanCallStackValue": "client54966do\nclient4895kd\nnrc.RuneLite288start\nnrc.RuneLite265main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown S+",
+    "cleanCallStackValue": "client48318xa\nclient28223eb\nnrc.RuneLite288start\nnrc.RuneLite265main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown S+",
     "platformInfoClassName": "vo",
     "platformInfoMethodName": "an",
     "agentField": "cx",
