@@ -207,6 +207,7 @@ public class PacketClient {
                 }
                 throw new ClientThreadException("Packet transport is compromised; restart the client", e, true);
             }
+            log.error("Packet {} ({}) rejected before ISAAC consumption", def.getName(), def.getObfuscatedName(), e);
             throw new IllegalArgumentException("Packet rejected before ISAAC consumption", e);
         }
     }
