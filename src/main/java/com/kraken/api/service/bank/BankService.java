@@ -20,6 +20,7 @@ import net.runelite.client.eventbus.Subscribe;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -36,6 +37,7 @@ import static net.runelite.api.gameval.VarbitID.BANK_WITHDRAWNOTES;
 @Singleton
 public class BankService {
     private static final int WITHDRAW_ITEM_NOTE_MODE_WIDGET = 786457;
+    private static final int CLOSE_TIMEOUT_MS = 5000;
 
     @Inject
     private Provider<Context> ctxProvider;
@@ -217,15 +219,23 @@ public class BankService {
     }
 
     /**
-     * Closes the bank interface if it is open.
-     * @return True if the bank interface was closed successfully and false otherwise
+     * Closes the bank interface and waits for it to go.
+     *
+     * <p>Clicks the bank's own close button when it can find one, and falls back to Escape, which
+     * only works when the player has "Esc closes interfaces" enabled.</p>
+     *
+     * @return True if the bank interface is closed when this returns and false otherwise
      */
     public boolean close() {
-        if (isOpen()) {
-            ctxProvider.get().runOnClientThread(() -> client.runScript(29));
+        if (isClosed()) {
             return true;
         }
-        return false;
+
+        if (!UIService.clickCloseButton(InterfaceID.BANKMAIN)) {
+            keyboard.keyPress(KeyEvent.VK_ESCAPE);
+        }
+
+        return SleepService.sleepUntil(this::isClosed, CLOSE_TIMEOUT_MS);
     }
 
     /**

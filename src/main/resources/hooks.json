@@ -1,77 +1,77 @@
 {
   "reflectionHooks": {
-    "isaacCipherFieldName": "ab",
-    "addNodeMethodName": "ae",
+    "isaacCipherFieldName": "aj",
+    "addNodeMethodName": "aq",
     "addNodeClassName": "client",
-    "addNodeGarbageValue": -1301097035,
-    "clientPacketClassName": "js",
-    "clientPacketLengthField": "eo",
-    "clientPacketLengthMultiplier": -1758762607,
-    "packetWriterClassName": "dj",
-    "packetWriterFieldName": "ai",
-    "classContainingPacketBufferNodeName": "ef",
-    "packetBufferNodeFactoryMethodName": "af",
-    "bufferClassName": "xs",
-    "extendedBufferClassName": "xy",
-    "offsetMultiplier": -1095856699,
-    "indexMultiplier": 702114061,
-    "bufferOffsetField": "ay",
-    "bufferArrayField": "aj",
-    "mouseHandlerLastPressedClass": "tz",
-    "mouseHandlerLastPressedField": "al",
-    "mouseHandlerMultiplier": 5802030557961029083,
-    "clientMillisField": "gr",
-    "clientMillisMultiplier": -1592775510923690537,
-    "packetBufferNodeClassName": "jl",
-    "packetBufferFieldName": "ac",
-    "packetBufferNodeGarbageValue": -111,
-    "doActionClassName": "qp",
-    "doActionMethodName": "ef",
-    "doActionGarbageValue": 242848078
+    "addNodeGarbageValue": -1113795297,
+    "clientPacketClassName": "jo",
+    "clientPacketLengthField": "dx",
+    "clientPacketLengthMultiplier": -1109659497,
+    "packetWriterClassName": "co",
+    "packetWriterFieldName": "ad",
+    "classContainingPacketBufferNodeName": "ae",
+    "packetBufferNodeFactoryMethodName": "az",
+    "bufferClassName": "xi",
+    "extendedBufferClassName": "xw",
+    "offsetMultiplier": -1933171669,
+    "indexMultiplier": -1851950461,
+    "bufferOffsetField": "ab",
+    "bufferArrayField": "ah",
+    "mouseHandlerLastPressedClass": "tk",
+    "mouseHandlerLastPressedField": "au",
+    "mouseHandlerMultiplier": -5156151309388406647,
+    "clientMillisField": "gg",
+    "clientMillisMultiplier": 9179950546914017691,
+    "packetBufferNodeClassName": "js",
+    "packetBufferFieldName": "al",
+    "packetBufferNodeGarbageValue": 0,
+    "doActionClassName": "iv",
+    "doActionMethodName": "ev",
+    "doActionGarbageValue": 1003
   },
   "loginHooks": {
-    "loginIndexGarbageValue": 2004336579,
-    "loginIndexMethodName": "am",
-    "loginIndexClassName": "ac",
+    "loginIndexGarbageValue": -2101575954,
+    "loginIndexMethodName": "ae",
+    "loginIndexClassName": "je",
     "sessionClassName": "client",
-    "sessionMethodName": "kf",
+    "sessionMethodName": "dk",
     "accountIdClassName": "client",
-    "accountIdMethodName": "oj",
+    "accountIdMethodName": "fk",
     "accessTokenClassName": "client",
-    "accessTokenMethodName": "tw",
+    "accessTokenMethodName": "lk",
     "refreshTokenClassName": "client",
-    "refreshTokenMethodName": "wb",
+    "refreshTokenMethodName": "gc",
     "credentialLookupClassName": "client",
-    "credentialLookupMethodName": "wp",
+    "credentialLookupMethodName": "gs",
     "displayNameFieldName": "cm",
-    "displayNameClassName": "bf",
-    "accountCheckFieldName": "dm",
+    "displayNameClassName": "ar",
+    "accountCheckFieldName": "df",
     "accountCheckClassName": "client",
-    "jagexValueFieldName": "af",
-    "jagexValueClassName": "aap",
-    "legacyValueFieldName": "az",
-    "legacyValueClassName": "aap"
+    "jagexValueFieldName": "az",
+    "jagexValueClassName": "aaz",
+    "legacyValueFieldName": "an",
+    "legacyValueClassName": "aaz"
   },
   "securityHooks": {
     "mouseHookDllClassName": "client",
-    "mouseHookDllMethodName": "aez",
-    "clientLogFieldName": "tk",
-    "cleanCallStackValue": "client54966do\nclient4895kd\nnrc.RuneLite288start\nnrc.RuneLite265main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown S+",
-    "platformInfoClassName": "vt",
-    "platformInfoMethodName": "az",
-    "agentField": "ca",
-    "callStackField": "cp",
+    "mouseHookDllMethodName": "dg",
+    "clientLogFieldName": "im",
+    "cleanCallStackValue": "client48318fk\nclient28223ow\nnrc.RuneLite288start\nnrc.RuneLite265main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
+    "platformInfoClassName": "vo",
+    "platformInfoMethodName": "an",
+    "agentField": "cx",
+    "callStackField": "ci",
     "isPlatformInfoMethodStatic": false,
     "platformInfoMethodArgCount": 2
   },
   "packets": [
     {
       "name": "EVENT_APPLET_FOCUS",
-      "obfuscatedName": "br",
+      "obfuscatedName": "da",
       "writes": [
         {
           "param": "hasFocus",
-          "methodName": "zu",
+          "methodName": "qg",
           "operations": [
             {
               "type": "RAW"
@@ -82,20 +82,25 @@
     },
     {
       "name": "EVENT_MOUSE_CLICK",
-      "obfuscatedName": "bb",
+      "obfuscatedName": "bx",
       "writes": [
         {
-          "param": "0",
-          "methodName": "zu",
+          "param": "mouseY",
+          "methodName": "es",
           "operations": [
             {
-              "type": "RAW"
+              "type": "ADD",
+              "operand": 128
+            },
+            {
+              "type": "RIGHT_SHIFT",
+              "operand": 8
             }
           ]
         },
         {
-          "param": "mouseY",
-          "methodName": "el",
+          "param": "mouseX",
+          "methodName": "es",
           "operations": [
             {
               "type": "ADD",
@@ -109,28 +114,25 @@
         },
         {
           "param": "mouseInfo",
-          "methodName": "bz",
+          "methodName": "so",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
               "operand": 8
             },
             {
-              "type": "RAW"
+              "type": "ADD",
+              "operand": 128
             }
           ]
         },
         {
-          "param": "mouseX",
+          "param": "0",
           "methodName": "el",
           "operations": [
             {
-              "type": "ADD",
-              "operand": 128
-            },
-            {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
+              "type": "SUBTRACT",
+              "operand": 0
             }
           ]
         }
@@ -138,11 +140,11 @@
     },
     {
       "name": "MOVE_GAMECLICK",
-      "obfuscatedName": "da",
+      "obfuscatedName": "cf",
       "writes": [
         {
           "param": "5",
-          "methodName": "zu",
+          "methodName": "qg",
           "operations": [
             {
               "type": "RAW"
@@ -150,40 +152,40 @@
           ]
         },
         {
-          "param": "worldPointY",
-          "methodName": "el",
+          "param": "ctrlDown",
+          "methodName": "ef",
           "operations": [
             {
               "type": "ADD",
               "operand": 128
-            },
-            {
-              "type": "RIGHT_SHIFT",
-              "operand": 8
             }
           ]
         },
         {
-          "param": "ctrlDown",
-          "methodName": "dj",
+          "param": "worldPointY",
+          "methodName": "so",
           "operations": [
             {
-              "type": "SUBTRACT",
-              "operand": 0
+              "type": "RIGHT_SHIFT",
+              "operand": 8
+            },
+            {
+              "type": "ADD",
+              "operand": 128
             }
           ]
         },
         {
           "param": "worldPointX",
-          "methodName": "el",
+          "methodName": "so",
           "operations": [
-            {
-              "type": "ADD",
-              "operand": 128
-            },
             {
               "type": "RIGHT_SHIFT",
               "operand": 8
+            },
+            {
+              "type": "ADD",
+              "operand": 128
             }
           ]
         }
@@ -191,11 +193,11 @@
     },
     {
       "name": "RESUME_COUNTDIALOG",
-      "obfuscatedName": "cy",
+      "obfuscatedName": "cc",
       "writes": [
         {
           "param": "var0",
-          "methodName": "cy",
+          "methodName": "ix",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -218,11 +220,11 @@
     },
     {
       "name": "RESUME_STRINGDIALOG",
-      "obfuscatedName": "cb",
+      "obfuscatedName": "cj",
       "writes": [
         {
           "param": "length",
-          "methodName": "zu",
+          "methodName": "qg",
           "operations": [
             {
               "type": "RAW"
@@ -231,7 +233,7 @@
         },
         {
           "param": "string",
-          "methodName": "ct",
+          "methodName": "cv",
           "operations": [
             {
               "type": "STRING_CP1252_NULL_TERMINATED"
@@ -242,7 +244,7 @@
     },
     {
       "name": "RESUME_OBJDIALOG",
-      "obfuscatedName": "ab",
+      "obfuscatedName": "aj",
       "writes": [
         {
           "param": "var0",

@@ -210,7 +210,7 @@ class BufferUtilsTest {
         FakeBuffer buffer = newBuffer(0);
         replayPacketWrites(def, new Object[]{1234, 350, 275, 0}, buffer, null);
 
-        byte[] expected = {0, (byte) (128 + 275), (byte) (275 >> 8), (byte) (1234 >> 8), (byte) 1234, (byte) (128 + 350), (byte) (350 >> 8)};
+        byte[] expected = {(byte) (128 + 275), (byte) (275 >> 8), (byte) (128 + 350), (byte) (350 >> 8), (byte) (1234 >> 8), (byte) (1234 + 128), 0};
         byte[] actual = new byte[expected.length];
         System.arraycopy(buffer.fakeArray, 0, actual, 0, expected.length);
         assertArrayEquals(expected, actual);

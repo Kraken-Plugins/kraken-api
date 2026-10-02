@@ -67,6 +67,25 @@ public class UIService {
     }
 
     /**
+     * Clicks the "Close" button of an interface, the same way a player closes it.
+     *
+     * <p>The click is dispatched through the interface's own close button, so the client runs the
+     * button's close handler with the button as the event source and tells the server the modal is
+     * closed. The interface disappears once the client processes the click, so callers should wait on
+     * their own open/closed check afterwards.</p>
+     *
+     * @param groupId The interface group id, for example {@code InterfaceID.BANKMAIN}.
+     * @return true if a visible close button was found and the click was dispatched, false otherwise.
+     */
+    public static boolean clickCloseButton(int groupId) {
+        return ctx().widgets()
+                .inGroup(groupId)
+                .visible()
+                .withAction("Close")
+                .interact("Close");
+    }
+
+    /**
      * Converts the given packed widget integer ID to a group ID by performing a bitwise right shift.
      *
      * <p>This method shifts the bits of the input ID 16 positions to the right,

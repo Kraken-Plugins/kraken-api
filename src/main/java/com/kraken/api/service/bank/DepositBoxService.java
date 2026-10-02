@@ -2,14 +2,18 @@ package com.kraken.api.service.bank;
 
 import com.google.inject.Provider;
 import com.kraken.api.Context;
+import com.kraken.api.input.KeyboardService;
 import com.kraken.api.query.equipment.EquipmentEntity;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.dialogue.DialogueService;
+import com.kraken.api.service.ui.UIService;
+import com.kraken.api.service.util.SleepService;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.gameval.InterfaceID;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.awt.event.KeyEvent;
 
 /**
  * Service class for managing interactions with the bank deposit box interface within the client.
@@ -35,9 +39,13 @@ import javax.inject.Singleton;
  */
 @Singleton
 public class DepositBoxService {
+    private static final int CLOSE_TIMEOUT_MS = 5000;
 
     @Inject
     private Provider<Context> ctxProvider;
+
+    @Inject
+    private KeyboardService keyboard;
 
     /**
      * Determines whether the bank deposit box interface is currently open.
@@ -66,24 +74,24 @@ public class DepositBoxService {
     }
 
     /**
-     * Closes the bank deposit box interface if it is currently open.
+     * Closes the bank deposit box interface and waits for it to go.
      *
-     * <p>This method checks if the deposit box interface is already closed by
-     * invoking {@link #isClosed()}. If the interface is open, it attempts to close
-     * it by executing a client script.</p>
+     * <p>Clicks the deposit box's own close button when it can find one, and falls back to Escape,
+     * which only works when the player has "Esc closes interfaces" enabled.</p>
      *
-     * <p>The operation will return {@code true} if the interface is successfully
-     * verified as closed or was already closed before the method was invoked.</p>
-     *
-     * @return {@code true} if the deposit box interface is closed (either already closed or successfully closed);
-     *         {@code false} if the operation cannot determine the state of the interface or failed to close it.
+     * @return {@code true} if the deposit box interface is closed when this returns (either already closed
+     *         or successfully closed); {@code false} if it was still open when the wait timed out.
      */
     public boolean close() {
         if (isClosed()) {
             return true;
         }
-        ctxProvider.get().runScript(29);
-        return true;
+
+        if (!UIService.clickCloseButton(InterfaceID.BANK_DEPOSITBOX)) {
+            keyboard.keyPress(KeyEvent.VK_ESCAPE);
+        }
+
+        return SleepService.sleepUntil(this::isClosed, CLOSE_TIMEOUT_MS);
     }
 
     /**

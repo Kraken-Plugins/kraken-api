@@ -8,7 +8,6 @@ import com.kraken.api.query.container.shop.ShopEntity;
 import com.kraken.api.query.container.shop.ShopInventoryEntity;
 import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.query.npc.NpcQuery;
-import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.ui.UIService;
 import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
@@ -290,14 +289,7 @@ public class ShopService {
             return true;
         }
 
-        Optional<WidgetEntity> closeButton = ctxProvider.get().widgets()
-                .inGroup(InterfaceID.SHOPMAIN)
-                .withAction("Close")
-                .first();
-
-        if (closeButton.isPresent()) {
-            closeButton.get().interact("Close");
-        } else {
+        if (!UIService.clickCloseButton(InterfaceID.SHOPMAIN)) {
             keyboard.keyPress(KeyEvent.VK_ESCAPE);
         }
 

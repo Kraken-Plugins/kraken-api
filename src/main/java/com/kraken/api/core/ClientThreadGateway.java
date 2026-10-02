@@ -88,8 +88,10 @@ public final class ClientThreadGateway {
             runnable.run();
             return null;
         }).result.whenComplete((ignored, failure) -> {
-            if (failure != null) {
+            if (failure instanceof ClientThreadException) {
                 log.warn("Asynchronous client-thread work failed: {}", failure.toString());
+            } else if (failure != null) {
+                log.warn("Asynchronous client-thread work failed", failure);
             }
         });
     }
