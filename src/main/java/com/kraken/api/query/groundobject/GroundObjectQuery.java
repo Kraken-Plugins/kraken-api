@@ -126,7 +126,7 @@ public class GroundObjectQuery extends AbstractSpatialQuery<GroundObjectEntity, 
      * @param value The value threshold for the items.
      * @return GroundObjectQuery
      */
-    public GroundObjectQuery valueAbove(int value) {
+    public GroundObjectQuery valueAbove(long value) {
         return filter(obj -> obj.raw().getGePrice() > value);
     }
 
@@ -136,7 +136,7 @@ public class GroundObjectQuery extends AbstractSpatialQuery<GroundObjectEntity, 
      * @param value The value threshold for the items.
      * @return GroundObjectQuery
      */
-    public GroundObjectQuery stackValueAbove(int value) {
+    public GroundObjectQuery stackValueAbove(long value) {
         return filter(obj -> obj.raw().getGrandExchangePrice() > value);
     }
 

@@ -39,7 +39,7 @@ public class GroundItem {
     private WorldPoint location;
     private int height;
     private int haPrice;
-    private int gePrice;
+    private long gePrice;
     private int offset;
     private boolean tradeable;
     private int ownership;
@@ -52,8 +52,8 @@ public class GroundItem {
      * Returns the High Alchemy price of the item multiplied by the quantity on the ground.
      * @return The High Alchemy price of the item multiplied by the quantity on the ground
      */
-    public int getAlchemyPrice() {
-        return haPrice * quantity;
+    public long getAlchemyPrice() {
+        return (long) haPrice * quantity;
     }
 
     /**
@@ -61,7 +61,7 @@ public class GroundItem {
      * the GE price of a single item use {@code getGePrice()}
      * @return The Grand Exchange price of the item multiplied by the quantity on the ground
      */
-    public int getGrandExchangePrice() {
+    public long getGrandExchangePrice() {
         return gePrice * quantity;
     }
 

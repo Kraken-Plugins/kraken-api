@@ -807,8 +807,8 @@ public class SceneOverlay extends Overlay {
         for(GroundObjectEntity entity : ctx.groundItems().within(config.groundObjectRange()).stream().collect(Collectors.toList())) {
             String name = entity.getName();
             int qty = entity.raw().getQuantity();
-            int gePrice = entity.raw().getGePrice() * qty;
-            int haPrice = entity.raw().getHaPrice() * qty;
+            long gePrice = entity.raw().getGrandExchangePrice();
+            long haPrice = entity.raw().getAlchemyPrice();
 
             boolean isReachable = ctx.getService(TileService.class).isTileReachable(entity.raw().getLocation());
 
@@ -847,7 +847,7 @@ public class SceneOverlay extends Overlay {
         }
     }
 
-    private String formatValue(int value) {
+    private String formatValue(long value) {
         if (value >= 1_000_000) {
             return String.format("%.1fM", value / 1_000_000.0);
         } else if (value >= 1_000) {
