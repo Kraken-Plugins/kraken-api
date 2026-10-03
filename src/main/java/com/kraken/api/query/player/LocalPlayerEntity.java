@@ -186,8 +186,26 @@ public class LocalPlayerEntity extends PlayerEntity {
     /**
      * @return true if an antivenom effect is active
      */
-    public  boolean isAntivenomActive() {
+    public boolean isAntivenomActive() {
         return ctx.getVarpValue(VarPlayerID.POISON) < VENOM_VALUE_CUTOFF;
+    }
+
+    /**
+     * Returns true if the player is at full health.
+     * @return Boolean true if the player is at full health and false otherwise
+     */
+    public boolean isFullHealth() {
+        return getHealthRemaining() >= getMaxHealth();
+    }
+
+    /**
+     * Returns true when the player is overhealed and false otherwise. This will
+     * return false even if the player is at full max health. i.e. 99/99 hitpoints will be false while
+     * 100/99 hitpoints will be true.
+     * @return True if the player is overhealed and false otherwise
+     */
+    public boolean isOverhealed() {
+        return getHealthRemaining() > getMaxHealth();
     }
 
     /**
