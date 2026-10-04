@@ -16,14 +16,14 @@ import java.util.stream.Stream;
  * Forms the base class for all game client queries. This class defines generic actions which can be taken
  * on streams of game objects like NPC's, Ground Items, Tile Objects, Players and Widgets.
  *
- * <h3>Threading</h3>
+ * <h2>Threading</h2>
  * <p>Source traversal, declared filters, distinct keys, sorting, {@link #firstMatching(Predicate)}
  * and {@link #snapshot(Function)} projections run on the client thread. Entity results are live
  * {@link EntityView views}: materialization copies membership, not actor/widget state. Streams and
  * Optional callbacks supplied by the caller run on the consuming thread; accessing view state there
  * requires the client thread. Use {@code snapshot(mapper)} to capture detached values for workers.</p>
  *
- * <h3>Failure</h3>
+ * <h2>Failure</h2>
  * <p>Collection-valued results are never {@code null}, and single-valued terminals ({@link #first()},
  * {@link #firstMatching(Predicate)}, {@link #random()}) return {@link Optional} — the query layer never
  * hands back a bare {@code null}. If the client thread cannot answer — it is blocked, or the client is
@@ -31,7 +31,7 @@ import java.util.stream.Stream;
  * "could not look" the same way when that is what they want. Callers who need to distinguish them
  * should ask {@link Context#runOnClientThread(java.util.concurrent.Callable)} directly.</p>
  *
- * <h3>Reuse</h3>
+ * <h2>Reuse</h2>
  * <p>A query may be evaluated repeatedly and returns fresh results each time. Filters, de-duplication
  * and sorting are declarations, not consumed state. Builders are mutable and thread-confined:
  * do not mutate or evaluate the same builder concurrently, or mutate it from evaluation callbacks.</p>

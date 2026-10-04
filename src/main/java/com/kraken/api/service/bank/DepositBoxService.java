@@ -25,7 +25,7 @@ import java.awt.event.KeyEvent;
  * <p>All interactions assume the deposit box interface is open from the client's context.
  * Failing to meet this prerequisite may result in operation failure.</p>
  *
- * <h3>Key Features:</h3>
+ * <h2>Key Features:</h2>
  * <ul>
  *     <li>Checking the state of the deposit box interface (open/closed).</li>
  *     <li>Depositing all inventory items into the bank deposit box.</li>

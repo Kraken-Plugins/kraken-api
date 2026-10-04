@@ -18,7 +18,7 @@ import java.util.function.Supplier;
  * <p>This is the single owner of the spatial vocabulary. Every spatial query shares these filters and
  * terminals with identical names and semantics, so a new spatial query cannot drift from the others.</p>
  *
- * <h3>Coordinate space and planes</h3>
+ * <h2>Coordinate space and planes</h2>
  * <p>All distances are measured between {@link Locatable#getWorldLocation()} values, which are in the
  * same coordinate space as the local player's own location — including inside instanced regions — so
  * these filters remain valid in raids and other instances. Distance is Chebyshev tile distance via
@@ -26,7 +26,7 @@ import java.util.function.Supplier;
  * far away: {@code within} excludes them, {@code nearest} orders them last. {@code at} requires an
  * exact match including the plane.</p>
  *
- * <h3>No local player</h3>
+ * <h2>No local player</h2>
  * <p>{@code within(distance)} and {@code nearest()} yield empty results when there is no local
  * player — at the login screen or mid world-hop — rather than throwing. {@code sortByDistance()} preserves source order. Player
  * anchors are captured once per evaluation; explicit anchor overloads remain fixed.</p>

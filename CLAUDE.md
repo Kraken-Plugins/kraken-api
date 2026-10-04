@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Kraken API is a Java 11 library that extends the RuneLite (Old School RuneScape) client API with query, service, interaction, and simulation layers for plugin authors. It publishes a shaded jar (`com.github.kraken:kraken-api`) to GitHub Packages / Maven Local. It is a library, not an application — the only runnable thing is a RuneLite client launched with test plugins loaded.
+Kraken API is a Java 17 library that extends the RuneLite (Old School RuneScape) client API with query, service, interaction, and simulation layers for plugin authors. It publishes a shaded jar (`com.github.kraken:kraken-api`) to GitHub Packages / Maven Local. It is a library, not an application — the only runnable thing is a RuneLite client launched with test plugins loaded.
 
 `AGENTS.md` in the repo root is the maintained agent guide and carries the project's policies (code reuse, layer boundaries, testing, commits). Read it alongside this file; keep both updated when commands, paths, or workflows change.
 
@@ -82,7 +82,7 @@ RuneLite, guice, guava, gson, slf4j, and lombok are `compileOnly` on purpose —
 
 ## Conventions
 
-- Java 11 toolchain; Lombok is used where surrounding code already uses it.
+- Java 17 toolchain; Lombok is used where surrounding code already uses it.
 - Descriptive names, no abbreviations. Search for an existing helper before writing a new one — refactor to generalize rather than duplicate.
 - Never hand-edit `build/**` or `docs/kraken-api/**` (generated).
 - When adding block comments to classes or methods avoid saying what the method did previously or why there was an error in previous versions of the code. Stick to what the code actively does now, since it has been changed.

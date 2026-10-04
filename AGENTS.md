@@ -135,7 +135,7 @@ This section is the working guide for AI systems and humans asking AI systems to
 
 ## Local development setup
 
-- Use Java 11. The Gradle toolchain is configured for Java 11.
+- Use Java 17. The Gradle toolchain is configured for Java 17.
 - Use the Gradle wrapper from the repo root.
 
 ### NEVER EDIT DIRECTLY (Generated files)
