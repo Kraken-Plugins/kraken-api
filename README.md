@@ -142,7 +142,7 @@ integrating the API into your plugins and build process.
 > For more documentation on the API and Kraken plugins, please see our [official documentation here](https://kraken-plugins.com/docs/).
 
 ### Prerequisites
-- [Java 11+](https://adoptium.net/) (JDK required)
+- [Java 17+](https://adoptium.net/) (JDK required)
 - [Gradle](https://gradle.org/) (wrapper included, no need to install globally)
 - [Git](https://git-scm.com/)
 - [RuneLite](https://runelite.net) (for testing and running plugins)

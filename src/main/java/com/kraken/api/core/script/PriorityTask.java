@@ -9,14 +9,14 @@ package com.kraken.api.core.script;
  * It introduces an additional abstract method for retrieving the priority of the task.
  * </p>
  *
- * <h3>Key Characteristics:</h3>
+ * <h2>Key Characteristics:</h2>
  * <ul>
  *   <li>Must be subclassed to implement priority-based behavior.</li>
  *   <li>Integrates with the task execution framework through inheritance from
  *       {@link AbstractTask} and the {@link Task} interface.</li>
  * </ul>
  *
- * <h3>Priority Management:</h3>
+ * <h2>Priority Management:</h2>
  * Subclasses are required to define the {@code getPriority()} method, which returns
  * an integer value representing the priority level of the task. Higher priority
  * values generally indicate tasks that should be executed earlier or given precedence

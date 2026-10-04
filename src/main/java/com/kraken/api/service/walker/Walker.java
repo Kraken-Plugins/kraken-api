@@ -30,18 +30,18 @@ import java.util.List;
  * transport at the end of that part, then re-plans from wherever the player ended up. That loop is
  * what turns a short-range click into cross-map travel.</p>
  *
- * <h3>Threading</h3>
+ * <h2>Threading</h2>
  * <p>Every call blocks and must be made off the client thread. Waiting is a no-op on the client
  * thread, which would turn the loop into a spin that fails in milliseconds for no visible reason, so
  * the walker refuses to run there rather than misbehaving.</p>
  *
- * <h3>Failure</h3>
+ * <h2>Failure</h2>
  * <p>A walk that cannot finish returns a {@link WalkResult} saying why — a missing item for a boat
  * fare, a transport whose destination chooser is not implemented, a stall, or an incomplete plan
  * that never reaches the destination. An incomplete route is not walked: the closest land the
  * search found cannot create a crossing that is not in the graph.</p>
  *
- * <h3>Doors the planner does not know about</h3>
+ * <h2>Doors the planner does not know about</h2>
  * <p>The transport dataset lists only the doors that gate a route. An ordinary closed door is just a
  * wall to the planner, so it routes around one where it can and never mentions it. Before a leg is
  * walked, {@link ObstacleRecovery} tests live-scene reachability and opens whatever stands on the
@@ -50,7 +50,7 @@ import java.util.List;
  * the leg is walked in the same call. A stall after movement fails is only the backstop, for a door
  * that shuts mid-leg.</p>
  *
- * <h3>Home teleport</h3>
+ * <h2>Home teleport</h2>
  * <p>The planner never picks the Lumbridge home teleport: walking is cheaper than its cooldown. When
  * the player is on the standard book, the thirty-minute timer is clear, they are more than fifty
  * tiles from the courtyard, and the path from the courtyard is shorter than the walk from here, the

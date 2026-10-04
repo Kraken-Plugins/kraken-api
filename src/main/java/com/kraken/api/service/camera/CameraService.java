@@ -205,7 +205,7 @@ public class CameraService {
     }
 
     /**
-     * <h1> Checks if the angle to the target is within the desired max angle </h1>
+     * Checks if the angle to the target is within the desired max angle
      * <p>
      * The desired max angle should not go over 80-90 degrees as the target will be out of view
      *

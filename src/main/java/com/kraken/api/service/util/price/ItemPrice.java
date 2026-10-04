@@ -11,7 +11,7 @@ import lombok.Data;
  * <p>This class is typically used as a data model for interfacing with price-related APIs or
  * services operating within the OSRS ecosystem.</p>
  *
- * <h3>Attributes:</h3>
+ * <h2>Attributes:</h2>
  * <ul>
  *   <li><strong>itemId:</strong> The unique identifier for the item.</li>
  *   <li><strong>high:</strong> The highest price recorded for the item.</li>
