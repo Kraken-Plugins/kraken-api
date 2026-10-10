@@ -25,42 +25,55 @@ unzip -q kraken-api-sources.jar -d kraken-api-sources
 
 ## Gradle setup
 
-Gradle can resolve the release assets directly by declaring GitHub releases as an Ivy repository. Pin a release
-version; dynamic versions such as `5.+` do not work with this repository.
+Install the Kraken client first: install RuneLite (https://runelite.net), then download
+https://seaweed.kraken-plugins.com/kraken-bootstrap-static/KrakenLauncher-Windows.zip, unzip it and run
+`KrakenInstaller.exe`. The Kraken Gradle plugin (https://github.com/Kraken-Plugins/kraken-gradle-plugin) then launches
+that client with the plugin being built sideloaded. Both the Gradle plugin and the Kraken API come from the public
+Maven repository `https://repo.kraken-plugins.com`, which needs no token.
 
 ```groovy
-plugins {
-    id 'java'
-}
-
-def runeLiteVersion = 'latest.release'
-def krakenApiVersion = '{{VERSION}}'
-
-repositories {
-    mavenCentral()
-    maven { url = 'https://repo.runelite.net' }
-    ivy {
-        name = 'KrakenApiReleases'
-        url = 'https://github.com/Kraken-Plugins/kraken-api/releases/download/'
-        patternLayout { artifact '[revision]/[module]-[revision](-[classifier]).[ext]' }
-        metadataSources { artifact() }
-        content { includeModule 'com.github.kraken', 'kraken-api' }
+// settings.gradle
+pluginManagement {
+    repositories {
+        maven { url = 'https://repo.kraken-plugins.com' }
+        gradlePluginPortal()
     }
 }
 
-java {
-    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+rootProject.name = 'my-plugin'
+```
+
+```groovy
+// build.gradle
+plugins {
+    id 'com.krakenplugins.plugin' version '0.1.1'
+}
+
+def krakenApiVersion = '{{VERSION}}'
+
+repositories {
+    maven { url = 'https://repo.runelite.net' }
+    maven { url = 'https://repo.kraken-plugins.com' }
+    mavenCentral()
 }
 
 dependencies {
     // The Kraken client provides RuneLite and the Kraken API at runtime, so both are compileOnly.
-    compileOnly "net.runelite:client:${runeLiteVersion}"
-    compileOnly "com.github.kraken:kraken-api:${krakenApiVersion}"
+    compileOnly 'net.runelite:client:latest.release'
+    compileOnly "com.github.kraken:kraken-api:$krakenApiVersion"
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
 }
 ```
+
+The Gradle plugin applies `java` and adds two tasks:
+
+- `./gradlew runKraken` builds the plugin jar and launches the installed Kraken client with it sideloaded.
+  `--debug-jvm` waits for a debugger on port 5005; `--profile <name>` logs in as a linked Jagex profile. On Linux, set
+  `kraken { runeliteDirectory = file('/path/to/RuneLite') }` to the folder holding `RuneLite.jar`.
+- `./gradlew krakenVersions` checks that the Kraken API the project compiles against works with the one the client
+  runs. Compiling against a newer API than the client runs causes `NoSuchMethodError` at runtime.
 
 Without Gradle, download the jar into `libs/` and use `compileOnly files('libs/kraken-api.jar')`.
 
@@ -110,10 +123,12 @@ For anything longer than a few actions, extend `com.kraken.api.core.script.Scrip
 - `interact(...)` calls go through the client's menu-action handler and do not move the mouse. Use `VirtualMouse`
   when the cursor should visibly move.
 - Package a plugin as a jar. RuneLite, Guice, Guava, Gson, SLF4J, Lombok and the Kraken API are provided at runtime;
-  shade any other dependency into the plugin jar. Put the jar in `~/.runelite/kraken/sideloaded-plugins` and restart
-  the Kraken client to load it.
+  shade any other dependency into the plugin jar. During development `./gradlew runKraken` loads it; to install a
+  built jar (`./gradlew jar`, in `build/libs`), put it in `~/.runelite/kraken/sideloaded-plugins` and restart the
+  Kraken client.
 
 ## Example plugins
 
 Complete plugins that use the API (mining, woodcutting, fishing, firemaking, runecrafting, jewelry, combat):
-https://github.com/cbartram/kraken-example-plugin
+https://github.com/Kraken-Plugins/kraken-example-plugin. Its
+`./gradlew runKraken` launches the Kraken client with every example plugin sideloaded.
