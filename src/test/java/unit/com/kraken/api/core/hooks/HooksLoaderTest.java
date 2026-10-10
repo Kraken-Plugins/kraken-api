@@ -1,12 +1,15 @@
 package unit.com.kraken.api.core.hooks;
 
+import com.kraken.api.core.hooks.GameHooks;
 import com.kraken.api.core.hooks.HooksLoader;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -50,6 +53,23 @@ class HooksLoaderTest {
             assertThrows(IllegalStateException.class, HooksLoader::requireLoaded);
         } finally {
             loadFailureField.set(null, previous);
+        }
+    }
+
+    @Test
+    void warnsOnlyWhenBothRevisionsAreKnownAndDiffer() {
+        GameHooks hooks = HooksLoader.getGameHooks();
+        Integer previous = hooks.getRevision();
+        try {
+            hooks.setRevision(241);
+            assertTrue(HooksLoader.warnOnRevisionMismatch(242));
+            assertFalse(HooksLoader.warnOnRevisionMismatch(241));
+            assertFalse(HooksLoader.warnOnRevisionMismatch(0), "an uninitialised client reports revision 0");
+
+            hooks.setRevision(null);
+            assertFalse(HooksLoader.warnOnRevisionMismatch(242), "hooks mapped before the revision was recorded");
+        } finally {
+            hooks.setRevision(previous);
         }
     }
 }

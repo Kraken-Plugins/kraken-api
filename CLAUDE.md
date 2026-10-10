@@ -60,6 +60,8 @@ New behavior goes in the narrowest layer that owns it. Do not add a query for so
 
 `src/main/resources/hooks.json` holds `reflectionHooks`, `loginHooks`, `securityHooks`, and `packets`. `core/hooks/HooksLoader` parses it in a static initializer into `GameHooks` and friends; everything obfuscation-dependent reads from there. After an OSRS client revision, it will be manually updated by a human. Never update this file directly. Never hardcode obfuscated names elsewhere in the codebase.
 
+`kraken-updater` also writes top-level `runeliteVersion` and `revision` (game revision) fields. `Context` passes `Client.getRevision()` to `HooksLoader.warnOnRevisionMismatch` at startup, and `build.gradle` copies both fields into the shaded jar's manifest as `Kraken-RuneLite-Version` and `Kraken-Game-Revision` (next to `Kraken-Api-Version`) for build tooling. Hooks mapped before these fields existed simply omit them.
+
 ### `core/script/` — long-running automation
 
 `Script` (abstract, implements `Scriptable`) drives a `loop()` returning a delay in ms, ticked off RuneLite's `GameTick` with lifecycle (`start`/`stop`/`pause`/`resume`, `onStart`/`onStop`) and break handling (`script/breakhandler`). `loop()` runs off the client thread — anything touching client state must go through `Context.runOnClientThread(...)`. Reusable steps belong behind `Task` / `AbstractTask` / `PriorityTask` / `RunnableTask` or a service, not inside plugin event handlers.

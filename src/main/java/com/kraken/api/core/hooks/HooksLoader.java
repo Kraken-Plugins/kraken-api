@@ -59,7 +59,8 @@ public class HooksLoader {
             reflectionHooks = gameHooks.getReflectionHooks();
             securityHooks = gameHooks.getSecurityHooks();
             loginHooks = gameHooks.getLoginHooks();
-            log.info("Loaded packet, reflection, security and login hooks from local resources.");
+            log.info("Loaded packet, reflection, security and login hooks from local resources (RuneLite {}, revision {}).",
+                    gameHooks.getRuneliteVersion(), gameHooks.getRevision());
         } catch (Exception e) {
             loadFailure = e;
             log.error("Exception while trying to load hooks.json.", e);
@@ -78,6 +79,25 @@ public class HooksLoader {
                             + "Fix the hooks resource before using the API. Original failure: " + loadFailure.getMessage(),
                     loadFailure);
         }
+    }
+
+    /**
+     * Logs a warning when the running game revision differs from the revision hooks.json was mapped for. Reflection,
+     * login and packet hooks are only valid for the revision they were mapped from, so a mismatch usually means this
+     * Kraken API version is older or newer than the running RuneLite client.
+     *
+     * @param clientRevision The revision reported by the running client, {@code Client.getRevision()}.
+     * @return {@code true} when both revisions are known and differ, {@code false} otherwise.
+     */
+    public static boolean warnOnRevisionMismatch(int clientRevision) {
+        Integer hooksRevision = gameHooks == null ? null : gameHooks.getRevision();
+        if (hooksRevision == null || clientRevision <= 0 || hooksRevision == clientRevision) {
+            return false;
+        }
+        log.warn("hooks.json was mapped for game revision {} (RuneLite {}) but the client is running revision {}. "
+                        + "Interactions, packets and login may fail; use the Kraken API release built for this RuneLite version.",
+                hooksRevision, gameHooks.getRuneliteVersion(), clientRevision);
+        return true;
     }
 
     /**

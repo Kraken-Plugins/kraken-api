@@ -119,10 +119,28 @@ jar {
     archiveClassifier = 'unshaded'
 }
 
+// The RuneLite version and game revision hooks.json was mapped for, both written by kraken-updater. They go in the
+// jar manifest so build tooling can warn when a plugin is compiled or run against hooks for a different RuneLite.
+def hooksTarget = providers.fileContents(layout.projectDirectory.file('src/main/resources/hooks.json')).asText.map { text ->
+    def hooks = new groovy.json.JsonSlurper().parseText(text)
+    [runeliteVersion: hooks.runeliteVersion, revision: hooks.revision]
+}
+
 shadowJar {
     archiveBaseName = 'kraken-api'
     archiveVersion = projectVersion
     archiveClassifier = '' // Purposefully leave this as none the only jar produced is the shaded jar.
+
+    def target = hooksTarget.get()
+    if (target.runeliteVersion == null || target.revision == null) {
+        logger.warn("hooks.json does not record its RuneLite version and revision; regenerate it with kraken-updater " +
+                "so the jar manifest can carry Kraken-RuneLite-Version and Kraken-Game-Revision.")
+    }
+    manifest {
+        attributes(['Kraken-Api-Version'     : projectVersion,
+                    'Kraken-RuneLite-Version': target.runeliteVersion,
+                    'Kraken-Game-Revision'   : target.revision].findAll { it.value != null })
+    }
 
     exclude 'kraken.png'
 
@@ -169,6 +187,10 @@ publishing {
     }
 
     repositories {
+        maven {
+            name = "Staging"
+            url = layout.buildDirectory.dir("maven-repo")
+        }
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/Kraken-Plugins/kraken-api")

@@ -133,6 +133,22 @@ jobs:
             s3://kraken-bootstrap-static/api/kraken-api-${VERSION}.jar \
             --endpoint-url ${{ secrets.SEAWEED_URL }}
 
+      # Publishes a Maven repository layout so plugin developers can depend on the API without a GitHub token.
+      # The build directory starts clean, so maven-metadata.xml lists only this release and overwrites the previous
+      # one. Older version directories stay in the bucket, so builds pinned to an older version still resolve.
+      - name: Publish Maven repository to SeaweedFS
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SEAWEED_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SEAWEED_SECRET_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          ./gradlew publishMavenPublicationToStagingRepository
+          aws s3 cp build/maven-repo s3://kraken-bootstrap-static/maven/ \
+            --recursive \
+            --endpoint-url ${{ secrets.SEAWEED_URL }}
+
       - name: Sync Packets
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.SEAWEED_ACCESS_KEY }}

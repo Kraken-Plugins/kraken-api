@@ -9,6 +9,8 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class GameHooks {
+    private String runeliteVersion;
+    private Integer revision;
     private ReflectionHooks reflectionHooks;
     private LoginHooks loginHooks;
     private SecurityHooks securityHooks;

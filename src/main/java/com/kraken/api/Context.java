@@ -115,6 +115,8 @@ public class Context {
             log.warn("Failed modify log level for RuneLite doAction method. You may encounter more verbose logging.", e);
         }
 
+        HooksLoader.warnOnRevisionMismatch(client.getRevision());
+
         // Registered last so that a constructor failure above leaves nothing attached to the event bus.
         eventBus.register(bankService);
 
