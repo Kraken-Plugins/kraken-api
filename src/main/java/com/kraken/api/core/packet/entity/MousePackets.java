@@ -108,12 +108,16 @@ public class MousePackets {
             idleClientTicks = client.getMouseIdleTicks();
         }
 
-        long threshold = idleResetThreshold.get();
+        // A timeout shortened through IdleTimeoutService can fall below the randomised threshold, so the reset also
+        // fires once 7/8 of the timeout has passed. At the client's default 15000-tick timeout that cap (13125) is
+        // above every randomised threshold.
+        long storedThreshold = idleResetThreshold.get();
+        long threshold = Math.min(storedThreshold, client.getIdleTimeout() * 7L / 8);
         if (idleClientTicks < threshold) {
             return;
         }
 
-        if (!idleResetThreshold.compareAndSet(threshold, RandomUtils.randomDelay())) {
+        if (!idleResetThreshold.compareAndSet(storedThreshold, RandomUtils.randomDelay())) {
             return;
         }
 
