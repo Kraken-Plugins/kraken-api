@@ -172,7 +172,7 @@ publishing {
                 developers {
                     developer {
                         id = 'cbartram'
-                        name = 'RuneWraith'
+                        name = 'cbartram'
                         email = 'runewraith.business@gmail.com'
                     }
                 }
