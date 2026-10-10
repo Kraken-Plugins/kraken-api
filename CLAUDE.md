@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Kraken API is a Java 17 library that extends the RuneLite (Old School RuneScape) client API with query, service, interaction, and simulation layers for plugin authors. It publishes a shaded jar (`com.github.kraken:kraken-api`) to GitHub Packages / Maven Local. It is a library, not an application — the only runnable thing is a RuneLite client launched with test plugins loaded.
+Kraken API is a Java 17 library that extends the RuneLite (Old School RuneScape) client API with query, service, interaction, and simulation layers for plugin authors. It publishes a shaded jar (`com.github.kraken:kraken-api`) to GitHub Packages / Maven Local and attaches it, with sources/javadoc jars and the generated `llms.txt` files, to each GitHub release as public assets. It is a library, not an application — the only runnable thing is a RuneLite client launched with test plugins loaded.
 
 `AGENTS.md` in the repo root is the maintained agent guide and carries the project's policies (code reuse, layer boundaries, testing, commits). Read it alongside this file; keep both updated when commands, paths, or workflows change.
 
@@ -18,6 +18,7 @@ Kraken API is a Java 17 library that extends the RuneLite (Old School RuneScape)
 ./gradlew test --tests '*PlannerTest.plansAgainstBusyWaveWithinBudget'
 ./gradlew clean build publishToMavenLocal shadowJar   # full build + install to ~/.m2
 VERSION=1.0.0-SNAPSHOT-LOCAL ./gradlew clean build publishToMavenLocal shadowJar
+VERSION=5.1.5 ./gradlew generateLlmsTxt          # llms.txt / llms-full.txt / llms-api.txt -> build/llms (-PllmsOutput=<dir> to redirect)
 ```
 
 CI (`.github/workflows/build.yml`) runs `./gradlew clean build shadowJar` on PRs to `master`/`develop`.
@@ -83,8 +84,9 @@ RuneLite, guice, guava, gson, slf4j, and lombok are `compileOnly` on purpose —
 ## Conventions
 
 - Java 17 toolchain; Lombok is used where surrounding code already uses it.
+- Never hand-write a private no-args constructor (e.g. to prevent instantiating a utility class). Annotate the class with `@NoArgsConstructor(access = AccessLevel.PRIVATE)` instead.
 - Descriptive names, no abbreviations. Search for an existing helper before writing a new one — refactor to generalize rather than duplicate.
-- Never hand-edit `build/**` or `docs/kraken-api/**` (generated).
+- Never hand-edit `build/**`, `docs/kraken-api/**` or the generated `llms*.txt` files. The llms files come from `docs/llms/overview.md`, `docs/*.md` and the generator in `src/llms/` (a Javadoc doclet that also renders Lombok-generated members).
 - When adding block comments to classes or methods avoid saying what the method did previously or why there was an error in previous versions of the code. Stick to what the code actively does now, since it has been changed.
 - Commits: sign off with `git commit -s`. Project policy is that AI agents are **never** listed as commit co-authors — omit any `Co-Authored-By` trailer naming an AI.
 - Versioning is automated: CI bumps the patch on merge to `master`; bump `version.txt` manually for a minor/major base.
