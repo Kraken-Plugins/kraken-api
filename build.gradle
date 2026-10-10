@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -17,28 +19,15 @@ repositories {
     maven {
         url = 'https://repo.runelite.net'
     }
-    maven { url 'https://jitpack.io' }
+    maven { url 'https://jitpack.io' } // needed for shortest-path resolution
     mavenLocal()
 }
-
-tasks.register('runelite', JavaExec) {
-    group = 'application'
-    description = 'Runs the API Test with assertions enabled'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass.set('PluginRunnerTest')
-    jvmArgs '-ea'
-    // PluginRunnerTest reads args[0] as the plugin class to load as a builtin and forwards the
-    // rest to RuneLite, so these must be separate arguments with the plugin first. Passing them
-    // as one string made Class.forName fail and the task exit before the client ever started.
-    args 'plugins.api.ApiTestPlugin', '--developer-mode'
-}
-
 
 dependencies {
     // NOTE: These dependencies are REQUIRED for the Kraken API to run. There are specifically omitted from Kraken's API's Jar file for 2
     // key reasons:
     // 1. RuneLite provides guice, guava, gson in its runtime dependencies already so packaging them with Kraken can introduce different version and create dependency issues and introduces bloat
-    // 2. Its a design choice to let users inject dependencies into RuneLite's classloader how the they sees fit. Kraken's API makes a choice to not impose how users choose to load required dependencies
+    // 2. Its a design choice to let users inject dependencies into RuneLite's classloader how the they see fit. Kraken's API makes a choice to not impose how users choose to load required dependencies
     compileOnly("org.slf4j:slf4j-api:1.7.25")
     compileOnly("org.slf4j:slf4j-simple:1.7.25")
     compileOnly("com.google.code.gson:gson:2.8.5")
@@ -74,7 +63,6 @@ sourceSets {
             srcDirs = ['src/test/java']
         }
     }
-    // Generator for the llms.txt files. It is not part of the published jar.
     llms
 }
 
@@ -92,7 +80,7 @@ tasks.register('generateLlmsTxt', JavaExec) {
     inputs.dir('src/main/java')
     inputs.dir('docs')
     inputs.property('version', projectVersion)
-    outputs.files(['llms.txt', 'llms-full.txt', 'llms-api.txt'].collect { new File(outputDirectory, it) })
+    outputs.files(['llms.txt', 'llms-full.txt', 'llms-api.txt'].collect { new File(outputDirectory as File, it) })
 
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
     classpath = sourceSets.llms.runtimeClasspath
@@ -122,7 +110,7 @@ jar {
 // The RuneLite version and game revision hooks.json was mapped for, both written by kraken-updater. They go in the
 // jar manifest so build tooling can warn when a plugin is compiled or run against hooks for a different RuneLite.
 def hooksTarget = providers.fileContents(layout.projectDirectory.file('src/main/resources/hooks.json')).asText.map { text ->
-    def hooks = new groovy.json.JsonSlurper().parseText(text)
+    def hooks = new JsonSlurper().parseText(text)
     [runeliteVersion: hooks.runeliteVersion, revision: hooks.revision]
 }
 

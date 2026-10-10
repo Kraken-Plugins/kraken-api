@@ -40,6 +40,7 @@ public final class ReflectionHooks {
     private final Long mouseHandlerMultiplier;
     private final String clientMillisField;
     private final Long clientMillisMultiplier;
+    private final String idleTimeoutField;
 
     private final String packetBufferNodeClassName;
     private final String packetBufferFieldName;

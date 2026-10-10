@@ -24,6 +24,7 @@
     "mouseHandlerMultiplier": -5156151309388406647,
     "clientMillisField": "gg",
     "clientMillisMultiplier": 9179950546914017691,
+    "idleTimeoutField": "uv",
     "packetBufferNodeClassName": "js",
     "packetBufferFieldName": "al",
     "packetBufferNodeGarbageValue": 0,
