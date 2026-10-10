@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-09-11
+- Last updated: 2026-10-09
 - Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
@@ -146,6 +146,9 @@ The following files or directories are generated or derived; edit their sources 
   - Source: `src/main/java/com/kraken/api/**`
   - `build/**`
   - Source: Gradle build outputs
+  - `llms.txt`, `llms-full.txt`, `llms-api.txt` (release assets and `kraken-frontend/public/`)
+  - Source: `docs/llms/overview.md`, the guides in `docs/*.md` and the public API in `src/main/java/com/kraken/api/**`
+  - Regenerate: `VERSION=<release> ./gradlew generateLlmsTxt` (writes `build/llms/`; add `-PllmsOutput=../kraken-frontend/public` to refresh the website copy)
 
 Do not treat these as hand-edited sources.
 
@@ -164,6 +167,9 @@ Do not treat these as hand-edited sources.
   Packet preflight also requires the live packet length field/multiplier and vetted factory capacities;
   run `./gradlew test` to cover byte fixtures, zero-consumption rejection, and the pinned injected-client ABI.
 - `docs/ai-integration.md` redirects here.
+- `docs/llms/overview.md` is the header of the generated `llms.txt` files: install steps, a minimal plugin and the key rules for plugin authors.
+  The guide list and descriptions live in `src/llms/java/com/kraken/llms/LlmsGenerator.java`; add new plugin-author guides to `GUIDES` there
+  (unlisted `docs/*.md` files are linked under "Optional").
 
 ## Code style and formatting
 
@@ -175,4 +181,5 @@ Do not treat these as hand-edited sources.
 ### Key environment variables
 
 - `VERSION=...`: Overrides the published artifact version for local and CI builds
-- `GITHUB_ACTOR` / `GITHUB_TOKEN`: Used by publishing tasks that target GitHub Packages
+- `GITHUB_ACTOR` / `GITHUB_TOKEN`: Used by publishing tasks that target GitHub Packages. Consumers do not need them: every release
+  attaches the shaded, sources and javadoc jars plus the llms files as public assets (see `.github/workflows/release.yml`)

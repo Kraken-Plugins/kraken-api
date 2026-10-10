@@ -74,6 +74,34 @@ sourceSets {
             srcDirs = ['src/test/java']
         }
     }
+    // Generator for the llms.txt files. It is not part of the published jar.
+    llms
+}
+
+dependencies {
+    llmsCompileOnly 'org.projectlombok:lombok:1.18.30'
+    llmsAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
+}
+
+// Writes llms.txt, llms-full.txt and llms-api.txt to build/llms (or -PllmsOutput=<dir>) for the current VERSION.
+tasks.register('generateLlmsTxt', JavaExec) {
+    group = 'documentation'
+    description = 'Generates llms.txt, llms-full.txt and llms-api.txt from docs/ and the public API'
+    def outputDirectory = project.findProperty('llmsOutput') ?: layout.buildDirectory.dir('llms').get().asFile.path
+
+    inputs.dir('src/main/java')
+    inputs.dir('docs')
+    inputs.property('version', projectVersion)
+    outputs.files(['llms.txt', 'llms-full.txt', 'llms-api.txt'].collect { new File(outputDirectory, it) })
+
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    classpath = sourceSets.llms.runtimeClasspath
+    mainClass = 'com.kraken.llms.LlmsGenerator'
+    args '--source', file('src/main/java').path,
+            '--docs', file('docs').path,
+            '--classpath', sourceSets.main.compileClasspath.asPath,
+            '--output', file(outputDirectory).path,
+            '--version', projectVersion
 }
 
 

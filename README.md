@@ -31,34 +31,84 @@ Use at your own risk. The developers are not responsible for any consequences re
 
 ## Quick Start
 
-To get started with the API instantly:
+No GitHub account or token is needed. The API jar is attached to every [GitHub release](https://github.com/Kraken-Plugins/kraken-api/releases)
+and Gradle can download it from there directly.
 
-```shell
-git clone https://github.com/Kraken-Plugins/kraken-api
-cd ./kraken-api
+**1. Start from a normal RuneLite plugin project.** If you don't have one yet, use RuneLite's
+[example plugin template](https://github.com/runelite/example-plugin) (click "Use this template", then open it in IntelliJ).
+You'll need [Java 17+](https://adoptium.net/).
 
-./gradlew build publishToMavenLocal
-```
-
-In the repository containing all your plugins `build.gradle` file: 
+**2. Add the Kraken API to your `build.gradle`.** Add the `ivy` repository and the two `kraken-api` lines below to what the
+template already has. Set `krakenApiVersion` to the latest release:
+[![Latest release](https://img.shields.io/github/v/release/Kraken-Plugins/kraken-api?label=latest)](https://github.com/Kraken-Plugins/kraken-api/releases/latest)
 
 ```groovy
+def runeLiteVersion = 'latest.release'
+def krakenApiVersion = 'X.Y.Z' // the latest release, e.g. 5.1.6
 
 repositories {
-    // Attempts local first for testing API jar
-    mavenLocal {
-        content {
-            includeGroup "com.github.kraken"
-        }
+    mavenLocal()
+    maven { url = 'https://repo.runelite.net' }
+    mavenCentral()
+
+    // Downloads the Kraken API from its GitHub releases. No token required.
+    ivy {
+        name = 'KrakenApiReleases'
+        url = 'https://github.com/Kraken-Plugins/kraken-api/releases/download/'
+        patternLayout { artifact '[revision]/[module]-[revision](-[classifier]).[ext]' }
+        metadataSources { artifact() }
+        content { includeModule 'com.github.kraken', 'kraken-api' }
     }
-  
-  // .. other repositories like RuneLite.net, etc...
 }
 
 dependencies {
-  compileOnly group: 'com.github.kraken', name:'kraken-api', version: '5.0.0' // or the version you built with VERSION=...
+    compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
+    compileOnly group: 'com.github.kraken', name: 'kraken-api', version: krakenApiVersion
+
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    // Puts RuneLite and the API on the classpath when you launch the client from the test runner below.
+    testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
+    testImplementation group: 'com.github.kraken', name: 'kraken-api', version: krakenApiVersion
 }
 ```
+
+**3. Inject the API into your plugin.**
+
+```java
+@PluginDescriptor(name = "Example")
+public class ExamplePlugin extends Plugin {
+
+    @Inject
+    private Context ctx; // com.kraken.api.Context, the entry point to the whole API
+
+    @Subscribe
+    private void onGameTick(GameTick event) {
+        if (ctx.inventory().isFull()) {
+            ctx.gameObjects().withName("Bank booth").nearest().ifPresent(booth -> booth.interact("Bank"));
+        }
+    }
+}
+```
+
+**4. Run it.** Run the template's test class (`src/test/java/.../ExamplePluginTest.java`). It starts RuneLite with your
+plugin loaded:
+
+```java
+public class ExamplePluginTest {
+    public static void main(String[] args) throws Exception {
+        ExternalPluginManager.loadBuiltin(ExamplePlugin.class);
+        RuneLite.main(args);
+    }
+}
+```
+
+That's it. See [API Usage](#api-usage) for more of what the API can do. Point an AI coding agent at
+[`llms-full.txt`](#ai-agents-and-llmstxt) so it knows the whole API too.
+
+> When your plugin is ready, build it with `./gradlew jar` and drop the jar into `~/.runelite/kraken/sideloaded-plugins`.
+> The Kraken client provides RuneLite and the Kraken API at runtime, which is why both are `compileOnly` above.
 
 ## API Usage
 
@@ -133,8 +183,8 @@ which shows the best practice usage of the API within an actual plugin.
 To set up your development environment for running plugins, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
 
 Once you have the example plugin cloned and setup within Intellij, you can run the main class in `src/test/java/PluginRunnerTest.java plugins.api.ApiTestPlugin` to run RuneLite with
-the example plugin loaded in the plugin panel within RuneLite's sidebar. See a recommended [Gradle example](#gradle-example-recommended) for more information on
-integrating the API into your plugins and build process.
+the example plugin loaded in the plugin panel within RuneLite's sidebar. See the [Quick Start](#quick-start) for integrating the API into
+your own plugin's build.
 
 ![example-plugin](./images/example-plugin-2.png)
 
@@ -147,9 +197,9 @@ integrating the API into your plugins and build process.
 - [Git](https://git-scm.com/)
 - [RuneLite](https://runelite.net) (for testing and running plugins)
 
-### Building
+### Building from source
 
-You can build the project with Gradle:
+You only need this to work on the API itself or to test unreleased changes. To build the project with Gradle:
 
 ```bash
 ./gradlew clean build publishToMavenLocal shadowJar
@@ -175,7 +225,7 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'com.github.kraken', name: 'kraken-api', version: '1.0.0' // or whichever version you built with when export VERSION=...
+    compileOnly group: 'com.github.kraken', name: 'kraken-api', version: '1.0.0' // or whichever version you built with when export VERSION=...
 }
 ```
 
@@ -186,9 +236,35 @@ RuneLite, Guice, Guava, Gson, SLF4J and Lombok are `compileOnly` and provided by
 build/libs/kraken-api-<version>.jar
 ```
 
-## Gradle Example
+## Other ways to get the API
 
-To use the published API jar file in your plugin project, you will need to either:
+### Downloading the jar directly
+
+Every [release](https://github.com/Kraken-Plugins/kraken-api/releases) attaches the API jar, its sources and javadoc jars,
+and the [llms.txt files](#ai-agents-and-llmstxt) as public assets:
+
+- Pinned: `https://github.com/Kraken-Plugins/kraken-api/releases/download/<version>/kraken-api-<version>.jar` (also `-sources.jar` / `-javadoc.jar`)
+- Latest: `https://github.com/Kraken-Plugins/kraken-api/releases/latest/download/kraken-api.jar` (also `kraken-api-sources.jar` / `kraken-api-javadoc.jar`)
+
+Put the jar in your project's `libs/` folder and add `compileOnly files('libs/kraken-api.jar')` if you'd rather not use the
+`ivy` repository from the [Quick Start](#quick-start). The `ivy` repository needs an exact release version; dynamic versions
+like `5.+` don't work with it.
+
+### AI agents and llms.txt
+
+Each release also attaches [`llms.txt`](https://llmstxt.org) files, which are hosted at
+[kraken-plugins.com/llms.txt](https://kraken-plugins.com/llms.txt) as well:
+
+- `llms.txt`: setup steps, a minimal plugin, the key rules, and links to every guide
+- `llms-full.txt`: the same overview plus every plugin-author guide and the full API signatures in one file
+- `llms-api.txt`: every public type and member (including Lombok-generated getters and builders) as Java stubs with one-line Javadoc summaries
+
+Point a coding agent at `https://github.com/Kraken-Plugins/kraken-api/releases/latest/download/llms-full.txt` to give it
+everything it needs to write a plugin. To regenerate them locally, run `VERSION=X.Y.Z ./gradlew generateLlmsTxt` (output in `build/llms`).
+
+### GitHub Packages
+
+The API is also published to GitHub Packages, which requires authentication even for public packages. To use it, either:
 - `export GITHUB_ACTOR=<YOUR_GITHUB_USERNAME>; export GITHUB_TOKEN=<GITHUB_PAT`
 - or add the following to your `gradle.properties` file: `gpr.user=your-github-username gpr.key=your-personal-access-token`
 

@@ -61,6 +61,23 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean build shadowJar
 
+      - name: Generate llms.txt
+        run: ./gradlew generateLlmsTxt
+
+      # Release assets are public, so plugin developers and AI agents can download the API without a GitHub token.
+      # Versioned names are resolvable by Gradle (see README); unversioned copies back the stable
+      # https://github.com/Kraken-Plugins/kraken-api/releases/latest/download/<name> URLs.
+      - name: Stage release assets
+        run: |
+          mkdir -p release-assets
+          for suffix in "" "-sources" "-javadoc"; do
+            cp "build/libs/kraken-api-${VERSION}${suffix}.jar" "release-assets/kraken-api-${VERSION}${suffix}.jar"
+            cp "build/libs/kraken-api-${VERSION}${suffix}.jar" "release-assets/kraken-api${suffix}.jar"
+          done
+          cp build/llms/llms.txt build/llms/llms-full.txt build/llms/llms-api.txt release-assets/
+          (cd release-assets && sha256sum * > SHA256SUMS)
+          ls -l release-assets
+
       - name: Collect commit messages since last tag
         id: changelog
         run: |
@@ -96,6 +113,9 @@ jobs:
           tag_name: ${{ env.VERSION }}
           name: Release ${{ env.VERSION }}
           body: ${{ env.COMMITS }}
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: release-assets/*
 
       - name: Upload JAR to SeaweedFS
         env:
