@@ -10,6 +10,7 @@ import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.gameval.InventoryID;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.api.widgets.Widget;
 
 import java.util.*;
@@ -71,8 +72,9 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
     }
 
     /**
-     * Configures the query to only look for items currently equipped
-     * on the player (read from the Equipment interface widgets).
+     * Configures the query to only look for items currently equipped on the player. Items come from the worn item
+     * container, so every worn item is found even when the equipment interface is not loaded; such items cannot be
+     * interacted with (for example removed) until it is.
      * @return EquipmentQuery
      */
     public EquipmentQuery inInterface() {
@@ -144,7 +146,8 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
     }
 
     /**
-     * Sources equipped items from the players equipment interface
+     * Sources equipped items from the worn item container, attaching each slot's equipment interface widget when it
+     * is loaded so the item can be interacted with.
      * @return List of equipped item objects
      */
     private List<EquipmentEntity> collectEquippedItems() {
@@ -158,27 +161,22 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
         }
 
         List<EquipmentEntity> entities = new ArrayList<>();
-        ItemContainer equipment = ctx.getClient().getItemContainer(94); // 94 = Equipment
+        ItemContainer equipment = ctx.getClient().getItemContainer(InventoryID.WORN);
         if (equipment == null) {
             cachedEquippedItems = entities;
             equippedItemsTick = tick;
             return entities;
         }
 
-        int i = -1;
-        for (Item item : equipment.getItems()) {
-            i++;
-            if (item == null) continue;
-            if (item.getId() == 6512 || item.getId() == -1) continue;
-            
-            // 387 = WidgetInfo.EQUIPMENT.getGroupId(), child id
-            Widget w = ctx.getClient().getWidget(387, equipmentSlotWidgetMapping.get(i));
-           
-            // Equipment widgets exist while another tab is open, but getActions() is null until the
-            // equipment tab is selected. Skipping those slots hid worn jewellery from teleport handlers.
-            if (w == null) {
-                continue;
-            }
+        Item[] items = equipment.getItems();
+        for (int i = 0; i < items.length; i++) {
+            Item item = items[i];
+            if (!isWornItem(item)) continue;
+
+            // 387 = WidgetInfo.EQUIPMENT.getGroupId(). The widget is null while the equipment interface is not
+            // loaded; the item is still worn, so it is kept and only its interactions fail.
+            Integer widgetChild = equipmentSlotWidgetMapping.get(i);
+            Widget w = widgetChild == null ? null : ctx.getClient().getWidget(387, widgetChild);
 
             final ItemComposition def = ctx.getClient().getItemDefinition(item.getId());
 
@@ -203,31 +201,90 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
     }
 
     /**
-     * Checks if the player is wearing an item by id.
+     * Checks if the player is wearing an item by id, reading the worn item container.
      * Note: This strictly checks the equipment slots, ignoring the "inInventory" setting.
      * @param id The item id for the equipment to check
      * @return True if the player is wearing the equipment and false otherwise
      */
     public boolean isWearing(int id) {
-        return ctx.runOnClientThread(() ->
-                collectEquippedItems().stream().anyMatch(i -> i.raw().getId() == id)
-        );
+        return ctx.runOnClientThread(() -> wornItems().stream().anyMatch(item -> item.getId() == id));
     }
 
     /**
-     * Checks if the player is wearing an item by name.
+     * Checks if the player is wearing an item by name, reading the worn item container.
      * Note: This strictly checks the equipment slots, ignoring the "inInventory" setting.
      * @param name The name of the equipment to check
      * @return True if the player is wearing the equipment and false otherwise
      */
     public boolean isWearing(String name) {
-        return ctx.runOnClientThread(() ->
-                collectEquippedItems().stream().anyMatch(i -> name.equalsIgnoreCase(i.getName()))
-        );
+        return ctx.runOnClientThread(() -> wornItems().stream()
+                .anyMatch(item -> name.equalsIgnoreCase(ctx.getClient().getItemDefinition(item.getId()).getName())));
     }
 
     /**
-     * Returns the interactable equipment entity for a given equipment slot.
+     * Reads the ids of every worn item from the worn item container. Unlike the query this runs no client scripts
+     * and does not need the equipment interface, so it is cheap enough to call every game tick.
+     * @return A new set of the worn item ids, empty when nothing is worn or the container is not loaded.
+     */
+    public Set<Integer> wornIds() {
+        return ctx.runOnClientThread(() -> {
+            Set<Integer> ids = new HashSet<>();
+            for (Item item : wornItems()) {
+                ids.add(item.getId());
+            }
+            return ids;
+        }, new HashSet<>());
+    }
+
+    /**
+     * Reads the id of the item worn in a slot from the worn item container, without running client scripts or
+     * needing the equipment interface.
+     * @param slot The equipment slot to read.
+     * @return The id of the item worn in the slot, or -1 when the slot is empty or the container is not loaded.
+     */
+    public int wornId(EquipmentInventorySlot slot) {
+        if (slot == null) return -1;
+        return ctx.runOnClientThread(() -> {
+            ItemContainer worn = ctx.getClient().getItemContainer(InventoryID.WORN);
+            Item item = worn == null ? null : worn.getItem(slot.getSlotIdx());
+            return isWornItem(item) ? item.getId() : -1;
+        }, -1);
+    }
+
+    /**
+     * Reads the id of the wielded weapon from the worn item container. See {@link #wornId(EquipmentInventorySlot)}.
+     * @return The id of the wielded weapon, or -1 when no weapon is wielded or the container is not loaded.
+     */
+    public int wornWeaponId() {
+        return wornId(EquipmentInventorySlot.WEAPON);
+    }
+
+    /**
+     * Lists the worn items in the worn item container. Must be called on the client thread.
+     * @return The worn items, empty when the container is not loaded.
+     */
+    private List<Item> wornItems() {
+        ItemContainer worn = ctx.getClient().getItemContainer(InventoryID.WORN);
+        if (worn == null) return Collections.emptyList();
+
+        List<Item> items = new ArrayList<>();
+        for (Item item : worn.getItems()) {
+            if (isWornItem(item)) items.add(item);
+        }
+        return items;
+    }
+
+    /**
+     * @param item A slot of the worn item container.
+     * @return True when the slot holds an item rather than nothing or the blank placeholder.
+     */
+    private static boolean isWornItem(Item item) {
+        return item != null && item.getId() != -1 && item.getId() != ItemID.BLANKOBJECT;
+    }
+
+    /**
+     * Returns the equipment entity worn in a given equipment slot. It can only be interacted with while the
+     * equipment interface is loaded; see {@link #inInterface()}.
      * @param slot The {@code EquipmentInventorySlot} to retrieve.
      * @return The entity in that slot, or {@link Optional#empty()} when the slot is empty.
      */
