@@ -2,12 +2,11 @@ package com.kraken.api.query.world;
 
 
 import com.kraken.api.Context;
-import com.kraken.api.core.Services;
 import com.kraken.api.core.AbstractQuery;
+import com.kraken.api.core.Services;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.World;
 import net.runelite.api.WorldType;
-import net.runelite.client.RuneLite;
 import net.runelite.client.game.WorldService;
 import net.runelite.client.util.WorldUtil;
 import net.runelite.http.api.worlds.WorldRegion;
@@ -15,9 +14,9 @@ import net.runelite.http.api.worlds.WorldResult;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import java.util.Optional;
 
 @Slf4j
 public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
@@ -39,7 +38,7 @@ public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
                 rsWorld.setAddress(w.getAddress());
                 rsWorld.setId(w.getId());
                 rsWorld.setPlayerCount(w.getPlayers());
-                rsWorld.setLocation(w.getLocation());
+                rsWorld.setLocation(w.getRegion().getId());
                 rsWorld.setTypes(WorldUtil.toWorldTypes(w.getTypes()));
 
                 // Store a reference to the net.runelite.http.api.World instance because it contains region information
