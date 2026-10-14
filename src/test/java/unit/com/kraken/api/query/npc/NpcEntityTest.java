@@ -53,6 +53,20 @@ class NpcEntityTest {
     }
 
     @Test
+    void exactHealthComesFromTheHealthBar() {
+        when(npc.getHealthRatio()).thenReturn(15);
+        when(npc.getHealthScale()).thenReturn(30);
+        assertEquals(550, entity.getHealth(1100));
+    }
+
+    @Test
+    void exactHealthIsUnknownBeforeTheHealthBarShows() {
+        when(npc.getHealthRatio()).thenReturn(-1);
+        when(npc.getHealthScale()).thenReturn(-1);
+        assertEquals(-1, entity.getHealth(1100));
+    }
+
+    @Test
     void noOverheadsGivesNoIcon() {
         assertNull(entity.getHeadIcon());
         when(npc.getOverheadArchiveIds()).thenReturn(new int[] {-1});

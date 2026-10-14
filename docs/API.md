@@ -38,27 +38,6 @@ The Service API paradigm is useful for static widgets or global game entities, f
 If you needed to toggle a prayer, cast a spell, or close the bank, then the service API paradigm would suit your plugin
 well.
 
-#### Idle logout timeout
-
-RuneLite limits the client's idle logout timer to 5–30 minutes. `IdleTimeoutService` sets it anywhere from one client
-tick (20 ms) to the six hours the game server allows, or turns it off:
-
-```java
-@Inject
-private IdleTimeoutService idleTimeoutService;
-
-idleTimeoutService.setIdleTimeout(Duration.ofHours(2)); // log out after two hours without mouse or keyboard input
-idleTimeoutService.disableIdleTimeout();                // never log out for being idle
-idleTimeoutService.reset();                             // restore the timeout in place before the first change
-```
-
-A zero or negative timeout is rejected with `IllegalArgumentException`; use `disableIdleTimeout()` instead. The client
-enforces timeouts between 5 minutes and about 47 minutes 43 seconds itself. For shorter or longer timeouts the
-service logs out from a game-tick watchdog, because the client's keyboard idle check is fixed at 5 minutes and
-RuneLite's int arithmetic for the mouse idle counter overflows past that upper bound. The service re-applies the
-timeout every game tick if RuneLite's Logout Timer plugin or anything else changes it. Each method returns `false`
-when `hooks.json` predates the `idleTimeoutField` hook.
-
 ### Query System
 
 The query system allows you to flexibly "query", refine, and filter for dynamic game entities like:
@@ -223,6 +202,22 @@ Queries over the player's item containers (inventory, bank, bank-side inventory,
 - `quantityGreaterThan(int amount)`: Stacks strictly larger than the amount.
 - `withAction(String action)`: Items offering a menu action in this container.
 - `hasItem(int id)` / `hasItem(String name)` / `hasItems(...)`: Presence checks.
+
+#### Worn equipment
+
+`ctx.equipment().inInterface()` and `inSlot(...)` read worn items from the worn item container, so every worn item is
+found even when the equipment interface is not loaded. Such an item cannot be interacted with (for example removed)
+until the interface loads; `interact` returns `false` until then.
+
+For reads that do not need an interactable entity, the container methods skip the client scripts the query runs and
+are cheap enough to call every game tick:
+
+```java
+Set<Integer> worn = ctx.equipment().wornIds();                   // every worn item id
+int weapon = ctx.equipment().wornWeaponId();                     // -1 when nothing is wielded
+int ring = ctx.equipment().wornId(EquipmentInventorySlot.RING);  // -1 when the slot is empty
+boolean wearing = ctx.equipment().isWearing(ItemID.ABYSSAL_WHIP);
+```
 
 #### AbstractEntity
 

@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Utility service for calculating line of sight (LoS), collision, and reachability
- * for actors and tiles within the game world.
+ * for actors and tiles within the game world, and actors' exact hitpoints from their health bars.
  */
 public class ActorService {
 
@@ -212,6 +212,49 @@ public class ActorService {
             int sourceSize = composition != null ? composition.getSize() : 1;
             return getLineOfSightTilesInternal(source, sourceSize, range, true);
         });
+    }
+
+    /**
+     * Calculates an actor's exact hitpoints from its health bar. Reads the actor directly, so call it on the client
+     * thread. See {@link #calculateHealth(int, int, int)}.
+     *
+     * @param actor     The actor whose health bar to read.
+     * @param maxHealth The actor's maximum hitpoints.
+     * @return The actor's current hitpoints, or -1 when the actor is null, its health bar has not been shown, or
+     *         {@code maxHealth} is not positive.
+     */
+    public static int calculateHealth(Actor actor, int maxHealth) {
+        if (actor == null) return -1;
+        return calculateHealth(actor.getHealthRatio(), actor.getHealthScale(), maxHealth);
+    }
+
+    /**
+     * Calculates exact hitpoints from a health bar. The server sends health as a ratio out of the health bar's
+     * scale, rounding it to {@code 1 + (healthScale - 1) * health / maxHealth} for any health above 0. Inverting
+     * that rounding gives the exact hitpoints whenever {@code maxHealth} is no larger than the scale, and the middle
+     * of the possible values otherwise. Adapted from RuneLite's opponent information plugin.
+     *
+     * @param healthRatio The health bar ratio, {@link Actor#getHealthRatio()}.
+     * @param healthScale The health bar scale, {@link Actor#getHealthScale()}.
+     * @param maxHealth   The maximum hitpoints.
+     * @return The current hitpoints, or -1 when the ratio is unknown (negative), the scale is not positive, or
+     *         {@code maxHealth} is not positive.
+     */
+    public static int calculateHealth(int healthRatio, int healthScale, int maxHealth) {
+        if (healthRatio < 0 || healthScale <= 0 || maxHealth <= 0) return -1;
+        if (healthRatio == 0) return 0;
+
+        int lowestHealth = 1;
+        int highestHealth = maxHealth;
+        if (healthScale > 1) {
+            // A ratio of 1 covers every health from 1 up to the first step, so only a higher ratio bounds it from
+            // below. A scale of 1 always reports a ratio of 1 while alive and bounds nothing.
+            if (healthRatio > 1) {
+                lowestHealth = (maxHealth * (healthRatio - 1) + healthScale - 2) / (healthScale - 1);
+            }
+            highestHealth = Math.min(maxHealth, (maxHealth * healthRatio - 1) / (healthScale - 1));
+        }
+        return (lowestHealth + highestHealth + 1) / 2;
     }
 
     /**

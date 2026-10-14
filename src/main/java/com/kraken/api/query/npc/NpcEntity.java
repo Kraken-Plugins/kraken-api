@@ -3,6 +3,7 @@ package com.kraken.api.query.npc;
 import com.kraken.api.Context;
 import com.kraken.api.core.AbstractEntity;
 import com.kraken.api.core.Locatable;
+import com.kraken.api.service.actor.ActorService;
 import com.kraken.api.service.tile.GameArea;
 import net.runelite.api.HeadIcon;
 import net.runelite.api.NPC;
@@ -47,6 +48,18 @@ public class NpcEntity extends AbstractEntity<NPC> implements Locatable {
             if (ratio < 0 || scale <= 0) return -1.0;
             return ratio / (double) scale * 100.0;
         }, -1.0);
+    }
+
+    /**
+     * Calculates the NPC's exact hitpoints from its health bar, which is exact whenever {@code maxHealth} is no
+     * larger than the health bar's scale. See {@link ActorService#calculateHealth(int, int, int)}.
+     * @param maxHealth The NPC's maximum hitpoints.
+     * @return The NPC's current hitpoints, or -1 if unknown
+     */
+    public int getHealth(int maxHealth) {
+        NPC raw = raw();
+        if (raw == null) return -1;
+        return ctx.runOnClientThread(() -> ActorService.calculateHealth(raw, maxHealth), -1);
     }
 
     /**
