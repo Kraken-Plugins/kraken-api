@@ -1,247 +1,64 @@
 package com.kraken.api.service.util.price;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.reflect.TypeToken;
-import lombok.Data;
+import com.kraken.api.Context;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import net.runelite.client.game.ItemManager;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
+/**
+ * Looks up Grand Exchange prices from RuneLite's {@link ItemManager}.
+ * <p>
+ * RuneLite downloads the full price list once and refreshes it on its own schedule, so lookups are
+ * in-memory reads that never make a network request of their own.
+ * </p>
+ */
 @Slf4j
 @Singleton
 public class ItemPriceService {
 
-    private static final String API_BASE = "https://prices.runescape.wiki/api/v1/osrs/latest";
-    private final OkHttpClient okHttpClient;
-    private final Gson gson;
-
-    private final Map<Integer, ItemPrice> priceCache = new ConcurrentHashMap<>();
-
     @Inject
-    public ItemPriceService(OkHttpClient okHttpClient, Gson gson) {
-        this.okHttpClient = okHttpClient;
-        this.gson = gson;
-    }
+    private Context ctx;
 
     /**
      * Retrieves the price for a specific item.
      * <p>
-     * 1. Checks the local cache.
-     * 2. If missing, performs a non blocking network request for that specific item. This is safe to use on or off
-     * the RuneLite client thread.
+     * Safe to call from any thread. On the client thread the lookup runs inline; from any other thread
+     * (a {@link com.kraken.api.core.script.Script} loop, for example) it blocks until the client thread
+     * performs it. Noted items, coins, platinum tokens and items RuneLite maps to a tradeable
+     * equivalent are priced the same way RuneLite prices them.
      * </p>
-     * @param itemId The OSRS Item ID
-     * @param userAgent A user agent sent to the OSRS Wiki to identify the application fetching data. This should NOT
-     *                  be the basic java user agent or contain information about your plugins or client as it is sent to the Wiki and likely inspected.
-     * @param callback A functional interface for consuming the result of the asynchronous API call. It is
-     *                 always invoked exactly once, with {@code null} when the item's price is unavailable.
+     *
+     * @param itemId The OSRS item ID
+     * @return The item's price, or {@code null} when the item has no price (it is untradeable, RuneLite
+     * has not finished loading its price list, or the client thread could not perform the lookup)
      */
-    public void getItemPrice(int itemId, String userAgent, Consumer<ItemPrice> callback) {
-        if (priceCache.containsKey(itemId)) {
-            callback.accept(priceCache.get(itemId));
-            return;
-        }
-
-        fetchSingleItemAsync(itemId, userAgent, callback);
+    public ItemPrice getItemPrice(int itemId) {
+        return ctx.runOnClientThreadOptional(() -> lookupPrice(itemId)).orElse(null);
     }
 
     /**
-     * Retrieves the price information for a specific item synchronously.
+     * Reads both of RuneLite's price sources for an item. Must run on the client thread because
+     * {@link ItemManager} resolves the item's composition to handle noted and mapped items.
      *
-     * <p>This method first checks the local cache for the item's price. If the price
-     * is already cached, it retrieves the price from the cache. Otherwise, it performs
-     * a blocking network request to fetch the item's price from the API.</p>
-     *
-     * <p><strong>Note:</strong> This method may block the calling thread while performing
-     * the network request. It should not be called on the client thread or any other thread
-     * where blocking operations are not allowed.</p>
-     *
-     * @param itemId The unique identifier for the item whose price is to be retrieved.
-     *               This is typically the OSRS Item ID.
-     * @param userAgent A user agent string sent to the API to identify the application
-     *                  fetching the data. It should NOT be the default Java user agent or
-     *                  contain information about plugins or the client, as this is sent
-     *                  to the Wiki and may be inspected.
-     * @return An {@code ItemPrice} object containing the price details for the specified
-     *         item, or {@code null} if the item's price data is not available, the
-     *         network request fails, or an error occurs during response parsing.
+     * @param itemId The OSRS item ID
+     * @return The item's price, or {@code null} when neither source has a price for it
      */
-    public ItemPrice getItemPriceSync(int itemId, String userAgent) {
-        if (priceCache.containsKey(itemId)) {
-            return priceCache.get(itemId);
-        }
+    private ItemPrice lookupPrice(int itemId) {
+        ItemManager itemManager = ctx.getItemManager();
+        long wikiPrice = itemManager.getItemPriceWithSource(itemId, true);
+        long gePrice = itemManager.getItemPriceWithSource(itemId, false);
 
-        return fetchSingleItem(itemId, userAgent);
-    }
-
-    /**
-     * Fetches the price information for a single item by performing a blocking network request to the API. NOTE:
-     * This is safe to run in a {@link com.kraken.api.core.script.Script} loop since the loop runs on a non client thread
-     * however, it is NOT safe to run this on the client thread (in methods which use @Subscribe for example). Use {@link #getItemPrice(int, String, Consumer)}
-     * instead if you need to get an item price while on the client thread.
-     * <p>
-     * If the API call is successful, the item's price data is parsed, cached, and returned.
-     * In case of an error (such as a network issue or unsuccessful response), this method logs the error
-     * and returns {@code null}.
-     * </p>
-     *
-     * @param itemId The unique identifier for the item whose price information is being fetched.
-     * This is typically the OSRS Item ID.
-     * @param userAgent A user agent sent to the OSRS Wiki to identify the application fetching data. This should NOT
-     * be the basic java user agent or contain information about your plugins or client as it is sent to the Wiki and likely inspected.
-     * @return An {@code ItemPrice} object representing the item's price data, or {@code null}
-     * if the item has no trade data, the request fails, or a parsing error occurs.
-     */
-
-    private ItemPrice fetchSingleItem(int itemId, String userAgent) {
-        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(API_BASE)).newBuilder()
-                .addQueryParameter("id", String.valueOf(itemId))
-                .build();
-
-        Request request = new Request.Builder()
-                .url(url)
-                .header("User-Agent", userAgent)
-                .build();
-
-        try (Response response = okHttpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                log.warn("Failed to lookup item {}: HTTP {}", itemId, response.code());
-                return null;
-            }
-
-            if (response.body() == null) return null;
-            String jsonString = response.body().string();
-            parseAndCache(jsonString);
-            return priceCache.get(itemId);
-        } catch (IOException e) {
-            log.error("Network error looking up item {}", itemId, e);
+        if (wikiPrice <= 0 && gePrice <= 0) {
+            log.debug("No price available for item {}", itemId);
             return null;
         }
-    }
 
-    private void fetchSingleItemAsync(int itemId, String userAgent, Consumer<ItemPrice> callback) {
-        HttpUrl url = Objects.requireNonNull(HttpUrl.parse(API_BASE)).newBuilder()
-                .addQueryParameter("id", String.valueOf(itemId))
+        return ItemPrice.builder()
+                .itemId(itemId)
+                .wikiPrice(wikiPrice)
+                .gePrice(gePrice)
                 .build();
-
-        Request request = new Request.Builder()
-                .url(url)
-                .header("User-Agent", userAgent)
-                .build();
-
-        okHttpClient.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                log.warn("Failed to lookup item {}", itemId, e);
-                callback.accept(null);
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) {
-                try (response) {
-                    if (!response.isSuccessful() || response.body() == null) {
-                        log.warn("Failed to lookup item {}: HTTP {}", itemId, response.code());
-                        callback.accept(null);
-                        return;
-                    }
-
-                    String jsonString = response.body().string();
-                    parseAndCache(jsonString);
-
-                    // Always invoke the callback, passing null when the item was absent from the
-                    // response, so callers that await a guaranteed callback do not hang forever.
-                    callback.accept(priceCache.get(itemId));
-                } catch (IOException e) {
-                    log.error("Error reading response", e);
-                    callback.accept(null);
-                }
-            }
-        });
-    }
-
-
-    /**
-     * Asynchronously fetches prices for ALL items to populate the cache.
-     * Useful for plugin startup.
-     * @param userAgent A user agent sent to the OSRS Wiki to identify the application fetching data. This should NOT
-     * be the basic java user agent or contain information about your plugins or client as it is sent to the Wiki and likely inspected.
-     */
-    public void refreshAllPrices(String userAgent) {
-        Request request = new Request.Builder()
-                .url(API_BASE)
-                .header("User-Agent", userAgent)
-                .build();
-
-
-        okHttpClient.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                log.warn("Failed to bulk fetch prices: ", e);
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (!response.isSuccessful()) {
-                    response.close();
-                    return;
-                }
-
-                try (var body = response.body()) {
-                    if (body != null) {
-                        parseAndCache(body.string());
-                        log.debug("Bulk price refresh complete. Cache size: {}", priceCache.size());
-                    }
-                }
-            }
-        });
-    }
-
-    private void parseAndCache(String jsonString) {
-        try {
-            JsonObject root = gson.fromJson(jsonString, JsonObject.class);
-            if (!root.has("data")) return;
-
-            JsonObject dataObject = root.getAsJsonObject("data");
-            Type type = new TypeToken<Map<String, WikiPriceDTO>>() {}.getType();
-            Map<String, WikiPriceDTO> parsedData = gson.fromJson(dataObject, type);
-
-            if (parsedData == null) return;
-
-            parsedData.forEach((idStr, dto) -> {
-                try {
-                    int id = Integer.parseInt(idStr);
-                    ItemPrice price = ItemPrice.builder()
-                            .itemId(id)
-                            .high(dto.high)
-                            .low(dto.low)
-                            .highTimestamp(dto.highTime)
-                            .lowTimestamp(dto.lowTime)
-                            .build();
-
-                    priceCache.put(id, price);
-                } catch (NumberFormatException ignored) {}
-            });
-        } catch (JsonParseException e) {
-            log.error("Error parsing price JSON", e);
-        }
-    }
-
-    @Data
-    private static class WikiPriceDTO {
-        private int high;
-        private long highTime;
-        private int low;
-        private long lowTime;
     }
 }
