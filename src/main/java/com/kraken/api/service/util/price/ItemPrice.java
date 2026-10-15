@@ -2,50 +2,28 @@ package com.kraken.api.service.util.price;
 
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 /**
- * Represents price data for an item in Old School RuneScape (OSRS), including high and low prices
- * along with their respective timestamps.
- *
- * <p>This class is typically used as a data model for interfacing with price-related APIs or
- * services operating within the OSRS ecosystem.</p>
+ * An immutable snapshot of an item's Grand Exchange prices as reported by RuneLite's
+ * {@link net.runelite.client.game.ItemManager}.
  *
  * <h2>Attributes:</h2>
  * <ul>
  *   <li><strong>itemId:</strong> The unique identifier for the item.</li>
- *   <li><strong>high:</strong> The highest price recorded for the item.</li>
- *   <li><strong>low:</strong> The lowest price recorded for the item.</li>
- *   <li><strong>highTimestamp:</strong> The timestamp (as a Unix epoch) when the high price was last recorded.</li>
- *   <li><strong>lowTimestamp:</strong> The timestamp (as a Unix epoch) when the low price was last recorded.</li>
+ *   <li><strong>wikiPrice:</strong> The OSRS Wiki real-time price RuneLite distributes with its price list.
+ *   RuneLite substitutes the Grand Exchange guide price when the wiki price is missing, below its
+ *   low-price threshold, or too far from the guide price to be trusted. Prefer this for trading decisions.</li>
+ *   <li><strong>gePrice:</strong> The official Grand Exchange guide price, which updates far less often than the
+ *   wiki price.</li>
  * </ul>
  *
- * <p>The {@code ItemPrice} class leverages Lombok's {@code {@literal @}Data} and {@code {@literal @}Builder}
- * annotations, which provide boilerplate code generation for getters, setters, builder pattern, and more.</p>
- *
- * <p>Because {@code {@literal @}Data} generates setters over non-final fields, instances are mutable
- * and not thread-safe; treat a shared instance as read-only or copy it before mutating.</p>
+ * <p>Either price may be {@code 0} when that source has no data for the item, but never both.</p>
  */
-@Data
+@Value
 @Builder
 public class ItemPrice {
-    private int itemId;
-    private int high;
-    private int low;
-    private long highTimestamp;
-    private long lowTimestamp;
-
-    /**
-     * Calculates the average price for the item based on its high and low prices.
-     *
-     * <p>The average is determined by finding the midpoint between the {@code low} and {@code high}
-     * prices. The formula used is {@code low + ((high - low) / 2)}, which avoids potential
-     * floating-point arithmetic and maintains integer precision.</p>
-     *
-     * @return The average price for the item as an integer value.
-     */
-    public int getAverage() {
-        return low + ((high - low) / 2);
-    }
+    int itemId;
+    long wikiPrice;
+    long gePrice;
 }
-
