@@ -62,10 +62,129 @@
     "cleanCallStackValue": "client48318fk\nclient28223ow\nnrc.RuneLite288start\nnrc.RuneLite265main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown +",
     "platformInfoClassName": "vo",
     "platformInfoMethodName": "an",
-    "agentField": "cx",
-    "callStackField": "ci",
     "isPlatformInfoMethodStatic": false,
-    "platformInfoMethodArgCount": 2
+    "platformInfoMethodArgCount": 2,
+    "platformInfoFields": [
+      {
+        "name": "OsType",
+        "fieldName": "bb",
+        "multiplier": 757225699
+      },
+      {
+        "name": "Is64Bit",
+        "fieldName": "br"
+      },
+      {
+        "name": "OsVersion",
+        "fieldName": "bj",
+        "multiplier": -1018414079
+      },
+      {
+        "name": "JavaVendor",
+        "fieldName": "bu",
+        "multiplier": -1900066541
+      },
+      {
+        "name": "JavaMajor",
+        "fieldName": "bi",
+        "multiplier": -862611009
+      },
+      {
+        "name": "JavaMinor",
+        "fieldName": "by",
+        "multiplier": 2108764417
+      },
+      {
+        "name": "JavaPatch",
+        "fieldName": "bq",
+        "multiplier": -1202816179
+      },
+      {
+        "name": "IsApplet",
+        "fieldName": "bh"
+      },
+      {
+        "name": "MaxMemoryMB",
+        "fieldName": "ba",
+        "multiplier": -1311458803
+      },
+      {
+        "name": "AvailableProcessors",
+        "fieldName": "bz",
+        "multiplier": -1417213365
+      },
+      {
+        "name": "SystemMemory",
+        "fieldName": "bo",
+        "multiplier": -555797737
+      },
+      {
+        "name": "SystemSpeed",
+        "fieldName": "cp",
+        "multiplier": 2019560603
+      },
+      {
+        "name": "GpuDxName",
+        "fieldName": "cd"
+      },
+      {
+        "name": "GpuGlName",
+        "fieldName": "ce"
+      },
+      {
+        "name": "GpuDxVersion",
+        "fieldName": "cf"
+      },
+      {
+        "name": "GpuGlVersion",
+        "fieldName": "cv"
+      },
+      {
+        "name": "GpuDriverMonth",
+        "fieldName": "cj",
+        "multiplier": -224762097
+      },
+      {
+        "name": "GpuDriverYear",
+        "fieldName": "ch",
+        "multiplier": -430034325
+      },
+      {
+        "name": "CpuManufacturer",
+        "fieldName": "cs"
+      },
+      {
+        "name": "CpuBrand",
+        "fieldName": "cr"
+      },
+      {
+        "name": "CpuCount1",
+        "fieldName": "ck",
+        "multiplier": 1639032563
+      },
+      {
+        "name": "CpuCount2",
+        "fieldName": "cb",
+        "multiplier": 386687735
+      },
+      {
+        "name": "CpuFeatures",
+        "fieldName": "cl"
+      },
+      {
+        "name": "CpuSignature",
+        "fieldName": "cy",
+        "multiplier": -302323801
+      },
+      {
+        "name": "ClientName",
+        "fieldName": "ci"
+      },
+      {
+        "name": "DeviceName",
+        "fieldName": "cx"
+      }
+    ]
   },
   "packets": [
     {
