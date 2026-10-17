@@ -14,6 +14,9 @@ import net.runelite.api.Point;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarbitID;
 
+/**
+ * Controls a player's boat through the sailing side panel: heading, sails and speed.
+ */
 @Slf4j
 @Singleton
 public class SailingService {
@@ -27,8 +30,11 @@ public class SailingService {
     @Inject
     private InteractionManager interactionManager;
 
+    /** The component id of the sailing side panel controls, used by the sail and speed actions. */
     public static final int SAILING_CONTROLS_ID = InterfaceID.SailingSidepanel.FACILITIES_CONTENT_CLICKLAYER;
+    /** The varbit that tracks whether the player is at the helm and navigating. */
     public static final int NAVIGATING_VARBIT = VarbitID.SAILING_BOAT_FACILITY_LOCKEDIN; // 0 = not navigating, 3 = navigating (? maybe != 0 == navigating)
+    /** The varbit that holds the boat's movement mode: 0 = stopped, 1 = first, 2 = second, 3 = reverse. */
     public static final int SPEED_VARBIT = VarbitID.SAILING_SIDEPANEL_BOAT_MOVE_MODE; // 0 = stopped, 1 = first, 2 = second, 3 = reverse
 
     /**
@@ -172,28 +178,54 @@ public class SailingService {
         return ctx.getVarbitValue(SPEED_VARBIT) != 0;
     }
 
+    /**
+     * The sixteen compass headings a boat can be set to sail toward. Each heading has the code
+     * that the sailing interface uses for it.
+     */
     @Getter
     @AllArgsConstructor
     public enum Direction {
+        /** Heading south, code 0. */
         SOUTH(0),
+        /** Heading south-south-west, code 1. */
         SOUTH_SOUTH_WEST(1),
+        /** Heading south-west, code 2. */
         SOUTH_WEST(2),
+        /** Heading west-south-west, code 3. */
         WEST_SOUTH_WEST(3),
+        /** Heading west, code 4. */
         WEST(4),
+        /** Heading west-north-west, code 5. */
         WEST_NORTH_WEST(5),
+        /** Heading north-west, code 6. */
         NORTH_WEST(6),
+        /** Heading north-north-west, code 7. */
         NORTH_NORTH_WEST(7),
+        /** Heading north, code 8. */
         NORTH(8),
+        /** Heading north-north-east, code 9. */
         NORTH_NORTH_EAST(9),
+        /** Heading north-east, code 10. */
         NORTH_EAST(10),
+        /** Heading east-north-east, code 11. */
         EAST_NORTH_EAST(11),
+        /** Heading east, code 12. */
         EAST(12),
+        /** Heading east-south-east, code 13. */
         EAST_SOUTH_EAST(13),
+        /** Heading south-east, code 14. */
         SOUTH_EAST(14),
+        /** Heading south-south-east, code 15. */
         SOUTH_SOUTH_EAST(15);
 
         private final int code;
 
+        /**
+         * Finds the heading with the given sailing interface code.
+         *
+         * @param code The code of the heading, from 0 to 15.
+         * @return The {@link Direction} with that code, or {@code null} if no heading has it.
+         */
         public static Direction fromCode(int code) {
             for (Direction d : values()) {
                 if (d.code == code) {
@@ -203,6 +235,14 @@ public class SailingService {
             return null;
         }
 
+        /**
+         * Finds the heading for a boat angle. The angle is divided by 128 to give the code of the
+         * heading, so each heading covers 128 angle units.
+         *
+         * @param angle The boat angle, as read from the spawned angle varbit.
+         * @return The {@link Direction} for the angle, or {@code null} if the resulting code is not
+         *         a valid heading.
+         */
         public static Direction fromAngle(int angle) {
             int code = angle / 128;
             return Direction.fromCode(code);

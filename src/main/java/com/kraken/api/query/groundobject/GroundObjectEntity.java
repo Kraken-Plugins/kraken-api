@@ -6,8 +6,17 @@ import com.kraken.api.core.Locatable;
 import com.kraken.api.service.tile.GameArea;
 import net.runelite.api.coords.WorldPoint;
 
+/**
+ * An item lying on the ground. Obtained from {@code ctx.groundItems()}.
+ */
 public class GroundObjectEntity extends AbstractEntity<GroundItem> implements Locatable {
 
+    /**
+     * Creates an entity wrapping a ground item.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The ground item this entity wraps
+     */
     public GroundObjectEntity(Context ctx, GroundItem raw) {
         super(ctx, raw);
     }

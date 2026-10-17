@@ -7,6 +7,9 @@ import net.runelite.api.Skill;
 
 import java.util.function.Supplier;
 
+/**
+ * Factory methods for the common {@link BreakCondition} implementations.
+ */
 public class BreakConditions {
 
     /**

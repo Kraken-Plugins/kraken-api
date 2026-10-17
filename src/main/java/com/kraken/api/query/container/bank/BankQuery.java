@@ -19,6 +19,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * Queries the items stored in the bank. Item definitions are cached for 20 minutes, and the bank contents
+ * are rebuilt at most once per game tick.
+ */
 @Slf4j
 public class BankQuery extends AbstractContainerQuery<BankEntity, BankQuery, BankItemWidget> {
 
@@ -32,6 +36,11 @@ public class BankQuery extends AbstractContainerQuery<BankEntity, BankQuery, Ban
     private int lastUpdateTick = -1;
     private List<BankItemWidget> cachedItems = Collections.emptyList();
 
+    /**
+     * Creates a query over the bank contents.
+     *
+     * @param ctx The context used to read the bank
+     */
     public BankQuery(Context ctx) {
         super(ctx);
     }

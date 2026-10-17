@@ -25,6 +25,10 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
 
+/**
+ * Finds routes between tiles across the game world. A route can use walking and the transports allowed by a
+ * {@link GlobalPathfinderConfig}, such as shortcuts, teleports and boats.
+ */
 @Slf4j
 @Singleton
 public class GlobalPathfinder {
@@ -645,6 +649,10 @@ public class GlobalPathfinder {
         });
     }
 
+    /**
+     * The outcome of a {@link GlobalPathfinder} search: the dense and sparse routes, the transports the route
+     * uses, search statistics, and whether the search reached the destination.
+     */
     @Getter
     public static final class PathResult {
         private final GlobalPathfinderConfig config;

@@ -3,6 +3,9 @@ package com.kraken.api.input.mouse.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+/**
+ * A point on a {@link NormalizedPath}, in unit coordinates relative to the path's start and length.
+ */
 @Data
 @AllArgsConstructor
 public class UnitPoint {

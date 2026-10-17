@@ -26,6 +26,11 @@ import java.util.stream.Stream;
  */
 public class TileObjectQuery extends AbstractSpatialQuery<TileObjectEntity, TileObjectQuery, TileObject> {
 
+    /**
+     * Creates a query over the tile objects in the loaded scene.
+     *
+     * @param ctx The context used to read the scene
+     */
     public TileObjectQuery(Context ctx) {
         super(ctx);
     }

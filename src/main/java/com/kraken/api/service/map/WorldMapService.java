@@ -13,6 +13,10 @@ import net.runelite.api.worldmap.WorldMap;
 
 import java.awt.*;
 
+/**
+ * Converts between screen coordinates on the world map interface and tiles in the game world, and reports
+ * whether the world map is open.
+ */
 @Slf4j
 @Singleton
 public class WorldMapService {

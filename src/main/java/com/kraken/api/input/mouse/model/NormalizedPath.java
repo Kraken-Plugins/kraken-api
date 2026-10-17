@@ -5,6 +5,10 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * A recorded movement reduced to a unit shape: it starts at the origin and ends at (1, 0), so it can be scaled
+ * and rotated onto any start and end points. The original distance and duration are kept for matching.
+ */
 @Data
 @AllArgsConstructor
 public class NormalizedPath {

@@ -24,6 +24,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Reads and changes the camera: yaw, pitch and zoom, turning toward actors and tile objects,
+ * checking whether tiles are on screen, and tracking an NPC.
+ */
 @Slf4j
 @Singleton
 public class CameraService {

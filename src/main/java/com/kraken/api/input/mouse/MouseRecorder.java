@@ -60,6 +60,10 @@ public class MouseRecorder implements MouseListener {
     private final List<MouseGesture> gestureBuffer = new ArrayList<>();
     private long gestureStartTime = -1;
 
+    /**
+     * Creates a recorder that writes into the default mouse data directory.
+     * @param mouseManager RuneLite's mouse manager to listen on
+     */
     @Inject
     public MouseRecorder(MouseManager mouseManager) {
         this(mouseManager, Paths.get(PathLibrary.DATA_DIR));

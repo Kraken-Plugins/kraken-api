@@ -11,6 +11,14 @@ public interface Scriptable {
      * @param callback Callback function to execute once the the loop() is stopped.
      */
     void stop(Runnable callback);
+
+    /**
+     * Initializes the script before it accepts ticks. Called once per run, before the loop starts.
+     */
     void onStart();
+
+    /**
+     * Cleans up after the script's last iteration. Called once per run, only if its initialization succeeded.
+     */
     void onStop();
 }

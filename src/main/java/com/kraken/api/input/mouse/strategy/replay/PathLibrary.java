@@ -17,9 +17,13 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Loads recorded mouse gesture libraries from disk and selects paths from them.
+ */
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PathLibrary {
+    /** The directory that holds the recorded mouse gesture library files. */
     public static final String DATA_DIR = System.getProperty("user.home") + "/.runelite/kraken/mouse_data/";
 
     /**

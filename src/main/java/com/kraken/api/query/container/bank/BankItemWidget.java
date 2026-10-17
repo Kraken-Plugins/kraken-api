@@ -12,6 +12,10 @@ import net.runelite.api.widgets.WidgetInfo;
 import javax.annotation.Nullable;
 import java.awt.*;
 
+/**
+ * A bank slot's item presented as a {@link Widget}. It carries the item's name, id, quantity and slot index
+ * as read from the bank. Most other {@link Widget} members are stubs that return default values.
+ */
 @Getter
 @AllArgsConstructor
 public class BankItemWidget implements Widget {

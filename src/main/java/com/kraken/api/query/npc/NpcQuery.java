@@ -13,8 +13,16 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Queries the NPCs in the top-level world view. NPCs without a name or with id -1 are skipped.
+ */
 public class NpcQuery extends AbstractSpatialQuery<NpcEntity, NpcQuery, NPC> {
 
+    /**
+     * Creates a query over the NPCs in the loaded scene.
+     *
+     * @param ctx The context used to read the NPCs
+     */
     public NpcQuery(Context ctx) {
         super(ctx);
     }

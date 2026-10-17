@@ -1,5 +1,10 @@
 package com.kraken.api.core;
 
+/**
+ * A game entity that can be acted on through its menu actions, such as an NPC, object, item or widget.
+ *
+ * @param <T> The wrapped RuneLite type.
+ */
 public interface Interactable<T> extends EntityView<T> {
     /**
      * Interacts with the entity using the given action verb.

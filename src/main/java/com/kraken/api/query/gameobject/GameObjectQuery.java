@@ -11,11 +11,20 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * Queries the game objects on the current plane of the loaded scene. Each object is included once, at its
+ * lowest scene tile.
+ */
 public class GameObjectQuery extends AbstractSpatialQuery<GameObjectEntity, GameObjectQuery, GameObject> {
 
     // A blacklist of actions for game objects (these are actions that are generally on NPC's).
     HashSet<String> ACTION_BLACKLIST = new HashSet<>();
 
+    /**
+     * Creates a query over the game objects in the loaded scene.
+     *
+     * @param ctx The context used to read the scene
+     */
     public GameObjectQuery(Context ctx) {
         super(ctx);
         ACTION_BLACKLIST.add("examine");

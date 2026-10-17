@@ -18,9 +18,18 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * Queries the game worlds listed by the world service. The list is fetched each time the query is evaluated,
+ * and if the service returns nothing the query yields no worlds.
+ */
 @Slf4j
 public class WorldQuery extends AbstractQuery<WorldEntity, WorldQuery, World> {
 
+    /**
+     * Creates a query over the game worlds.
+     *
+     * @param ctx The context used to create and hop to worlds
+     */
     public WorldQuery(Context ctx) {
         super(ctx);
     }

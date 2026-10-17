@@ -19,6 +19,12 @@ import net.runelite.api.widgets.Widget;
  */
 public class TileObjectEntity extends AbstractEntity<TileObject> implements Locatable {
 
+    /**
+     * Creates an entity wrapping a tile object.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The tile object this entity wraps
+     */
     public TileObjectEntity(Context ctx, TileObject raw) {
         super(ctx, raw);
     }

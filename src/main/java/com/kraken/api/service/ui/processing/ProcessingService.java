@@ -17,6 +17,10 @@ import org.apache.commons.lang3.ArrayUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Picks an item from the processing dialogue that the client shows for multi-item actions, such as cooking
+ * or crafting, by matching the item ids the caller asks for.
+ */
 @Slf4j
 @Singleton
 public class ProcessingService {

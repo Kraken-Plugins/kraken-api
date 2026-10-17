@@ -9,6 +9,10 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+/**
+ * Keeps the most recent log lines logged under a plugin's package so they can be drawn on an overlay.
+ * Call {@link #attach(String)} from {@code Plugin#startUp} and {@link #detach()} from {@code Plugin#shutDown}.
+ */
 @Singleton
 public class PluginLogger {
 
@@ -19,10 +23,19 @@ public class PluginLogger {
     private OverlayAppender appender;
     private String attachedPackage;
 
+    /**
+     * Creates a logger that keeps the 6 most recent entries.
+     */
     public PluginLogger() {
         this(DEFAULT_MAX_ENTRIES);
     }
 
+    /**
+     * Creates a logger that keeps a limited number of recent entries. When the buffer is full, the oldest
+     * entry is dropped to make room for a new one.
+     *
+     * @param maxEntries The maximum number of entries to keep
+     */
     public PluginLogger(int maxEntries) {
         this.maxEntries = maxEntries;
     }
@@ -55,10 +68,19 @@ public class PluginLogger {
         entries.clear();
     }
 
+    /**
+     * Returns a copy of the buffered entries in the order they were logged, oldest first.
+     * Changes to the logger after the call do not affect the returned list.
+     *
+     * @return A new list of the buffered log entries, possibly empty
+     */
     public synchronized List<LogEntry> getEntries() {
         return new ArrayList<>(entries);
     }
 
+    /**
+     * Removes all buffered entries. The logger stays attached if it was attached.
+     */
     public synchronized void clear() {
         entries.clear();
     }

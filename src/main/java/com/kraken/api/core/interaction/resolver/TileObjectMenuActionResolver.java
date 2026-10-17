@@ -14,6 +14,10 @@ import net.runelite.api.coords.LocalPoint;
 
 import java.util.Optional;
 
+/**
+ * Resolves menu actions for tile objects. Game objects are addressed by their south-west scene tile, which is
+ * the tile the client expects for multi-tile objects.
+ */
 @Slf4j
 @Singleton
 public class TileObjectMenuActionResolver implements MenuActionResolver<TileObject> {

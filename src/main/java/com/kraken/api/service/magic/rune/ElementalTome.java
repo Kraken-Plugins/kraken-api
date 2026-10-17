@@ -12,10 +12,14 @@ import java.util.HashMap;
 import java.util.Map;
 import com.kraken.api.query.equipment.EquipmentEntity;
 
+/** Elemental tomes that provide one elemental rune while they are worn in the shield slot. */
 @AllArgsConstructor
 public enum ElementalTome {
+    /** Tome of fire, which provides fire runes. */
     TOME_OF_FIRE(20714, Rune.FIRE),
+    /** Tome of water, which provides water runes. */
     TOME_OF_WATER(25574, Rune.WATER),
+    /** Tome of earth, which provides earth runes. */
     TOME_OF_EARTH(30064, Rune.EARTH);
 
     @Getter

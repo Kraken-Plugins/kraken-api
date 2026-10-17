@@ -21,6 +21,11 @@ import java.util.stream.StreamSupport;
  */
 public class GraphicsObjectQuery extends AbstractSpatialQuery<GraphicsObjectEntity, GraphicsObjectQuery, GraphicsObject> {
 
+    /**
+     * Creates a query over the graphics objects that have not finished playing.
+     *
+     * @param ctx The context used to read the graphics objects
+     */
     public GraphicsObjectQuery(Context ctx) {
         super(ctx);
     }

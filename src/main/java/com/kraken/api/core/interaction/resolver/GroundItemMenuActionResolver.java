@@ -16,6 +16,10 @@ import net.runelite.api.coords.LocalPoint;
 
 import java.util.Optional;
 
+/**
+ * Resolves menu actions for ground items. The Take and Bury actions are dispatched as the third ground item
+ * option, which is where the client places Take.
+ */
 @Slf4j
 @Singleton
 public class GroundItemMenuActionResolver implements MenuActionResolver<GroundItem> {

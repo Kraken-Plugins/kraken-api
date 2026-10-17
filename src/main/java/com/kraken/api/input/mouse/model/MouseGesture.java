@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.util.List;
 
+/**
+ * A recorded mouse movement that ends in a click, with the points leading up to the click.
+ */
 @Data
 @AllArgsConstructor
 public class MouseGesture {

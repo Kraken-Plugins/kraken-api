@@ -6,5 +6,10 @@ package com.kraken.api.service.util.dps.calc;
  */
 @FunctionalInterface
 public interface HitTransformer {
+    /**
+     * Transforms one hitsplat into the distribution of outcomes it can produce.
+     * @param hitsplat The hitsplat to transform
+     * @return HitDistribution the possible outcomes
+     */
     HitDistribution transform(Hitsplat hitsplat);
 }

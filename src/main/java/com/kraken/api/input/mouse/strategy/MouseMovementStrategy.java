@@ -12,14 +12,23 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.RuneLite;
 
+/**
+ * The mouse movement strategies the virtual mouse can use. Each constant resolves its implementation on first use.
+ */
 @Slf4j
 @Singleton
 public enum MouseMovementStrategy {
+    /** Leaves the cursor where it is. */
     NO_MOVEMENT(NoMovement.class),
+    /** Jumps the cursor straight to the target. */
     INSTANT(InstantStrategy.class),
+    /** Moves the cursor in evenly spaced steps along a straight line. */
     LINEAR(LinearStrategy.class),
+    /** Moves the cursor along a randomised cubic Bezier curve. */
     BEZIER(BezierStrategy.class),
+    /** Moves the cursor with a gravity and wind model. */
     WIND(WindStrategy.class),
+    /** Replays a recorded gesture from a loaded library. */
     REPLAY(ReplayStrategy.class);
     
     private final Class<? extends MoveableMouse> strategyClass;

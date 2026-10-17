@@ -17,6 +17,10 @@ import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Properties;
 
+/**
+ * Sets the client's login index through reflection hooks, and loads saved profile credentials from the RuneLite
+ * credentials file.
+ */
 @Slf4j
 @Singleton
 public class LoginService {
@@ -28,6 +32,14 @@ public class LoginService {
 
     private static final Path CREDENTIALS_FILE = RuneLite.RUNELITE_DIR.toPath().resolve("credentials.properties");
 
+    /**
+     * Creates the service and loads the login hook metadata. If the metadata is missing, an error is logged and
+     * login state injection does nothing.
+     *
+     * @param reflectionService Reflection access used to call the login index hook.
+     * @param client The client whose login state is set.
+     * @param clientThread The client thread executor.
+     */
     @Inject
     public LoginService(ReflectionService reflectionService, Client client, ClientThread clientThread) {
         this.hooks = HooksLoader.getLoginHooks();

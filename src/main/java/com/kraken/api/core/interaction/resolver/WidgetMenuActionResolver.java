@@ -19,6 +19,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Resolves menu actions for interface widgets. Equipment slot widgets accept a remove action, and wield and wear
+ * requests fall back to each other when only one of them is offered.
+ */
 @Slf4j
 @Singleton
 public class WidgetMenuActionResolver implements MenuActionResolver<Widget> {

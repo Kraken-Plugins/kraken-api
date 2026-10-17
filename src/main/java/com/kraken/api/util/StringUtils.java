@@ -9,6 +9,9 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+/**
+ * String helpers for matching and formatting game text: term lookup, color tags and AES encryption.
+ */
 public class StringUtils {
 
     private static final String COL_TAGS_REGEX = "<col=[^>]*>";

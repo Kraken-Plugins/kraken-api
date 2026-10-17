@@ -15,27 +15,49 @@ import java.util.List;
  * - Event Mouse click packets are written whenever the player clicks anywhere on their client, whether it be dead space, or any entity in-game
  */
 public enum PacketType {
+    /** Uses one held item on another held item, or performs one of a held item's options. */
     OPHELDD,
+    /** Answers a dialogue that asks for a quantity. */
     RESUME_COUNTDIALOG,
+    /** Continues a dialogue at a "Click here to continue" pause. */
     RESUME_PAUSEBUTTON,
+    /** Answers a dialogue that asks for a name, using the same parameters as RESUME_STRINGDIALOG. */
     RESUME_NAMEDIALOG,
+    /** Answers a dialogue that asks for a string. */
     RESUME_STRINGDIALOG,
+    /** Picks an object or item from a dialogue, such as a Grand Exchange search result. */
     RESUME_OBJDIALOG,
+    /** Clicks a button on an interface. */
     IF_BUTTON,
+    /** Runs a numbered operation on an interface widget, identified by its menu and sub-action indices. */
     IF_SUBOP,
+    /** Clicks an interface button with an operation code. */
     IF_BUTTONX,
+    /** Interacts with an NPC through one of its menu options. */
     OPNPC,
+    /** Interacts with a player through one of its menu options. */
     OPPLAYER,
+    /** Interacts with a ground item through one of its menu options. */
     OPOBJ,
+    /** Interacts with a location, such as a game object or world entity, through one of its menu options. */
     OPLOC,
+    /** Walks to a clicked world point. */
     MOVE_GAMECLICK,
+    /** Reports whether the game applet has focus. */
     EVENT_APPLET_FOCUS,
+    /** Reports a mouse click anywhere on the client, including dead space. */
     EVENT_MOUSE_CLICK,
+    /** Uses a selected widget on another interface widget. */
     IF_BUTTONT,
+    /** Uses a selected item or widget on an NPC. */
     OPNPCT,
+    /** Uses a selected item or widget on a player. */
     OPPLAYERT,
+    /** Uses a selected item or widget on a ground item. */
     OPOBJT,
+    /** Uses a selected item or widget on a location, such as a game object. */
     OPLOCT,
+    /** Sets the local player's facing direction. */
     SET_HEADING;
 
     /**

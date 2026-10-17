@@ -11,12 +11,22 @@ import net.runelite.api.GameState;
 import net.runelite.api.World;
 import net.runelite.api.gameval.InterfaceID;
 
+/**
+ * A game world the player can hop to. Obtained from {@code ctx.worlds()}.
+ */
 @Slf4j
 public class WorldEntity extends AbstractEntity<World> {
 
     @Getter
     private final net.runelite.http.api.worlds.World httpPackageWorld;
 
+    /**
+     * Creates an entity for a world listed by the world service.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The client world used for the entity's identity and hopping
+     * @param httpPackageWorld The world as listed by the world service, which includes its region
+     */
     public WorldEntity(Context ctx, World raw, net.runelite.http.api.worlds.World httpPackageWorld) {
         super(ctx, raw);
         this.httpPackageWorld = httpPackageWorld;

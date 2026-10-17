@@ -16,6 +16,12 @@ import net.runelite.api.coords.WorldPoint;
  */
 public class GraphicsObjectEntity extends AbstractEntity<GraphicsObject> implements Locatable {
 
+    /**
+     * Creates an entity wrapping a graphics object.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The graphics object this entity wraps
+     */
     public GraphicsObjectEntity(Context ctx, GraphicsObject raw) {
         super(ctx, raw);
     }

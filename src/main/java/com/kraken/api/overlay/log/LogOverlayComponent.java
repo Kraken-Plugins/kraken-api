@@ -9,6 +9,9 @@ import net.runelite.client.ui.overlay.components.TitleComponent;
 import java.awt.*;
 import java.util.List;
 
+/**
+ * Draws the entries captured by a {@link PluginLogger} as a log section on an overlay panel.
+ */
 @Singleton
 public class LogOverlayComponent {
 
@@ -20,6 +23,11 @@ public class LogOverlayComponent {
 
     private final PluginLogger pluginLogger;
 
+    /**
+     * Creates a component that reads its entries from the given logger.
+     *
+     * @param pluginLogger The logger whose buffered entries are drawn
+     */
     @Inject
     public LogOverlayComponent(PluginLogger pluginLogger) {
         this.pluginLogger = pluginLogger;

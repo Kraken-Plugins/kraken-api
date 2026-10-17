@@ -6,7 +6,16 @@ import com.kraken.api.core.Locatable;
 import net.runelite.api.Player;
 import net.runelite.api.coords.WorldPoint;
 
+/**
+ * A player in the loaded scene. Obtained from {@code ctx.players()}.
+ */
 public class PlayerEntity extends AbstractEntity<Player> implements Locatable {
+    /**
+     * Creates an entity wrapping a player.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The player this entity wraps
+     */
     public PlayerEntity(Context ctx, Player raw) {
         super(ctx, raw);
     }

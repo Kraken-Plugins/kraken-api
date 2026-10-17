@@ -3,14 +3,30 @@ package com.kraken.api.util;
 import java.util.Random;
 import java.util.Set;
 
+/**
+ * Random number helpers that share one {@link Random} source.
+ */
 public class RandomUtils {
 
+    /** The shared random source used by the helpers in this class. */
     public static final Random random = new Random();
 
+    /**
+     * Returns a random integer between two bounds, both inclusive.
+     * @param min The lowest value that can be returned.
+     * @param max The highest value that can be returned.
+     * @return A random integer from min to max inclusive.
+     */
     public static int randomIntBetween(int min, int max) {
         return random.nextInt(max - min + 1) + min;
     }
 
+    /**
+     * Returns a random element of a set.
+     * @param set The set to pick from. Must not be empty.
+     * @return A randomly chosen element of the set.
+     * @throws IllegalArgumentException If the set is empty.
+     */
     public static int randomFromSet(Set<Integer> set) {
         if (set.isEmpty()) {
             throw new IllegalArgumentException("Set cannot be empty");

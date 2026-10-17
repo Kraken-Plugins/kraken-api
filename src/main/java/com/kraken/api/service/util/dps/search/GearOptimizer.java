@@ -102,6 +102,11 @@ public class GearOptimizer {
     private final DpsDataStore data;
     private int evaluations;
 
+    /**
+     * Creates an optimizer that reads equipment, monster and spell definitions from the given store.
+     *
+     * @param data The store that supplies the equipment, monster and spell definitions.
+     */
     public GearOptimizer(DpsDataStore data) {
         this.data = data;
     }

@@ -7,6 +7,10 @@ import net.runelite.api.Point;
 import java.awt.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Random values and points for human-like timing and mouse positions: Gaussian and skewed numbers, random
+ * points inside rectangles and screen points, dice rolls and random waits.
+ */
 @Slf4j
 @Singleton
 public class RandomService {

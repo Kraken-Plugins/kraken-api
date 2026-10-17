@@ -10,6 +10,9 @@ import net.runelite.api.Point;
 
 import java.awt.*;
 
+/**
+ * Moves the cursor toward the target under a gravity and wind model, with a speed limit per step.
+ */
 @Singleton
 public class WindStrategy implements MoveableMouse {
 

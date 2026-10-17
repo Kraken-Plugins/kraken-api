@@ -5,6 +5,10 @@ import lombok.Getter;
 
 import java.util.Comparator;
 
+/**
+ * The order in which inventory items are visited. Each constant supplies a comparator over
+ * {@link InventoryEntity} that orders items by their slot position.
+ */
 @Getter
 @AllArgsConstructor
 public enum InventoryOrder {

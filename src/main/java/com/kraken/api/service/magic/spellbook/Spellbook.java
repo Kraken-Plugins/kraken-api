@@ -7,12 +7,17 @@ import lombok.Getter;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.RuneLite;
 
+/** The magic spellbooks, each keyed by the value of the SPELLBOOK varbit that selects it. */
 @Getter
 public enum Spellbook {
 
+    /** The standard spellbook, selected when the SPELLBOOK varbit is 0. */
     STANDARD(0, 1982),
+    /** The Ancient Magicks spellbook, selected when the SPELLBOOK varbit is 1. */
     ANCIENT(1, 1983),
+    /** The Lunar spellbook, selected when the SPELLBOOK varbit is 2. */
     LUNAR(2, 1984),
+    /** The Arceuus spellbook, selected when the SPELLBOOK varbit is 3. */
     ARCEUUS(3, 1985);
 
     private final int value;
@@ -66,18 +71,38 @@ public enum Spellbook {
         return spells;
     }
 
+    /**
+     * Returns whether the standard spellbook is currently open.
+     *
+     * @return {@code true} if the current spellbook is {@link #STANDARD}
+     */
     public static boolean isOnStandardSpellbook() {
         return getCurrentSpellbook() == STANDARD;
     }
 
+    /**
+     * Returns whether the Ancient Magicks spellbook is currently open.
+     *
+     * @return {@code true} if the current spellbook is {@link #ANCIENT}
+     */
     public static boolean isOnAncientSpellbook() {
         return getCurrentSpellbook() == ANCIENT;
     }
 
+    /**
+     * Returns whether the Lunar spellbook is currently open.
+     *
+     * @return {@code true} if the current spellbook is {@link #LUNAR}
+     */
     public static boolean isOnLunarSpellbook() {
         return getCurrentSpellbook() == LUNAR;
     }
 
+    /**
+     * Returns whether the Arceuus spellbook is currently open.
+     *
+     * @return {@code true} if the current spellbook is {@link #ARCEUUS}
+     */
     public static boolean isOnArceuusSpellbook() {
         return getCurrentSpellbook() == ARCEUUS;
     }

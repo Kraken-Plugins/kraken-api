@@ -22,6 +22,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ShopInventoryEntity extends AbstractContainerEntity {
 
+    /**
+     * Creates an entity wrapping an inventory item shown in an open shop.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The inventory item this entity wraps
+     */
     public ShopInventoryEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
     }

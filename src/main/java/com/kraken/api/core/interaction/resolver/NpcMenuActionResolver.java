@@ -16,6 +16,10 @@ import net.runelite.api.coords.LocalPoint;
 
 import java.util.Optional;
 
+/**
+ * Resolves menu actions for NPCs. Actions are matched against the NPC's transformed composition when it has one,
+ * and otherwise against its base composition.
+ */
 @Slf4j
 @Singleton
 public class NpcMenuActionResolver implements MenuActionResolver<NPC> {

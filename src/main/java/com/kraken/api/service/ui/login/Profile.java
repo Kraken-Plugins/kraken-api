@@ -6,6 +6,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/**
+ * The details of one login profile: the account identifier, username and password, the character name, the
+ * session and character ids, and the bank PIN. The password, session id, character id and bank PIN are left
+ * out of {@code toString()}.
+ */
 @Data
 @Builder
 @AllArgsConstructor

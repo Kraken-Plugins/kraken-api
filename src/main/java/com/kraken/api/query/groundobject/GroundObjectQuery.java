@@ -13,9 +13,17 @@ import java.util.HashSet;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * Queries the items lying on the ground in the loaded scene.
+ */
 public class GroundObjectQuery extends AbstractSpatialQuery<GroundObjectEntity, GroundObjectQuery, GroundItem> {
     private static final int COINS = 617;
 
+    /**
+     * Creates a query over the ground items in the loaded scene.
+     *
+     * @param ctx The context used to read the scene
+     */
     public GroundObjectQuery(Context ctx) {
         super(ctx);
     }

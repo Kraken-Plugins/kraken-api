@@ -13,22 +13,39 @@ public class HitDistribution {
 
     private final List<WeightedHit> hits;
 
+    /** Creates an empty distribution with no outcomes. */
     public HitDistribution() {
         this.hits = new ArrayList<>();
     }
 
+    /**
+     * Creates a distribution from the given outcomes. The list is stored without copying.
+     * @param hits The outcomes of the distribution
+     */
     public HitDistribution(List<WeightedHit> hits) {
         this.hits = hits;
     }
 
+    /**
+     * Gets the outcomes of this distribution. The returned list is the internal one, so changes to it are visible here.
+     * @return the outcomes of this distribution
+     */
     public List<WeightedHit> getHits() {
         return hits;
     }
 
+    /**
+     * Adds an outcome to the end of this distribution.
+     * @param hit The outcome to add
+     */
     public void addHit(WeightedHit hit) {
         hits.add(hit);
     }
 
+    /**
+     * Adds all the given outcomes to the end of this distribution.
+     * @param newHits The outcomes to add
+     */
     public void addHits(List<WeightedHit> newHits) {
         hits.addAll(newHits);
     }
@@ -63,14 +80,30 @@ public class HitDistribution {
         return d;
     }
 
+    /**
+     * Applies a transformer to every hitsplat of every outcome, then merges outcomes with identical hitsplat sequences.
+     * @param t The transformer applied to each hitsplat
+     * @param transformInaccurate Whether missed hitsplats are transformed too
+     * @return HitDistribution the transformed distribution
+     */
     public HitDistribution transform(HitTransformer t, boolean transformInaccurate) {
         return wideTransform(t, transformInaccurate).flatten();
     }
 
+    /**
+     * Applies a transformer to every hitsplat, including missed hitsplats, then merges outcomes with identical hitsplat sequences.
+     * @param t The transformer applied to each hitsplat
+     * @return HitDistribution the transformed distribution
+     */
     public HitDistribution transform(HitTransformer t) {
         return transform(t, true);
     }
 
+    /**
+     * Multiplies the probability of every outcome by a factor.
+     * @param factor The factor applied to each probability
+     * @return HitDistribution the scaled distribution
+     */
     public HitDistribution scaleProbability(double factor) {
         List<WeightedHit> out = new ArrayList<>(hits.size());
         for (WeightedHit h : hits) {
@@ -79,6 +112,12 @@ public class HitDistribution {
         return new HitDistribution(out);
     }
 
+    /**
+     * Scales the damage of every hitsplat by a ratio, using integer arithmetic.
+     * @param factor The numerator of the damage multiplier
+     * @param divisor The denominator of the damage multiplier
+     * @return HitDistribution the distribution with scaled damage
+     */
     public HitDistribution scaleDamage(int factor, int divisor) {
         List<WeightedHit> out = new ArrayList<>(hits.size());
         for (WeightedHit h : hits) {
@@ -142,6 +181,10 @@ public class HitDistribution {
         return d;
     }
 
+    /**
+     * Gets the expected damage of this distribution, the sum of each outcome's probability multiplied by its total damage.
+     * @return double the expected damage
+     */
     public double expectedHit() {
         double sum = 0;
         for (WeightedHit h : hits) {
@@ -150,6 +193,10 @@ public class HitDistribution {
         return sum;
     }
 
+    /**
+     * Gets the highest total damage among the outcomes.
+     * @return int the highest outcome damage, or 0 if there are no outcomes
+     */
     public int getMax() {
         int max = 0;
         for (WeightedHit h : hits) {
@@ -158,6 +205,10 @@ public class HitDistribution {
         return max;
     }
 
+    /**
+     * Gets the lowest total damage among the outcomes.
+     * @return int the lowest outcome damage, or 0 if there are no outcomes
+     */
     public int getMin() {
         int min = Integer.MAX_VALUE;
         for (WeightedHit h : hits) {
@@ -200,6 +251,12 @@ public class HitDistribution {
         return d;
     }
 
+    /**
+     * Creates a distribution with a single successful outcome that deals one hitsplat, plus the miss outcome when accuracy is below 1.
+     * @param accuracy Chance for the attack to land (0-1)
+     * @param hitsplat The hitsplat dealt on success
+     * @return HitDistribution the resulting distribution
+     */
     public static HitDistribution single(double accuracy, Hitsplat hitsplat) {
         return single(accuracy, WeightedHit.singleton(hitsplat));
     }

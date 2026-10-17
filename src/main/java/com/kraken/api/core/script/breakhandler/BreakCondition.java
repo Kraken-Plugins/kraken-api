@@ -1,5 +1,8 @@
 package com.kraken.api.core.script.breakhandler;
 
+/**
+ * A check that a {@link BreakManager} runs on each game tick to decide whether to start a break.
+ */
 @FunctionalInterface
 public interface BreakCondition {
     /**

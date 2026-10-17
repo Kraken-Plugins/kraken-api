@@ -24,5 +24,9 @@ package com.kraken.api.core.script;
  * determined by the execution context in which this task is used.
  */
 public abstract class PriorityTask extends AbstractTask {
+    /**
+     * Returns the priority of this task. Higher values indicate higher priority.
+     * @return The task's priority.
+     */
     public abstract int getPriority();
 }

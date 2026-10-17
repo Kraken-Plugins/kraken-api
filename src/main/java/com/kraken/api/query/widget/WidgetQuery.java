@@ -13,8 +13,17 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * Queries widgets in the client's widget tree, starting from the root widgets and walking down through their
+ * children.
+ */
 public class WidgetQuery extends AbstractQuery<WidgetEntity, WidgetQuery, Widget> {
 
+    /**
+     * Creates a query over the widgets currently in the client's widget tree.
+     *
+     * @param ctx The context used to read the widget tree
+     */
     public WidgetQuery(Context ctx) {
         super(ctx);
     }

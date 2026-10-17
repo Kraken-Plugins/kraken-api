@@ -6,8 +6,18 @@ import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.service.bank.DepositBoxService;
 import net.runelite.api.gameval.InterfaceID;
 
+/**
+ * An item that can be deposited into the bank deposit box, either from the player's inventory or from the
+ * equipment panel. Obtained from {@code ctx.depositBox()}.
+ */
 public class DepositBoxEntity extends AbstractContainerEntity {
 
+    /**
+     * Creates an entity wrapping a deposit box item.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The deposit box item this entity wraps
+     */
     public DepositBoxEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
     }

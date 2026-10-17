@@ -9,6 +9,7 @@ import com.kraken.api.Context;
  * Provides a {@link Context} instance injected by Guice.
  */
 public abstract class AbstractTask implements Task {
+    /** The context injected by Guice, used by the task to reach the game and its services. */
     @Inject
     protected Context ctx;
 }

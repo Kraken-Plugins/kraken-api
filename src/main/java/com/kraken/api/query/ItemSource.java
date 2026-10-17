@@ -13,8 +13,11 @@ package com.kraken.api.query;
  * </ul>
  */
 public enum ItemSource {
+    /** Only items in the player's inventory are considered. */
     INVENTORY_ONLY,
+    /** Only items shown in the interface, such as the equipment tab or the deposit box equipment panel, are considered. */
     INTERFACE_ONLY,
+    /** Items from both the inventory and the interface are considered. */
     BOTH
 }
 

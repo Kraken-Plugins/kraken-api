@@ -10,39 +10,66 @@ import net.runelite.client.RuneLite;
 import java.util.*;
 import com.kraken.api.query.equipment.EquipmentEntity;
 
+/** Staffs and wands that provide runes while they are worn in the weapon slot. */
 @AllArgsConstructor
 public enum ElementalStaff {
 
+    /** Staff of air, which provides air runes. */
     STAFF_OF_AIR(1381, Rune.AIR),
+    /** Staff of water, which provides water runes. */
     STAFF_OF_WATER(1383, Rune.WATER),
+    /** Staff of earth, which provides earth runes. */
     STAFF_OF_EARTH(1385, Rune.EARTH),
+    /** Staff of fire, which provides fire runes. */
     STAFF_OF_FIRE(1387, Rune.FIRE),
 
+    /** Air battlestaff, which provides air runes. */
     AIR_BATTLESTAFF(1397, Rune.AIR),
+    /** Water battlestaff, which provides water runes. */
     WATER_BATTLESTAFF(1395, Rune.WATER),
+    /** Earth battlestaff, which provides earth runes. */
     EARTH_BATTLESTAFF(1399, Rune.EARTH),
+    /** Fire battlestaff, which provides fire runes. */
     FIRE_BATTLESTAFF(1393, Rune.FIRE),
 
+    /** Mystic air staff, which provides air runes. */
     MYSTIC_AIR_STAFF(1405, Rune.AIR),
+    /** Mystic water staff, which provides water runes. */
     MYSTIC_WATER_STAFF(1403, Rune.WATER),
+    /** Mystic earth staff, which provides earth runes. */
     MYSTIC_EARTH_STAFF(1407, Rune.EARTH),
+    /** Mystic fire staff, which provides fire runes. */
     MYSTIC_FIRE_STAFF(1401, Rune.FIRE),
 
+    /** Lava battlestaff, which provides earth and fire runes. */
     LAVA_BATTLESTAFF(3053, Rune.LAVA),
+    /** Mud battlestaff, which provides water and earth runes. */
     MUD_BATTLESTAFF(6562, Rune.MUD),
+    /** Steam battlestaff, which provides water and fire runes. */
     STEAM_BATTLESTAFF(11787, Rune.STEAM),
+    /** Smoke battlestaff, which provides air and fire runes. */
     SMOKE_BATTLESTAFF(11998, Rune.SMOKE),
+    /** Mist battlestaff, which provides air and water runes. */
     MIST_BATTLESTAFF(20730, Rune.MIST),
+    /** Dust battlestaff, which provides air and earth runes. */
     DUST_BATTLESTAFF(20736, Rune.DUST),
 
+    /** Mystic lava staff, which provides earth and fire runes. */
     MYSTIC_LAVA_STAFF(3054, Rune.LAVA),
+    /** Mystic mud staff, which provides water and earth runes. */
     MYSTIC_MUD_STAFF(6563, Rune.MUD),
+    /** Mystic steam staff, which provides water and fire runes. */
     MYSTIC_STEAM_STAFF(11789, Rune.STEAM),
+    /** Mystic smoke staff, which provides air and fire runes. */
     MYSTIC_SMOKE_STAFF(12000, Rune.SMOKE),
+    /** Mystic mist staff, which provides air and water runes. */
     MYSTIC_MIST_STAFF(20733, Rune.MIST),
+    /** Mystic dust staff, which provides air and earth runes. */
     MYSTIC_DUST_STAFF(20739, Rune.DUST),
 
+    /** Bryophyta's staff, which provides nature runes. */
     BRYOPHYTA_STAFF(22368, Rune.NATURE),
+    /** Kodai wand, which provides water runes. */
     KODAI_WAND(21006, Rune.WATER);
 
     @Getter

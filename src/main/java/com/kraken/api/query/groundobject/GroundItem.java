@@ -21,6 +21,10 @@ import static net.runelite.api.TileItem.OWNERSHIP_GROUP;
 import static net.runelite.api.TileItem.OWNERSHIP_SELF;
 
 
+/**
+ * A stack of items lying on the ground, combining the item definition with the tile item and the tile it is on.
+ * Prices are per item; the total value methods multiply them by the quantity.
+ */
 @Data
 @Getter
 @Builder

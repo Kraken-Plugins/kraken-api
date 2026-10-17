@@ -2,6 +2,9 @@ package com.kraken.api.util;
 
 import java.math.BigInteger;
 
+/**
+ * Numeric and tile geometry helpers: modular inverses, clamping, Chebyshev distance and footprint overlap.
+ */
 public class MathUtils {
 
     /**

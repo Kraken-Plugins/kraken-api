@@ -27,7 +27,18 @@ import java.util.concurrent.TimeUnit;
 public abstract class Script implements Scriptable {
 
     /** Lifecycle states; STARTING and STOPPING do not accept ticks. */
-    public enum State { STOPPED, STARTING, RUNNING, PAUSED, STOPPING }
+    public enum State {
+        /** No run is active. */
+        STOPPED,
+        /** A run is initializing and does not accept ticks. */
+        STARTING,
+        /** The loop is active and receives game ticks. */
+        RUNNING,
+        /** The run is alive but starts no new iterations. */
+        PAUSED,
+        /** A run is shutting down and does not accept ticks. */
+        STOPPING
+    }
 
     private static final class Run {
         private final ExecutorService executor = KrakenThreads.newExecutor("script");

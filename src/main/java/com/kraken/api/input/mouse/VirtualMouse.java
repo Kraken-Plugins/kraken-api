@@ -33,6 +33,10 @@ import java.util.stream.Stream;
 
 import static com.kraken.api.input.mouse.strategy.replay.PathLibrary.DATA_DIR;
 
+/**
+ * Moves the cursor on the game canvas using a {@link MouseMovementStrategy}, and tracks the last known cursor
+ * position. Registers itself as a mouse listener when constructed.
+ */
 @Slf4j
 @Singleton
 public class VirtualMouse implements MouseListener {
@@ -51,6 +55,11 @@ public class VirtualMouse implements MouseListener {
 
     private final MouseManager mouseManager;
 
+    /**
+     * Creates the virtual mouse, registers it as a mouse listener and reads the current cursor position.
+     * @param mouseManager RuneLite's mouse manager that delivers mouse events to listeners.
+     * @param client The RuneLite client, used to read the cursor position and canvas.
+     */
     @Inject
     public VirtualMouse(MouseManager mouseManager, Client client) {
         this.mouseManager = mouseManager;

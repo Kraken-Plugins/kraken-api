@@ -8,7 +8,16 @@ import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.widgets.Widget;
 
+/**
+ * A widget in the client's widget tree. Obtained from {@code ctx.widgets()}.
+ */
 public class WidgetEntity extends AbstractEntity<Widget> {
+    /**
+     * Creates an entity wrapping a widget.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The widget this entity wraps
+     */
     public WidgetEntity(Context ctx, Widget raw) {
         super(ctx, raw);
     }

@@ -14,8 +14,17 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * Queries the player's inventory while the bank is open. Each evaluation first runs a client script that
+ * sets up the inventory widgets, then reads the inventory item container.
+ */
 public class BankInventoryQuery extends AbstractContainerQuery<BankInventoryEntity, BankInventoryQuery, ContainerItem> {
 
+    /**
+     * Creates a query over the inventory while the bank is open.
+     *
+     * @param ctx The context used to read the inventory
+     */
     public BankInventoryQuery(Context ctx) {
         super(ctx);
     }

@@ -7,8 +7,11 @@ package com.kraken.api.service.util.dps.model;
  * bonuses in every style is HYBRID.
  */
 public enum GearCategory {
+    /** Provides meaningful offensive bonuses to melee combat styles only. */
     MELEE,
+    /** Provides meaningful offensive bonuses to the ranged combat style only. */
     RANGED,
+    /** Provides meaningful offensive bonuses to the magic combat style only. */
     MAGIC,
     /** Provides meaningful offensive bonuses to more than one combat style. */
     HYBRID,

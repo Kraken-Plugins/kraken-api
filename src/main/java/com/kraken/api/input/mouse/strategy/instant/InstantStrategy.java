@@ -10,6 +10,9 @@ import net.runelite.api.Point;
 import java.awt.Canvas;
 import java.awt.event.MouseEvent;
 
+/**
+ * Moves the cursor to the target with a single mouse-moved event.
+ */
 @Singleton
 public class InstantStrategy implements MoveableMouse {
 

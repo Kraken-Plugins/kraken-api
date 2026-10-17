@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+/**
+ * Converts a normalized path into timed screen points for a given start, end and duration.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MotionFactory {
 
@@ -72,9 +75,14 @@ public class MotionFactory {
         return realPath;
     }
 
+    /**
+     * A screen point and the time at which the cursor should reach it.
+     */
     @AllArgsConstructor
     public static class TimedPoint {
+        /** The screen x and y coordinates of the point. */
         public final int x, y;
+        /** The time in epoch milliseconds at which the cursor should reach the point. */
         public final long time;
     }
 }
