@@ -1,5 +1,6 @@
 {
   "runeliteVersion": "1.13.3",
+  "revision": "241",
   "reflectionHooks": {
     "isaacCipherFieldName": "aj",
     "addNodeMethodName": "aq",
@@ -21,6 +22,8 @@
     "mouseHandlerLastPressedClass": "tk",
     "mouseHandlerLastPressedField": "au",
     "mouseHandlerMultiplier": -5156151309388406647,
+    "clientMillisField": "gg",
+    "clientMillisMultiplier": 9179950546914017691,
     "idleTimeoutField": "kh",
     "packetBufferNodeClassName": "js",
     "packetBufferFieldName": "al",
