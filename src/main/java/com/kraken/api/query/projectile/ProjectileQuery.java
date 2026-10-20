@@ -24,6 +24,11 @@ import java.util.stream.StreamSupport;
  */
 public class ProjectileQuery extends AbstractSpatialQuery<ProjectileEntity, ProjectileQuery, Projectile> {
 
+    /**
+     * Creates a query over the projectiles in the client's projectile list.
+     *
+     * @param ctx The context used to read the projectiles
+     */
     public ProjectileQuery(Context ctx) {
         super(ctx);
     }

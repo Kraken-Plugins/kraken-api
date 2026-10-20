@@ -5,8 +5,17 @@ import com.kraken.api.core.AbstractEntity;
 import com.kraken.api.query.container.ContainerItem;
 import net.runelite.api.EquipmentInventorySlot;
 
+/**
+ * A worn or wearable item, as read by {@link EquipmentQuery}. Obtained from {@code ctx.equipment()}.
+ */
 public class EquipmentEntity extends AbstractEntity<ContainerItem> {
 
+    /**
+     * Creates an entity wrapping an equipment item.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The item this entity wraps
+     */
     public EquipmentEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
     }

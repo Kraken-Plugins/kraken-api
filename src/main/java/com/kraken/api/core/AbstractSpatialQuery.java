@@ -39,6 +39,10 @@ public abstract class AbstractSpatialQuery<T extends Interactable<R> & Locatable
 
     private final Supplier<WorldPoint> playerAnchor = this::localPlayerLocation;
 
+    /**
+     * Creates a spatial query bound to a context.
+     * @param ctx The context used to read the local player and run evaluations on the client thread.
+     */
     public AbstractSpatialQuery(Context ctx) {
         super(ctx);
     }

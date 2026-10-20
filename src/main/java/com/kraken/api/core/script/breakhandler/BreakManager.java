@@ -23,6 +23,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Takes breaks for an attached script. The next break is scheduled from the profile's randomised run
+ * duration, and a break also starts when any of the profile's break conditions reports true. Breaks
+ * can log the player out, and the script resumes once the break has ended.
+ */
 @Slf4j
 @Singleton
 public class BreakManager {
@@ -195,6 +200,12 @@ public class BreakManager {
     }
 
 
+    /**
+     * Advances the break schedule on each game tick. Schedules the first break once the player is logged in,
+     * then starts a break when the scheduled time has passed or a break condition is met. Does nothing while
+     * a break is active or no script is attached.
+     * @param event The game tick event.
+     */
     @Subscribe
     public void onGameTick(GameTick event) {
         if (!initialized || activeScript == null || activeProfile == null) return;
@@ -225,6 +236,11 @@ public class BreakManager {
         }
     }
 
+    /**
+     * Resumes the script when the player logs back in after a break that has already ended. If the break is still
+     * active, the player stays logged in and the script remains paused.
+     * @param event The game state change event.
+     */
     @Subscribe
     public void onGameStateChanged(GameStateChanged event) {
         if (!initialized) return;

@@ -11,7 +11,16 @@ import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.SpriteID;
 import net.runelite.api.widgets.Widget;
 
+/**
+ * An NPC in the loaded scene. Obtained from {@code ctx.npcs()}.
+ */
 public class NpcEntity extends AbstractEntity<NPC> implements Locatable {
+    /**
+     * Creates an entity wrapping an NPC.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The NPC this entity wraps
+     */
     public NpcEntity(Context ctx, NPC raw) {
         super(ctx, raw);
     }

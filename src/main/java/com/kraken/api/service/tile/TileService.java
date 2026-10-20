@@ -11,7 +11,10 @@ import net.runelite.api.coords.WorldPoint;
 
 import java.util.*;
 
-
+/**
+ * Reads tiles and their collision data from the client scene, checks which tiles the local player can reach, and
+ * converts coordinates between world and instance space.
+ */
 @Slf4j
 @Singleton
 public class TileService {

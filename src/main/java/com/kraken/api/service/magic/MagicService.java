@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+/** Checks whether a spell can be cast and casts it through the interaction manager. */
 @Slf4j
 @Singleton
 public class MagicService {

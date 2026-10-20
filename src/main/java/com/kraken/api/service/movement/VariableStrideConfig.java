@@ -30,6 +30,12 @@ public class VariableStrideConfig {
     @Getter
     private boolean tileDeviation;
 
+    /**
+     * Enables tile deviation. Each stride's waypoint is moved one tile in a random direction, including
+     * diagonals, when the moved tile is reachable; otherwise the original waypoint is kept.
+     *
+     * @return This config, so the call can be chained.
+     */
     public VariableStrideConfig withTileDeviation() {
         this.tileDeviation = true;
         return this;

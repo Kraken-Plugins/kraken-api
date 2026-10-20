@@ -11,6 +11,9 @@ import net.runelite.api.gameval.VarbitID;
 
 import java.util.Arrays;
 
+/**
+ * An item stored in the bank, as read from the open bank's item widgets. Obtained from {@code ctx.bank()}.
+ */
 @Slf4j
 public class BankEntity extends AbstractEntity<BankItemWidget> implements ItemEntity {
 
@@ -20,6 +23,12 @@ public class BankEntity extends AbstractEntity<BankItemWidget> implements ItemEn
     /** How long to wait for a requested number-input dialogue to be drawn. */
     private static final long DIALOGUE_TIMEOUT_MS = 2_000L;
 
+    /**
+     * Creates an entity wrapping a bank item.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The bank item this entity wraps
+     */
     public BankEntity(Context ctx, BankItemWidget raw) {
         super(ctx, raw);
     }

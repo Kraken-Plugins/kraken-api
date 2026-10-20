@@ -27,10 +27,17 @@ public class ContainerItem {
 
     // Define where this item was found, no need for bank here
     // since it uses BankItemWidget not ContainerItem
+    /**
+     * The container an item was read from.
+     */
     public enum ItemOrigin {
+        /** An item in the player's inventory. */
         INVENTORY,
+        /** An item in the player's inventory, read while the bank is open. */
         BANK_INVENTORY,
+        /** An item in the player's inventory, read while a shop is open. */
         SHOP_INVENTORY,
+        /** A worn item. */
         EQUIPMENT
     }
 
@@ -68,6 +75,16 @@ public class ContainerItem {
             ParamID.OC_ITEM_OP8
     };
 
+    /**
+     * Creates an item from its client item, its definition and the widget it is displayed in.
+     *
+     * @param item The client item, providing the id and quantity
+     * @param itemComposition The item definition, providing the name, stackability and note state
+     * @param slot The slot the item occupies in its container
+     * @param context The context the item belongs to
+     * @param widget The widget that displays the item, or null if there is none
+     * @param origin The container the item was read from, or null when the origin is not recorded
+     */
     public ContainerItem(Item item, ItemComposition itemComposition, int slot, Context context, Widget widget, ItemOrigin origin) {
         this.id = item.getId();
         this.widget = widget;

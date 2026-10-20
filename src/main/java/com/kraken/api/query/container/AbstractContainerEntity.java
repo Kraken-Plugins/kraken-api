@@ -12,6 +12,12 @@ import java.util.Arrays;
  */
 public abstract class AbstractContainerEntity extends AbstractEntity<ContainerItem> implements ItemEntity {
 
+    /**
+     * Creates an entity wrapping a container item.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The container item this entity wraps
+     */
     public AbstractContainerEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
     }

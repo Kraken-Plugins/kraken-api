@@ -15,6 +15,9 @@ import net.runelite.api.coords.LocalPoint;
 
 import java.util.Optional;
 
+/**
+ * Resolves menu actions for players. Actions are matched against the standing player options the client offers.
+ */
 @Slf4j
 @Singleton
 public class PlayerMenuActionResolver implements MenuActionResolver<Player> {

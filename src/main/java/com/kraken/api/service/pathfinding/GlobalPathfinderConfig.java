@@ -4,6 +4,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+/**
+ * Settings for a {@link GlobalPathfinder} search: its time and node limits, the sparse waypoint spacing, and
+ * which kinds of transport and shortcut the route may use. Every field has a default.
+ */
 @Getter
 @ToString
 @Builder(toBuilder = true)

@@ -13,8 +13,17 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * Queries the items in the player's inventory, which has 28 slots. Each evaluation runs a client script
+ * that sets up the inventory widgets before reading the inventory item container.
+ */
 public class InventoryQuery extends AbstractContainerQuery<InventoryEntity, InventoryQuery, ContainerItem> {
 
+    /**
+     * Creates a query over the player's inventory.
+     *
+     * @param ctx The context used to read the inventory
+     */
     public InventoryQuery(Context ctx) {
         super(ctx);
     }

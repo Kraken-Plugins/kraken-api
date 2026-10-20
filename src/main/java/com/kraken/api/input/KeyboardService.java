@@ -11,6 +11,9 @@ import java.awt.event.KeyEvent;
 
 import static java.awt.event.KeyEvent.CHAR_UNDEFINED;
 
+/**
+ * Types characters into the game canvas by dispatching key events on the event dispatch thread.
+ */
 public class KeyboardService {
 
     @Inject

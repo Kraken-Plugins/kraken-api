@@ -9,6 +9,9 @@ import net.runelite.api.coords.WorldPoint;
 
 import javax.inject.Inject;
 
+/**
+ * Sends the packets that walk the local player toward a tile.
+ */
 public class MovementPackets {
 
     @Inject

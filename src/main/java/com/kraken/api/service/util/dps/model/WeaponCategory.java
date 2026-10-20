@@ -13,38 +13,71 @@ import static com.kraken.api.service.util.dps.model.CombatStyleType.*;
  * @see <a href="https://oldschool.runescape.wiki/w/Property:Combat_style">wiki combat styles</a>
  */
 public enum WeaponCategory {
+    /** No weapon category, used when no weapon is equipped or the wiki name is empty. */
     NONE(""),
+    /** Two-handed swords. */
     TWO_HANDED_SWORD("2h Sword"),
+    /** Axes. */
     AXE("Axe"),
+    /** Banners. */
     BANNER("Banner"),
+    /** Bladed staves, which are magic weapons. */
     BLADED_STAFF("Bladed Staff"),
+    /** Blasters. */
     BLASTER("Blaster"),
+    /** Bludgeons. */
     BLUDGEON("Bludgeon"),
+    /** Blunt weapons. */
     BLUNT("Blunt"),
+    /** Bows, which deal standard ranged damage. */
     BOW("Bow"),
+    /** Bulwarks. */
     BULWARK("Bulwark"),
+    /** Chinchompas, which deal heavy ranged damage. */
     CHINCHOMPA("Chinchompas"),
+    /** Claws. */
     CLAW("Claw"),
+    /** Crossbows, which deal heavy ranged damage. */
     CROSSBOW("Crossbow"),
+    /** Daggers. */
     DAGGER("Dagger"),
+    /** Flails. */
     FLAIL("Flail"),
+    /** Guns. */
     GUN("Gun"),
+    /** Multi-melee weapons. */
     MULTI_MELEE("Multi-Melee"),
+    /** Partisans. */
     PARTISAN("Partisan"),
+    /** Pickaxes. */
     PICKAXE("Pickaxe"),
+    /** Polearms. */
     POLEARM("Polearm"),
+    /** Polestaves, which are magic weapons. */
     POLESTAFF("Polestaff"),
+    /** Powered staves, which are magic weapons. */
     POWERED_STAFF("Powered Staff"),
+    /** Powered wands, which are magic weapons. */
     POWERED_WAND("Powered Wand"),
+    /** Salamanders, which deal mixed ranged damage. */
     SALAMANDER("Salamander"),
+    /** Scythes. */
     SCYTHE("Scythe"),
+    /** Slash swords. */
     SLASH_SWORD("Slash Sword"),
+    /** Spears. */
     SPEAR("Spear"),
+    /** Spiked weapons. */
     SPIKED("Spiked"),
+    /** Stab swords. */
     STAB_SWORD("Stab Sword"),
+    /** Staves, which are magic weapons. */
     STAFF("Staff"),
+    /** Thrown weapons, which deal light ranged damage. */
     THROWN("Thrown"),
+    /** Unarmed, the category used when no weapon is equipped. */
     UNARMED("Unarmed"),
+    /** Whips. */
     WHIP("Whip");
 
     private final String wikiName;
@@ -53,6 +86,10 @@ public enum WeaponCategory {
         this.wikiName = wikiName;
     }
 
+    /**
+     * Gets the wiki category name for this category, as used in the bundled equipment data.
+     * @return String the wiki category name, or an empty string for NONE
+     */
     public String getWikiName() {
         return wikiName;
     }

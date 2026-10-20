@@ -35,6 +35,11 @@ public class ShopInventoryQuery extends AbstractContainerQuery<ShopInventoryEnti
 
     private static final int PLACEHOLDER_ITEM_ID = 6512;
 
+    /**
+     * Creates a query over the player's inventory while a shop is open.
+     *
+     * @param ctx The context used to read the shop's inventory panel
+     */
     public ShopInventoryQuery(Context ctx) {
         super(ctx);
     }

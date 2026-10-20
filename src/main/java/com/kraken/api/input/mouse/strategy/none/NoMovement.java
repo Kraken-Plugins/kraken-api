@@ -9,6 +9,9 @@ import net.runelite.api.Point;
 
 import java.awt.*;
 
+/**
+ * Does not move the cursor. Lets a plugin skip mouse movement while still switching strategies at runtime.
+ */
 @Singleton
 public class NoMovement implements MoveableMouse {
 

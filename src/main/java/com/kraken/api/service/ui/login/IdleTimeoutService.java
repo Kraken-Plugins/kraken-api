@@ -85,6 +85,14 @@ public class IdleTimeoutService {
     private int gameTicksUntilLogoutRetry;
     private boolean registered;
 
+    /**
+     * Creates the service. It does not change the client's idle timeout until one of the setters is called.
+     *
+     * @param client The client whose idle timeout field is written.
+     * @param eventBus The event bus the service registers with while it manages the timeout.
+     * @param reflectionService Reflection access used to reach the idle timeout field.
+     * @param ctxProvider Provides the {@link Context} used for client-thread work and for logging out.
+     */
     @Inject
     public IdleTimeoutService(Client client, EventBus eventBus, ReflectionService reflectionService, Provider<Context> ctxProvider) {
         this.client = client;

@@ -7,30 +7,54 @@ import java.util.Arrays;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/** Runes that spells consume, with the item id of each rune and the base runes of each combination rune. */
 @Getter
 public enum Rune {
+    /** Air rune. */
     AIR(1, ItemID.AIRRUNE),
+    /** Water rune. */
     WATER(2, ItemID.WATERRUNE),
+    /** Earth rune. */
     EARTH(3, ItemID.EARTHRUNE),
+    /** Fire rune. */
     FIRE(4, ItemID.FIRERUNE),
+    /** Mind rune. */
     MIND(5, ItemID.MINDRUNE),
+    /** Chaos rune. */
     CHAOS(6, ItemID.CHAOSRUNE),
+    /** Death rune. */
     DEATH(7, ItemID.DEATHRUNE),
+    /** Blood rune. */
     BLOOD(8, ItemID.BLOODRUNE),
+    /** Cosmic rune. */
     COSMIC(9, ItemID.COSMICRUNE),
+    /** Nature rune. */
     NATURE(10, ItemID.NATURERUNE),
+    /** Law rune. */
     LAW(11, ItemID.LAWRUNE),
+    /** Body rune. */
     BODY(12, ItemID.BODYRUNE),
+    /** Soul rune. */
     SOUL(13, ItemID.SOULRUNE),
+    /** Astral rune. */
     ASTRAL(14, ItemID.ASTRALRUNE),
+    /** Mist rune, a combination of air and water runes. */
     MIST(15, ItemID.MISTRUNE, AIR, WATER),
+    /** Mud rune, a combination of water and earth runes. */
     MUD(16, ItemID.MUDRUNE, WATER, EARTH),
+    /** Dust rune, a combination of air and earth runes. */
     DUST(17, ItemID.DUSTRUNE, AIR, EARTH),
+    /** Lava rune, a combination of earth and fire runes. */
     LAVA(18, ItemID.LAVARUNE, EARTH, FIRE),
+    /** Steam rune, a combination of water and fire runes. */
     STEAM(19, ItemID.STEAMRUNE, WATER, FIRE),
+    /** Smoke rune, a combination of air and fire runes. */
     SMOKE(20, ItemID.SMOKERUNE, AIR, FIRE),
+    /** Wrath rune. */
     WRATH(21, ItemID.WRATHRUNE),
+    /** Sunfire rune. */
     SUNFIRE(22, ItemID.SUNFIRERUNE),
+    /** Aether rune, a combination of cosmic and soul runes. */
     AETHER(23, ItemID.AETHERRUNE, COSMIC, SOUL);
 
     private final int id;

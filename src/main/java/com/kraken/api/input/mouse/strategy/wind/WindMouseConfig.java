@@ -3,6 +3,9 @@ package com.kraken.api.input.mouse.strategy.wind;
 import lombok.Builder;
 import lombok.Getter;
 
+/**
+ * Physics parameters for {@link WindStrategy}. Each field has a default, so a builder can set only the values it needs.
+ */
 @Getter
 @Builder
 public class WindMouseConfig {

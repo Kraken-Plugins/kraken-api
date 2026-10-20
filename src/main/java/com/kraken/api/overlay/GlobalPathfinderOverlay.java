@@ -29,6 +29,10 @@ import java.awt.Shape;
 import java.awt.geom.Line2D;
 import java.util.List;
 
+/**
+ * Draws the most recent path from {@link GlobalPathfinder}, both on the scene and on the world map.
+ * Nothing is drawn until the pathfinder has a result with a non-empty path.
+ */
 @Singleton
 public class GlobalPathfinderOverlay extends Overlay {
     private static final Color PATH_FILL = new Color(60, 165, 250, 60);
@@ -48,6 +52,13 @@ public class GlobalPathfinderOverlay extends Overlay {
     private final GlobalPathfinder globalPathfinder;
     private final WorldMapService worldMapService;
 
+    /**
+     * Creates the overlay above widgets at dynamic position with medium priority.
+     *
+     * @param client The client used to convert path tiles to local coordinates
+     * @param globalPathfinder The pathfinder whose last result is drawn
+     * @param worldMapService The service used to place the path on the world map
+     */
     @Inject
     public GlobalPathfinderOverlay(Client client, GlobalPathfinder globalPathfinder, WorldMapService worldMapService) {
         this.client = client;

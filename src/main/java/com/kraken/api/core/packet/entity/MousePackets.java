@@ -19,6 +19,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static java.awt.event.InputEvent.BUTTON1_DOWN_MASK;
 
+/**
+ * Sends the mouse click packet that precedes game interactions, and injects a synthetic keypress when the
+ * client's idle counters reach a randomised threshold.
+ */
 @Singleton
 public class MousePackets {
 

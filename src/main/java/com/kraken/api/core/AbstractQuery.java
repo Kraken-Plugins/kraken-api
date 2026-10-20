@@ -42,16 +42,26 @@ import java.util.stream.Stream;
  */
 @Slf4j
 public abstract class AbstractQuery<T extends Interactable<R>, Q extends AbstractQuery<T, Q, R>, R> {
+    /** The context used to run evaluations on the client thread. */
     protected final Context ctx;
     private final List<Function<Evaluation, Predicate<T>>> filters = new ArrayList<>();
     private final List<Function<T, Object>> distinctKeys = new ArrayList<>();
     private Function<Evaluation, Comparator<T>> comparator = null;
     private Supplier<Stream<T>> override = null;
 
+    /**
+     * Creates a query bound to a context.
+     * @param ctx The context used to run evaluations on the client thread.
+     */
     public AbstractQuery(Context ctx) {
         this.ctx = ctx;
     }
 
+    /**
+     * Supplies the candidate entities this query filters. Each evaluation calls the supplier on the
+     * client thread; a {@code null} stream is treated as empty.
+     * @return A supplier of the candidate entity stream.
+     */
     protected abstract Supplier<Stream<T>> source();
 
     /**

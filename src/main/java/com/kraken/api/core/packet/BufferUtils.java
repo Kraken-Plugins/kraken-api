@@ -34,6 +34,13 @@ public class BufferUtils {
         }
     }
 
+    /**
+     * Resolves the offset and array fields of a buffer class and checks that they can be used for writing.
+     * @param bufferClass The concrete buffer class to inspect.
+     * @return The validated offset and array fields.
+     * @throws IllegalStateException If a field is missing, has the wrong type, is static or final, or the
+     *                               offset and index multipliers do not multiply to 1.
+     */
     public static BufferAccess validateFields(Class<?> bufferClass) {
         Field offset = resolveField(OFFSET_FIELDS, bufferClass, HooksLoader.getReflectionHooks().getBufferOffsetField());
         Field array = resolveField(ARRAY_FIELDS, bufferClass, HooksLoader.getReflectionHooks().getBufferArrayField());

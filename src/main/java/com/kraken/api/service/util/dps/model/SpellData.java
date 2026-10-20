@@ -21,10 +21,18 @@ public class SpellData {
     /** Elemental class of the spell: "air", "water", "earth", "fire", or null. */
     private String element;
 
+    /**
+     * Whether this spell is from the standard spellbook.
+     * @return True when the spellbook is standard
+     */
     public boolean isStandardSpellbook() {
         return "standard".equals(spellbook);
     }
 
+    /**
+     * Whether this spell is from the ancient magicks spellbook.
+     * @return True when the spellbook is ancient
+     */
     public boolean isAncientSpellbook() {
         return "ancient".equals(spellbook);
     }

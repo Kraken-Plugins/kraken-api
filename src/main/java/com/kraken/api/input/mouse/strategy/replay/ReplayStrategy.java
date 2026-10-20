@@ -14,6 +14,10 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
+/**
+ * Moves the cursor along a recorded gesture from the loaded library, scaled to the requested distance. Falls back
+ * to {@link BezierStrategy} when no recorded gesture can be selected.
+ */
 @Slf4j
 @Singleton
 public class ReplayStrategy implements MoveableMouse {

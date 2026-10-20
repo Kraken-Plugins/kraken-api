@@ -20,6 +20,10 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
+/**
+ * Moves the player by clicking the game canvas and sending movement packets. Provides single-destination
+ * moves, stride-based waypoint paths and the deprecated path traversal helpers.
+ */
 @Slf4j
 @Singleton
 public class MovementService {

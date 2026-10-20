@@ -33,6 +33,11 @@ import java.util.stream.Stream;
 @Slf4j
 public class ShopQuery extends AbstractQuery<ShopEntity, ShopQuery, Widget> {
 
+    /**
+     * Creates a query over the items in the open shop.
+     *
+     * @param ctx The context used to read the shop's stock panel
+     */
     public ShopQuery(Context ctx) {
         super(ctx);
     }

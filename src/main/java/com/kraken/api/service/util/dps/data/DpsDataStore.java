@@ -41,6 +41,11 @@ public class DpsDataStore {
     private final Map<String, List<MonsterData>> monstersByName = new HashMap<>();
     private final Map<String, SpellData> spellsByName = new HashMap<>();
 
+    /**
+     * Creates the store. The bundled data is not read until it is first needed.
+     *
+     * @param gson The Gson instance used to parse the bundled data resources.
+     */
     @Inject
     public DpsDataStore(Gson gson) {
         this.gson = gson;

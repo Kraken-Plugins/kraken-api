@@ -23,6 +23,11 @@ public class RegionService {
 
     private final Provider<Context> ctxProvider;
 
+    /**
+     * Creates the service.
+     *
+     * @param ctxProvider Provides the {@link Context} used to read the loaded scene on the client thread.
+     */
     @Inject
     public RegionService(Provider<Context> ctxProvider) {
         this.ctxProvider = ctxProvider;

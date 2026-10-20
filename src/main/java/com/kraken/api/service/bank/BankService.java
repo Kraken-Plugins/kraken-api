@@ -91,6 +91,13 @@ public class BankService {
         return !w.isSelfHidden();
     }
 
+    /**
+     * Handles the {@code bankpinButtonSetup} script callback by attaching a key listener to each bank PIN
+     * keypad button. Typing the digit that a button shows runs that button's click handler and resets the
+     * client keyboard timeout. Other script callbacks are ignored.
+     *
+     * @param event The script callback event raised by the client.
+     */
     @Subscribe
     public void onScriptCallbackEvent(ScriptCallbackEvent event) {
         if (event.getEventName().equals("bankpinButtonSetup")) {

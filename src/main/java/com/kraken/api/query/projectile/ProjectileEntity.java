@@ -19,6 +19,12 @@ public class ProjectileEntity extends AbstractEntity<Projectile> implements Loca
     /** Client cycles per game tick: a cycle is 20ms, a tick 600ms. */
     private static final int CYCLES_PER_TICK = 30;
 
+    /**
+     * Creates an entity wrapping a projectile.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The projectile this entity wraps
+     */
     public ProjectileEntity(Context ctx, Projectile raw) {
         super(ctx, raw);
     }

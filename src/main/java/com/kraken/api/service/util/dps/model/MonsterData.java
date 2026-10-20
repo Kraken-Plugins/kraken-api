@@ -14,6 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 public class MonsterData {
 
+    /** The monster's combat skill levels. */
     @Data
     @NoArgsConstructor
     public static class Skills {
@@ -25,6 +26,7 @@ public class MonsterData {
         private int str;
     }
 
+    /** The monster's offensive bonuses: attack, strength and magic and ranged values. */
     @Data
     @NoArgsConstructor
     public static class Offensive {
@@ -36,6 +38,7 @@ public class MonsterData {
         private int str;
     }
 
+    /** The monster's defensive bonuses: flat armour and defence against each damage type. */
     @Data
     @NoArgsConstructor
     public static class Defensive {
@@ -49,6 +52,7 @@ public class MonsterData {
         private int heavy;
     }
 
+    /** An elemental weakness of the monster. */
     @Data
     @NoArgsConstructor
     public static class Weakness {

@@ -10,9 +10,18 @@ import net.runelite.api.ObjectComposition;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
 
+/**
+ * A game object in the loaded scene. Obtained from {@code ctx.gameObjects()}.
+ */
 @Slf4j
 public class GameObjectEntity extends AbstractEntity<GameObject> implements Locatable {
 
+    /**
+     * Creates an entity wrapping a game object.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The game object this entity wraps
+     */
     public GameObjectEntity(Context ctx, GameObject raw) {
         super(ctx, raw);
     }

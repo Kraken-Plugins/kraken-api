@@ -13,6 +13,10 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 
+/**
+ * Draws a crosshair at the mouse cursor and a fading trail of its recent positions.
+ * Both parts can be switched on and off through the {@code renderCrosshair} and {@code renderTrail} setters.
+ */
 public class MouseOverlay extends Overlay {
     private final Client client;
     private final Deque<TrailPoint> trail = new ArrayDeque<>();
@@ -40,6 +44,11 @@ public class MouseOverlay extends Overlay {
     @Setter
     private boolean renderTrail = true;
 
+    /**
+     * Creates the overlay above widgets at dynamic position.
+     *
+     * @param client The client used to read the mouse canvas position
+     */
     @Inject
     public MouseOverlay(Client client) {
         this.client = client;

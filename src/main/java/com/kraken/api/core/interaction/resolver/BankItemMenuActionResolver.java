@@ -17,6 +17,10 @@ import net.runelite.client.util.Text;
 
 import java.util.Optional;
 
+/**
+ * Resolves menu actions for bank item widgets. The action is matched against the item's actions, then its
+ * parent's, and falls back to the standard bank operation indices.
+ */
 @Slf4j
 @Singleton
 public class BankItemMenuActionResolver implements MenuActionResolver<BankItemWidget> {

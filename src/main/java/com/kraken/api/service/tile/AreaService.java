@@ -10,6 +10,9 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
+/**
+ * Builds {@link GameArea}s from radii, reachable tiles, polygon outlines and sets of tiles.
+ */
 @Slf4j
 @Singleton
 public class AreaService {

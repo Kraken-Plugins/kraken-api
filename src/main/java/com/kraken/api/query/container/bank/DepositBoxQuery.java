@@ -48,6 +48,11 @@ public class DepositBoxQuery extends AbstractContainerQuery<DepositBoxEntity, De
 
     private ItemSource dataSource = ItemSource.BOTH;
 
+    /**
+     * Creates a query over the deposit box that includes both inventory and equipment items.
+     *
+     * @param ctx The context used to read the deposit box
+     */
     public DepositBoxQuery(Context ctx) {
         super(ctx);
     }

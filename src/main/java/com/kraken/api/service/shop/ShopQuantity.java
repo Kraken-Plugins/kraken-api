@@ -17,9 +17,13 @@ import net.runelite.api.gameval.InterfaceID;
 @AllArgsConstructor
 public enum ShopQuantity {
 
+    /** The fixed button that trades one item. */
     ONE(1, InterfaceID.Shopmain.QUANTITY1),
+    /** The fixed button that trades five items. */
     FIVE(5, InterfaceID.Shopmain.QUANTITY5),
+    /** The fixed button that trades ten items. */
     TEN(10, InterfaceID.Shopmain.QUANTITY10),
+    /** The fixed button that trades fifty items. */
     FIFTY(50, InterfaceID.Shopmain.QUANTITY50),
 
     /** The player defined amount, entered through a number dialogue. */

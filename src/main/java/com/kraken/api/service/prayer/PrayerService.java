@@ -15,6 +15,9 @@ import java.util.List;
 
 import static com.kraken.api.service.prayer.InteractablePrayer.isOverhead;
 
+/**
+ * Turns prayers on and off through the prayer interface and reports whether they are active.
+ */
 @Slf4j
 @Singleton
 public class PrayerService {

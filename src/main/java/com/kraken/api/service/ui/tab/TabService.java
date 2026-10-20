@@ -8,6 +8,7 @@ import net.runelite.api.gameval.VarbitID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+/** Reads the side panel tab that is open and opens tabs. */
 @Slf4j
 @Singleton
 public class TabService {
@@ -15,6 +16,11 @@ public class TabService {
     @Inject
     private Context ctx;
 
+    /**
+     * Returns the side panel tab that is currently open, read from the inventory tab varc int.
+     *
+     * @return the open tab, or {@link InterfaceTab#NOTHING_SELECTED} when no tab is open or the varc value is not recognized
+     */
     public InterfaceTab getCurrentTab() {
         final int varcIntValue = ctx.getClient().getVarcIntValue(171); // Inventory tab varc int
         // valueOf returns null for an unmapped varc value; switching on a null enum would NPE before
@@ -60,6 +66,13 @@ public class TabService {
     }
 
 
+    /**
+     * Opens the given side panel tab and waits for it to become the current tab. Returns immediately with {@code true} if the tab is already open.
+     * Returns {@code false} without switching when the tab is {@link InterfaceTab#NOTHING_SELECTED} and the resizable stone arrangement varbit is 0.
+     *
+     * @param tab the tab to open
+     * @return {@code true} if the tab is the current tab when the wait ends, {@code false} otherwise
+     */
     public boolean switchTo(InterfaceTab tab) {
         if (isCurrentTab(tab)) return true;
 
@@ -70,6 +83,12 @@ public class TabService {
         return SleepService.sleepUntil(() -> isCurrentTab(tab));
     }
 
+    /**
+     * Returns whether the given tab is the side panel tab that is currently open.
+     *
+     * @param tab the tab to compare with the open tab
+     * @return {@code true} if the open tab is {@code tab}
+     */
     public boolean isCurrentTab(InterfaceTab tab) {
         return getCurrentTab() == tab;
     }

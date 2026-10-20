@@ -13,6 +13,9 @@ import net.runelite.api.Point;
 
 import java.awt.*;
 
+/**
+ * Moves the cursor in evenly spaced steps along a straight line from the start to the target.
+ */
 @Slf4j
 @Singleton
 public class LinearStrategy implements MoveableMouse {

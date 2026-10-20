@@ -12,9 +12,17 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Queries the other players in the top-level world view. The local player and players without a name are excluded.
+ */
 @Slf4j
 public class PlayerQuery extends AbstractSpatialQuery<PlayerEntity, PlayerQuery, Player> {
 
+    /**
+     * Creates a query over the players in the loaded scene.
+     *
+     * @param ctx The context used to read the players
+     */
     public PlayerQuery(Context ctx) {
         super(ctx);
     }

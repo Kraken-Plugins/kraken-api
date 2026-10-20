@@ -7,16 +7,27 @@ import net.runelite.api.EquipmentInventorySlot;
  * used in the bundled equipment data.
  */
 public enum GearSlot {
+    /** The head slot. */
     HEAD("head"),
+    /** The cape slot. */
     CAPE("cape"),
+    /** The neck slot, which holds amulets. */
     NECK("neck"),
+    /** The ammunition slot. */
     AMMO("ammo"),
+    /** The weapon slot. */
     WEAPON("weapon"),
+    /** The body slot. */
     BODY("body"),
+    /** The shield slot. */
     SHIELD("shield"),
+    /** The legs slot. */
     LEGS("legs"),
+    /** The hands slot, which holds gloves. */
     HANDS("hands"),
+    /** The feet slot, which holds boots. */
     FEET("feet"),
+    /** The ring slot. */
     RING("ring");
 
     private final String wikiName;
@@ -25,6 +36,10 @@ public enum GearSlot {
         this.wikiName = wikiName;
     }
 
+    /**
+     * Gets the wiki slot name for this slot, as used in the bundled equipment data.
+     * @return String the wiki slot name, e.g. "head"
+     */
     public String getWikiName() {
         return wikiName;
     }

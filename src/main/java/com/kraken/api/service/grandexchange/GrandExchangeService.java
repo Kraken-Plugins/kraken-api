@@ -15,6 +15,10 @@ import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.widgets.Widget;
 
+/**
+ * Operates the Grand Exchange interface: queues buy and sell offers, collects completed offers and
+ * cancels active ones.
+ */
 @Slf4j
 @Singleton
 public class GrandExchangeService {

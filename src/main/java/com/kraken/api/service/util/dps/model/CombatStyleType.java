@@ -5,10 +5,15 @@ package com.kraken.api.service.util.dps.model;
  * damage types which roll against separate NPC defensive bonuses.
  */
 public enum CombatStyleType {
+    /** Melee stab damage. */
     STAB("stab"),
+    /** Melee slash damage. */
     SLASH("slash"),
+    /** Melee crush damage. */
     CRUSH("crush"),
+    /** Magic damage. */
     MAGIC("magic"),
+    /** Ranged damage. */
     RANGED("ranged");
 
     private final String key;

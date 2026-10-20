@@ -58,10 +58,18 @@ public class EquipmentItem {
     private Styles offensive = new Styles();
     private Styles defensive = new Styles();
 
+    /**
+     * Gets the gear slot this item is worn in, resolved from its wiki slot name.
+     * @return GearSlot for this item, or null when the slot name is unknown
+     */
     public GearSlot getGearSlot() {
         return GearSlot.fromWikiName(slot);
     }
 
+    /**
+     * Gets the weapon category of this item, resolved from its wiki category name.
+     * @return WeaponCategory for this item, or NONE for non-weapons and unknown categories
+     */
     public WeaponCategory getWeaponCategory() {
         return WeaponCategory.fromWikiName(category);
     }

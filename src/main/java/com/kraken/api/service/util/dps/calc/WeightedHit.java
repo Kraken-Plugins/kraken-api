@@ -12,23 +12,46 @@ public final class WeightedHit {
     private final List<Hitsplat> hitsplats;
     private int cachedSum = -1;
 
+    /**
+     * Creates an outcome with the given probability and hitsplats.
+     * @param probability The chance of this outcome (0-1)
+     * @param hitsplats The hitsplats dealt in this outcome
+     */
     public WeightedHit(double probability, List<Hitsplat> hitsplats) {
         this.probability = probability;
         this.hitsplats = hitsplats;
     }
 
+    /**
+     * Gets the probability of this outcome.
+     * @return double the probability
+     */
     public double getProbability() {
         return probability;
     }
 
+    /**
+     * Gets the hitsplats dealt in this outcome.
+     * @return the hitsplats of this outcome
+     */
     public List<Hitsplat> getHitsplats() {
         return hitsplats;
     }
 
+    /**
+     * Creates a copy of this outcome with its probability multiplied by a factor. The hitsplats are shared.
+     * @param factor The factor applied to the probability
+     * @return WeightedHit the scaled outcome
+     */
     public WeightedHit scale(double factor) {
         return new WeightedHit(probability * factor, hitsplats);
     }
 
+    /**
+     * Combines this outcome with another into one outcome holding the hitsplats of both, with the product of their probabilities.
+     * @param other The outcome to combine with
+     * @return WeightedHit the combined outcome
+     */
     public WeightedHit zip(WeightedHit other) {
         List<Hitsplat> combined = new ArrayList<>(hitsplats.size() + other.hitsplats.size());
         combined.addAll(hitsplats);
@@ -69,6 +92,10 @@ public final class WeightedHit {
         return list;
     }
 
+    /**
+     * Checks whether any hitsplat in this outcome passed its accuracy roll.
+     * @return boolean true if at least one hitsplat is accurate
+     */
     public boolean anyAccurate() {
         for (Hitsplat h : hitsplats) {
             if (h.isAccurate()) return true;
@@ -76,6 +103,10 @@ public final class WeightedHit {
         return false;
     }
 
+    /**
+     * Gets the total damage of all hitsplats in this outcome.
+     * @return int the summed damage
+     */
     public int getSum() {
         if (cachedSum < 0) {
             int sum = 0;
@@ -87,6 +118,10 @@ public final class WeightedHit {
         return cachedSum;
     }
 
+    /**
+     * Gets the expected damage of this outcome, its probability multiplied by its total damage.
+     * @return double the expected damage
+     */
     public double getExpectedValue() {
         return probability * getSum();
     }

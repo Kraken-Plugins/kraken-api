@@ -9,16 +9,28 @@ import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.RuneLite;
 
+/**
+ * One of the eight Grand Exchange offer slots, numbered 1 to 8 as shown in the interface. Each constant
+ * holds the widget id of its offer row and the slot number.
+ */
 @Slf4j
 @Getter
 public enum GrandExchangeSlot {
+    /** Offer slot 1. */
     SLOT_1(InterfaceID.GeOffers.INDEX_0, 1),
+    /** Offer slot 2. */
     SLOT_2(InterfaceID.GeOffers.INDEX_1, 2),
+    /** Offer slot 3. */
     SLOT_3(InterfaceID.GeOffers.INDEX_2, 3),
+    /** Offer slot 4. */
     SLOT_4(InterfaceID.GeOffers.INDEX_3, 4),
+    /** Offer slot 5. */
     SLOT_5(InterfaceID.GeOffers.INDEX_4, 5),
+    /** Offer slot 6. */
     SLOT_6(InterfaceID.GeOffers.INDEX_5, 6),
+    /** Offer slot 7. */
     SLOT_7(InterfaceID.GeOffers.INDEX_6, 7),
+    /** Offer slot 8. */
     SLOT_8(InterfaceID.GeOffers.INDEX_7, 8);
 
     private final int id;

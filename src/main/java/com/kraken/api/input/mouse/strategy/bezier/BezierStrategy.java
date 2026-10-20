@@ -11,6 +11,9 @@ import net.runelite.api.Point;
 
 import java.awt.*;
 
+/**
+ * Moves the cursor along a randomised cubic Bezier curve with eased timing.
+ */
 @Singleton
 public class BezierStrategy implements MoveableMouse {
 

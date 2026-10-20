@@ -89,6 +89,20 @@ public class Context {
 
     private final ClientThreadGateway commandGateway;
 
+    /**
+     * Creates the context that plugins use to reach the Kraken API. Constructing it loads the packet
+     * definitions that services such as PrayerService depend on, and registers the bank and shop services
+     * on the event bus.
+     *
+     * @param client The RuneLite client
+     * @param clientThread The thread that game state must be read and changed on
+     * @param mouse The virtual mouse used to perform clicks and movement
+     * @param eventBus The event bus the bank and shop services subscribe to
+     * @param itemManager The item manager used to look up item definitions
+     * @param bankService The service that tracks bank contents
+     * @param shopService The service that tracks shop stock and prices
+     * @param interactionManager The manager that performs menu interactions
+     */
     @Inject
     public Context(final Client client, final ClientThread clientThread, final VirtualMouse mouse, final EventBus eventBus,
                    final ItemManager itemManager, final BankService bankService, final ShopService shopService,

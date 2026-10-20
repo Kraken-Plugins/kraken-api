@@ -31,6 +31,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ShopEntity extends AbstractEntity<Widget> {
 
+    /**
+     * Creates an entity wrapping a shop slot widget.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The shop slot widget this entity wraps
+     */
     public ShopEntity(Context ctx, Widget raw) {
         super(ctx, raw);
     }

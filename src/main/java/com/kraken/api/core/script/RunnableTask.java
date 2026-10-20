@@ -14,6 +14,10 @@ public class RunnableTask implements Runnable {
 
     private final Runnable runnable;
 
+    /**
+     * Wraps a runnable so it runs under the script cancellation model.
+     * @param runnable The work to run. Must not be null.
+     */
     public RunnableTask(@NonNull Runnable runnable) {
         super();
         this.runnable = runnable;

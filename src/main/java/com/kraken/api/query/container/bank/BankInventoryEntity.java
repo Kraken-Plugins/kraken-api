@@ -6,7 +6,17 @@ import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.service.bank.BankService;
 
 
+/**
+ * An item in the player's inventory while the bank is open, which can be deposited into the bank.
+ * Obtained from {@code ctx.bankInventory()}.
+ */
 public class BankInventoryEntity extends AbstractContainerEntity {
+    /**
+     * Creates an entity wrapping an inventory item seen while the bank is open.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The inventory item this entity wraps
+     */
     public BankInventoryEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
     }

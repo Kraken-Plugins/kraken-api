@@ -307,6 +307,11 @@ public class TableComponent implements LayoutableRenderableEntity {
         return wrapped.toString().split("\n");
     }
 
+    /**
+     * Returns whether the table has nothing to draw.
+     *
+     * @return True if the table has no columns or no rows, false otherwise
+     */
     public boolean isEmpty()
     {
         return columns.size() == 0 || rows.size() == 0;
@@ -359,6 +364,12 @@ public class TableComponent implements LayoutableRenderableEntity {
         columns.get(col).setAlignment(alignment);
     }
 
+    /**
+     * Sets the alignment of the leading columns in order. Columns are added when there are fewer
+     * than the number of alignments given.
+     *
+     * @param alignments The alignment for column 0, column 1, and so on
+     */
     public void setColumnAlignments(@Nonnull final TableAlignment... alignments) {
         ensureColumnSize(alignments.length);
         for (int i = 0; i < alignments.length; i++) {
@@ -401,6 +412,11 @@ public class TableComponent implements LayoutableRenderableEntity {
         return cur;
     }
 
+    /**
+     * Appends a row whose cells contain the given text, with no per-cell color or alignment.
+     *
+     * @param cells The text of each cell, in column order
+     */
     public void addRow(@Nonnull final String... cells) {
         final List<TableElement> elements = new ArrayList<>();
         for (final String cell : cells) {
@@ -419,16 +435,31 @@ public class TableComponent implements LayoutableRenderableEntity {
         }
     }
 
+    /**
+     * Appends the given rows after the existing rows.
+     *
+     * @param rows The rows to append, in order
+     */
     public void addRows(@NonNull final TableRow... rows)
     {
         this.rows.addAll(Arrays.asList(rows));
     }
 
+    /**
+     * Replaces all rows with one row per array, where each array holds the cell text of that row.
+     *
+     * @param elements The cell text of each row
+     */
     public void setRows(@Nonnull final String[]... elements) {
         this.rows.clear();
         addRows(elements);
     }
 
+    /**
+     * Replaces all rows with the given rows.
+     *
+     * @param elements The rows to use, in order
+     */
     public void setRows(@Nonnull final TableRow... elements) {
         this.rows.clear();
         this.rows.addAll(Arrays.asList(elements));
@@ -439,16 +470,31 @@ public class TableComponent implements LayoutableRenderableEntity {
         this.columns.add(TableElement.builder().content(col).build());
     }
 
+    /**
+     * Appends the given columns after the existing columns.
+     *
+     * @param columns The column headers to append, in order
+     */
     public void addColumns(@NonNull final TableElement... columns)
     {
         this.columns.addAll(Arrays.asList(columns));
     }
 
+    /**
+     * Replaces all columns with the given column headers.
+     *
+     * @param elements The column headers to use, in order
+     */
     public void setColumns(@Nonnull final TableElement... elements) {
         this.columns.clear();
         this.columns.addAll(Arrays.asList(elements));
     }
 
+    /**
+     * Replaces all columns with headers that show the given text.
+     *
+     * @param columns The header text of each column, in order
+     */
     public void setColumns(@Nonnull final String... columns) {
         this.columns.clear();
         for (String col : columns) {

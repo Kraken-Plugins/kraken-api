@@ -16,6 +16,10 @@ import net.runelite.api.widgets.Widget;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The player the client is logged in as. Unlike other entities, its raw player is read live from the client
+ * on each access, so it stays current across logins and world changes.
+ */
 @Slf4j
 public class LocalPlayerEntity extends PlayerEntity {
     private static final int VENOM_VALUE_CUTOFF = -38;
@@ -24,6 +28,11 @@ public class LocalPlayerEntity extends PlayerEntity {
 
     private final ScheduledExecutorService executor = KrakenThreads.newScheduler("local-player");
 
+    /**
+     * Creates the entity for the local player. The player is read from the client thread at construction.
+     *
+     * @param ctx The context the entity belongs to
+     */
     public LocalPlayerEntity(Context ctx) {
         super(ctx, ctx.runOnClientThread(() -> ctx.getClient().getLocalPlayer(), null));
     }

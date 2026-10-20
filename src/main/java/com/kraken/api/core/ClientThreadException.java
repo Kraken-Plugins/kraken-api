@@ -9,6 +9,7 @@ import lombok.Getter;
  */
 public class ClientThreadException extends RuntimeException {
 
+    /** Whether the client-thread work may have started, so its effects cannot be ruled out. */
     @Getter
     private final boolean outcomeUnknown;
 

@@ -7,7 +7,16 @@ import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 
+/**
+ * An item in the player's inventory. Obtained from {@code ctx.inventory()}.
+ */
 public class InventoryEntity extends AbstractContainerEntity {
+    /**
+     * Creates an entity wrapping an inventory item.
+     *
+     * @param ctx The context the entity belongs to
+     * @param raw The inventory item this entity wraps
+     */
     public InventoryEntity(Context ctx, ContainerItem raw) {
         super(ctx, raw);
     }

@@ -19,12 +19,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/** Rune pouch items, identified by their item ids. */
 @AllArgsConstructor
 public enum RunePouch {
+    /** Rune pouch. */
     RUNE_POUCH(ItemID.BH_RUNE_POUCH),
+    /** Divine rune pouch, which has four slots. */
     DIVINE_RUNE_POUCH(ItemID.DIVINE_RUNE_POUCH, true),
+    /** Divine rune pouch (l) variant, which has four slots. */
     DIVINE_RUNE_POUCH_L(ItemID.DIVINE_RUNE_POUCH_TROUVER, true),
+    /** Rune pouch (l) variant. */
     RUNE_POUCH_L(ItemID.BH_RUNE_POUCH_TROUVER),
+    /** Rune pouch variant used in Last Man Standing. */
     RUNE_POUCH_LMS(ItemID.BR_RUNE_REPLACEMENT);
 
     @Getter
@@ -75,6 +81,11 @@ public enum RunePouch {
         return null;
     }
 
+    /**
+     * Returns whether the player's inventory contains a rune pouch.
+     *
+     * @return {@code true} if a rune pouch is in the inventory
+     */
     public static boolean hasRunePouch() {
         return RunePouch.getRunePouch() != null;
     }

@@ -20,6 +20,10 @@ import java.util.stream.Stream;
 import java.util.Optional;
 
 
+/**
+ * Queries the items the player is wearing and the wearable items in the inventory. Both sources are included
+ * by default; {@link #inInventory()}, {@link #inInterface()} and {@link #all()} narrow or reset the source.
+ */
 @Slf4j
 public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuery, ContainerItem> {
 
@@ -34,6 +38,11 @@ public class EquipmentQuery extends AbstractQuery<EquipmentEntity, EquipmentQuer
     private int equippedItemsTick = -1;
     private List<EquipmentEntity> cachedEquippedItems;
 
+    /**
+     * Creates a query over worn and wearable items, including both sources by default.
+     *
+     * @param ctx The context used to read the equipment and inventory
+     */
     public EquipmentQuery(Context ctx) {
         super(ctx);
         equipmentSlotWidgetMapping.put(0, 15);

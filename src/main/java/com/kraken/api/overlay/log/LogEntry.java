@@ -6,6 +6,9 @@ import lombok.Getter;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * A single captured log line with its time, level, source logger, thread and message.
+ */
 @Getter
 public class LogEntry {
 
@@ -25,12 +28,29 @@ public class LogEntry {
         this.message = message;
     }
 
+    /**
+     * Creates an entry from a Logback event. The level is {@link LogLevel#ERROR} for ERROR and above,
+     * {@link LogLevel#WARN} for WARN, and {@link LogLevel#INFO} for anything lower. The source is the logger
+     * name abbreviated to 36 characters, and the thread and message are taken from the event.
+     *
+     * @param event The logging event to convert
+     * @return A new entry describing the event
+     */
     public static LogEntry from(ILoggingEvent event) {
         LogLevel level = mapLevel(event.getLevel());
         String source = abbreviate(event.getLoggerName(), 36);
         return new LogEntry(level, source, event.getThreadName(), event.getFormattedMessage());
     }
 
+    /**
+     * Creates an entry for a message that was not logged through Logback. The entry is timestamped
+     * with the current time and records the name of the calling thread.
+     *
+     * @param level The severity of the message
+     * @param source The name shown as the source of the message
+     * @param message The message text
+     * @return A new entry for the message
+     */
     public static LogEntry of(LogLevel level, String source, String message) {
         return new LogEntry(level, source, Thread.currentThread().getName(), message);
     }

@@ -14,18 +14,30 @@ import java.util.stream.Collectors;
  */
 @AllArgsConstructor
 public enum MovementFlag {
+    /** Blocks movement toward the north-west. */
     BLOCK_MOVEMENT_NORTH_WEST(CollisionDataFlag.BLOCK_MOVEMENT_NORTH_WEST),
+    /** Blocks movement toward the north. */
     BLOCK_MOVEMENT_NORTH(CollisionDataFlag.BLOCK_MOVEMENT_NORTH),
+    /** Blocks movement toward the north-east. */
     BLOCK_MOVEMENT_NORTH_EAST(CollisionDataFlag.BLOCK_MOVEMENT_NORTH_EAST),
+    /** Blocks movement toward the east. */
     BLOCK_MOVEMENT_EAST(CollisionDataFlag.BLOCK_MOVEMENT_EAST),
+    /** Blocks movement toward the south-east. */
     BLOCK_MOVEMENT_SOUTH_EAST(CollisionDataFlag.BLOCK_MOVEMENT_SOUTH_EAST),
+    /** Blocks movement toward the south. */
     BLOCK_MOVEMENT_SOUTH(CollisionDataFlag.BLOCK_MOVEMENT_SOUTH),
+    /** Blocks movement toward the south-west. */
     BLOCK_MOVEMENT_SOUTH_WEST(CollisionDataFlag.BLOCK_MOVEMENT_SOUTH_WEST),
+    /** Blocks movement toward the west. */
     BLOCK_MOVEMENT_WEST(CollisionDataFlag.BLOCK_MOVEMENT_WEST),
 
+    /** Blocks movement because of a game object on the tile. */
     BLOCK_MOVEMENT_OBJECT(CollisionDataFlag.BLOCK_MOVEMENT_OBJECT),
+    /** Blocks movement because of a floor decoration on the tile. */
     BLOCK_MOVEMENT_FLOOR_DECORATION(CollisionDataFlag.BLOCK_MOVEMENT_FLOOR_DECORATION),
+    /** Blocks movement because of the floor on the tile. */
     BLOCK_MOVEMENT_FLOOR(CollisionDataFlag.BLOCK_MOVEMENT_FLOOR),
+    /** Blocks movement across the whole tile. */
     BLOCK_MOVEMENT_FULL(CollisionDataFlag.BLOCK_MOVEMENT_FULL);
 
     @Getter
@@ -41,6 +53,13 @@ public enum MovementFlag {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Checks whether a flag is in an array of flags.
+     *
+     * @param flags The flags to search. Must not be {@code null}.
+     * @param flagToCheck The flag to look for.
+     * @return {@code true} if {@code flagToCheck} is one of {@code flags}, {@code false} otherwise.
+     */
     public static boolean hasFlag(MovementFlag[] flags, MovementFlag flagToCheck) {
         return Arrays.stream(flags).anyMatch(flag -> flag == flagToCheck);
     }

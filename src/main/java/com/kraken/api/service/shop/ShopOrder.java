@@ -42,6 +42,13 @@ public abstract class ShopOrder<T extends ShopOrder<T>> {
     /** Whether to ask the shop for a fresh quote before every step. */
     private boolean revalue = false;
 
+    /**
+     * Creates an order that trades one item, identified by its id or its name.
+     *
+     * @param shop the shop service that executes the order
+     * @param itemId the id of the item to trade, or {@link #NO_LIMIT} when the item is identified by name
+     * @param itemName the name of the item to trade, or {@code null} when the item is identified by id
+     */
     protected ShopOrder(ShopService shop, int itemId, String itemName) {
         this.shop = shop;
         this.itemId = itemId;

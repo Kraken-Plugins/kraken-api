@@ -24,6 +24,14 @@ public final class BoltEffects {
         private final boolean kandarinDiary;
         private final MonsterData monster;
 
+        /**
+         * Creates the context shared by the bolt effect transformers.
+         * @param rangedLvl The player's effective ranged level
+         * @param maxHit The attack's maximum hit before bolt effects are applied
+         * @param zcb Whether the Zaryte crossbow is equipped, which changes the bonus divisors and effect caps
+         * @param kandarinDiary Whether the Kandarin diary bonus applies, which raises each proc chance by 10%
+         * @param monster The monster being attacked
+         */
         public BoltContext(int rangedLvl, int maxHit, boolean zcb, boolean kandarinDiary, MonsterData monster) {
             this.rangedLvl = rangedLvl;
             this.maxHit = maxHit;
@@ -49,12 +57,22 @@ public final class BoltEffects {
         };
     }
 
+    /**
+     * Creates the transformer for opal bolts. Each hitsplat has a 5% chance, raised by the Kandarin diary bonus, to gain a bonus equal to the ranged level divided by 10, or by 9 with the Zaryte crossbow.
+     * @param ctx The shared bolt context
+     * @return HitTransformer the opal bolt effect
+     */
     public static HitTransformer opalBolts(BoltContext ctx) {
         double chance = 0.05 * kandarinFactor(ctx);
         int bonusDmg = ctx.rangedLvl / (ctx.zcb ? 9 : 10);
         return bonusDamage(chance, bonusDmg, false);
     }
 
+    /**
+     * Creates the transformer for pearl bolts. Each hitsplat has a 6% chance, raised by the Kandarin diary bonus, to gain a bonus equal to the ranged level divided by 20, or by 15 against fiery monsters. With the Zaryte crossbow the divisor is 2 lower.
+     * @param ctx The shared bolt context
+     * @return HitTransformer the pearl bolt effect
+     */
     public static HitTransformer pearlBolts(BoltContext ctx) {
         double chance = 0.06 * kandarinFactor(ctx);
         int divisor = ctx.monster.hasAttribute(MonsterAttributeType.FIERY) ? 15 : 20;
@@ -62,6 +80,11 @@ public final class BoltEffects {
         return bonusDamage(chance, bonusDmg, false);
     }
 
+    /**
+     * Creates the transformer for diamond bolts. Each hitsplat has a 10% chance, raised by the Kandarin diary bonus, to be replaced by a hit that deals a uniform random 0 to 115% of the maximum hit, or 126% with the Zaryte crossbow. Otherwise the original hitsplat is kept.
+     * @param ctx The shared bolt context
+     * @return HitTransformer the diamond bolt effect
+     */
     public static HitTransformer diamondBolts(BoltContext ctx) {
         double chance = 0.1 * kandarinFactor(ctx);
         int effectMax = ctx.maxHit * (ctx.zcb ? 126 : 115) / 100;
@@ -75,6 +98,11 @@ public final class BoltEffects {
         };
     }
 
+    /**
+     * Creates the transformer for dragonstone bolts. Monsters with the fiery or dragon attribute are immune, so their hitsplats are unchanged. Otherwise each accurate hitsplat has a 6% chance, raised by the Kandarin diary bonus, to gain a bonus equal to twice the ranged level divided by 10, or by 9 with the Zaryte crossbow. Missed hitsplats are not changed.
+     * @param ctx The shared bolt context
+     * @return HitTransformer the dragonstone bolt effect
+     */
     public static HitTransformer dragonstoneBolts(BoltContext ctx) {
         if (ctx.monster.hasAttribute(MonsterAttributeType.FIERY) || ctx.monster.hasAttribute(MonsterAttributeType.DRAGON)) {
             // immune to dragonfire
@@ -86,6 +114,11 @@ public final class BoltEffects {
         return bonusDamage(chance, bonusDmg, true);
     }
 
+    /**
+     * Creates the transformer for onyx bolts. Undead monsters are immune. Otherwise each accurate hitsplat has an 11% chance, raised by the Kandarin diary bonus, to be replaced by a hit that deals a uniform random 0 to 120% of the maximum hit, or 132% with the Zaryte crossbow. Missed hitsplats are not changed.
+     * @param ctx The shared bolt context
+     * @return HitTransformer the onyx bolt effect
+     */
     public static HitTransformer onyxBolts(BoltContext ctx) {
         if (ctx.monster.hasAttribute(MonsterAttributeType.UNDEAD)) {
             // immune to life leech
@@ -107,6 +140,11 @@ public final class BoltEffects {
         };
     }
 
+    /**
+     * Creates the transformer for ruby bolts. Each hitsplat has a 6% chance, raised by the Kandarin diary bonus, to be replaced by a fixed hit equal to 20% of the monster's current health, or 22% with the Zaryte crossbow. That hit is capped at 100, or 110 with the Zaryte crossbow, and at 60 or 66 for monsters with infinite health. When the current health is unknown, the monster's maximum health is used.
+     * @param ctx The shared bolt context
+     * @return HitTransformer the ruby bolt effect
+     */
     public static HitTransformer rubyBolts(BoltContext ctx) {
         double chance = 0.06 * kandarinFactor(ctx);
         int cap;

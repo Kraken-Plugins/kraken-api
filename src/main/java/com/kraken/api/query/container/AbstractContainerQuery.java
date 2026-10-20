@@ -23,6 +23,11 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractContainerQuery<T extends Interactable<R> & ItemEntity, Q extends AbstractContainerQuery<T, Q, R>, R> extends AbstractQuery<T, Q, R> {
 
+    /**
+     * Creates a query bound to the given context.
+     *
+     * @param ctx The context used to read the container
+     */
     public AbstractContainerQuery(Context ctx) {
         super(ctx);
     }
