@@ -1,6 +1,6 @@
 {
-  "runeliteVersion": "1.13.3",
-  "revision": "241",
+  "runeliteVersion": "1.13.4",
+  "revision": 241,
   "reflectionHooks": {
     "isaacCipherFieldName": "aj",
     "addNodeMethodName": "aq",
