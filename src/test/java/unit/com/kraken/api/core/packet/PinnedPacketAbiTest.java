@@ -1,5 +1,6 @@
 package unit.com.kraken.api.core.packet;
 
+import com.kraken.api.core.hooks.HookResolver;
 import com.kraken.api.core.hooks.HooksLoader;
 import com.kraken.api.core.hooks.ReflectionHooks;
 import com.kraken.api.core.packet.BufferUtils;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,15 +28,21 @@ class PinnedPacketAbiTest {
         Class<?> writerType = Class.forName(hooks.getPacketWriterClassName());
         Field cipherField = writerType.getDeclaredField(hooks.getIsaacCipherFieldName());
         Constructor<?> cipherConstructor = cipherField.getType().getConstructor(int[].class);
-        Method factory = Class.forName(hooks.getClassContainingPacketBufferNodeName()).getDeclaredMethod(
-                hooks.getPacketBufferNodeFactoryMethodName(), packets, cipherField.getType(), byte.class);
-        factory.setAccessible(true);
+        // The obfuscator picks each garbage parameter's width per revision, so both methods are resolved by shape as
+        // PacketClient resolves them, accepting any supported primitive garbage type.
+        Method factory = HookResolver.requireUnique(Class.forName(hooks.getClassContainingPacketBufferNodeName()),
+                hooks.getPacketBufferNodeFactoryMethodName(),
+                m -> Modifier.isStatic(m.getModifiers()) && m.getReturnType() == nodeType && m.getParameterCount() == 3
+                        && m.getParameterTypes()[0] == packets && m.getParameterTypes()[1] == cipherField.getType()
+                        && GarbageValueUtils.isSupportedParameterType(m.getParameterTypes()[2]));
         Field lengthField = packets.getDeclaredField(hooks.getClientPacketLengthField());
         lengthField.setAccessible(true);
         Field bufferField = nodeType.getDeclaredField(hooks.getPacketBufferFieldName());
         bufferField.setAccessible(true);
         BufferUtils.validateFields(bufferField.getType());
-        Method enqueue = writerType.getDeclaredMethod(hooks.getAddNodeMethodName(), nodeType, int.class);
+        Method enqueue = HookResolver.requireUnique(writerType, hooks.getAddNodeMethodName(),
+                m -> m.getParameterCount() == 2 && m.getParameterTypes()[0] == nodeType
+                        && GarbageValueUtils.isSupportedParameterType(m.getParameterTypes()[1]));
         assertNotNull(enqueue);
 
         Map<String, Integer> lengths = Map.of("EVENT_APPLET_FOCUS", 1, "EVENT_MOUSE_CLICK", 7, "MOVE_GAMECLICK", -1,
