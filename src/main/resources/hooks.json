@@ -1,5 +1,5 @@
 {
-  "runeliteVersion": "1.13.5",
+  "runeliteVersion": "1.13.6",
   "revision": 242,
   "reflectionHooks": {
     "isaacCipherFieldName": "ag",
@@ -24,7 +24,7 @@
     "mouseHandlerMultiplier": -7938753916163931075,
     "clientMillisField": "gk",
     "clientMillisMultiplier": -8363476876472191113,
-    "idleTimeoutField": "lt",
+    "idleTimeoutField": "wr",
     "packetBufferNodeClassName": "jy",
     "packetBufferFieldName": "ad",
     "packetBufferNodeGarbageValue": 2014705571,
@@ -37,15 +37,15 @@
     "loginIndexMethodName": "bj",
     "loginIndexClassName": "ex",
     "sessionClassName": "client",
-    "sessionMethodName": "ll",
+    "sessionMethodName": "ob",
     "accountIdClassName": "client",
-    "accountIdMethodName": "gq",
+    "accountIdMethodName": "pi",
     "accessTokenClassName": "client",
-    "accessTokenMethodName": "jw",
+    "accessTokenMethodName": "az",
     "refreshTokenClassName": "client",
-    "refreshTokenMethodName": "ac",
+    "refreshTokenMethodName": "dq",
     "credentialLookupClassName": "client",
-    "credentialLookupMethodName": "dd",
+    "credentialLookupMethodName": "df",
     "displayNameFieldName": "dg",
     "displayNameClassName": "ak",
     "accountCheckFieldName": "cc",
@@ -57,9 +57,9 @@
   },
   "securityHooks": {
     "mouseHookDllClassName": "client",
-    "mouseHookDllMethodName": "ia",
-    "clientLogFieldName": "ld",
-    "cleanCallStackValue": "client16718zx\nclient6303dh\nnrc.RuneLite302start\nnrc.RuneLite279main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown S+",
+    "mouseHookDllMethodName": "ik",
+    "clientLogFieldName": "ue",
+    "cleanCallStackValue": "client16718ba\nclient6303xf\nnrc.RuneLite302start\nnrc.RuneLite279main\nnrl.ReflectionLa+64lambda$launc+\njl.ThreadUnknown S+",
     "platformInfoClassName": "ws",
     "platformInfoMethodName": "ax",
     "isPlatformInfoMethodStatic": false,
@@ -76,27 +76,27 @@
       },
       {
         "name": "OsVersion",
-        "fieldName": "cs",
+        "fieldName": "bh",
         "multiplier": 158450469
       },
       {
         "name": "JavaVendor",
-        "fieldName": "bh",
+        "fieldName": "bx",
         "multiplier": -1653656741
       },
       {
         "name": "JavaMajor",
-        "fieldName": "cj",
+        "fieldName": "bg",
         "multiplier": 1332055579
       },
       {
         "name": "JavaMinor",
-        "fieldName": "bx",
+        "fieldName": "bc",
         "multiplier": 772235539
       },
       {
         "name": "JavaPatch",
-        "fieldName": "bg",
+        "fieldName": "bk",
         "multiplier": -382218097
       },
       {
@@ -105,22 +105,22 @@
       },
       {
         "name": "MaxMemoryMB",
-        "fieldName": "bk",
+        "fieldName": "be",
         "multiplier": -1963803691
       },
       {
         "name": "AvailableProcessors",
-        "fieldName": "cp",
+        "fieldName": "bs",
         "multiplier": 1795177931
       },
       {
         "name": "SystemMemory",
-        "fieldName": "bc",
+        "fieldName": "bz",
         "multiplier": 1375743453
       },
       {
         "name": "SystemSpeed",
-        "fieldName": "bs",
+        "fieldName": "cj",
         "multiplier": -1672739009
       },
       {
@@ -141,12 +141,12 @@
       },
       {
         "name": "GpuDriverMonth",
-        "fieldName": "be",
+        "fieldName": "cy",
         "multiplier": -39149671
       },
       {
         "name": "GpuDriverYear",
-        "fieldName": "ci",
+        "fieldName": "cz",
         "multiplier": 180672821
       },
       {
@@ -159,12 +159,12 @@
       },
       {
         "name": "CpuCount1",
-        "fieldName": "bz",
+        "fieldName": "cp",
         "multiplier": -1162880077
       },
       {
         "name": "CpuCount2",
-        "fieldName": "cz",
+        "fieldName": "cs",
         "multiplier": -989059287
       },
       {
@@ -173,7 +173,7 @@
       },
       {
         "name": "CpuSignature",
-        "fieldName": "cy",
+        "fieldName": "ci",
         "multiplier": 1268712475
       },
       {
@@ -193,7 +193,7 @@
       "writes": [
         {
           "param": "hasFocus",
-          "methodName": "ey",
+          "methodName": "bg",
           "operations": [
             {
               "type": "RAW"
@@ -208,7 +208,7 @@
       "writes": [
         {
           "param": "0",
-          "methodName": "jn",
+          "methodName": "fq",
           "operations": [
             {
               "type": "SUBTRACT",
@@ -218,7 +218,7 @@
         },
         {
           "param": "mouseInfo",
-          "methodName": "gi",
+          "methodName": "mp",
           "operations": [
             {
               "type": "ADD",
@@ -232,7 +232,7 @@
         },
         {
           "param": "mouseY",
-          "methodName": "ep",
+          "methodName": "ee",
           "operations": [
             {
               "type": "RAW"
@@ -245,7 +245,7 @@
         },
         {
           "param": "mouseX",
-          "methodName": "gi",
+          "methodName": "mp",
           "operations": [
             {
               "type": "ADD",
@@ -265,7 +265,7 @@
       "writes": [
         {
           "param": "5",
-          "methodName": "ey",
+          "methodName": "bg",
           "operations": [
             {
               "type": "RAW"
@@ -274,7 +274,7 @@
         },
         {
           "param": "ctrlDown",
-          "methodName": "jn",
+          "methodName": "fq",
           "operations": [
             {
               "type": "SUBTRACT",
@@ -284,7 +284,7 @@
         },
         {
           "param": "worldPointX",
-          "methodName": "bg",
+          "methodName": "bc",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -297,7 +297,7 @@
         },
         {
           "param": "worldPointY",
-          "methodName": "yz",
+          "methodName": "gc",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -317,7 +317,7 @@
       "writes": [
         {
           "param": "var0",
-          "methodName": "jg",
+          "methodName": "yr",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
@@ -344,7 +344,7 @@
       "writes": [
         {
           "param": "length",
-          "methodName": "ey",
+          "methodName": "bg",
           "operations": [
             {
               "type": "RAW"
@@ -368,7 +368,7 @@
       "writes": [
         {
           "param": "var0",
-          "methodName": "bg",
+          "methodName": "bc",
           "operations": [
             {
               "type": "RIGHT_SHIFT",
