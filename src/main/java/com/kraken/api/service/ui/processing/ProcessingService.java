@@ -55,8 +55,7 @@ public class ProcessingService {
                 if(widget == null) {
                     return false;
                 }
-                interactionManager.interact(widget, action);
-                return true;
+                return interactionManager.interact(widget, action);
             }
         }
 
@@ -88,8 +87,7 @@ public class ProcessingService {
                 if(widget == null) {
                     return false;
                 }
-                interactionManager.interact(widget, action);
-                return true;
+                return interactionManager.interact(widget, action);
             }
         }
 
@@ -122,8 +120,7 @@ public class ProcessingService {
                     if(widget == null) {
                         return false;
                     }
-                    interactionManager.interact(widget, action);
-                    return true;
+                    return interactionManager.interact(widget, action);
                 }
             }
         }
