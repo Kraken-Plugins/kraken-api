@@ -11,6 +11,7 @@ import com.kraken.api.service.util.SleepService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Point;
+import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 
@@ -41,84 +42,87 @@ public class MovementService {
     private MovementPackets movementPackets;
 
     /**
-     * Moves the player to the specified {@literal WorldPoint}, handling instanced areas conversion when necessary.
-     * This method ensures accurate movement by checking if the player is within an instance and applying the
-     * respective {@literal LocalPoint} to {@literal WorldPoint} conversion.
+     * Moves the player to the specified {@literal WorldPoint} by clicking its tile and sending a movement packet.
      *
-     * <p>The operation involves:
-     * <ul>
-     *   <li>Converting the given {@literal WorldPoint} to handle instanced logic if the player is in an instance.</li>
-     *   <li>Obtaining a click position on the game canvas for the target point.</li>
-     *   <li>Sending interaction packets to queue both mouse clicks and movement commands.</li>
-     * </ul>
+     * <p>Inside an instance the point may be given in either coordinate space: as a template point (the tile's
+     * location on the normal world map, from {@link WorldPoint#fromLocalInstance}) or as a point in the loaded scene
+     * (the space {@code actor.getWorldLocation()} and {@link WorldPoint#fromLocal} report). See
+     * {@link #toSceneDestination(WorldPoint)} for how the point is resolved. Nothing is sent when the point is neither.</p>
      *
      * @param point The {@literal WorldPoint} representing the destination to move towards.
      */
     public void moveTo(WorldPoint point) {
-        WorldPoint convertedPoint;
-
-        if (ctx.getClient().getTopLevelWorldView().isInstance()) {
-
-            // Try conversion with tile service first
-            LocalPoint lp = tileService.fromWorldInstance(point);
-            if (lp == null) {
-                log.error("Could not compute local instance point for world point {}, using RuneLite conversion methods", point);
-
-                // If it fails use RuneLite to convert
-                LocalPoint local = LocalPoint.fromWorld(ctx.getClient().getTopLevelWorldView(), point);
-                if (local != null) {
-                    WorldPoint templatePoint = WorldPoint.fromLocalInstance(ctx.getClient(), local);
-                    if (templatePoint != null) {
-                        convertedPoint = templatePoint;
-                    } else {
-                        log.error("Failed to convert local instance point using RuneLite from point: {}", point);
-                        return;
-                    }
-                } else {
-                    log.error("Failed to convert world point using RuneLite from point: {}", point);
-                    return;
-                }
-            } else {
-                convertedPoint = WorldPoint.fromLocal(ctx.getClient(), lp);
-            }
-        } else {
-            convertedPoint = point;
+        WorldPoint destination = toSceneDestination(point);
+        if (destination == null) {
+            log.error("Cannot move to {}: it is neither a template point of this instance nor a tile in the loaded scene", point);
+            return;
         }
-
-        Point clickingPoint = UIService.getClickbox(convertedPoint);
-        mousePackets.queueClickPacket(clickingPoint.getX(), clickingPoint.getY());
-        movementPackets.queueMovement(convertedPoint);
+        sendMovement(destination);
     }
 
     /**
-     * Moves the player to a specified {@literal LocalPoint}. This method accounts for
-     * whether the player is within an instance and converts the {@literal LocalPoint}
-     * to a {@literal WorldPoint} to enable movement. If the current top-level world view
-     * is an instance, additional conversion logic is applied to ensure accuracy.
-     *
-     * <p>The method performs the following actions:
-     * <ul>
-     *   <li>Converts the provided {@literal LocalPoint} to a {@literal WorldPoint}, handling instance logic if needed.</li>
-     *   <li>Determines the clickbox for the target {@literal WorldPoint} to simulate a mouse click.</li>
-     *   <li>Queues packets to notify the game client of the movement and corresponding mouse interaction.</li>
-     * </ul>
+     * Moves the player to a specified {@literal LocalPoint} by clicking its tile and sending a movement packet. A local
+     * point always names a tile of the loaded scene, so it is converted straight to that tile's scene coordinates,
+     * inside an instance or not.
      *
      * @param point The {@literal LocalPoint} representing the target destination to move towards.
      */
     public void moveTo(LocalPoint point) {
-        WorldPoint converted;
-        if(ctx.getClient().getTopLevelWorldView().isInstance()) {
-            // TODO May not work right
-            converted = WorldPoint.fromLocalInstance(ctx.getClient(), point);
-            LocalPoint lp = tileService.fromWorldInstance(converted);
-            converted = WorldPoint.fromLocal(ctx.getClient(), lp);
-        } else {
-            converted = WorldPoint.fromLocal(ctx.getClient(), point);
+        WorldPoint destination = toSceneDestination(point);
+        if (destination == null) {
+            log.error("Cannot move to local point {}", point);
+            return;
+        }
+        sendMovement(destination);
+    }
+
+    /**
+     * Resolves a destination to the coordinates the movement packet carries: those of a tile in the loaded scene.
+     *
+     * <p>Outside an instance the point is returned unchanged. Inside an instance a template point is converted to its
+     * first occurrence on the active plane, and a point that already lies in the loaded scene is returned unchanged.
+     * Template points are tried first, so callers that pass template points keep their behaviour.</p>
+     *
+     * @param point The destination, as a template point or a point in the loaded scene.
+     * @return The scene coordinates to send, or null when the point is null, or is inside an instance neither a
+     * template point of it nor a tile in the loaded scene.
+     */
+    public WorldPoint toSceneDestination(WorldPoint point) {
+        if (point == null) {
+            return null;
         }
 
-        Point clickingPoint = UIService.getClickbox(converted);
+        WorldView worldView = ctx.getClient().getTopLevelWorldView();
+        if (!worldView.isInstance()) {
+            return point;
+        }
+
+        LocalPoint templateOccurrence = tileService.fromWorldInstance(point);
+        if (templateOccurrence != null) {
+            return WorldPoint.fromLocal(ctx.getClient(), templateOccurrence);
+        }
+
+        return LocalPoint.fromWorld(worldView, point) != null ? point : null;
+    }
+
+    /**
+     * Resolves a local point to the coordinates of its tile in the loaded scene, the coordinates the movement packet
+     * carries.
+     *
+     * @param point The local point.
+     * @return The scene coordinates of the tile, or null when the point is null.
+     */
+    public WorldPoint toSceneDestination(LocalPoint point) {
+        if (point == null) {
+            return null;
+        }
+        return WorldPoint.fromLocal(ctx.getClient(), point);
+    }
+
+    private void sendMovement(WorldPoint destination) {
+        Point clickingPoint = UIService.getClickbox(destination);
         mousePackets.queueClickPacket(clickingPoint.getX(), clickingPoint.getY());
-        movementPackets.queueMovement(converted);
+        movementPackets.queueMovement(destination);
     }
 
     /**

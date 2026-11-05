@@ -287,5 +287,11 @@ occurrence, or an empty list for an absent template. `fromWorldInstance` returns
 on the active scene plane, or null. Template planes are preserved; tile reachability checks every
 matching occurrence on the active plane.
 
+`MovementService.moveTo(WorldPoint)` accepts either coordinate space inside an instance. A template point is
+walked to at its first occurrence on the active plane; a point already in the loaded scene, such as
+`npc.getWorldLocation()`, is sent unchanged. Template points are tried first. `moveTo(LocalPoint)` always walks to
+that scene tile. `toSceneDestination` returns the coordinates either overload would send, or null when there is
+nothing to walk to.
+
 NPC, player and tile-object menu actions carry the entity's owning world-view ID through dispatch,
 including selected-widget targets. Missing owners are rejected rather than assigned the top-level ID.
