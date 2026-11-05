@@ -8,16 +8,16 @@ import lombok.Value;
  * When a scheduled click should leave inside the current game tick, in milliseconds after the tick started.
  *
  * <p>A click sent before the server's cutoff (roughly {@code 600 - round trip - processing time} ms into the tick)
- * applies on the next tick, exactly like a click sent the instant the tick started. {@link ClickScheduler} sends the
- * click at {@link #getOffsetMs()} when no other click is too close to it, and sends it no later than the last client
- * cycle before {@link #getDeadlineMs()} whatever else is happening.
+ * applies on the next tick, exactly like a click sent the instant the tick started. ClickScheduler sends the
+ * click at getOffsetMs() when no other click is too close to it, and sends it no later than the last client
+ * cycle before getDeadlineMs() whatever else is happening.
  */
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ClickTiming {
 
     /**
-     * Marks a deadline that follows the scheduler's cutoff, {@link ClickScheduler#getCutoffMs()}.
+     * Marks a deadline that follows the scheduler's cutoff, ClickScheduler#getCutoffMs().
      */
     public static final int SCHEDULER_CUTOFF = -1;
 
