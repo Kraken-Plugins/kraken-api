@@ -4,14 +4,23 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.interaction.InteractionManager;
+import com.kraken.api.core.interaction.timing.ClickScheduler;
+import com.kraken.api.core.interaction.timing.ClickTiming;
+import com.kraken.api.core.interaction.timing.ScheduledClick;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Point;
 import net.runelite.api.Prayer;
 import net.runelite.api.Skill;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarbitID;
+import net.runelite.api.widgets.Widget;
 
+import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.kraken.api.service.prayer.InteractablePrayer.isOverhead;
 
@@ -27,6 +36,11 @@ public class PrayerService {
 
     @Inject
     private InteractionManager interactionManager;
+
+    @Inject
+    private ClickScheduler clickScheduler;
+
+    private final Map<Prayer, ScheduledPrayerClick> scheduledClicks = new EnumMap<>(Prayer.class);
 
     /**
      * Wrapper method which turns a prayer on.
@@ -65,18 +79,8 @@ public class PrayerService {
      * @return Boolean true if the prayer was activated/deactivated successfully and false otherwise.
      */
     public boolean toggle(Prayer prayer, boolean activate) {
-        if (prayer == null) {
-            return false;
-        }
-
-        InteractablePrayer prayerExtended = InteractablePrayer.of(prayer);
+        InteractablePrayer prayerExtended = usablePrayer(prayer);
         if (prayerExtended == null) {
-            return false;
-        }
-
-        // Check if prayer points is at 0 or level requirement not met
-        if (ctx.getClient().getBoostedSkillLevel(Skill.PRAYER) <= 0 ||
-                ctx.getClient().getRealSkillLevel(Skill.PRAYER) < prayerExtended.getLevel()) {
             return false;
         }
 
@@ -89,6 +93,189 @@ public class PrayerService {
 
         interactionManager.interact(prayerExtended.getIndex(), -1, -1, 1);
         return true;
+    }
+
+    /**
+     * Turns a prayer on or off with a click sent by {@link ClickScheduler} at a chosen point in the current tick,
+     * instead of at once. A click sent before the scheduler's cutoff applies on the next tick, as {@link #toggle}
+     * does.
+     *
+     * <p>The prayer counts as being in its new state from now until the click has been sent and the client shows the
+     * change (by the next client cycle), or one tick has passed. In that time a second request for the same state
+     * does nothing, and a request for the opposite state cancels the click if it has not been sent yet. When the
+     * click falls due it checks the prayer again, so a change the player made in the meantime is never reversed.
+     *
+     * @param owner    the object scheduling the click, used by {@link #cancelScheduled(Object)}; usually the plugin
+     *                 helper that plans the prayers.
+     * @param prayer   the prayer to turn on or off.
+     * @param activate true to turn the prayer on, false to turn it off.
+     * @param timing   when the click should leave; {@link ClickTiming#immediate()} sends it within this call.
+     * @return true if a click was scheduled or sent, false if none was needed or the prayer cannot be used.
+     */
+    public boolean schedule(Object owner, Prayer prayer, boolean activate, ClickTiming timing) {
+        InteractablePrayer interactable = usablePrayer(prayer);
+        if (interactable == null) {
+            return false;
+        }
+
+        ScheduledPrayerClick previous;
+        synchronized (scheduledClicks) {
+            previous = scheduledClicks.get(prayer);
+        }
+
+        boolean active = isActive(prayer);
+        boolean heading = active;
+        if (previous != null && isInFlight(previous, active)) {
+            if (previous.isActivate() == activate) {
+                return false;
+            }
+
+            if (previous.getClick().cancel()) {
+                forget(prayer, previous);
+            } else {
+                heading = previous.isActivate();
+            }
+        }
+
+        if (heading == activate) {
+            return false;
+        }
+
+        ScheduledClick click = clickScheduler.schedule(owner, timing, () -> prayerLocation(interactable),
+                () -> toggle(prayer, activate));
+        synchronized (scheduledClicks) {
+            scheduledClicks.put(prayer, new ScheduledPrayerClick(click, activate));
+        }
+        return click.isPending() || click.isSent();
+    }
+
+    /**
+     * Returns true while a click from {@link #schedule} for this prayer is waiting to be sent, or has been sent but
+     * the client does not show its change yet (at most one tick).
+     *
+     * @param prayer the prayer to check.
+     * @return true while the prayer has a click in flight.
+     */
+    public boolean isInFlight(Prayer prayer) {
+        ScheduledPrayerClick scheduled;
+        synchronized (scheduledClicks) {
+            scheduled = scheduledClicks.get(prayer);
+        }
+        return scheduled != null && isInFlight(scheduled, isActive(prayer));
+    }
+
+    /**
+     * Returns the state the prayer is heading to: the state a click in flight from {@link #schedule} will leave it
+     * in, otherwise whether it is active. Plan against this rather than {@link #isActive} so a prayer is never
+     * clicked twice.
+     *
+     * @param prayer the prayer to check.
+     * @return true if the prayer is on or is being turned on.
+     */
+    public boolean willBeActive(Prayer prayer) {
+        ScheduledPrayerClick scheduled;
+        synchronized (scheduledClicks) {
+            scheduled = scheduledClicks.get(prayer);
+        }
+
+        boolean active = isActive(prayer);
+        if (scheduled == null) {
+            return active;
+        }
+
+        if (isInFlight(scheduled, active)) {
+            return scheduled.isActivate();
+        }
+
+        forget(prayer, scheduled);
+        return active;
+    }
+
+    /**
+     * Cancels every prayer click {@code owner} scheduled that has not been sent yet.
+     *
+     * @param owner the owner passed to {@link #schedule}.
+     */
+    public void cancelScheduled(Object owner) {
+        clickScheduler.cancel(owner);
+        synchronized (scheduledClicks) {
+            scheduledClicks.values().removeIf(scheduled -> scheduled.getClick().getOwner() == owner
+                    && scheduled.getClick().getState() == ScheduledClick.State.CANCELLED);
+        }
+    }
+
+    /**
+     * @param scheduled a scheduled prayer click.
+     * @param active    whether its prayer is active now.
+     * @return true while the click is pending, or sent less than a tick ago without the client showing its change.
+     */
+    private boolean isInFlight(ScheduledPrayerClick scheduled, boolean active) {
+        ScheduledClick click = scheduled.getClick();
+        switch (click.getState()) {
+            case PENDING:
+            case SENDING:
+                return true;
+            case SENT:
+                return active != scheduled.isActivate()
+                        && clickScheduler.currentTimeMillis() - click.getSentAtMillis() < ClickScheduler.TICK_LENGTH_MS;
+            default:
+                return false;
+        }
+    }
+
+    private void forget(Prayer prayer, ScheduledPrayerClick scheduled) {
+        synchronized (scheduledClicks) {
+            scheduledClicks.remove(prayer, scheduled);
+        }
+    }
+
+    /**
+     * Finds the prayer's widget and checks the player can use it now.
+     *
+     * @param prayer the prayer to check.
+     * @return the prayer's widget data, or null when the prayer is null, has no widget, the player has no prayer
+     * points left or the player's level is too low.
+     */
+    private InteractablePrayer usablePrayer(Prayer prayer) {
+        if (prayer == null) {
+            return null;
+        }
+
+        InteractablePrayer prayerExtended = InteractablePrayer.of(prayer);
+        if (prayerExtended == null) {
+            return null;
+        }
+
+        if (ctx.getClient().getBoostedSkillLevel(Skill.PRAYER) <= 0 ||
+                ctx.getClient().getRealSkillLevel(Skill.PRAYER) < prayerExtended.getLevel()) {
+            return null;
+        }
+        return prayerExtended;
+    }
+
+    /**
+     * The center of a prayer's icon on the canvas. Runs on the client thread.
+     *
+     * @param prayer the prayer.
+     * @return the icon's center, or null while the prayer book is not showing.
+     */
+    private Point prayerLocation(InteractablePrayer prayer) {
+        Widget widget = ctx.getClient().getWidget(prayer.getIndex());
+        if (widget == null || widget.isHidden()) {
+            return null;
+        }
+
+        Rectangle bounds = widget.getBounds();
+        return new Point((int) bounds.getCenterX(), (int) bounds.getCenterY());
+    }
+
+    /**
+     * A prayer click handed to the scheduler, and the state it turns the prayer to.
+     */
+    @Value
+    private static class ScheduledPrayerClick {
+        ScheduledClick click;
+        boolean activate;
     }
 
     /**

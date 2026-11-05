@@ -9,8 +9,10 @@ import com.kraken.api.core.packet.PacketClient;
 import com.kraken.api.core.packet.PacketFactory;
 import com.kraken.api.util.MathUtils;
 import com.kraken.api.util.RandomUtils;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import net.runelite.api.Client;
+import net.runelite.api.Point;
 
 import java.awt.EventQueue;
 import java.awt.event.KeyEvent;
@@ -45,6 +47,18 @@ public class MousePackets {
      * that when several plugins click in the same instant.</p>
      */
     private static final AtomicLong idleResetThreshold = new AtomicLong(RandomUtils.randomDelay());
+
+    /**
+     * When the last click packet was sent, from {@link System#currentTimeMillis()}, or 0 before the first click.
+     */
+    @Getter
+    private volatile long lastClickMillis;
+
+    /**
+     * The canvas point of the last click packet, or null before the first click.
+     */
+    @Getter
+    private volatile Point lastClickPoint;
 
     private final Object resolutionLock = new Object();
     private volatile Field clientMillisField;
@@ -95,6 +109,8 @@ public class MousePackets {
         int mouseInfo = ((int) deltaMs << 1);
 
         packetSenderProvider.get().sendPacket(PacketFactory.getEventMouseClick(), mouseInfo, x, y, 0);
+        lastClickPoint = new Point(x, y);
+        lastClickMillis = mouseHandlerMS;
 
         maybeResetIdleCounters();
     }
