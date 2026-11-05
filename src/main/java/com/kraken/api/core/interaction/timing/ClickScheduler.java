@@ -37,7 +37,7 @@ import java.util.function.Supplier;
  *
  * <p>One scheduler serves every plugin: Guice creates it in RuneLite's injector, it registers itself with the event
  * bus and runs on the client thread from {@code ClientTick}, which fires every client cycle (about 20 ms). Clicks
- * scheduled with {@link ClickTiming#immediate()}, or while {@link #isImmediateMode()} is on, run inside
+ * scheduled with  ClickTiming#immediate(), or while #isImmediateMode() is on, run inside
  * {@link #schedule} exactly as an unscheduled interaction would.
  */
 @Slf4j
@@ -60,21 +60,14 @@ public class ClickScheduler {
     public static final int DEFAULT_CYCLE_MS = 20;
 
     /**
-     * The system property that starts the scheduler in {@link #isImmediateMode() immediate mode}, for example
+     * The system property that starts the scheduler in  #isImmediateMode() immediate mode, for example
      * {@code -Dkraken.clicks.immediate=true}.
      */
     public static final String IMMEDIATE_MODE_PROPERTY = "kraken.clicks.immediate";
 
     /**
-     * -- GETTER --
-     *
-     *
-     * -- SETTER --
      *  Turns immediate mode on or off for every plugin. With it on, every click is sent within the call that
      *  schedules it, the way interactions worked before scheduling existed, for comparison and emergencies.
-     *
-     @return true when every click is sent within the call that schedules it, ignoring its timing.
-      * @param immediate true to send every click at once.
      */
     @Setter
     @Getter
