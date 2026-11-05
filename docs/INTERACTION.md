@@ -42,6 +42,36 @@ When you call `ctx.npcs().withName("Goblin").interact("Attack")`, the following 
 4.  `InteractionDispatcher` queues a spoofed mouse click on the NPC's clickbox and `DoActionInvoker` calls `doAction` with the resolved parameters.
 5.  The client builds the `OPNPC` packet and queues it to be sent to the server.
 
+## Timed Clicks
+
+`interact(...)` sends its click in the call, which for a plugin that acts from `GameTick` means the instant the tick
+starts. `ClickScheduler` (`com.kraken.api.core.interaction.timing`) sends a click at a chosen point inside the tick
+instead. The server reads queued packets at the start of its tick, so a click sent before the cutoff (about
+`600 - round trip - server processing` ms after the tick started, 300 ms by default) applies on the next tick exactly
+like one sent at once.
+
+- `ClickTiming.at(offsetMs)` sends the click `offsetMs` after the tick started, and no later than the scheduler's
+  cutoff. `ClickTiming.at(offsetMs, deadlineMs)` sets its own deadline. `ClickTiming.immediate()` sends it within the
+  call.
+- One scheduler serves every plugin and runs on the client thread from `ClientTick` (every client cycle, about 20 ms).
+  A click waits for a human gap after the last click from any plugin (`HumanClickGap`: a lognormal gap with a median
+  near 110 ms plus a Fitts' law travel time, seeded per account), unless the next client cycle would pass its
+  deadline, in which case it goes out at once.
+- A click's action runs when it falls due and should return `false` without clicking when the click is no longer
+  needed, so a change the player made in the meantime is never reversed.
+- `ClickScheduler.setImmediateMode(true)`, or `-Dkraken.clicks.immediate=true`, sends every click within the call for
+  every plugin, for comparison and emergencies.
+
+`PrayerService.schedule(owner, prayer, activate, timing)` is the prayer form. The prayer counts as being in its new
+state until the click has been sent and the client shows the change (by the next client cycle), or one tick has
+passed: a second request for the same state does nothing, and one for the opposite state cancels a click not yet sent.
+Plan against `PrayerService.willBeActive(prayer)` rather than `isActive` so a prayer is never clicked twice. The
+client changes prayer varbits itself a cycle after a click, whether or not the server applied it in time, so varbits
+cannot tell you when a click took effect. `cancelScheduled(owner)` drops an owner's clicks when a plugin stops.
+
+The Kraken-Utils `prayer.timing` package in kraken-plugins builds on this: it picks the tick each prayer changes on
+and the offset inside the tick from a per-account timing model.
+
 ## Packet System Overview
 
 The packet system covers the actions that do not go through `doAction`. It consists of several key components working together:
