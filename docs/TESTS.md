@@ -181,6 +181,13 @@ The following items must be present in your **Bank**:
   it in time. The test also records the prayer's varp changes and its activation and deactivation sounds. If any of
   them arrive with a tick update, the log reports which offsets the server applied on the next tick and which slipped
   a tick, using calibration clicks sent at 320 to 520 ms on purpose. If none do, it says so.
+- **Chart**: each run writes `timed-prayer-flicks-<time>.html` and `.csv` to `.runelite/kraken/prayer-timing/` (the
+  log names the file). Open the HTML in any browser. It shows one row per game tick with every on and off click at the
+  millisecond it went out, the offset it asked for, hit ticks shaded, the cutoff, the feint and every varp change and
+  prayer sound, then a histogram of send offsets, the checks and a table view. The CSV has the same events, one per
+  row, for a spreadsheet. `./gradlew test` writes a sample from a simulated run to
+  `build/reports/prayer-timing/timed-prayer-flicks-sample.html`. DevTools' Phantom Boss tool in kraken-plugins
+  writes the same kind of chart.
 
 ### `InventoryTest`
 - **Location**: Any bank which is currently open

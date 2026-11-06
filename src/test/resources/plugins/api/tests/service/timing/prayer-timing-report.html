@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prayer timing report</title>
+<!--
+  Prayer timing report. One template renders the data any prayer timing test writes into the report-data block below:
+  a tick by tick strip of where each click went out, a histogram of send offsets, the run's checks and a table view.
+  The same file is kept in kraken-api (test plugin) and kraken-plugins (DevTools); keep the two copies identical.
+-->
+<style>
+.viz-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --band: #e9e8e3;
+  --late-zone: rgba(137, 135, 129, 0.12);
+  --series-on: #2a78d6;
+  --series-off: #eb6834;
+  --status-good: #0ca30c;
+  --status-critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --band: #2e2e2b;
+    --late-zone: rgba(137, 135, 129, 0.14);
+    --series-on: #3987e5;
+    --series-off: #d95926;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --band: #2e2e2b;
+  --late-zone: rgba(137, 135, 129, 0.14);
+  --series-on: #3987e5;
+  --series-off: #d95926;
+}
+html, body { margin: 0; }
+.viz-root {
+  min-height: 100vh;
+  background: var(--page);
+  color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.viz-root h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+.viz-root h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.subtitle, .card-note { color: var(--text-secondary); margin: 0 0 12px; }
+.toolbar { display: flex; gap: 8px; align-items: center; margin: 12px 0 16px; }
+.toolbar button {
+  font: inherit; color: var(--text-primary); background: var(--surface-1);
+  border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer;
+}
+.card {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; margin: 0 0 16px; max-width: 960px;
+}
+.checks { list-style: none; margin: 0; padding: 0; }
+.checks li { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 4px 0; }
+.status { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.status svg { flex: none; }
+.check-detail { color: var(--text-secondary); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 4px 0 8px; color: var(--text-secondary); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; }
+.notes { margin: 0; padding-left: 18px; color: var(--text-secondary); }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 8px 0 16px; }
+th, td { text-align: right; padding: 3px 10px; border-bottom: 1px solid var(--grid); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-secondary); font-weight: 600; }
+.hit-target { fill: transparent; cursor: default; outline: none; }
+.hit-target:focus-visible { stroke: var(--text-primary); stroke-width: 1; }
+.tooltip {
+  position: fixed; pointer-events: none; z-index: 10; max-width: 320px;
+  background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.tooltip strong { display: block; font-size: 14px; }
+.tooltip .tooltip-row { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+.tooltip .key { width: 12px; height: 2px; flex: none; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <h1 id="title">Prayer timing report</h1>
+  <p class="subtitle" id="subtitle"></p>
+  <div class="toolbar">
+    <button type="button" id="theme-toggle">Toggle dark mode</button>
+  </div>
+
+  <section class="card" aria-labelledby="checks-title">
+    <h2 id="checks-title">Checks</h2>
+    <ul class="checks" id="checks"></ul>
+  </section>
+
+  <section class="card" aria-labelledby="raster-title">
+    <h2 id="raster-title">Where each click went out, tick by tick</h2>
+    <p class="card-note">Each row is one game tick, read left to right from the moment it starts. A click in a row
+      changes the prayer from the next row. Shaded rows are hit ticks, where the prayer must be up.</p>
+    <div class="legend" id="raster-legend"></div>
+    <svg class="chart" id="raster" role="img" aria-labelledby="raster-title"></svg>
+  </section>
+
+  <section class="card" aria-labelledby="histogram-title">
+    <h2 id="histogram-title">Send offsets</h2>
+    <p class="card-note">How many clicks went out in each 50 ms of the tick.</p>
+    <div class="legend" id="histogram-legend"></div>
+    <svg class="chart" id="histogram" role="img" aria-labelledby="histogram-title"></svg>
+  </section>
+
+  <section class="card" aria-labelledby="notes-title">
+    <h2 id="notes-title">Measurements</h2>
+    <ul class="notes" id="notes"></ul>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Table view</summary>
+      <h2>Clicks</h2>
+      <table id="clicks-table"></table>
+      <h2>Ticks</h2>
+      <table id="ticks-table"></table>
+      <h2>Other events</h2>
+      <table id="markers-table"></table>
+    </details>
+  </section>
+</div>
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+<script id="report-data" type="application/json">__REPORT_JSON__</script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById('report-data').textContent);
+  const NS = 'http://www.w3.org/2000/svg';
+  const TICK_MS = data.tickMs || 600;
+  const cutoff = data.cutoffMs;
+  const tooltip = document.getElementById('tooltip');
+
+  const MARKERS = {
+    plan: { label: 'Planned again mid tick' },
+    appear: { label: 'Projectile appeared' },
+    vanish: { label: 'Projectile vanished' },
+    feint: { label: 'Feint click scheduled' },
+    cancel: { label: 'Feint click cancelled' },
+    varp: { label: 'Prayer varp changed' },
+    sound: { label: 'Prayer sound played' }
+  };
+
+  function svg(name, attrs, parent) {
+    const node = document.createElementNS(NS, name);
+    for (const key in attrs) {
+      node.setAttribute(key, attrs[key]);
+    }
+    if (parent) {
+      parent.appendChild(node);
+    }
+    return node;
+  }
+
+  function text(parent, x, y, value, attrs) {
+    const node = svg('text', Object.assign({ x: x, y: y }, attrs || {}), parent);
+    node.textContent = value;
+    return node;
+  }
+
+  function triangle(cx, cy, up, size) {
+    const h = size, w = size * 1.15;
+    return up
+      ? `M${cx} ${cy - h / 2} L${cx + w / 2} ${cy + h / 2} L${cx - w / 2} ${cy + h / 2} Z`
+      : `M${cx - w / 2} ${cy - h / 2} L${cx + w / 2} ${cy - h / 2} L${cx} ${cy + h / 2} Z`;
+  }
+
+  function seriesColor(on) {
+    return on ? 'var(--series-on)' : 'var(--series-off)';
+  }
+
+  function showTooltip(event, value, rows) {
+    tooltip.replaceChildren();
+    const strong = document.createElement('strong');
+    strong.textContent = value;
+    tooltip.appendChild(strong);
+    for (const row of rows) {
+      const line = document.createElement('div');
+      line.className = 'tooltip-row';
+      if (row.color) {
+        const key = document.createElement('span');
+        key.className = 'key';
+        key.style.background = row.color;
+        line.appendChild(key);
+      }
+      const label = document.createElement('span');
+      label.textContent = row.text;
+      line.appendChild(label);
+      tooltip.appendChild(line);
+    }
+    tooltip.hidden = false;
+    let x, y;
+    if (event.type === 'focus') {
+      const box = event.target.getBoundingClientRect();
+      x = box.right;
+      y = box.top;
+    } else {
+      x = event.clientX;
+      y = event.clientY;
+    }
+    const width = tooltip.offsetWidth, height = tooltip.offsetHeight;
+    tooltip.style.left = Math.min(window.innerWidth - width - 8, x + 14) + 'px';
+    tooltip.style.top = Math.max(8, Math.min(window.innerHeight - height - 8, y - height - 10)) + 'px';
+  }
+
+  function hideTooltip() {
+    tooltip.hidden = true;
+  }
+
+  function hitTarget(parent, x, y, width, height, value, rows, name) {
+    const target = svg('rect', { x: x, y: y, width: width, height: height, class: 'hit-target', tabindex: 0,
+      'aria-label': name }, parent);
+    const show = event => showTooltip(event, value, rows);
+    target.addEventListener('pointerenter', show);
+    target.addEventListener('pointermove', show);
+    target.addEventListener('focus', show);
+    target.addEventListener('pointerleave', hideTooltip);
+    target.addEventListener('blur', hideTooltip);
+    return target;
+  }
+
+  function legendItem(container, swatch, label) {
+    const item = document.createElement('span');
+    const icon = svg('svg', { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' });
+    swatch(icon);
+    item.appendChild(icon);
+    const name = document.createElement('span');
+    name.textContent = label;
+    item.appendChild(name);
+    container.appendChild(item);
+  }
+
+  function statusIcon(passed) {
+    const icon = svg('svg', { width: 14, height: 14, viewBox: '0 0 14 14', 'aria-hidden': 'true' });
+    svg('circle', { cx: 7, cy: 7, r: 7, fill: passed ? 'var(--status-good)' : 'var(--status-critical)' }, icon);
+    svg('path', passed
+      ? { d: 'M3.8 7.2 L6 9.4 L10.2 4.9', stroke: '#ffffff', 'stroke-width': 1.8, fill: 'none',
+          'stroke-linecap': 'round', 'stroke-linejoin': 'round' }
+      : { d: 'M4.5 4.5 L9.5 9.5 M9.5 4.5 L4.5 9.5', stroke: '#ffffff', 'stroke-width': 1.8,
+          'stroke-linecap': 'round' }, icon);
+    return icon;
+  }
+
+  function markerShape(parent, type, cx, cy) {
+    const ink = type === 'varp' || type === 'sound' ? 'var(--text-muted)' : 'var(--text-secondary)';
+    switch (type) {
+      case 'plan':
+        svg('line', { x1: cx, x2: cx, y1: cy - 6, y2: cy + 6, stroke: ink, 'stroke-width': 1 }, parent);
+        break;
+      case 'appear':
+        svg('path', { d: `M${cx} ${cy - 5} L${cx + 5} ${cy} L${cx} ${cy + 5} L${cx - 5} ${cy} Z`, fill: ink,
+          stroke: 'var(--surface-1)', 'stroke-width': 2, 'paint-order': 'stroke' }, parent);
+        break;
+      case 'vanish':
+      case 'cancel':
+        svg('path', { d: `M${cx - 4} ${cy - 4} L${cx + 4} ${cy + 4} M${cx + 4} ${cy - 4} L${cx - 4} ${cy + 4}`,
+          stroke: ink, 'stroke-width': 2, 'stroke-linecap': 'round' }, parent);
+        break;
+      case 'feint':
+        svg('path', { d: triangle(cx, cy, true, 9), fill: 'var(--surface-1)', stroke: 'var(--series-on)',
+          'stroke-width': 1.5 }, parent);
+        break;
+      case 'varp':
+        svg('rect', { x: cx - 1, y: cy - 5, width: 2, height: 10, rx: 1, fill: ink }, parent);
+        break;
+      case 'sound':
+        svg('circle', { cx: cx, cy: cy, r: 3.5, fill: 'none', stroke: ink, 'stroke-width': 1.5 }, parent);
+        break;
+      default:
+        svg('circle', { cx: cx, cy: cy, r: 2.5, fill: ink }, parent);
+    }
+  }
+
+  function renderHeader() {
+    document.getElementById('title').textContent = data.title || 'Prayer timing report';
+    document.getElementById('subtitle').textContent = data.subtitle || '';
+    document.title = data.title || 'Prayer timing report';
+
+    const list = document.getElementById('checks');
+    for (const check of data.checks || []) {
+      const item = document.createElement('li');
+      const status = document.createElement('span');
+      status.className = 'status';
+      status.appendChild(statusIcon(check.passed));
+      const label = document.createElement('span');
+      label.textContent = check.passed ? 'Pass' : 'Fail';
+      status.appendChild(label);
+      const body = document.createElement('span');
+      const name = document.createElement('span');
+      name.textContent = check.name;
+      const detail = document.createElement('div');
+      detail.className = 'check-detail';
+      detail.textContent = check.detail;
+      body.appendChild(name);
+      body.appendChild(detail);
+      item.appendChild(status);
+      item.appendChild(body);
+      list.appendChild(item);
+    }
+    if (!(data.checks || []).length) {
+      const item = document.createElement('li');
+      item.textContent = 'No checks recorded';
+      list.appendChild(item);
+    }
+
+    const notes = document.getElementById('notes');
+    for (const note of data.notes || []) {
+      const item = document.createElement('li');
+      item.textContent = note;
+      notes.appendChild(item);
+    }
+  }
+
+  function renderRaster() {
+    const chart = document.getElementById('raster');
+    const ticks = (data.ticks || []).slice().sort((a, b) => a.tick - b.tick);
+    const rowOf = new Map(ticks.map((tick, index) => [tick.tick, index]));
+    const ROW = 18, GUTTER = 168, PLOT = 720, RIGHT = 24, TOP = 40, BOTTOM = 34;
+    const width = GUTTER + PLOT + RIGHT;
+    const height = TOP + ticks.length * ROW + BOTTOM;
+    chart.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    const x = ms => GUTTER + Math.max(0, Math.min(TICK_MS, ms)) / TICK_MS * PLOT;
+    const rowY = index => TOP + index * ROW;
+
+    const plotBottom = TOP + ticks.length * ROW;
+    ticks.forEach((tick, index) => {
+      if (tick.hit) {
+        svg('rect', { x: GUTTER, y: rowY(index) + 1, width: PLOT, height: ROW - 2, rx: 3, fill: 'var(--band)' }, chart);
+      }
+    });
+    if (cutoff > 0 && cutoff < TICK_MS) {
+      svg('rect', { x: x(cutoff), y: TOP, width: x(TICK_MS) - x(cutoff), height: plotBottom - TOP,
+        fill: 'var(--late-zone)' }, chart);
+    }
+    for (let ms = 0; ms <= TICK_MS; ms += 100) {
+      svg('line', { x1: x(ms), x2: x(ms), y1: TOP, y2: plotBottom, stroke: 'var(--grid)', 'stroke-width': 1 }, chart);
+      const label = ms === TICK_MS ? `${ms} ms` : String(ms);
+      text(chart, x(ms), TOP - 8, label, { 'text-anchor': 'middle', fill: 'var(--text-muted)' });
+      text(chart, x(ms), plotBottom + 18, label, { 'text-anchor': 'middle', fill: 'var(--text-muted)' });
+    }
+    if (cutoff > 0 && cutoff < TICK_MS) {
+      svg('line', { x1: x(cutoff), x2: x(cutoff), y1: TOP - 4, y2: plotBottom, stroke: 'var(--text-secondary)',
+        'stroke-width': 1 }, chart);
+      text(chart, x(cutoff) + 4, TOP - 22, `cutoff ${cutoff} ms`, { fill: 'var(--text-secondary)' });
+      text(chart, x(TICK_MS) - 4, TOP - 22, 'after the cutoff', { 'text-anchor': 'end', fill: 'var(--text-muted)' });
+    }
+    text(chart, 0, TOP - 8, 'Tick', { fill: 'var(--text-muted)' });
+    text(chart, 52, TOP - 8, 'Prayer', { fill: 'var(--text-muted)' });
+
+    ticks.forEach((tick, index) => {
+      const cy = rowY(index) + ROW / 2;
+      text(chart, 0, cy + 4, String(tick.tick), { fill: 'var(--text-muted)' });
+      if (tick.up) {
+        svg('circle', { cx: 60, cy: cy, r: 4, fill: 'var(--text-primary)' }, chart);
+      } else {
+        svg('circle', { cx: 60, cy: cy, r: 3.5, fill: 'none', stroke: 'var(--text-muted)', 'stroke-width': 1.2 }, chart);
+      }
+      const verdict = tick.verdict || '';
+      if (verdict === 'missed' || verdict === 'stray') {
+        const badge = svg('g', { transform: `translate(74 ${cy - 7})` }, chart);
+        badge.appendChild(statusIcon(false));
+        text(chart, 92, cy + 4, verdict === 'missed' ? 'missed hit' : 'stray up', { fill: 'var(--text-primary)' });
+      } else if (verdict) {
+        text(chart, 74, cy + 4, verdict, { fill: 'var(--text-muted)' });
+      }
+      const state = `${tick.up ? 'up' : 'down'} at tick start` + (tick.hit ? ', hit tick' : '')
+        + (verdict ? `, ${verdict}` : '');
+      hitTarget(chart, 0, rowY(index), GUTTER - 8, ROW, `Tick ${tick.tick}`, [{ text: `Prayer ${state}` }],
+        `Tick ${tick.tick}: prayer ${state}`);
+    });
+
+    for (const marker of data.markers || []) {
+      const index = rowOf.get(marker.tick);
+      if (index === undefined) {
+        continue;
+      }
+      const cy = rowY(index) + ROW / 2;
+      markerShape(chart, marker.type, x(marker.ms), cy);
+      const name = (MARKERS[marker.type] || { label: marker.type }).label;
+      hitTarget(chart, x(marker.ms) - 12, rowY(index), 24, ROW, `${marker.ms} ms`,
+        [{ text: `${name} · tick ${marker.tick}` }].concat(marker.label ? [{ text: marker.label }] : []),
+        `${name} at ${marker.ms} ms in tick ${marker.tick}`);
+    }
+
+    for (const click of data.clicks || []) {
+      const index = rowOf.get(click.tick);
+      if (index === undefined) {
+        continue;
+      }
+      const cy = rowY(index) + ROW / 2;
+      const color = seriesColor(click.on);
+      const asked = click.requestedMs >= 0 && click.kind !== 'IMMEDIATE';
+      if (asked) {
+        svg('line', { x1: x(click.requestedMs), x2: x(click.sentMs), y1: cy, y2: cy, stroke: color,
+          'stroke-width': 1, opacity: 0.6 }, chart);
+        svg('path', { d: triangle(x(click.requestedMs), cy, click.on, 8), fill: 'var(--surface-1)', stroke: color,
+          'stroke-width': 1.5 }, chart);
+      }
+      svg('path', { d: triangle(x(click.sentMs), cy, click.on, 10), fill: color, stroke: 'var(--surface-1)',
+        'stroke-width': 2, 'paint-order': 'stroke' }, chart);
+
+      const name = click.on ? 'On click' : 'Off click';
+      const rows = [{ color: color, text: `${name} · tick ${click.tick}` + (click.kind ? ` · ${click.kind}` : '') }];
+      if (asked) {
+        const late = click.sentMs - click.requestedMs;
+        rows.push({ text: `asked ${click.requestedMs} ms, ${late >= 0 ? '+' : ''}${late} ms` });
+      }
+      if (click.sentMs > TICK_MS) {
+        rows.push({ text: 'went out after the tick ended' });
+      }
+      const left = Math.min(x(click.sentMs), asked ? x(click.requestedMs) : x(click.sentMs)) - 12;
+      const right = Math.max(x(click.sentMs), asked ? x(click.requestedMs) : x(click.sentMs)) + 12;
+      hitTarget(chart, left, rowY(index), Math.max(24, right - left), ROW, `${click.sentMs} ms`, rows,
+        `${name} at ${click.sentMs} ms in tick ${click.tick}`);
+    }
+
+    const legend = document.getElementById('raster-legend');
+    legendItem(legend, icon => svg('path', { d: triangle(8, 8, true, 10), fill: 'var(--series-on)' }, icon), 'On click');
+    legendItem(legend, icon => svg('path', { d: triangle(8, 8, false, 10), fill: 'var(--series-off)' }, icon), 'Off click');
+    if ((data.clicks || []).some(click => click.requestedMs >= 0 && click.kind !== 'IMMEDIATE')) {
+      legendItem(legend, icon => svg('path', { d: triangle(8, 8, true, 8), fill: 'none', stroke: 'var(--text-secondary)',
+        'stroke-width': 1.5 }, icon), 'Asked offset');
+    }
+    legendItem(legend, icon => svg('rect', { x: 1, y: 3, width: 14, height: 10, rx: 3, fill: 'var(--band)' }, icon), 'Hit tick');
+    legendItem(legend, icon => svg('circle', { cx: 8, cy: 8, r: 4, fill: 'var(--text-primary)' }, icon), 'Prayer up at tick start');
+    legendItem(legend, icon => svg('circle', { cx: 8, cy: 8, r: 3.5, fill: 'none', stroke: 'var(--text-muted)',
+      'stroke-width': 1.2 }, icon), 'Prayer down');
+    const types = new Set((data.markers || []).map(marker => marker.type));
+    for (const type of Object.keys(MARKERS)) {
+      if (types.has(type)) {
+        legendItem(legend, icon => markerShape(icon, type, 8, 8), MARKERS[type].label);
+      }
+    }
+  }
+
+  function renderHistogram() {
+    const chart = document.getElementById('histogram');
+    const BIN = 50, LEFT = 40, PLOT = 840, RIGHT = 24, TOP = 16, HEIGHT = 180, BOTTOM = 34;
+    const width = LEFT + PLOT + RIGHT, height = TOP + HEIGHT + BOTTOM;
+    chart.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    const bins = Math.ceil(TICK_MS / BIN);
+    const counts = { on: new Array(bins).fill(0), off: new Array(bins).fill(0) };
+    let late = 0;
+    for (const click of data.clicks || []) {
+      if (click.sentMs >= TICK_MS) {
+        late++;
+        continue;
+      }
+      counts[click.on ? 'on' : 'off'][Math.max(0, Math.floor(click.sentMs / BIN))]++;
+    }
+    const most = Math.max(1, ...counts.on, ...counts.off);
+    const step = most <= 5 ? 1 : most <= 10 ? 2 : most <= 25 ? 5 : 10;
+    const top = Math.ceil(most / step) * step;
+    const y = value => TOP + HEIGHT - value / top * HEIGHT;
+    const binWidth = PLOT / bins;
+    const barWidth = Math.min(24, (binWidth - 2 - 12) / 2);
+
+    for (let value = 0; value <= top; value += step) {
+      svg('line', { x1: LEFT, x2: LEFT + PLOT, y1: y(value), y2: y(value), stroke: value === 0 ? 'var(--axis)' : 'var(--grid)',
+        'stroke-width': 1 }, chart);
+      text(chart, LEFT - 8, y(value) + 4, String(value), { 'text-anchor': 'end', fill: 'var(--text-muted)' });
+    }
+    for (let bin = 0; bin <= bins; bin++) {
+      const label = bin === bins ? `${bin * BIN} ms` : String(bin * BIN);
+      text(chart, LEFT + bin * binWidth, TOP + HEIGHT + 18, label, { 'text-anchor': 'middle', fill: 'var(--text-muted)' });
+    }
+    if (cutoff > 0 && cutoff < TICK_MS) {
+      const cx = LEFT + cutoff / TICK_MS * PLOT;
+      svg('line', { x1: cx, x2: cx, y1: TOP, y2: TOP + HEIGHT, stroke: 'var(--text-secondary)', 'stroke-width': 1 }, chart);
+      text(chart, cx + 4, TOP + 10, `cutoff ${cutoff} ms`, { fill: 'var(--text-secondary)' });
+    }
+
+    function column(left, value, color) {
+      if (value === 0) {
+        return;
+      }
+      const baseline = y(0), topY = y(value), r = Math.min(4, (baseline - topY) / 2, barWidth / 2);
+      svg('path', { d: `M${left} ${baseline} L${left} ${topY + r} Q${left} ${topY} ${left + r} ${topY} `
+        + `L${left + barWidth - r} ${topY} Q${left + barWidth} ${topY} ${left + barWidth} ${topY + r} `
+        + `L${left + barWidth} ${baseline} Z`, fill: color }, chart);
+    }
+    for (let bin = 0; bin < bins; bin++) {
+      const centre = LEFT + bin * binWidth + binWidth / 2;
+      const onLeft = centre - 1 - barWidth, offLeft = centre + 1;
+      column(onLeft, counts.on[bin], 'var(--series-on)');
+      column(offLeft, counts.off[bin], 'var(--series-off)');
+      const range = `${bin * BIN} to ${bin * BIN + BIN - 1} ms`;
+      hitTarget(chart, LEFT + bin * binWidth, TOP, binWidth, HEIGHT, range,
+        [{ color: 'var(--series-on)', text: `On clicks: ${counts.on[bin]}` },
+          { color: 'var(--series-off)', text: `Off clicks: ${counts.off[bin]}` }],
+        `${range}: ${counts.on[bin]} on clicks, ${counts.off[bin]} off clicks`);
+    }
+
+    const legend = document.getElementById('histogram-legend');
+    legendItem(legend, icon => svg('rect', { x: 2, y: 2, width: 12, height: 12, rx: 3, fill: 'var(--series-on)' }, icon), 'On clicks');
+    legendItem(legend, icon => svg('rect', { x: 2, y: 2, width: 12, height: 12, rx: 3, fill: 'var(--series-off)' }, icon), 'Off clicks');
+    if (late > 0) {
+      const note = document.createElement('span');
+      note.textContent = `${late} click${late === 1 ? '' : 's'} went out after the tick ended (not shown)`;
+      legend.appendChild(note);
+    }
+  }
+
+  function renderTables() {
+    function fill(table, headers, rows) {
+      const head = table.createTHead().insertRow();
+      for (const header of headers) {
+        const cell = document.createElement('th');
+        cell.textContent = header;
+        head.appendChild(cell);
+      }
+      const body = table.createTBody();
+      for (const row of rows) {
+        const line = body.insertRow();
+        for (const value of row) {
+          line.insertCell().textContent = value;
+        }
+      }
+    }
+    fill(document.getElementById('clicks-table'), ['Tick', 'Click', 'Kind', 'Asked ms', 'Sent ms', 'Late ms'],
+      (data.clicks || []).map(click => {
+        const asked = click.requestedMs >= 0 && click.kind !== 'IMMEDIATE';
+        return [click.tick, click.on ? 'on' : 'off', click.kind || '', asked ? click.requestedMs : '',
+          click.sentMs, asked ? click.sentMs - click.requestedMs : ''];
+      }));
+    fill(document.getElementById('ticks-table'), ['Tick', 'Hit', 'Prayer at start', 'Verdict'],
+      (data.ticks || []).map(tick => [tick.tick, tick.hit ? 'yes' : '', tick.up ? 'up' : 'down', tick.verdict || '']));
+    fill(document.getElementById('markers-table'), ['Tick', 'Ms', 'Event', 'Detail'],
+      (data.markers || []).map(marker => [marker.tick, marker.ms, (MARKERS[marker.type] || { label: marker.type }).label,
+        marker.label || '']));
+  }
+
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme
+      ? root.dataset.theme === 'dark'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+  });
+
+  renderHeader();
+  renderRaster();
+  renderHistogram();
+  renderTables();
+})();
+</script>
+</body>
+</html>

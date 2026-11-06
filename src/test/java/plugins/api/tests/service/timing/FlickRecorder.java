@@ -5,6 +5,7 @@ import plugins.api.tests.service.timing.PhantomBoss.Kind;
 import plugins.api.tests.service.timing.PhantomBoss.PlannedFlick;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.IntSummaryStatistics;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -84,6 +85,7 @@ public class FlickRecorder {
     private Boolean feintWillBeActive;
     private Boolean feintInFlightAfterCancel;
     private Boolean feintWillBeActiveAfterCancel;
+    private long feintCancelMillis = -1;
     private int startPrayerPoints = -1;
     private int endPrayerPoints = -1;
 
@@ -146,10 +148,12 @@ public class FlickRecorder {
     /**
      * Records the prayer service's view right after the feint's on click was called off.
      *
+     * @param millis       when the click was called off
      * @param inFlight     what {@code isInFlight} returned
      * @param willBeActive what {@code willBeActive} returned
      */
-    public synchronized void feintCancelled(boolean inFlight, boolean willBeActive) {
+    public synchronized void feintCancelled(long millis, boolean inFlight, boolean willBeActive) {
+        feintCancelMillis = millis;
         feintInFlightAfterCancel = inFlight;
         feintWillBeActiveAfterCancel = willBeActive;
     }
@@ -171,7 +175,7 @@ public class FlickRecorder {
      * @param boss     the plan the run followed
      * @param cutoffMs the scheduler's cutoff
      * @param cycleMs  the measured length of a client cycle, the slack allowed past a deadline
-     * @return the checks and measurements
+     * @return the checks, the measurements and the timeline to chart
      */
     public synchronized FlickReport report(PhantomBoss boss, int cutoffMs, int cycleMs) {
         List<FlickReport.Check> checks = new ArrayList<>();
@@ -190,7 +194,73 @@ public class FlickRecorder {
             details.add("Prayer points: " + startPrayerPoints + " before, " + endPrayerPoints + " after, over "
                     + boss.getHitTicks().size() + " hit ticks");
         }
-        return new FlickReport(checks, details);
+        return new FlickReport(checks, details, timeline(boss, matched, checks, details, cutoffMs));
+    }
+
+    /**
+     * Lays the run out tick by tick for {@link PrayerTimingReport}: the prayer's state at each tick from the one before
+     * the first hit to the end, every click with what it asked for, every signal, and the feint.
+     */
+    private PrayerTimingReport timeline(PhantomBoss boss, Map<PlannedFlick, Click> matched,
+                                        List<FlickReport.Check> checks, List<String> details, int cutoffMs) {
+        PrayerTimingReport.PrayerTimingReportBuilder timeline = PrayerTimingReport.builder().cutoffMs(cutoffMs);
+        checks.forEach(check -> timeline.check(new PrayerTimingReport.Check(check.getName(), check.isPassed(),
+                check.getDetail())));
+        details.forEach(timeline::note);
+
+        for (int tick = boss.getHitTicks().first() - 1; tick <= boss.getEndTick(); tick++) {
+            TickSample sample = ticks.get(tick);
+            if (sample == null) {
+                continue;
+            }
+
+            boolean hit = boss.isHit(tick);
+            String verdict = "";
+            if (boss.isChecked(tick) && hit != sample.isUp()) {
+                verdict = hit ? "missed" : "stray";
+            } else if (boss.getProbeHitTicks().contains(tick)) {
+                verdict = "probe";
+            } else if (tick == boss.getFeint().getTick()) {
+                verdict = "feint";
+            }
+            timeline.tick(new PrayerTimingReport.Tick(tick, hit, sample.isUp(), verdict));
+        }
+
+        Map<Click, PlannedFlick> planned = new HashMap<>();
+        matched.forEach((flick, click) -> planned.put(click, flick));
+        for (Click click : clicks) {
+            int tick = tickOf(click.getMillis());
+            PlannedFlick flick = planned.get(click);
+            timeline.click(new PrayerTimingReport.Click(tick, click.isOn(), offsetIn(tick, click.getMillis()),
+                    flick == null ? -1 : flick.getOffsetMs(), flick == null ? "UNPLANNED" : flick.getKind().name()));
+        }
+
+        for (Signal signal : signals) {
+            int tick = tickOf(signal.getMillis());
+            String label = signal.getType() == SignalType.VARP
+                    ? (signal.isUp() ? "now reads up" : "now reads down")
+                    : (signal.isUp() ? "activation sound" : "deactivation sound");
+            timeline.marker(new PrayerTimingReport.Marker(tick, offsetIn(tick, signal.getMillis()),
+                    signal.getType().name().toLowerCase(), label));
+        }
+
+        PhantomBoss.Feint feint = boss.getFeint();
+        timeline.marker(new PrayerTimingReport.Marker(feint.getTick(), feint.getOnOffsetMs(), "feint",
+                "on click asked for " + feint.getOnOffsetMs() + " ms"));
+        if (feintCancelMillis >= 0) {
+            int tick = tickOf(feintCancelMillis);
+            timeline.marker(new PrayerTimingReport.Marker(tick, offsetIn(tick, feintCancelMillis), "cancel",
+                    "off requested, which cancels the pending on"));
+        }
+        return timeline.build();
+    }
+
+    /**
+     * @return milliseconds after the given tick started, or 0 when the tick was not seen
+     */
+    private int offsetIn(int tick, long millis) {
+        TickSample sample = ticks.get(tick);
+        return sample == null ? 0 : (int) (millis - sample.getStartMillis());
     }
 
     /**

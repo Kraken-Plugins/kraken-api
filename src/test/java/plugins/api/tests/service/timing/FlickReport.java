@@ -22,12 +22,19 @@ public class FlickReport {
     List<String> details;
 
     /**
-     * @param checks  the checks
-     * @param details the measurements
+     * The run tick by tick, for the chart written to disk.
      */
-    public FlickReport(List<Check> checks, List<String> details) {
+    PrayerTimingReport timeline;
+
+    /**
+     * @param checks   the checks
+     * @param details  the measurements
+     * @param timeline the run tick by tick
+     */
+    public FlickReport(List<Check> checks, List<String> details, PrayerTimingReport timeline) {
         this.checks = Collections.unmodifiableList(checks);
         this.details = Collections.unmodifiableList(details);
+        this.timeline = timeline;
     }
 
     /**

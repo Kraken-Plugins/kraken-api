@@ -17,6 +17,7 @@ import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.SoundEffectPlayed;
 import net.runelite.api.events.VarbitChanged;
+import net.runelite.client.RuneLite;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import plugins.api.requirements.CustomRequirement;
@@ -29,6 +30,12 @@ import plugins.api.tests.service.timing.FlickReport;
 import plugins.api.tests.service.timing.PhantomBoss;
 import plugins.api.tests.service.timing.PhantomBoss.Feint;
 import plugins.api.tests.service.timing.PhantomBoss.PlannedFlick;
+import plugins.api.tests.service.timing.PrayerTimingReport;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Lazy flicks Thick Skin against a {@link PhantomBoss} through {@link PrayerService#schedule}, the path humanized
@@ -51,6 +58,9 @@ import plugins.api.tests.service.timing.PhantomBoss.PlannedFlick;
  * hits send their clicks past the cutoff on purpose to find where the server starts applying them a tick late. Those
  * measurements never fail the test.
  *
+ * <p>Each run writes {@code timed-prayer-flicks-<time>.html} and {@code .csv} to {@code .runelite/kraken/prayer-timing}:
+ * a page that charts where in each tick every click went out, and the same events as rows.
+ *
  * <p>The run takes about a minute, starts and ends with every prayer off, and should drain little or no
  * prayer: a prayer held for one tick is not meant to drain (unverified), and the log reports the points before and
  * after.
@@ -62,6 +72,7 @@ public class TimedPrayerFlickTest extends BaseApiTest {
     private static final int TICKS_BEFORE_FIRST_HIT = 3;
     private static final long RUN_TIMEOUT_MS = 180_000;
     private static final String LOG_PREFIX = "TIMED_PRAYER_FLICKS ";
+    private static final DateTimeFormatter FILE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
     @Inject
     private PrayerService prayerService;
@@ -130,7 +141,31 @@ public class TimedPrayerFlickTest extends BaseApiTest {
             passed &= assertTrue(check.isPassed(), check.getName() + ": " + check.getDetail());
         }
         report.getDetails().forEach(line -> log.info("{}{}", LOG_PREFIX, line));
+        writeReport(report, passed);
         return passed;
+    }
+
+    /**
+     * Writes the run's chart and data to {@code .runelite/kraken/prayer-timing}. A failure to write is logged and
+     * never fails the test.
+     */
+    private void writeReport(FlickReport report, boolean passed) {
+        LocalDateTime now = LocalDateTime.now();
+        Path directory = RuneLite.RUNELITE_DIR.toPath().resolve("kraken").resolve("prayer-timing");
+        String name = "timed-prayer-flicks-" + now.format(FILE_TIME);
+        PrayerTimingReport timeline = report.getTimeline().toBuilder()
+                .title("Timed Prayer Flicks: " + (passed ? "passed" : "failed"))
+                .subtitle("Thick Skin lazy flicked through PrayerService.schedule against a phantom boss · "
+                        + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + " · cutoff "
+                        + clickScheduler.getCutoffMs() + " ms · client cycle " + clickScheduler.getCycleMs() + " ms")
+                .prayer("Thick Skin")
+                .build();
+        try {
+            Path html = timeline.write(directory, name);
+            log.info("{}chart written to {} and its data to {}.csv beside it", LOG_PREFIX, html, name);
+        } catch (IOException e) {
+            log.warn("{}could not write the chart to {}", LOG_PREFIX, directory, e);
+        }
     }
 
     @Override
@@ -260,7 +295,8 @@ public class TimedPrayerFlickTest extends BaseApiTest {
             feintPending = false;
             prayerService.schedule(TimedPrayerFlickTest.this, PRAYER, false,
                     ClickTiming.at(boss.getFeint().getOnOffsetMs()));
-            recorder.feintCancelled(prayerService.isInFlight(PRAYER), prayerService.willBeActive(PRAYER));
+            recorder.feintCancelled(System.currentTimeMillis(), prayerService.isInFlight(PRAYER),
+                    prayerService.willBeActive(PRAYER));
             pollClicks();
         }
 

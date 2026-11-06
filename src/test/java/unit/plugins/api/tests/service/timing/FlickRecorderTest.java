@@ -7,9 +7,15 @@ import plugins.api.tests.service.timing.FlickReport;
 import plugins.api.tests.service.timing.PhantomBoss;
 import plugins.api.tests.service.timing.PhantomBoss.Kind;
 import plugins.api.tests.service.timing.PhantomBoss.PlannedFlick;
+import plugins.api.tests.service.timing.PrayerTimingReport;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Random;
 import java.util.function.ToIntFunction;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -79,7 +85,7 @@ class FlickRecorderTest {
 
                 if (tick == boss.getFeint().getTick()) {
                     recorder.feintScheduled(true, true);
-                    recorder.feintCancelled(false, false);
+                    recorder.feintCancelled(start(tick) + 75, false, false);
                     if (feintSends) {
                         recorder.clicked(start(tick) + 260, cycle(tick) + 13, true);
                     }
@@ -275,5 +281,66 @@ class FlickRecorderTest {
         assertTrue(measured.contains("a tick late"), measured);
         assertTrue(measured.contains("latest offset in time 365 ms"), measured);
         assertTrue(measured.contains("earliest offset that slipped 405 ms"), measured);
+    }
+
+    @Test
+    void theTimelineHoldsEveryTickClickAndEvent() {
+        Run run = new Run();
+
+        PrayerTimingReport timeline = run.play().getTimeline();
+
+        assertEquals(run.boss.getFlicks().size(), timeline.getClicks().size());
+        assertTrue(timeline.getClicks().stream().noneMatch(click -> click.getKind().equals("UNPLANNED")));
+        PrayerTimingReport.Click sweep = timeline.getClicks().stream()
+                .filter(click -> click.getKind().equals(Kind.SWEEP.name())).findFirst().orElseThrow();
+        assertEquals(sweep.getRequestedMs() + 5, sweep.getSentMs());
+        assertTrue(timeline.getTicks().stream()
+                .noneMatch(tick -> tick.getVerdict().equals("missed") || tick.getVerdict().equals("stray")));
+        assertEquals(run.boss.getHitTicks().size(),
+                timeline.getTicks().stream().filter(PrayerTimingReport.Tick::isHit).count());
+        assertTrue(timeline.getMarkers().stream().anyMatch(marker -> marker.getType().equals("feint")));
+        PrayerTimingReport.Marker cancel = timeline.getMarkers().stream()
+                .filter(marker -> marker.getType().equals("cancel")).findFirst().orElseThrow();
+        assertEquals(run.boss.getFeint().getTick(), cancel.getTick());
+        assertEquals(75, cancel.getMs());
+        assertEquals(timeline.getChecks().size(), run.play().getChecks().size());
+    }
+
+    @Test
+    void theTimelineMarksAMissedHitOnItsTick() {
+        Run run = new Run();
+        run.dropped = run.first(Kind.SWEEP, true);
+
+        PrayerTimingReport timeline = run.play().getTimeline();
+
+        PrayerTimingReport.Tick missed = timeline.getTicks().stream()
+                .filter(tick -> tick.getTick() == run.dropped.getTick() + 1).findFirst().orElseThrow();
+        assertEquals("missed", missed.getVerdict());
+    }
+
+    /**
+     * Writes a chart of a simulated run to {@code build/reports/prayer-timing}, to look at without a client. The
+     * clicks leave a little after their offsets, and the server echoes each click with the next tick update when it
+     * left by 400 ms.
+     */
+    @Test
+    void writesASampleChart() throws IOException {
+        Run run = new Run();
+        run.serverCutoffMs = 400;
+        Random jitter = new Random(7);
+        run.sentOffset = flick -> flick.getKind() == Kind.SWEEP || flick.getKind() == Kind.PROBE
+                ? flick.getOffsetMs() + 2 + jitter.nextInt(14) : Run.onTime(flick);
+
+        FlickReport report = run.play();
+        Path html = report.getTimeline().toBuilder()
+                .title("Timed Prayer Flicks: sample")
+                .subtitle("A simulated run of the phantom boss, not game data. Clicks leave 2 to 15 ms after their "
+                        + "offsets, and the server echoes those sent by 400 ms on the next tick.")
+                .prayer("Thick Skin")
+                .build()
+                .write(Path.of("build", "reports", "prayer-timing"), "timed-prayer-flicks-sample");
+
+        assertTrue(report.passed(), report.getChecks().toString());
+        assertTrue(Files.size(html) > 0);
     }
 }
