@@ -60,7 +60,7 @@ public class InteractionDispatcher {
      */
     private boolean dispatchOnClientThread(Point point, String action, ResolvedMenuAction resolvedAction) {
         MenuOption option = resolvedAction.getOption();
-        mousePackets.queueClickPacket(point.getX(), point.getY());
+        mousePackets.queueClickPacket(point.getX(), point.getY(), option, action, resolvedAction.getTarget());
 
         log.debug("doAction(param0={}, param1={}, MenuAction={}, identifier={}, itemId={}, wv={}, action={}, target={}, x={}, y={})",
                 option.getParam0(), option.getParam1(), option.getType().name(),

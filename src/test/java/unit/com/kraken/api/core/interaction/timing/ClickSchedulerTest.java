@@ -17,6 +17,7 @@ import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -307,5 +308,93 @@ class ClickSchedulerTest {
 
         assertEquals(230, scheduler.getMillisIntoTick());
         assertEquals(TICK_START, scheduler.getTickStartMillis());
+    }
+
+    @Test
+    void aTargetedClickPassesItsTargetWidthToTheGapModel() {
+        List<Integer> widths = new ArrayList<>();
+        scheduler = schedulerWithGap(new ClickGapModel() {
+            @Override
+            public int baseGapMs(Random random) {
+                return 10;
+            }
+
+            @Override
+            public int travelMs(Point from, Point to) {
+                return 0;
+            }
+
+            @Override
+            public int travelMs(Point from, Point to, int targetWidthPx) {
+                widths.add(targetWidthPx);
+                return 0;
+            }
+        });
+        startTick(TICK_START);
+        externalClick.set(TICK_START - 500);
+        lastPoint = new Point(10, 10);
+
+        java.awt.Rectangle icon = new java.awt.Rectangle(600, 300, 37, 34);
+        scheduler.scheduleTargeted(this, ClickTiming.at(40), () -> ClickLocation.of(new Point(610, 310), icon), click("a"));
+        cycleAt(1_040);
+
+        assertEquals(List.of("a@1040"), sent);
+        assertEquals(List.of(34), widths, "the smaller side of the target is its width");
+    }
+
+    @Test
+    void aGapModelFactoryReplacesTheSeededModelAndSurvivesAccountChanges() {
+        AtomicLong account = new AtomicLong(42);
+        ClickGapModel fitted = fixedGap(300, 0);
+        List<Long> asked = new ArrayList<>();
+        scheduler = new ClickScheduler(clock::get, new Random(1), fixedGap(100, 0), externalClick::get,
+                () -> lastPoint, account::get);
+        scheduler.setGapModelFactory(hash -> {
+            asked.add(hash);
+            return fitted;
+        });
+
+        startTick(TICK_START);
+        assertSame(fitted, scheduler.getGapModel());
+
+        account.set(43);
+        startTick(TICK_START + 600);
+        assertSame(fitted, scheduler.getGapModel());
+        assertEquals(List.of(42L, 43L), asked);
+
+        startTick(TICK_START + 1_200);
+        assertEquals(2, asked.size(), "an unchanged account does not ask the factory again");
+
+        scheduler.refreshGapModel();
+        startTick(TICK_START + 1_800);
+        assertEquals(3, asked.size());
+    }
+
+    @Test
+    void aFactoryThatGivesNoModelFallsBackToTheSeededModel() {
+        scheduler = new ClickScheduler(clock::get, new Random(1), fixedGap(100, 0), externalClick::get,
+                () -> lastPoint, () -> 42L);
+        scheduler.setGapModelFactory(hash -> null);
+
+        startTick(TICK_START);
+
+        assertTrue(scheduler.getGapModel() instanceof HumanClickGap);
+        assertEquals(HumanClickGap.forAccount(42).getMedianMs(),
+                ((HumanClickGap) scheduler.getGapModel()).getMedianMs());
+    }
+
+    @Test
+    void theFactoryModelHoldsClicksBack() {
+        scheduler.setGapModelFactory(hash -> fixedGap(300, 0));
+        startTick(TICK_START);
+        externalClick.set(TICK_START);
+
+        scheduler.schedule(this, ClickTiming.at(40, 500), null, click("a"));
+        cycleAt(1_100);
+        cycleAt(1_280);
+        assertTrue(sent.isEmpty());
+
+        cycleAt(1_300);
+        assertEquals(List.of("a@1300"), sent);
     }
 }

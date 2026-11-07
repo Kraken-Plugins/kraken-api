@@ -54,15 +54,23 @@ like one sent at once.
   cutoff. `ClickTiming.at(offsetMs, deadlineMs)` sets its own deadline. `ClickTiming.immediate()` sends it within the
   call.
 - One scheduler serves every plugin and runs on the client thread from `ClientTick` (every client cycle, about 20 ms).
-  A click waits for a human gap after the last click from any plugin (`HumanClickGap`: a lognormal gap with a median
+  A click waits for a human gap after the last click from any source (`HumanClickGap`: a lognormal gap with a median
   near 110 ms plus a Fitts' law travel time, seeded per account), unless the next client cycle would pass its
-  deadline, in which case it goes out at once.
+  deadline, in which case it goes out at once. "Any source" covers Kraken's click packets and the presses the game
+  reads from the canvas, the player's own included (`ClickHistory`, `MousePresses`), and the travel time runs from
+  wherever the latest of them landed.
+- `scheduleTargeted(owner, timing, location, action)` takes a `ClickLocation` (the point plus the target's bounds), so
+  the travel time uses the target's real width, the smaller side of its bounds. `schedule` with a plain point uses
+  30 px.
+- `setGapModelFactory(hash -> model)` supplies the gap model per account in place of the seeded one; the factory runs
+  on the next game tick, on every account change and after `refreshGapModel()`. Return null to keep the seeded model.
 - A click's action runs when it falls due and should return `false` without clicking when the click is no longer
   needed, so a change the player made in the meantime is never reversed.
 - `ClickScheduler.setImmediateMode(true)`, or `-Dkraken.clicks.immediate=true`, sends every click within the call for
   every plugin, for comparison and emergencies.
 
-`PrayerService.schedule(owner, prayer, activate, timing)` is the prayer form. The prayer counts as being in its new
+`PrayerService.schedule(owner, prayer, activate, timing)` is the prayer form. It chooses the click point once, when the
+scheduler first needs it, and uses it both for the travel time and for the click. The prayer counts as being in its new
 state until the click has been sent and the client shows the change (by the next client cycle), or one tick has
 passed: a second request for the same state does nothing, and one for the opposite state cancels a click not yet sent.
 Plan against `PrayerService.willBeActive(prayer)` rather than `isActive` so a prayer is never clicked twice. The
@@ -71,6 +79,22 @@ cannot tell you when a click took effect. `cancelScheduled(owner)` drops an owne
 
 The Kraken-Utils `prayer.timing` package in kraken-plugins builds on this: it picks the tick each prayer changes on
 and the offset inside the tick from a per-account timing model.
+
+## Click Points and Click Events
+
+Where on its target a click lands comes from `ClickPoints` (`com.kraken.api.core.interaction`). `InteractionManager`
+asks it for every click on a widget, a container item, an NPC, a player, an object or a ground item. Register a
+`ClickPointSampler` with `ClickPoints.setSampler(...)` to choose the points yourself: it gets a `ClickTarget` (the kind,
+packed widget id, child index, item id or entity id, the menu action and where the previous click landed), the
+target's bounds and a random source, and returns a point inside the bounds or `null` for the default point (biased
+toward the center, `UIService.getClickingPoint`). A point outside the bounds, or a sampler that throws, also gives the
+default point. One sampler serves every plugin, and it can be called from any thread, so it must be thread safe and
+must not read client state. `InteractionManager.chooseWidgetClick(widgetId, action)` picks a widget point without
+clicking, and `interact(widgetId, childId, itemId, action, point)` clicks it later.
+
+After every click packet Kraken sends, `MousePackets` posts `KrakenClickSent` on the event bus, on the client thread:
+the packet's time and canvas point, plus the menu entry, option and target for clicks sent through an interaction.
+Kraken's clicks post no `MenuOptionClicked`, so this is how recorders and test tools see them.
 
 ## Packet System Overview
 

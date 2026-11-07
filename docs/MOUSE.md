@@ -78,6 +78,23 @@ virtualMouse.move(target).click();
 
 There is no right-click or drag; `VirtualMouse` only moves and left-clicks.
 
+Every event `VirtualMouse` and its strategies dispatch goes through `InputDispatch`, and so does `KeyboardService`
+typing and the idle reset keypress. `InputDispatch.isSynthetic()` is true while the event thread delivers one of them,
+so a `MouseListener` or `KeyListener` can tell Kraken's input from the player's:
+
+```java
+@Override
+public MouseEvent mousePressed(MouseEvent e) {
+    if (!InputDispatch.isSynthetic()) {
+        // the player's own press
+    }
+    return e;
+}
+```
+
+`MousePresses` records the last press the game saw (time, point, and whether it was synthetic). `ClickScheduler`
+counts it in the gap before Kraken's next click.
+
 ## Mouse Movement Strategies
 
 The API supports several strategies defined in `MouseMovementStrategy`. You can pass a specific strategy to the `move` method to override the default for a single action.

@@ -5,16 +5,19 @@ import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.hooks.HooksLoader;
+import com.kraken.api.core.interaction.event.KrakenClickSent;
+import com.kraken.api.core.interaction.model.MenuOption;
 import com.kraken.api.core.packet.PacketClient;
 import com.kraken.api.core.packet.PacketFactory;
+import com.kraken.api.input.InputDispatch;
 import com.kraken.api.util.MathUtils;
 import com.kraken.api.util.RandomUtils;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import net.runelite.api.Client;
 import net.runelite.api.Point;
+import net.runelite.client.eventbus.EventBus;
 
-import java.awt.EventQueue;
 import java.awt.event.KeyEvent;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,7 +26,7 @@ import static java.awt.event.InputEvent.BUTTON1_DOWN_MASK;
 
 /**
  * Sends the mouse click packet that precedes game interactions, and injects a synthetic keypress when the
- * client's idle counters reach a randomised threshold.
+ * client's idle counters reach a randomised threshold. Posts {@link KrakenClickSent} after every click packet.
  */
 @Singleton
 public class MousePackets {
@@ -36,6 +39,9 @@ public class MousePackets {
 
     @Inject
     private Provider<Context> ctxProvider;
+
+    @Inject
+    private EventBus eventBus;
 
     /**
      * Idle-tick threshold at which a synthetic keypress is injected to reset the client's idle
@@ -80,10 +86,43 @@ public class MousePackets {
      * @param y The y canvas coordinate.
      */
     public void queueClickPacket(int x, int y) {
+        queueClickPacket(x, y, null, "", "");
+    }
+
+    /**
+     * Queues a click packet for an interaction on a menu entry, so the {@link KrakenClickSent} event posted after it
+     * names what the click acts on. Otherwise the same as {@link #queueClickPacket(int, int)}.
+     *
+     * @param x      The x canvas coordinate.
+     * @param y      The y canvas coordinate.
+     * @param option The menu entry the click acts on, or null.
+     * @param action The menu option text, or null.
+     * @param target The menu target text, or null.
+     */
+    public void queueClickPacket(int x, int y, MenuOption option, String action, String target) {
         ctxProvider.get().runOnClientThread(() -> {
             queueClickPacketOnClientThread(x, y);
+            postClickSent(option, action, target);
             return Boolean.TRUE;
         }, Boolean.FALSE);
+    }
+
+    /**
+     * Posts the event for the click packet just sent. Runs on the client thread only. The event bus catches and logs
+     * a subscriber's exception, so a failing subscriber cannot stop the interaction the click belongs to.
+     *
+     * @param option The menu entry the click acts on, or null.
+     * @param action The menu option text, or null.
+     * @param target The menu target text, or null.
+     */
+    private void postClickSent(MenuOption option, String action, String target) {
+        Point point = lastClickPoint;
+        if (eventBus == null || point == null) {
+            return;
+        }
+
+        eventBus.post(new KrakenClickSent(lastClickMillis, point.getX(), point.getY(), option,
+                action == null ? "" : action, target == null ? "" : target));
     }
 
     /**
@@ -149,10 +188,11 @@ public class MousePackets {
      *
      * <p>Posted to the AWT event queue because {@code Component.dispatchEvent} runs the canvas
      * listeners synchronously on the calling thread, and the event dispatch thread is where the client
-     * expects to receive input events.</p>
+     * expects to receive input events. Going through {@link InputDispatch} marks the keypress as synthetic for
+     * input listeners.</p>
      */
     private void dispatchIdleResetKeyPress() {
-        EventQueue.invokeLater(() -> {
+        InputDispatch.onEventThread(() -> {
             KeyEvent keyPress = new KeyEvent(client.getCanvas(), KeyEvent.KEY_PRESSED, System.currentTimeMillis(), BUTTON1_DOWN_MASK, KeyEvent.VK_BACK_SPACE, (char) KeyEvent.VK_BACK_SPACE);
             client.getCanvas().dispatchEvent(keyPress);
             KeyEvent keyRelease = new KeyEvent(client.getCanvas(), KeyEvent.KEY_RELEASED, System.currentTimeMillis(), 0, KeyEvent.VK_BACK_SPACE, (char) KeyEvent.VK_BACK_SPACE);

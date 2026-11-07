@@ -4,19 +4,17 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.core.interaction.InteractionManager;
+import com.kraken.api.core.interaction.timing.ClickLocation;
 import com.kraken.api.core.interaction.timing.ClickScheduler;
 import com.kraken.api.core.interaction.timing.ClickTiming;
 import com.kraken.api.core.interaction.timing.ScheduledClick;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Point;
 import net.runelite.api.Prayer;
 import net.runelite.api.Skill;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarbitID;
-import net.runelite.api.widgets.Widget;
 
-import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -79,6 +77,18 @@ public class PrayerService {
      * @return Boolean true if the prayer was activated/deactivated successfully and false otherwise.
      */
     public boolean toggle(Prayer prayer, boolean activate) {
+        return toggle(prayer, activate, null);
+    }
+
+    /**
+     * Toggles a prayer on or off, clicking a point chosen beforehand.
+     *
+     * @param prayer   the prayer to toggle.
+     * @param activate true if the prayer should be turned on and false if it should be turned off.
+     * @param location where to click, or null to choose a point now.
+     * @return true if a click was sent, false if the prayer was already in that state or cannot be used.
+     */
+    private boolean toggle(Prayer prayer, boolean activate, ClickLocation location) {
         InteractablePrayer prayerExtended = usablePrayer(prayer);
         if (prayerExtended == null) {
             return false;
@@ -91,7 +101,11 @@ public class PrayerService {
             return false;
         }
 
-        interactionManager.interact(prayerExtended.getIndex(), -1, -1, 1);
+        if (location == null) {
+            interactionManager.interact(prayerExtended.getIndex(), -1, -1, 1);
+        } else {
+            interactionManager.interact(prayerExtended.getIndex(), -1, -1, 1, location.getPoint());
+        }
         return true;
     }
 
@@ -99,6 +113,9 @@ public class PrayerService {
      * Turns a prayer on or off with a click sent by {@link ClickScheduler} at a chosen point in the current tick,
      * instead of at once. A click sent before the scheduler's cutoff applies on the next tick, as {@link #toggle}
      * does.
+     *
+     * <p>The click point is chosen once, when the scheduler first needs it, and that point is both the end of the
+     * travel time from the previous click and the point the click lands on.
      *
      * <p>The prayer counts as being in its new state from now until the click has been sent and the client shows the
      * change (by the next client cycle), or one tick has passed. In that time a second request for the same state
@@ -141,8 +158,9 @@ public class PrayerService {
             return false;
         }
 
-        ScheduledClick click = clickScheduler.schedule(owner, timing, () -> prayerLocation(interactable),
-                () -> toggle(prayer, activate));
+        PrayerClickPoint point = new PrayerClickPoint(interactable);
+        ScheduledClick click = clickScheduler.scheduleTargeted(owner, timing, point::get,
+                () -> toggle(prayer, activate, point.get()));
         synchronized (scheduledClicks) {
             scheduledClicks.put(prayer, new ScheduledPrayerClick(click, activate));
         }
@@ -254,19 +272,27 @@ public class PrayerService {
     }
 
     /**
-     * The center of a prayer's icon on the canvas. Runs on the client thread.
-     *
-     * @param prayer the prayer.
-     * @return the icon's center, or null while the prayer book is not showing.
+     * Where one scheduled prayer click lands, chosen the first time it is asked for and the same every time after.
      */
-    private Point prayerLocation(InteractablePrayer prayer) {
-        Widget widget = ctx.getClient().getWidget(prayer.getIndex());
-        if (widget == null || widget.isHidden()) {
-            return null;
+    private final class PrayerClickPoint {
+        private final InteractablePrayer prayer;
+        private ClickLocation location;
+        private boolean chosen;
+
+        private PrayerClickPoint(InteractablePrayer prayer) {
+            this.prayer = prayer;
         }
 
-        Rectangle bounds = widget.getBounds();
-        return new Point((int) bounds.getCenterX(), (int) bounds.getCenterY());
+        /**
+         * @return the click's point and the prayer icon's bounds, or null when the icon's widget does not exist.
+         */
+        synchronized ClickLocation get() {
+            if (!chosen) {
+                location = interactionManager.chooseWidgetClick(prayer.getIndex(), 1);
+                chosen = true;
+            }
+            return location;
+        }
     }
 
     /**

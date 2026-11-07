@@ -71,4 +71,17 @@ class HumanClickGapTest {
         // log2(150 / 30 + 1) bits at 55 ms per bit.
         assertEquals(Math.round(55 * Math.log(6) / Math.log(2)), far);
     }
+
+    @Test
+    void aWiderTargetTakesLessTravel() {
+        HumanClickGap gap = new HumanClickGap(110, 0.24, 55);
+        Point origin = new Point(100, 100);
+        Point target = new Point(100, 250);
+
+        assertEquals(gap.travelMs(origin, target), gap.travelMs(origin, target, 0), "0 means the default width");
+        assertEquals(gap.travelMs(origin, target), gap.travelMs(origin, target, HumanClickGap.TARGET_WIDTH_PX));
+        assertTrue(gap.travelMs(origin, target, 75) < gap.travelMs(origin, target, 15));
+        // log2(150 / 75 + 1) bits at 55 ms per bit.
+        assertEquals(Math.round(55 * Math.log(3) / Math.log(2)), gap.travelMs(origin, target, 75));
+    }
 }

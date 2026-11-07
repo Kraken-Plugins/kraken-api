@@ -2,7 +2,7 @@ package com.kraken.api.core.interaction.timing;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.kraken.api.core.packet.entity.MousePackets;
+import com.kraken.api.core.interaction.ClickHistory;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
@@ -35,9 +36,13 @@ import java.util.function.Supplier;
  * plugin, is at least a {@link ClickGapModel} gap old. A click whose deadline would pass before the next client cycle
  * goes out at once, gap or not, so a late client cycle never pushes a click past the cutoff.
  *
+ * <p>The gap counts every click the game sends: Kraken's own click packets and the presses the game reads from the
+ * canvas, the player's own included ({@link ClickHistory}). The travel part of the gap runs from wherever the latest
+ * of those landed.
+ *
  * <p>One scheduler serves every plugin: Guice creates it in RuneLite's injector, it registers itself with the event
  * bus and runs on the client thread from {@code ClientTick}, which fires every client cycle (about 20 ms). Clicks
- * scheduled with  ClickTiming#immediate(), or while #isImmediateMode() is on, run inside
+ * scheduled with {@link ClickTiming#immediate()}, or while {@link #isImmediateMode()} is on, run inside
  * {@link #schedule} exactly as an unscheduled interaction would.
  */
 @Slf4j
@@ -79,8 +84,12 @@ public class ClickScheduler {
     private final Supplier<Point> lastClickPoint;
     private final LongSupplier accountHash;
     private final List<ScheduledClick> pending = new ArrayList<>();
+    private final ClickGapModel baseGapModel;
 
+    @Getter
     private volatile ClickGapModel gapModel;
+    private volatile LongFunction<ClickGapModel> gapModelFactory;
+    private volatile boolean gapModelStale;
     private long gapModelAccountHash = Long.MIN_VALUE;
     private long sequence;
     private long lastClientTickMillis;
@@ -106,7 +115,12 @@ public class ClickScheduler {
     /**
      * The measured length of a client cycle in milliseconds, a moving average of recent cycles. Only
      * {@link #onClientTick} writes it.
+     * -- GETTER --
+     *
+     * @return the measured length of a client cycle in milliseconds, a moving average of recent cycles.
+
      */
+    @Getter
     private volatile int cycleMs = DEFAULT_CYCLE_MS;
 
     /**
@@ -121,12 +135,13 @@ public class ClickScheduler {
      *
      * @param eventBus     the event bus that delivers game ticks and client ticks.
      * @param client       the client, read for the account hash that seeds the gap model.
-     * @param mousePackets the click packet sender, read for the time and place of the last click from any plugin.
+     * @param clickHistory the time and place of the last click from any source: Kraken's click packets and the
+     *                     presses the game read from the canvas.
      */
     @Inject
-    public ClickScheduler(EventBus eventBus, Client client, MousePackets mousePackets) {
-        this(System::currentTimeMillis, new Random(), HumanClickGap.DEFAULT, mousePackets::getLastClickMillis,
-                mousePackets::getLastClickPoint, client::getAccountHash);
+    public ClickScheduler(EventBus eventBus, Client client, ClickHistory clickHistory) {
+        this(System::currentTimeMillis, new Random(), HumanClickGap.DEFAULT, clickHistory::getLastClickMillis,
+                clickHistory::getLastClickPoint, client::getAccountHash);
         eventBus.register(this);
     }
 
@@ -137,16 +152,17 @@ public class ClickScheduler {
      * @param clock           the time source, in milliseconds.
      * @param random          the random source for gaps.
      * @param gapModel        the gap model to start with.
-     * @param lastClickMillis when the last click from any plugin was sent, or 0.
-     * @param lastClickPoint  where the last click from any plugin was, or null.
+     * @param lastClickMillis when the last click from any source was sent, or 0.
+     * @param lastClickPoint  where the last click from any source was, or null.
      * @param accountHash     the logged in account's hash for a per-account gap model, or null to keep
-     *                        {@code gapModel}.
+     *                        {@code gapModel} unless a {@link #setGapModelFactory gap model factory} gives one.
      */
     public ClickScheduler(LongSupplier clock, Random random, ClickGapModel gapModel, LongSupplier lastClickMillis,
                           Supplier<Point> lastClickPoint, LongSupplier accountHash) {
         this.clock = clock;
         this.random = random;
         this.gapModel = gapModel;
+        this.baseGapModel = gapModel;
         this.lastClickMillis = lastClickMillis;
         this.lastClickPoint = lastClickPoint;
         this.accountHash = accountHash;
@@ -165,6 +181,27 @@ public class ClickScheduler {
     }
 
     /**
+     * Supplies the gap model for each account, in place of the seeded {@link HumanClickGap#forAccount}. The factory
+     * runs on the client thread at the next game tick, and again whenever the account changes or
+     * {@link #refreshGapModel()} is called, so a model set this way survives account changes.
+     *
+     * @param factory takes the account hash (-1 when logged out) and returns the model, or null for the seeded
+     *                model; pass null to go back to the seeded model for every account.
+     */
+    public void setGapModelFactory(LongFunction<ClickGapModel> factory) {
+        this.gapModelFactory = factory;
+        this.gapModelStale = true;
+    }
+
+    /**
+     * Rebuilds the gap model at the next game tick, for a {@link #setGapModelFactory factory} whose answer changed,
+     * such as a click profile that was fitted again.
+     */
+    public void refreshGapModel() {
+        this.gapModelStale = true;
+    }
+
+    /**
      * Schedules a click.
      *
      * <p>The action runs on the client thread when the click is due (or, for an immediate click, within this call on
@@ -180,6 +217,22 @@ public class ClickScheduler {
      * @return the scheduled click.
      */
     public ScheduledClick schedule(Object owner, ClickTiming timing, Supplier<Point> location, BooleanSupplier action) {
+        return scheduleTargeted(owner, timing, location == null ? null : () -> ClickLocation.of(location.get()), action);
+    }
+
+    /**
+     * Schedules a click whose location also gives the bounds of its target, so the travel time from the previous
+     * click uses the target's real size. Otherwise the same as {@link #schedule}.
+     *
+     * @param owner    the object scheduling the click, used by {@link #cancel(Object)}.
+     * @param timing   when the click should leave.
+     * @param location where on the canvas the click will land and the bounds of its target, read on the client thread
+     *                 for the travel time from the previous click, or null when unknown.
+     * @param action   sends the click and returns true, or returns false when no click is needed.
+     * @return the scheduled click.
+     */
+    public ScheduledClick scheduleTargeted(Object owner, ClickTiming timing, Supplier<ClickLocation> location,
+                                           BooleanSupplier action) {
         Objects.requireNonNull(timing, "timing");
         Objects.requireNonNull(action, "action");
         long now = clock.getAsLong();
@@ -229,13 +282,6 @@ public class ClickScheduler {
     }
 
     /**
-     * @return the measured length of a client cycle in milliseconds, a moving average of recent cycles.
-     */
-    public int getCycleMs() {
-        return cycleMs;
-    }
-
-    /**
      * @return the scheduler's clock in milliseconds, which {@link ScheduledClick} times are read against.
      */
     public long currentTimeMillis() {
@@ -261,7 +307,7 @@ public class ClickScheduler {
         long now = clock.getAsLong();
         sendOverdue(now);
         tickStartMillis = now;
-        refreshGapModel();
+        updateGapModel();
     }
 
     /**
@@ -341,11 +387,12 @@ public class ClickScheduler {
             return true;
         }
 
-        int gap = click.getBaseGapMs() + gapModel.travelMs(lastClickPoint.get(), location(click));
-        return now - lastClick >= gap;
+        ClickLocation to = location(click);
+        int travel = to == null ? 0 : gapModel.travelMs(lastClickPoint.get(), to.getPoint(), to.getTargetWidthPx());
+        return now - lastClick >= click.getBaseGapMs() + travel;
     }
 
-    private Point location(ScheduledClick click) {
+    private ClickLocation location(ScheduledClick click) {
         if (click.getLocation() == null) {
             return null;
         }
@@ -408,17 +455,36 @@ public class ClickScheduler {
         }
     }
 
-    private void refreshGapModel() {
-        if (accountHash == null) {
+    /**
+     * Rebuilds the gap model when the account changed or a refresh was asked for: the factory's model when it gives
+     * one, otherwise the account's seeded model (or the starting model when there is no account source). Runs on the
+     * client thread only, from {@link #onGameTick}.
+     */
+    private void updateGapModel() {
+        long hash = accountHash == null ? -1 : accountHash.getAsLong();
+        if (!gapModelStale && (accountHash == null || hash == gapModelAccountHash)) {
             return;
         }
 
-        long hash = accountHash.getAsLong();
-        if (hash == gapModelAccountHash) {
-            return;
-        }
-
+        gapModelStale = false;
         gapModelAccountHash = hash;
-        gapModel = hash == -1 ? HumanClickGap.DEFAULT : HumanClickGap.forAccount(hash);
+        LongFunction<ClickGapModel> factory = gapModelFactory;
+        ClickGapModel model = null;
+        if (factory != null) {
+            try {
+                model = factory.apply(hash);
+            } catch (RuntimeException e) {
+                log.warn("Gap model factory failed", e);
+            }
+        }
+
+        if (model == null) {
+            if (accountHash == null) {
+                model = baseGapModel;
+            } else {
+                model = hash == -1 ? HumanClickGap.DEFAULT : HumanClickGap.forAccount(hash);
+            }
+        }
+        gapModel = model;
     }
 }
