@@ -33,7 +33,7 @@ public class ClickPoints {
     private volatile ClickPointSampler sampler;
 
     /**
-     * @param clickHistory the last click from any source, passed to the sampler as {@link ClickTarget#getPreviousClick()}.
+     * @param clickHistory the last click from any source, passed to the sampler as ClickTarget#getPreviousClick().
      */
     @Inject
     public ClickPoints(ClickHistory clickHistory) {

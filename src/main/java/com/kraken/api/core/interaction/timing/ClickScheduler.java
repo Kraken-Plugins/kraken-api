@@ -42,7 +42,7 @@ import java.util.function.Supplier;
  *
  * <p>One scheduler serves every plugin: Guice creates it in RuneLite's injector, it registers itself with the event
  * bus and runs on the client thread from {@code ClientTick}, which fires every client cycle (about 20 ms). Clicks
- * scheduled with {@link ClickTiming#immediate()}, or while {@link #isImmediateMode()} is on, run inside
+ * scheduled with {@link ClickTiming#immediate()}, or while #isImmediateMode() is on, run inside
  * {@link #schedule} exactly as an unscheduled interaction would.
  */
 @Slf4j

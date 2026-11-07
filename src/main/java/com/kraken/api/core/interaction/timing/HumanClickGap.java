@@ -77,7 +77,7 @@ public class HumanClickGap implements ClickGapModel {
     }
 
     /**
-     * Fitts' law travel time: {@link #getMsPerBit()} times {@code log2(distance / width + 1)}.
+     * Fitts' law travel time:  #getMsPerBit() times {@code log2(distance / width + 1)}.
      *
      * @param from          the previous click, or null when unknown.
      * @param to            the next click, or null when unknown.

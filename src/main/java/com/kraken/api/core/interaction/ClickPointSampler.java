@@ -7,7 +7,7 @@ import java.util.Random;
 
 /**
  * Chooses where inside a target's bounds a Kraken click lands, in place of the default point
- * ({@code UIService.getClickingPoint}, biased toward the center). Register one with {@link ClickPoints#setSampler}.
+ * ({@code UIService.getClickingPoint}, biased toward the center). Register one with ClickPoints#setSampler.
  *
  * <p>The sampler may be called from any thread that starts an interaction, so it must be thread safe and must not
  * read client state. It should only handle the targets it knows and return null for the rest.
