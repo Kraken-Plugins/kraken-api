@@ -454,15 +454,24 @@ public class UIService {
      * @return a point within the rectangle (randomized or centered)
      */
     public static Point getClickingPoint(Rectangle rectangle, boolean randomize) {
-        // getDefaultRectangle() signals a failed/absent clickbox with a full-canvas rectangle whose
-        // origin is one of (-1,-1), (0,0) or (1,1). All three must be caught here; missing the -1 case
-        // let a failed clickbox fall through to a real spoofed click at a random screen point.
-        if (rectangle == null) return new Point(1, 1);
-        if (rectangle.getX() == -1 && rectangle.getY() == -1) return new Point(1, 1);
-        if (rectangle.getX() == 1 && rectangle.getY() == 1) return new Point(1, 1);
-        if (rectangle.getX() == 0 && rectangle.getY() == 0) return new Point(1, 1);
+        if (isFallbackClickbox(rectangle)) return new Point(1, 1);
 
         if (!randomize) return new Point((int) rectangle.getCenterX(), (int) rectangle.getCenterY());
         return RandomService.randomPointEx(new Point((int) rectangle.getCenterX(), (int) rectangle.getCenterY()), rectangle, 0.78);
+    }
+
+    /**
+     * Reports whether a clickbox is missing or is the full-canvas stand-in {@link #getDefaultRectangle()} returns
+     * when a target's real clickbox could not be read. Its origin is one of (-1,-1), (0,0) or (1,1); clicks on such a
+     * box go to (1, 1) rather than to a random point on the screen.
+     *
+     * @param rectangle the clickbox to check, may be null.
+     * @return true when the clickbox is null or a fallback rectangle.
+     */
+    public static boolean isFallbackClickbox(Rectangle rectangle) {
+        if (rectangle == null) return true;
+        if (rectangle.getX() == -1 && rectangle.getY() == -1) return true;
+        if (rectangle.getX() == 1 && rectangle.getY() == 1) return true;
+        return rectangle.getX() == 0 && rectangle.getY() == 0;
     }
 }

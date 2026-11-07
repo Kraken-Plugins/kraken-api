@@ -16,9 +16,16 @@ import java.awt.EventQueue;
  * posted from one thread is delivered in order. Posting never blocks, which keeps a caller on the client
  * thread from deadlocking against an EDT that is itself waiting on the client thread. Timing between
  * events (typing cadence, movement steps) stays on the calling worker, never on the EDT.</p>
+ *
+ * <p>Everything this class runs on the EDT is marked: {@link #isSynthetic()} is true while it runs, so a
+ * {@code MouseListener} or {@code KeyListener} can tell Kraken's input ({@code VirtualMouse}, keyboard typing, the
+ * idle reset keypress) from the player's own, because those listeners run inside the same
+ * {@code dispatchEvent} call.</p>
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class InputDispatch {
+
+    private static final ThreadLocal<int[]> DEPTH = ThreadLocal.withInitial(() -> new int[1]);
 
     /**
      * Queues an event for delivery to its target on the event dispatch thread.
@@ -30,14 +37,37 @@ public final class InputDispatch {
     }
 
     /**
-     * Runs an action on the event dispatch thread, inline when already there and queued otherwise.
+     * Runs an action on the event dispatch thread, inline when already there and queued otherwise. Input events the
+     * action dispatches are marked as synthetic while it runs.
      * @param action The action to run
      */
     public static void onEventThread(Runnable action) {
+        Runnable marked = () -> runMarked(action);
         if (EventQueue.isDispatchThread()) {
-            action.run();
+            marked.run();
         } else {
-            EventQueue.invokeLater(action);
+            EventQueue.invokeLater(marked);
+        }
+    }
+
+    /**
+     * Reports whether the calling thread is delivering input that Kraken posted through this class. Call it from an
+     * input listener: it is true for {@code VirtualMouse} clicks and moves, typed text and the idle reset keypress,
+     * and false for the player's own mouse and keyboard.
+     *
+     * @return true while an event posted through this class is being delivered on this thread.
+     */
+    public static boolean isSynthetic() {
+        return DEPTH.get()[0] > 0;
+    }
+
+    private static void runMarked(Runnable action) {
+        int[] depth = DEPTH.get();
+        depth[0]++;
+        try {
+            action.run();
+        } finally {
+            depth[0]--;
         }
     }
 }

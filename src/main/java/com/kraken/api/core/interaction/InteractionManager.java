@@ -8,6 +8,7 @@ import com.kraken.api.core.interaction.model.MenuOption;
 import com.kraken.api.core.interaction.model.ResolvedMenuAction;
 import com.kraken.api.core.interaction.resolver.MenuActionResolverRegistry;
 import com.kraken.api.core.interaction.resolver.WidgetSubActionResolver;
+import com.kraken.api.core.interaction.timing.ClickLocation;
 import com.kraken.api.core.packet.entity.WidgetPackets;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.container.bank.BankItemWidget;
@@ -20,6 +21,7 @@ import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.util.Text;
 
+import java.awt.Rectangle;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -31,6 +33,9 @@ import java.util.Optional;
  * A {@code false} return means the entity was null, no resolver handled its type, or the requested
  * action does not exist on it — in every one of those cases nothing was sent to the server, so callers
  * must not assume the interaction happened.</p>
+ *
+ * <p>Where on its target each click lands comes from {@link ClickPoints}: a registered {@link ClickPointSampler}
+ * when it gives a point, otherwise the default point biased toward the center of the target.</p>
  */
 @Slf4j
 @Singleton
@@ -44,6 +49,9 @@ public class InteractionManager {
 
     @Inject
     private WidgetSubActionResolver subActionResolver;
+
+    @Inject
+    private ClickPoints clickPoints;
 
     @Inject
     private Provider<Context> ctxProvider;
@@ -86,7 +94,7 @@ public class InteractionManager {
      */
     public boolean interact(NPC npc, String action) {
         if (npc == null) return false;
-        return interact(npc, NPC.class, action, UIService.getClickbox(npc));
+        return interact(npc, NPC.class, action, pointOn(npc, action));
     }
 
     /**
@@ -98,7 +106,7 @@ public class InteractionManager {
      */
     public boolean interact(Player player, String action) {
         if (player == null) return false;
-        return interact(player, Player.class, action, UIService.getClickbox(player));
+        return interact(player, Player.class, action, pointOn(player, action));
     }
 
     /**
@@ -110,7 +118,7 @@ public class InteractionManager {
      */
     public boolean interact(TileObject object, String action) {
         if (object == null) return false;
-        return interact(object, TileObject.class, action, UIService.getClickbox(object));
+        return interact(object, TileObject.class, action, pointOn(object, action));
     }
 
     /**
@@ -132,7 +140,7 @@ public class InteractionManager {
      */
     public boolean interact(GroundItem item, String action) {
         if (item == null) return false;
-        return interact(item, GroundItem.class, action, UIService.getClickbox(item.getTileObject()));
+        return interact(item, GroundItem.class, action, pointOn(item, action));
     }
 
     /**
@@ -144,7 +152,7 @@ public class InteractionManager {
      */
     public boolean interact(Widget widget, String action) {
         if (widget == null) return false;
-        return interact(widget, Widget.class, action, UIService.getClickbox(widget));
+        return interact(widget, Widget.class, action, pointOn(widget, action));
     }
 
     /**
@@ -156,7 +164,7 @@ public class InteractionManager {
      */
     public boolean interact(BankItemWidget item, String action) {
         if (item == null) return false;
-        return interact(item, BankItemWidget.class, action, UIService.getClickbox(item));
+        return interact(item, BankItemWidget.class, action, pointOn(item, action));
     }
 
     /**
@@ -175,7 +183,7 @@ public class InteractionManager {
                 log.error("Failed to resolve widget for item interaction: {}", item.getName());
                 return false;
             }
-            return interact(w, Widget.class, action, UIService.getClickbox(item));
+            return interact(w, Widget.class, action, pointOn(item, w, action));
         }));
     }
 
@@ -197,7 +205,7 @@ public class InteractionManager {
                 return false;
             }
 
-            Point pt = UIService.getClickbox(item);
+            Point pt = pointOn(item, w, actions.length == 0 ? null : actions[0]);
             for (String action : actions) {
                 Optional<ResolvedMenuAction> resolved = registry.getResolver(Widget.class)
                         .flatMap(r -> r.resolve(w, action));
@@ -239,7 +247,7 @@ public class InteractionManager {
     public boolean interact(Widget widget, int option) {
         if (widget == null) return false;
 
-        Point pt = UIService.getClickbox(widget);
+        Point pt = pointOn(widget, "Continue");
         int worldView = ctxProvider.get().getClient().getTopLevelWorldView().getId();
 
         // option = -1 for normal NPC/player continue, or 1–5 for dynamic dialogue choices
@@ -276,7 +284,7 @@ public class InteractionManager {
     public boolean interact(Widget item, String menu, String action) {
         if (item == null) return false;
 
-        Point pt = UIService.getClickbox(item);
+        Point pt = pointOn(item, action);
         Optional<ResolvedMenuAction> resolved = subActionResolver.resolve(item, menu, action);
 
         if (resolved.isEmpty()) {
@@ -304,7 +312,7 @@ public class InteractionManager {
         String targetVerb = src.getTargetVerb();
 
         Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
-        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(pointOn(src, targetVerb), targetVerb, srcResolved.get())) {
             return false;
         }
 
@@ -319,7 +327,7 @@ public class InteractionManager {
         }
 
         String target = srcResolved.get().getTarget() + " -> " + destResolved.get().getTarget();
-        return dispatcher.dispatch(UIService.getClickbox(dest), targetVerb,
+        return dispatcher.dispatch(pointOn(dest, targetVerb), targetVerb,
                 new ResolvedMenuAction(destResolved.get().getOption(), target));
     }
 
@@ -333,11 +341,11 @@ public class InteractionManager {
     public boolean interact(Widget src, TileObject dest) {
         if (src == null || dest == null) return false;
 
-        Point destPoint = UIService.getClickbox(dest);
         String targetVerb = src.getTargetVerb();
+        Point destPoint = pointOn(dest, targetVerb);
 
         Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
-        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(pointOn(src, targetVerb), targetVerb, srcResolved.get())) {
             return false;
         }
 
@@ -382,11 +390,11 @@ public class InteractionManager {
     public boolean interact(Widget src, NPC dest) {
         if (src == null || dest == null) return false;
 
-        Point destPoint = UIService.getClickbox(dest);
         String targetVerb = src.getTargetVerb();
+        Point destPoint = pointOn(dest, targetVerb);
 
         Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
-        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(pointOn(src, targetVerb), targetVerb, srcResolved.get())) {
             return false;
         }
 
@@ -414,11 +422,11 @@ public class InteractionManager {
     public boolean interact(Widget src, Player dest) {
         if (src == null || dest == null) return false;
 
-        Point destPoint = UIService.getClickbox(dest);
         String targetVerb = src.getTargetVerb();
+        Point destPoint = pointOn(dest, targetVerb);
 
         Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
-        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(pointOn(src, targetVerb), targetVerb, srcResolved.get())) {
             return false;
         }
 
@@ -446,11 +454,11 @@ public class InteractionManager {
     public boolean interact(Widget src, GroundItem dest) {
         if (src == null || dest == null || dest.getTileObject() == null) return false;
 
-        Point destPoint = UIService.getClickbox(dest.getTileObject());
         String targetVerb = src.getTargetVerb();
+        Point destPoint = pointOn(dest, targetVerb);
 
         Optional<ResolvedMenuAction> srcResolved = resolveSource(src);
-        if (srcResolved.isEmpty() || !dispatcher.dispatch(UIService.getClickbox(src), targetVerb, srcResolved.get())) {
+        if (srcResolved.isEmpty() || !dispatcher.dispatch(pointOn(src, targetVerb), targetVerb, srcResolved.get())) {
             return false;
         }
 
@@ -510,6 +518,21 @@ public class InteractionManager {
      * @return true if the widget resolved and the action was dispatched, false otherwise.
      */
     public boolean interact(int widgetId, int childId, int itemId, int action) {
+        return interact(widgetId, childId, itemId, action, null);
+    }
+
+    /**
+     * Interacts with a widget like {@link #interact(int, int, int, int)}, clicking a point chosen beforehand, such as
+     * one from {@link #chooseWidgetClick(int, int)} that was also used to time the click.
+     *
+     * @param widgetId the packed id of the widget to interact with.
+     * @param childId  the child index within the widget, or {@code -1}.
+     * @param itemId   the item id within the widget, or {@code -1}.
+     * @param action   the 1-based index of the action in the widget's action list.
+     * @param point    the canvas point to click, or null to choose one now.
+     * @return true if the widget resolved and the action was dispatched, false otherwise.
+     */
+    public boolean interact(int widgetId, int childId, int itemId, int action, Point point) {
         Context ctx = ctxProvider.get();
         Widget widget = ctx.getWidget(widgetId);
         if (widget == null) {
@@ -517,7 +540,7 @@ public class InteractionManager {
             return false;
         }
 
-        Point pt = UIService.getClickbox(widget);
+        Point pt = point != null ? point : pointOn(widget, actionName(widget, action));
         int worldView = ctx.getClient().getTopLevelWorldView().getId();
 
         // Resolve the display name for this action index (1-based)
@@ -541,6 +564,78 @@ public class InteractionManager {
 
         MenuOption option = new MenuOption(MenuAction.CC_OP, action, childId, widgetId, itemId, worldView);
         return dispatcher.dispatch(pt, actionName, new ResolvedMenuAction(option, target == null ? "" : Text.removeTags(target)));
+    }
+
+    /**
+     * Chooses where a click on a widget would land, without clicking, so the caller can time the click from the same
+     * point it later passes to {@link #interact(int, int, int, int, Point)}.
+     *
+     * @param widgetId the packed id of the widget.
+     * @param action   the 1-based index of the action that will be performed.
+     * @return the point and the widget's bounds, or null when the widget does not exist.
+     */
+    public ClickLocation chooseWidgetClick(int widgetId, int action) {
+        return ctxProvider.get().runOnClientThreadOptional(() -> {
+            Widget widget = ctxProvider.get().getClient().getWidget(widgetId);
+            if (widget == null) {
+                return null;
+            }
+
+            Rectangle bounds = UIService.getWidgetClickbox(widget);
+            return ClickLocation.of(clickPoints.choose(ClickTarget.widget(widget, actionName(widget, action)), bounds), bounds);
+        }).orElse(null);
+    }
+
+    /**
+     * @param widget a widget.
+     * @param action the 1-based action index.
+     * @return the widget's text for that action, or null when it has none.
+     */
+    private static String actionName(Widget widget, int action) {
+        String[] actions = widget.getActions();
+        if (actions == null || action <= 0 || action > actions.length) {
+            return null;
+        }
+        String name = actions[action - 1];
+        return name == null || name.isEmpty() ? null : name;
+    }
+
+    private Point pointOn(NPC npc, String action) {
+        return clickPoints.choose(ClickTarget.npc(npc, action), UIService.getActorClickbox(npc));
+    }
+
+    private Point pointOn(Player player, String action) {
+        return clickPoints.choose(ClickTarget.player(player, action), UIService.getActorClickbox(player));
+    }
+
+    private Point pointOn(TileObject object, String action) {
+        return clickPoints.choose(ClickTarget.object(object, action), UIService.getObjectClickbox(object));
+    }
+
+    private Point pointOn(GroundItem item, String action) {
+        int itemId = item.getTileItem() == null ? -1 : item.getTileItem().getId();
+        return clickPoints.choose(ClickTarget.groundItem(itemId, action), UIService.getObjectClickbox(item.getTileObject()));
+    }
+
+    private Point pointOn(Widget widget, String action) {
+        if (widget == null) {
+            return UIService.getClickingPoint(UIService.getDefaultRectangle(), true);
+        }
+        return clickPoints.choose(ClickTarget.widget(widget, action), UIService.getWidgetClickbox(widget));
+    }
+
+    /**
+     * The point for a click on a container item, inside the item's slot in its container widget.
+     *
+     * @param item   the item.
+     * @param widget the item's widget.
+     * @param action the menu action, or null.
+     * @return the point, or (1, 1) when the slot's bounds cannot be read.
+     */
+    private Point pointOn(ContainerItem item, Widget widget, String action) {
+        Context ctx = ctxProvider.get();
+        Rectangle bounds = item.getBounds(ctx, ctx.getClient());
+        return clickPoints.choose(ClickTarget.containerItem(widget, item.getId(), action), bounds);
     }
 
     /**

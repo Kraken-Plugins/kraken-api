@@ -2,7 +2,6 @@ package com.kraken.api.core.interaction.timing;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import net.runelite.api.Point;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
@@ -59,7 +58,7 @@ public class ScheduledClick {
     private final int baseGapMs;
 
     @Getter(AccessLevel.PACKAGE)
-    private final Supplier<Point> location;
+    private final Supplier<ClickLocation> location;
 
     @Getter(AccessLevel.PACKAGE)
     private final BooleanSupplier action;
@@ -69,7 +68,7 @@ public class ScheduledClick {
 
     private final AtomicReference<State> state = new AtomicReference<>(State.PENDING);
 
-    ScheduledClick(Object owner, long sendAtMillis, long deadlineMillis, int baseGapMs, Supplier<Point> location,
+    ScheduledClick(Object owner, long sendAtMillis, long deadlineMillis, int baseGapMs, Supplier<ClickLocation> location,
                    BooleanSupplier action, long sequence) {
         this.owner = owner;
         this.sendAtMillis = sendAtMillis;

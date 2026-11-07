@@ -157,6 +157,38 @@ The following items must be present in your **Bank**:
 - **Note**: Consumes one uncut sapphire. Asserts the make-X interface opens, that the quantity varc
   round trips, and that a cut sapphire actually appears — none of which the old cooking version checked.
 
+### `TimedPrayerFlickTest`
+- **Location**: Anywhere. Somewhere safe is best, since every prayer is turned off at the start.
+- **Level**: Prayer level 1 and at least one prayer point. It only uses Thick Skin, so any account can run it.
+- **State**: Keep other Kraken plugins and scripts idle during the run (about a minute). Kraken's clicks call the
+  client's `doAction` directly and post no `MenuOptionClicked`, so the test counts every click packet `MousePackets`
+  sends as a Thick Skin click, and a click from anything else fails it. Leave the prayer book alone too: a manual
+  click on Thick Skin breaks the prayer state checks. Immediate click mode (`-Dkraken.clicks.immediate=true`) must be
+  off, or the test is skipped.
+- **What it does**: lazy flicks Thick Skin through `PrayerService.schedule` against a phantom boss, a scripted
+  pattern of hit ticks that stands in for the attacks a free to play account never gets. The pattern mixes four, three,
+  two and one tick cadences, back to back hits and pauses. On and off clicks sweep the whole window before the cutoff.
+  One click is sent at once, one asks for an offset past the cutoff, and one attack is a feint whose click is
+  cancelled before it is due.
+- **Checks**: the prayer is up on every hit tick and down on every other tick, each change is exactly one click in
+  its own tick, no click leaves before its offset or after its deadline (plus one client cycle), the immediate click
+  leaves within a client cycle, and the cancelled click never leaves.
+- **Log**: `TIMED_PRAYER_FLICKS` lines give each check plus measurements that never fail the run: lateness of the
+  swept clicks, a histogram of send offsets, how many clicks and varp and sound signals were recorded, and prayer
+  points before and after. The run holds Thick Skin up on only its 29 hit ticks, and Thick Skin drains a point per 60
+  active ticks with no prayer bonus (36 seconds, per the OSRS wiki), so the points line cannot show drain either way. Prayer varbits change on the client
+  by the next cycle, so the prayer state checks prove each click went out in the right tick, not that the server got
+  it in time. The test also records the prayer's varp changes and its activation and deactivation sounds. If any of
+  them arrive with a tick update, the log reports which offsets the server applied on the next tick and which slipped
+  a tick, using calibration clicks sent at 320 to 520 ms on purpose. If none do, it says so.
+- **Chart**: each run writes `timed-prayer-flicks-<time>.html` and `.csv` to `.runelite/kraken/prayer-timing/` (the
+  log names the file). Open the HTML in any browser. It shows one row per game tick with every on and off click at the
+  millisecond it went out, the offset it asked for, hit ticks shaded, the cutoff, the feint and every varp change and
+  prayer sound, then a histogram of send offsets, the checks and a table view. The CSV has the same events, one per
+  row, for a spreadsheet. `./gradlew test` writes a sample from a simulated run to
+  `build/reports/prayer-timing/timed-prayer-flicks-sample.html`. DevTools' Phantom Boss tool in kraken-plugins
+  writes the same kind of chart.
+
 ### `InventoryTest`
 - **Location**: Any bank which is currently open
 - **Inventory**: You cannot have a gold bar or a sapphire in your inventory

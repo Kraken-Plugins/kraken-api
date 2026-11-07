@@ -73,12 +73,26 @@ public class HumanClickGap implements ClickGapModel {
 
     @Override
     public int travelMs(Point from, Point to) {
+        return travelMs(from, to, TARGET_WIDTH_PX);
+    }
+
+    /**
+     * Fitts' law travel time:  #getMsPerBit() times {@code log2(distance / width + 1)}.
+     *
+     * @param from          the previous click, or null when unknown.
+     * @param to            the next click, or null when unknown.
+     * @param targetWidthPx the width of the target in pixels, or 0 for {@link #TARGET_WIDTH_PX}.
+     * @return the travel time in milliseconds, 0 when either point is unknown.
+     */
+    @Override
+    public int travelMs(Point from, Point to, int targetWidthPx) {
         if (from == null || to == null) {
             return 0;
         }
 
+        int width = targetWidthPx > 0 ? targetWidthPx : TARGET_WIDTH_PX;
         double distance = Math.hypot(to.getX() - from.getX(), to.getY() - from.getY());
-        double bits = Math.log(distance / TARGET_WIDTH_PX + 1) / Math.log(2);
+        double bits = Math.log(distance / width + 1) / Math.log(2);
         return (int) Math.round(msPerBit * bits);
     }
 

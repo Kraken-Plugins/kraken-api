@@ -65,6 +65,7 @@ public class TestRegistry {
         register(injector, DepositBoxTest.class, "enableDepositBoxQuery", TestGroup.QUERY);
 
         register(injector, PrayerServiceTest.class, "enablePrayer", TestGroup.SERVICE);
+        register(injector, TimedPrayerFlickTest.class, "enableTimedPrayerFlicks", TestGroup.SERVICE);
         register(injector, BankServiceTest.class, "enableBankServiceTests", TestGroup.SERVICE);
         register(injector, DepositBoxServiceTest.class, "enableDepositBoxService", TestGroup.SERVICE);
         register(injector, SpellServiceTest.class, "enableSpell", TestGroup.SERVICE);

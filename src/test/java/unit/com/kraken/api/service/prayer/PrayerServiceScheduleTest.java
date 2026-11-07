@@ -3,6 +3,7 @@ package com.kraken.api.service.prayer;
 import com.kraken.api.Context;
 import com.kraken.api.core.interaction.InteractionManager;
 import com.kraken.api.core.interaction.timing.ClickGapModel;
+import com.kraken.api.core.interaction.timing.ClickLocation;
 import com.kraken.api.core.interaction.timing.ClickScheduler;
 import com.kraken.api.core.interaction.timing.ClickTiming;
 import net.runelite.api.Client;
@@ -14,6 +15,7 @@ import net.runelite.api.events.GameTick;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.awt.Rectangle;
 import java.lang.reflect.Field;
 import java.util.EnumSet;
 import java.util.Optional;
@@ -213,5 +215,24 @@ class PrayerServiceScheduleTest {
 
         verify(interactionManager, never()).interact(anyInt(), anyInt(), anyInt(), anyInt());
         assertFalse(prayerService.isInFlight(Prayer.PROTECT_FROM_MAGIC));
+    }
+
+    @Test
+    void theClickLandsOnThePointItsTravelWasTimedTo() {
+        Point chosen = new Point(612, 318);
+        when(interactionManager.chooseWidgetClick(MAGIC_WIDGET, 1))
+                .thenReturn(ClickLocation.of(chosen, new Rectangle(600, 300, 37, 37)));
+        when(interactionManager.interact(anyInt(), anyInt(), anyInt(), anyInt(), any(Point.class))).thenAnswer(invocation -> {
+            active.add(Prayer.PROTECT_FROM_MAGIC);
+            return true;
+        });
+
+        prayerService.schedule(this, Prayer.PROTECT_FROM_MAGIC, true, ClickTiming.at(150));
+        cycleAt(1_160);
+
+        verify(interactionManager, times(1)).chooseWidgetClick(MAGIC_WIDGET, 1);
+        verify(interactionManager).interact(MAGIC_WIDGET, -1, -1, 1, chosen);
+        verify(interactionManager, never()).interact(anyInt(), anyInt(), anyInt(), anyInt());
+        assertTrue(prayerService.isActive(Prayer.PROTECT_FROM_MAGIC));
     }
 }
