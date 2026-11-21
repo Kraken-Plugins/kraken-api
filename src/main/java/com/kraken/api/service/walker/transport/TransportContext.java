@@ -1,6 +1,7 @@
 package com.kraken.api.service.walker.transport;
 
 import com.kraken.api.Context;
+import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import lombok.Builder;
 import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
@@ -33,6 +34,9 @@ public final class TransportContext {
 
     /** The transport's display info, which names the destination for teleports and hubs. */
     private final String displayInfo;
+
+    /** The registered definition this crossing came from, or null for a transport from the dataset. */
+    private final TransportDefinition definition;
 
     /**
      * Returns the kind of transport being crossed.

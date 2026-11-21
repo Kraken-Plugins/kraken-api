@@ -217,7 +217,8 @@ four hulls, then float it, gated on a woodcutting level and an axe. 45 edges.
 **Minigame teleports** are driven from the grouping tab, which `InterfaceTab` does not name. 21
 edges, and every destination is reachable another way.
 
-Both fail immediately with `TRANSPORT_UNSUPPORTED` and a reason. `WalkerConfig` turns `useCanoes`
+Both fail immediately with `TRANSPORT_UNSUPPORTED` and a reason, unless a plugin has registered a
+handler for the shape (see [Adding transports at runtime](#adding-transports-at-runtime)). `WalkerConfig` turns `useCanoes`
 and `useTeleportationMinigames` off by default so a default walk routes around them instead. A
 custom `GlobalPathfinderConfig` can turn them back on; the walk then fails at fire time if the
 route still uses one. Plan-only callers of `GlobalPathfinder` keep the library defaults (both on).
@@ -235,6 +236,160 @@ text ignoring hyphens and spacing, because the dataset writes `Climb Down Ladder
 action is `Climb-down`. Scenery is found by id within four tiles of the origin, then by name within
 ten — the Stronghold spirit tree sits five tiles south of its dataset origin, and id `26260` is not
 always the live object.
+
+## Adding transports at runtime
+
+`TransportRegistry` (`com.kraken.api.service.walker.transport.registry`) holds transports and
+handlers that are added while the client runs. There is one registry per client, shared by every
+plugin, so a transport one plugin registers is planned through and operated by every walk from the
+next search on. Nothing in the registry package uses a shortest-path type except
+`ShortestPathBridge`, so plugins compile against Kraken types only.
+
+```java
+@Inject
+private TransportRegistry transports;
+
+private TransportRegistry.Registration templeEntrance;
+
+@Override
+protected void startUp() {
+    templeEntrance = transports.register(TransportDefinition
+            .object("my-plugin:temple-entrance", origin, destination, objectId, "Enter")
+            .requirements(DefinitionRequirements.builder()
+                    .membersOnly(true)
+                    .quest(Quest.CHILDREN_OF_THE_SUN)
+                    .item(DefinitionRequirements.RequiredItem.of(ItemID.COINS, 10))
+                    .build())
+            .build());
+}
+
+@Override
+protected void shutDown() {
+    templeEntrance.close();
+}
+```
+
+Close the handle in `shutDown()`. A definition can hold a lambda, and the registry would otherwise
+keep the plugin's classes alive after it stops. `unregisterAll("my-plugin")` removes every
+definition whose id starts with `my-plugin:`.
+
+### What a definition says
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Stable key written `owner:name`. Registering the same id again replaces the definition. |
+| `origin`, `destination` | The tile the transport is entered from and the tile it leads to. Both are required. |
+| `category` | Which planning option turns it on and off. `BOAT` follows `useBoats`. `GENERAL` (the default) is always planned. |
+| `shape` | How it is operated, when no handler is given. |
+| `menuOption`, `menuTarget`, `entityId` | What to click. The id is tried first, then the name. |
+| `displayInfo` | The destination to choose: a chat option, a numbered hub entry, or a fairy ring code. |
+| `duration` | Game ticks. It is the planning cost and sets the arrival timeout. Defaults to 1. |
+| `bidirectional` | Also usable from the destination back to the origin. |
+| `replaces` | Removes the dataset's transports between the same two tiles from every search, including searches where this definition's requirements are not met. |
+| `requirements` | Skill levels, quests, items, varbits, varplayers and members only. |
+| `availableWhen` | An extra condition for what requirements cannot express. It runs on the client thread at every search, so keep it quick. |
+| `handler` | A `TransportHandler` that operates this transport in place of the handler for its shape. |
+
+`TransportDefinition.object`, `npc` and `npcDialogue` start a builder for the common cases. A
+definition without a handler is declarative: it reuses the handler for its shape, and the click
+goes through the same `TransportEntityResolver` the dataset rows use. `SINGLE_CLICK`,
+`CLICK_THEN_DIALOGUE`, `HUB_DIALOGUE`, `HUB_RESUME_PAUSE` and `FAIRY_RING` work that way. The
+handlers for the other shapes read detail only the dataset carries, so a definition with one of
+those shapes needs a handler. A fairy ring defined this way does not get the staff or diary rule the
+dataset's rings get; state it in the definition's requirements or `availableWhen`.
+
+A handler blocks off the client thread, like the built in ones, and only operates the transport.
+Arrival is judged by `TransportExecutor` the same way for every transport. A registered handler
+that throws fails that one crossing with `TRANSPORT_FAILED` and the exception in the reason. A
+stopping script still unwinds through it.
+
+```java
+transports.register(TransportDefinition.builder()
+        .id("my-plugin:rope-swing")
+        .origin(origin)
+        .destination(destination)
+        .handler(context -> context.getCtx().tileObjects().withId(objectId).interact("Swing-on"))
+        .build());
+```
+
+### Requirements are checked twice
+
+When a search captures state, the registry drops every definition whose category is off, whose
+requirements are not met, or whose `availableWhen` is false. Player state is read once for all
+definitions. The walker checks the same requirements again just before it operates the transport
+and ends with `TRANSPORT_REQUIREMENTS_UNMET` naming what is missing. A condition that throws counts
+as false, so one plugin's fault cannot stop every walk.
+
+### Handlers for a whole shape
+
+`registerHandler(shape, handler)` replaces the built in handler for a shape. That is how canoes or
+minigame teleports can be supplied without changing the API: with a handler registered for `CANOE`,
+a route through a canoe no longer ends with `TRANSPORT_UNSUPPORTED`. The latest registration wins,
+and closing its handle brings back the one before it.
+
+### Hiding a dataset transport
+
+`disableEdge(origin, destination)` removes the dataset's transports from one tile to another from
+every search until its handle is closed. Registered definitions between those tiles are not
+affected. Use `replaces` on a definition when the point is to take an edge over.
+
+### Transports bundled with the API
+
+`src/main/resources/walker/transports.json` ships inside the jar and is read through the class
+loader when the registry is created. It is a JSON array of declarative definitions:
+
+```json
+[
+  {
+    "id": "kraken:example-entrance",
+    "origin": {"x": 1312, "y": 3685, "plane": 0},
+    "destination": {"x": 1312, "y": 10086, "plane": 0},
+    "category": "GENERAL",
+    "shape": "SINGLE_CLICK",
+    "menuOption": "Enter",
+    "menuTarget": "Lizard dwelling",
+    "entityId": 34405,
+    "duration": 1,
+    "bidirectional": false,
+    "replaces": false,
+    "requirements": {
+      "membersOnly": true,
+      "skills": {"AGILITY": 50},
+      "quests": ["CHILDREN_OF_THE_SUN"],
+      "items": [{"anyOf": [995], "quantity": 10}],
+      "varbits": [{"id": 100, "comparison": "AT_LEAST", "value": 7}],
+      "varPlayers": []
+    }
+  }
+]
+```
+
+Only `id`, `origin`, `destination`, `shape` and something to click are required. The file is read
+strictly, because reading around a spelling mistake would load a gated transport without its gate.
+A row is logged and skipped when it has a key the loader does not know, a category, shape, skill,
+quest or comparison that is not a known name, a missing required field, or a shape that needs a
+handler (a file cannot carry one). Each row is judged on its own, so the rest still load.
+`BundledTransportsTest` fails the build when any row of the shipped file is skipped or two rows
+share an id. The file ships empty; the row above is an example of the format, not shipped data.
+
+### How a registered transport reaches a route
+
+`GlobalPathfinder` asks `ShortestPathBridge` to apply the registry after the search's own
+configuration has been refreshed and the Al Kharid overlay has run. The bridge takes one immutable
+snapshot of the registry, removes the hidden dataset edges, and adds an edge for each usable
+definition ahead of whatever else leaves its origin tile. A registration made while a search is
+running cannot change that search. `TransportUsage.getDefinition()` returns the definition behind a
+route step, or null for a dataset edge.
+
+When several transports join the same two tiles, a registered one is operated in preference to the
+dataset's, and the latest registration in preference to an earlier one. A transport that is
+unregistered after a route was planned through it is not operated: the walk ends with
+`TRANSPORT_FAILED` saying so, and the next walk plans without it.
+
+Two limits apply today. A definition needs an origin tile, so teleports usable from anywhere cannot
+be registered yet. And a registered transport is planned as the generic `TRANSPORT` type with its
+requirements checked against what the player carries and wears, so `includeBankPath` does not plan
+a bank visit to fetch an item for it.
 
 ## Doors the planner does not know about
 

@@ -3,6 +3,8 @@ package com.kraken.api.service.pathfinding;
 import com.kraken.api.Context;
 import com.kraken.api.core.script.ScriptCancellation;
 import com.kraken.api.service.walker.transport.AlKharidGate;
+import com.kraken.api.service.walker.transport.registry.ShortestPathBridge;
+import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,8 @@ public class GlobalPathfinder {
     @Inject
     private Client client;
 
+    @Inject
+    private ShortestPathBridge transportBridge;
 
     @Getter
     private volatile PathResult lastResult = EMPTY_RESULT;
@@ -264,13 +268,14 @@ public class GlobalPathfinder {
         // Load static graph resources on the worker. The client capture refreshes only this request's
         // configuration; no subsequent capture can mutate the inputs while this worker searches.
         PathfinderConfig requestConfig = createRequestConfig(resolvedConfig);
-        PreparedPathfinder prepared = ctx.runOnClientThread(() -> prepare(source, destination, requestConfig));
+        PreparedPathfinder prepared = ctx.runOnClientThread(
+                () -> prepare(source, destination, requestConfig, resolvedConfig));
         if (prepared == null || prepared.targets.isEmpty() || searchCancelled()) {
             return lastResult = PathResult.empty(resolvedConfig, source, destination);
         }
         SearchState searchState = search(prepared.start, prepared.targets, prepared.pathfinderConfig, resolvedConfig);
         return lastResult = buildResult(source, destination, resolvedConfig, prepared.pathfinderConfig,
-                searchState, prepared.alKharidGateFree);
+                searchState, prepared.alKharidGateFree, prepared.registeredEdges);
     }
 
     /** Creates a private search configuration; static resource loading must stay on the worker. */
@@ -293,8 +298,15 @@ public class GlobalPathfinder {
         lastResult = EMPTY_RESULT;
     }
 
-    /** Captures live eligibility into a request-owned config on the client thread. */
-    private PreparedPathfinder prepare(WorldPoint source, WorldPoint destination, PathfinderConfig pathfinderConfig) {
+    /**
+     * Captures live eligibility into a request-owned config on the client thread.
+     *
+     * <p>The transport registry is applied last, after the dataset's own transports have been
+     * refreshed and the Al Kharid overlay has run, so a registered transport is never stripped by
+     * either and is found ahead of a dataset edge between the same tiles.</p>
+     */
+    private PreparedPathfinder prepare(WorldPoint source, WorldPoint destination,
+                                       PathfinderConfig pathfinderConfig, GlobalPathfinderConfig config) {
         pathfinderConfig.bank = client.getItemContainer(InventoryID.BANK);
         pathfinderConfig.refresh();
         int gateVarp = client.getVarpValue(AlKharidGate.GATE_VARP);
@@ -305,6 +317,7 @@ public class GlobalPathfinder {
                 countCoins(),
                 gateVarp,
                 princeAliFinished);
+        ShortestPathBridge.Injection registeredEdges = transportBridge.apply(config, pathfinderConfig);
 
         Set<Integer> targets = new HashSet<>();
         targets.add(WorldPointUtil.packWorldPoint(destination));
@@ -314,7 +327,8 @@ public class GlobalPathfinder {
                 WorldPointUtil.packWorldPoint(source),
                 Collections.unmodifiableSet(targets),
                 pathfinderConfig,
-                AlKharidGate.isFree(gateVarp, princeAliFinished));
+                AlKharidGate.isFree(gateVarp, princeAliFinished),
+                registeredEdges);
     }
 
     /** Runs the shortest-path graph search over walkable tiles and transport edges. */
@@ -454,7 +468,8 @@ public class GlobalPathfinder {
             GlobalPathfinderConfig config,
             PathfinderConfig pathfinderConfig,
             SearchState searchState,
-            boolean alKharidGateFree
+            boolean alKharidGateFree,
+            ShortestPathBridge.Injection registeredEdges
     ) {
         if (searchState.pathSteps == null || searchState.pathSteps.isEmpty()) {
             return PathResult.empty(config, source, destination);
@@ -462,7 +477,8 @@ public class GlobalPathfinder {
 
         List<PathStep> pathSteps = searchState.pathSteps;
         List<WorldPoint> densePath = unpackPath(pathSteps);
-        List<TransportUsage> transports = findTransportUsages(pathSteps, pathfinderConfig, alKharidGateFree);
+        List<TransportUsage> transports =
+                findTransportUsages(pathSteps, pathfinderConfig, alKharidGateFree, registeredEdges);
         List<WorldPoint> sparsePath = toSparsePath(densePath, transports, config.getSparsePathWaypointDistance());
         boolean complete = searchState.complete
                 && !densePath.isEmpty()
@@ -485,7 +501,8 @@ public class GlobalPathfinder {
     private List<TransportUsage> findTransportUsages(
             List<PathStep> pathSteps,
             PathfinderConfig pathfinderConfig,
-            boolean alKharidGateFree
+            boolean alKharidGateFree,
+            ShortestPathBridge.Injection registeredEdges
     ) {
         if (pathSteps == null || pathSteps.size() < 2) {
             return Collections.emptyList();
@@ -507,16 +524,22 @@ public class GlobalPathfinder {
                 continue;
             }
 
+            // A registered transport names its own click target, so the Al Kharid rewrite is kept
+            // for dataset edges only.
+            TransportDefinition definition = registeredEdges.definitionOf(transport);
             transportUsages.add(new TransportUsage(
                     i - 1,
                     WorldPointUtil.unpackWorldPoint(origin),
                     WorldPointUtil.unpackWorldPoint(destination),
                     transport.getType(),
                     transport.getDisplayInfo(),
-                    AlKharidGate.liveObjectInfo(transport, alKharidGateFree),
+                    definition != null
+                            ? definition.getObjectInfo()
+                            : AlKharidGate.liveObjectInfo(transport, alKharidGateFree),
                     transport.isConsumable(),
                     transport.getDuration(),
-                    transport
+                    transport,
+                    definition
             ));
         }
 
@@ -734,6 +757,13 @@ public class GlobalPathfinder {
         private final Transport transport;
 
         /**
+         * The registered definition this step came from, or null when the edge came from the
+         * dataset. A registered transport is planned as the generic {@code TRANSPORT} type, so this
+         * is what says which transport it really is and how to operate it.
+         */
+        private final TransportDefinition definition;
+
+        /**
          * Builds a usage without the underlying edge.
          *
          * <p>Retained so that code compiled against the previous all-args constructor keeps working.</p>
@@ -768,6 +798,26 @@ public class GlobalPathfinder {
         public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
                               String displayInfo, String objectInfo, boolean consumable, int duration,
                               Transport transport) {
+            this(pathIndex, origin, destination, type, displayInfo, objectInfo, consumable, duration, transport, null);
+        }
+
+        /**
+         * Builds a usage for a transport that came from the transport registry.
+         *
+         * @param pathIndex index into the route where the transport is entered
+         * @param origin the tile the transport is entered from
+         * @param destination the tile the transport leads to
+         * @param type the kind of transport
+         * @param displayInfo human readable description of the transport
+         * @param objectInfo what to interact with, as stored by the dataset
+         * @param consumable whether using the transport consumes an item
+         * @param duration how long the transport takes, in game ticks
+         * @param transport the planner's edge, may be null
+         * @param definition the registered definition behind the edge, or null for a dataset edge
+         */
+        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
+                              String displayInfo, String objectInfo, boolean consumable, int duration,
+                              Transport transport, TransportDefinition definition) {
             this.pathIndex = pathIndex;
             this.origin = origin;
             this.destination = destination;
@@ -777,6 +827,7 @@ public class GlobalPathfinder {
             this.consumable = consumable;
             this.duration = duration;
             this.transport = transport;
+            this.definition = definition;
         }
     }
 
@@ -803,6 +854,7 @@ public class GlobalPathfinder {
         private final Set<Integer> targets;
         private final PathfinderConfig pathfinderConfig;
         private final boolean alKharidGateFree;
+        private final ShortestPathBridge.Injection registeredEdges;
     }
 
     /** Captures the terminal search node and lightweight search metrics. */

@@ -6,7 +6,6 @@ import shortestpath.PrimitiveIntHashMap;
 import shortestpath.WorldPointUtil;
 import shortestpath.transport.Transport;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,8 +40,6 @@ public final class AlKharidGate {
     public static final String PAY_TOLL = "Pay-toll(10gp)";
 
     private static final int NORTH_Y = 3228;
-
-    private static final Transport[] NONE = new Transport[0];
 
     private static final Set<Integer> TILES = Set.of(
             WorldPointUtil.packWorldPoint(3267, 3227, 0),
@@ -132,24 +129,8 @@ public final class AlKharidGate {
      * @param packed origin to transport array, may be null
      */
     public static void strip(PrimitiveIntHashMap<Transport[]> packed) {
-        if (packed == null) {
-            return;
-        }
-
         for (int origin : TILES) {
-            Transport[] current = packed.get(origin);
-            if (current == null || current.length == 0) {
-                continue;
-            }
-
-            List<Transport> kept = new ArrayList<>(current.length);
-            for (Transport transport : current) {
-                if (!matches(transport)) {
-                    kept.add(transport);
-                }
-            }
-
-            packed.put(origin, kept.isEmpty() ? NONE : kept.toArray(NONE));
+            PackedTransports.remove(packed, origin, AlKharidGate::matches);
         }
     }
 

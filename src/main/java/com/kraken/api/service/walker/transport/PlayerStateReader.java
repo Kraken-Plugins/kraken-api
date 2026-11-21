@@ -4,6 +4,8 @@ import com.kraken.api.Context;
 import com.kraken.api.query.container.ContainerItem;
 import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.query.equipment.EquipmentEntity;
+import com.kraken.api.service.pathfinding.PathfinderLiveConfig;
+import com.kraken.api.service.walker.transport.registry.DefinitionRequirements;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Quest;
 import net.runelite.api.QuestState;
@@ -14,6 +16,7 @@ import shortestpath.transport.parser.VarRequirement;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -74,6 +77,56 @@ public class PlayerStateReader {
                 .build();
     }
 
+    /**
+     * Builds one snapshot covering the requirements of several registered transports.
+     *
+     * <p>Skills, items and the world type are each read once however many transports ask for them,
+     * and only the quests and vars they name are queried.</p>
+     *
+     * @param requirements the requirements about to be checked
+     * @return the state to check them against
+     */
+    public TransportRequirements.PlayerState read(Collection<DefinitionRequirements> requirements) {
+        Set<Quest> quests = new HashSet<>();
+        Map<Integer, Integer> varbits = new HashMap<>();
+        Map<Integer, Integer> varPlayers = new HashMap<>();
+        boolean needsSkills = false;
+        boolean needsItems = false;
+        boolean needsWorldType = false;
+
+        for (DefinitionRequirements required : requirements) {
+            if (required == null || required.isEmpty()) {
+                continue;
+            }
+
+            needsSkills |= !required.getSkillLevels().isEmpty();
+            needsItems |= !required.getItems().isEmpty();
+            needsWorldType |= required.isMembersOnly();
+            quests.addAll(required.getQuests());
+
+            for (DefinitionRequirements.RequiredVar varbit : required.getVarbits()) {
+                varbits.computeIfAbsent(varbit.getId(), ctx::getVarbitValue);
+            }
+            for (DefinitionRequirements.RequiredVar varPlayer : required.getVarPlayers()) {
+                varPlayers.computeIfAbsent(varPlayer.getId(), ctx::getVarpValue);
+            }
+        }
+
+        Set<Quest> completed = new HashSet<>();
+        for (Quest quest : quests) {
+            addIfFinished(completed, quest);
+        }
+
+        return TransportRequirements.PlayerState.builder()
+                .skillLevels(needsSkills ? readSkillLevels() : new int[0])
+                .completedQuests(completed)
+                .itemQuantities(needsItems ? readHeldItems() : Collections.emptyMap())
+                .varbitValues(varbits)
+                .varPlayerValues(varPlayers)
+                .membersWorld(needsWorldType && PathfinderLiveConfig.isMembersWorld(ctx))
+                .build();
+    }
+
     private int[] readSkillLevels() {
         Skill[] skills = Skill.values();
         return ctx.runOnClientThread(() -> {
@@ -113,10 +166,7 @@ public class PlayerStateReader {
     }
 
     /**
-     * Totals the transport's candidate items across inventory and equipment.
-     *
-     * <p>Only ids the transport mentions are counted, so this stays a small map however full the
-     * player's bags are.</p>
+     * Totals the player's items across inventory and equipment when the transport needs any.
      */
     private Map<Integer, Integer> readItems(Transport transport) {
         if (transport.getItemRequirements() == null
@@ -125,6 +175,13 @@ public class PlayerStateReader {
             return Collections.emptyMap();
         }
 
+        return readHeldItems();
+    }
+
+    /**
+     * Totals every item the player carries or wears, by item id.
+     */
+    private Map<Integer, Integer> readHeldItems() {
         Map<Integer, Integer> totals = new HashMap<>();
 
         for (InventoryEntity entity : ctx.inventory().list()) {

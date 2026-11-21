@@ -36,6 +36,24 @@ public final class ObjectInfo {
     }
 
     /**
+     * Builds object info from parts that are already known, so nothing has to be guessed from a
+     * joined string.
+     *
+     * @param menuOption the menu action to use, may be null or blank when the entity decides
+     * @param menuTarget the entity's name, may be null or blank when only the id is known
+     * @param id the object or NPC id, or {@link #NO_ID} when only the name is known
+     * @return the object info, or null when it names neither an option, a target nor an id
+     */
+    public static ObjectInfo of(String menuOption, String menuTarget, int id) {
+        String option = menuOption != null ? menuOption.trim() : "";
+        String target = menuTarget != null ? menuTarget.trim() : "";
+        if (option.isEmpty() && target.isEmpty() && id == NO_ID) {
+            return null;
+        }
+        return new ObjectInfo(option, target, id);
+    }
+
+    /**
      * Parses a raw {@code objectInfo} string into its menu option, target and id.
      *
      * <p>The option/target boundary is a guess at this stage; refine it with

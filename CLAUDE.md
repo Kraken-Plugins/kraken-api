@@ -56,6 +56,17 @@ New behavior goes in the narrowest layer that owns it. Do not add a query for so
 
 `core/packet/` handles the remainder — movement, spoofed mouse clicks, some dialogue — by building raw client packets (`PacketFactory`, `PacketClient`, `BufferUtils`, `entity/{Mouse,Movement,Widget}Packets`).
 
+### Walker transports — dataset plus registry
+
+`service/walker/` plans with the bundled `shortest-path` library and operates transports through
+`TransportExecutor`, which dispatches by `TransportShape`. Transports the dataset lacks are added
+through `service/walker/transport/registry/`: `TransportRegistry` (a client-wide `@Singleton`) holds
+`TransportDefinition`s, shape handler overrides and hidden dataset edges, and
+`src/main/resources/walker/transports.json` is the bundled set it loads at startup. The registry
+package is Kraken-owned on purpose. `ShortestPathBridge` is the only class there allowed to import
+`shortestpath.*`; keep it that way so the planner can be swapped out later. `docs/WALKER.md` covers
+the details.
+
 ### `hooks.json` — the only client-revision-sensitive file
 
 `src/main/resources/hooks.json` holds `reflectionHooks`, `loginHooks`, `securityHooks`, and `packets`. `core/hooks/HooksLoader` parses it in a static initializer into `GameHooks` and friends; everything obfuscation-dependent reads from there. After an OSRS client revision, it will be manually updated by a human. Never update this file directly. Never hardcode obfuscated names elsewhere in the codebase.

@@ -1,6 +1,9 @@
 package com.kraken.api.service.pathfinding;
 
 import com.kraken.api.Context;
+import com.kraken.api.service.walker.transport.PlayerStateReader;
+import com.kraken.api.service.walker.transport.registry.ShortestPathBridge;
+import com.kraken.api.service.walker.transport.registry.TransportRegistry;
 import net.runelite.api.Client;
 import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +58,7 @@ class GlobalPathfinderConcurrencyTest {
     void setup() throws Exception {
         inject("ctx", ctx);
         inject("client", client);
+        inject("transportBridge", new ShortestPathBridge(new TransportRegistry(), mock(PlayerStateReader.class)));
         when(client.getIntStack()).thenReturn(new int[]{1});
         when(ctx.runOnClientThread(any(Callable.class))).thenAnswer(call -> {
             assertFalse(Thread.holdsLock(pathfinder), "capture must not hold the pathfinder monitor");

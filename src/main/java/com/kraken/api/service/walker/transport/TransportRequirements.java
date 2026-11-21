@@ -1,5 +1,6 @@
 package com.kraken.api.service.walker.transport;
 
+import com.kraken.api.service.walker.transport.registry.DefinitionRequirements;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
@@ -81,6 +82,9 @@ public final class TransportRequirements {
 
         /** The player's current wilderness level, or 0 when outside the wilderness. */
         private final int wildernessLevel;
+
+        /** Whether the player is logged in to a members world. */
+        private final boolean membersWorld;
     }
 
     /**
@@ -113,7 +117,7 @@ public final class TransportRequirements {
         List<String> reasons = new ArrayList<>();
 
         addSkillReasons(transport, state, reasons);
-        addQuestReasons(transport, state, reasons);
+        addQuestReasons(transport.getQuests(), state, reasons);
         addItemReasons(transport, state, reasons);
         addVarReasons(transport, state, reasons);
 
@@ -125,6 +129,61 @@ public final class TransportRequirements {
         reasons.addAll(AlKharidGate.unmetReasons(transport, state));
 
         return reasons;
+    }
+
+    /**
+     * Lists the reasons a registered transport cannot currently be used.
+     *
+     * <p>A transport that has requirements is not usable when the state to check them against is
+     * missing: a failed read must not open a gated transport.</p>
+     *
+     * @param requirements what the registered transport needs, may be null
+     * @param state the player state to check against, may be null
+     * @return the unmet requirements as readable text, empty when the transport is usable
+     */
+    public static List<String> unmetReasons(DefinitionRequirements requirements, PlayerState state) {
+        if (requirements == null || requirements.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (state == null) {
+            return Collections.singletonList("player state could not be read");
+        }
+
+        List<String> reasons = new ArrayList<>();
+
+        if (requirements.isMembersOnly() && !state.isMembersWorld()) {
+            reasons.add("needs a members world");
+        }
+
+        for (Map.Entry<Skill, Integer> level : requirements.getSkillLevels().entrySet()) {
+            addSkillReason(level.getKey(), level.getValue(), state, reasons);
+        }
+
+        addQuestReasons(requirements.getQuests(), state, reasons);
+
+        Map<Integer, Integer> held = state.getItemQuantities() != null
+                ? state.getItemQuantities() : Collections.emptyMap();
+        for (DefinitionRequirements.RequiredItem item : requirements.getItems()) {
+            if (!holdsAny(held, item.getAnyOf(), Math.max(item.getQuantity(), 1))) {
+                reasons.add("missing a required item (" + item + ")");
+            }
+        }
+
+        addVarReasons(requirements.getVarbits(), state.getVarbitValues(), reasons);
+        addVarReasons(requirements.getVarPlayers(), state.getVarPlayerValues(), reasons);
+
+        return reasons;
+    }
+
+    private static void addVarReasons(List<DefinitionRequirements.RequiredVar> required,
+                                      Map<Integer, Integer> values,
+                                      List<String> reasons) {
+        for (DefinitionRequirements.RequiredVar requirement : required) {
+            int actual = values != null ? values.getOrDefault(requirement.getId(), 0) : 0;
+            if (!requirement.matches(actual)) {
+                reasons.add("world state not met (" + requirement + ")");
+            }
+        }
     }
 
     /**
@@ -154,24 +213,26 @@ public final class TransportRequirements {
             return;
         }
 
-        int[] actual = state.getSkillLevels();
         Skill[] skills = Skill.values();
         int checkable = Math.min(required.length, skills.length);
 
         for (int i = 0; i < checkable; i++) {
-            if (required[i] <= 0) {
-                continue;
-            }
-
-            int have = actual != null && i < actual.length ? actual[i] : 0;
-            if (have < required[i]) {
-                reasons.add("needs " + required[i] + " " + skills[i].getName() + ", have " + have);
+            if (required[i] > 0) {
+                addSkillReason(skills[i], required[i], state, reasons);
             }
         }
     }
 
-    private static void addQuestReasons(Transport transport, PlayerState state, List<String> reasons) {
-        Set<Quest> required = transport.getQuests();
+    private static void addSkillReason(Skill skill, int required, PlayerState state, List<String> reasons) {
+        int[] actual = state.getSkillLevels();
+        int index = skill.ordinal();
+        int have = actual != null && index < actual.length ? actual[index] : 0;
+        if (have < required) {
+            reasons.add("needs " + required + " " + skill.getName() + ", have " + have);
+        }
+    }
+
+    private static void addQuestReasons(Set<Quest> required, PlayerState state, List<String> reasons) {
         if (required == null || required.isEmpty()) {
             return;
         }

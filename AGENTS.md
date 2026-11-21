@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-10-09
+- Last updated: 2026-11-20
 - Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
@@ -61,6 +61,9 @@
   completion. Pause allows an already submitted iteration to finish. See `docs/SCRIPTING.md`.
 - Global pathfinding is worker-only. Each request owns its captured configuration; hard time/node
   limits and cancellation bound graph expansion. See `docs/WALKER.md`.
+- Walker transports that are not in the shortest-path dataset go through `TransportRegistry`
+  (`service/walker/transport/registry`). That package is Kraken owned: only `ShortestPathBridge` may
+  import `shortestpath.*`, so the planner can be replaced without changing what plugins compile against.
 - Tile reachability uses live scene bounds and exact collision snapshots on the client thread.
   Entity menu actions use their owning world view; see `docs/API.md`.
 
@@ -157,7 +160,8 @@ Do not treat these as hand-edited sources.
 - `docs/API.md` explains the service/query split and should be kept aligned with the code.
 - `docs/INTERACTION.md` covers packet-based interaction and runtime hook behavior.
 - `docs/SHOPS.md` covers `ShopService`, shop price discovery, and buying/selling under limits.
-- `docs/WALKER.md` covers `Walker`, transport execution shapes, and which transport kinds are not yet supported.
+- `docs/WALKER.md` covers `Walker`, transport execution shapes, which transport kinds are not yet supported, and
+  adding transports at runtime through `TransportRegistry` and the bundled `src/main/resources/walker/transports.json`.
 - `docs/MOUSE.md` covers mouse movement strategies.
 - `docs/SCRIPTING.md` covers `Script`, `Task`, and break management.
 - `docs/SIMULATION.md` is the simulation overview; deep dives live in `docs/simulation/`

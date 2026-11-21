@@ -1,6 +1,8 @@
 package com.kraken.api.service.walker.transport;
 
 import com.kraken.api.Context;
+import com.kraken.api.core.ClientThreadException;
+import com.kraken.api.core.script.ScriptStoppedException;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.tile.TileService;
@@ -14,6 +16,8 @@ import com.kraken.api.service.walker.transport.handler.ObjectTransportHandler;
 import com.kraken.api.service.walker.transport.handler.SpellTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.UnsupportedTransportHandler;
 import com.kraken.api.service.walker.transport.handler.WidgetSelectHandler;
+import com.kraken.api.service.walker.transport.registry.TransportDefinition;
+import com.kraken.api.service.walker.transport.registry.TransportRegistry;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Constants;
@@ -31,7 +35,9 @@ import java.util.Map;
  * Operates one transport and reports whether the player got through it.
  *
  * <p>Dispatch is by {@link TransportShape} rather than by transport type, so twenty six kinds of
- * transport are served by a handful of handlers.</p>
+ * transport are served by a handful of handlers. The {@link TransportRegistry} can supply the
+ * handler instead: a registered transport may bring its own, and a handler registered for a shape
+ * takes the place of the built in one.</p>
  */
 @Slf4j
 @Singleton
@@ -69,10 +75,13 @@ public class TransportExecutor {
     @Inject
     private MovementService movementService;
 
+    private final TransportRegistry transportRegistry;
+
     private final Map<TransportShape, TransportHandler> handlers = new EnumMap<>(TransportShape.class);
 
     @Inject
-    TransportExecutor(ObjectTransportHandler objectHandler,
+    TransportExecutor(TransportRegistry transportRegistry,
+                      ObjectTransportHandler objectHandler,
                       DialogueTransportHandler dialogueHandler,
                       HubDialogueHandler hubDialogueHandler,
                       HubResumePauseHandler hubResumePauseHandler,
@@ -81,6 +90,7 @@ public class TransportExecutor {
                       SpellTeleportHandler spellHandler,
                       WidgetSelectHandler widgetSelectHandler,
                       UnsupportedTransportHandler unsupportedHandler) {
+        this.transportRegistry = transportRegistry;
         handlers.put(TransportShape.SINGLE_CLICK, objectHandler);
         handlers.put(TransportShape.CLICK_THEN_DIALOGUE, dialogueHandler);
         handlers.put(TransportShape.HUB_DIALOGUE, hubDialogueHandler);
@@ -140,6 +150,9 @@ public class TransportExecutor {
      * and even a successful one leaves the player standing beside the open web, so it is handled
      * apart from the shape dispatch.</p>
      *
+     * <p>A transport that came from the {@link TransportRegistry} takes its shape, its click target
+     * and its requirements from its definition rather than from the dataset.</p>
+     *
      * @param usage the transport edge chosen by the planner
      * @return what happened, with a readable reason when it did not work
      */
@@ -153,27 +166,41 @@ public class TransportExecutor {
             return Result.unsupported("route carries no transport detail for " + usage.getType());
         }
 
-        TransportShape shape = TransportShapes.of(usage.getType());
-        if (shape == null) {
-            return Result.unsupported("no execution shape known for " + usage.getType());
+        TransportDefinition definition = usage.getDefinition();
+        String label = label(usage);
+
+        // A route can outlive the registration it was planned through. Once a plugin has closed its
+        // handle, nothing of that plugin is run on its behalf.
+        if (definition != null && !transportRegistry.snapshot().getDefinitions().contains(definition)) {
+            return Result.failed(label + " was unregistered after the route was planned");
         }
 
-        TransportHandler handler = handlers.get(shape);
+        TransportShape shape = definition != null ? definition.getShape() : TransportShapes.of(usage.getType());
+        TransportHandler handler = resolveHandler(definition, shape);
         if (handler == null) {
-            return Result.unsupported("no handler registered for " + shape);
+            return Result.unsupported(shape == null
+                    ? "no execution shape known for " + label
+                    : "no handler registered for " + shape);
         }
 
-        TransportRequirements.PlayerState state = playerStateReader.read(transport);
-        List<String> unmet = TransportRequirements.unmetReasons(transport, state);
+        List<String> unmet;
+        ObjectInfo objectInfo;
+        if (definition != null) {
+            unmet = unmetReasons(definition);
+            objectInfo = definition.toObjectInfo();
+        } else {
+            TransportRequirements.PlayerState state = playerStateReader.read(transport);
+            unmet = TransportRequirements.unmetReasons(transport, state);
+            objectInfo = ObjectInfo.parse(AlKharidGate.liveObjectInfo(transport, state));
+        }
         if (!unmet.isEmpty()) {
-            return Result.unmet(usage.getType() + " unusable: " + String.join("; ", unmet));
+            return Result.unmet(label + " unusable: " + String.join("; ", unmet));
         }
 
         WorldPoint before = ctx.players().local().location();
         WorldPoint destination = usage.getDestination();
         boolean teleport = usage.getType() != null && usage.getType().isTeleport();
 
-        ObjectInfo objectInfo = ObjectInfo.parse(AlKharidGate.liveObjectInfo(transport, state));
         TransportContext context = TransportContext.builder()
                 .ctx(ctx)
                 .transport(transport)
@@ -181,6 +208,7 @@ public class TransportExecutor {
                 .destination(destination)
                 .objectInfo(objectInfo)
                 .displayInfo(usage.getDisplayInfo())
+                .definition(definition)
                 .build();
 
         if (isSlashWeb(objectInfo)) {
@@ -196,23 +224,108 @@ public class TransportExecutor {
         SleepService.sleepUntil(() -> ctx.players().local().isIdle(), IDLE_BEFORE_CLICK_MS);
 
         log.info("Walker: operating {} ({}) from {} toward {}",
-                usage.getType(), describe(usage), before, destination);
+                label, describe(usage), before, destination);
 
-        if (!handler.execute(context)) {
-            if (shape == TransportShape.GROUPING_TELEPORT || shape == TransportShape.CANOE) {
-                return Result.unsupported(usage.getType() + " has no destination chooser implemented");
-            }
-            return Result.failed("could not operate " + usage.getType()
-                    + " (" + describe(usage) + ")");
+        Result notOperated = operate(handler, context, label, describe(usage));
+        if (notOperated != null) {
+            return notOperated;
         }
 
         if (!awaitArrival(usage, before, transport)) {
             WorldPoint now = ctx.players().local().location();
-            return Result.failed("operated " + usage.getType() + " (" + describe(usage) + ") but ended at "
+            return Result.failed("operated " + label + " (" + describe(usage) + ") but ended at "
                     + now + " instead of " + usage.getDestination());
         }
 
         return Result.crossed();
+    }
+
+    /**
+     * Runs a handler and turns a refusal or a fault into a result.
+     *
+     * <p>A handler that came from the registry is someone else's code, so an exception it throws
+     * ends this crossing with a failure instead of escaping into the walk. Two exceptions always
+     * pass through, whoever threw them: a stopping script has to unwind, and a client thread call
+     * whose outcome is unknown must not be reported as a plain failure.</p>
+     *
+     * @param handler the handler to run
+     * @param context the crossing to operate
+     * @param label the transport's name for the reason text
+     * @param description what the transport clicks, for the reason text
+     * @return null when the handler operated the transport, otherwise why it did not
+     */
+    Result operate(TransportHandler handler, TransportContext context, String label, String description) {
+        boolean operated;
+        try {
+            operated = handler.execute(context);
+        } catch (ScriptStoppedException | ClientThreadException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            if (handlers.containsValue(handler)) {
+                throw e;
+            }
+            log.warn("Walker: the registered handler for {} threw", label, e);
+            return Result.failed("the registered handler for " + label + " threw " + e);
+        }
+
+        if (operated) {
+            return null;
+        }
+        if (handler instanceof UnsupportedTransportHandler) {
+            return Result.unsupported(label + " has no destination chooser implemented");
+        }
+        return Result.failed("could not operate " + label + " (" + description + ")");
+    }
+
+    /**
+     * Picks the handler that operates a transport.
+     *
+     * <p>The most specific choice wins: a registered transport's own handler, then a handler
+     * registered for the whole shape, then the built in handler for the shape.</p>
+     *
+     * @param definition the registered definition behind the transport, or null for a dataset edge
+     * @param shape how the transport is operated, may be null when the definition brings a handler
+     * @return the handler, or null when nothing can operate the transport
+     */
+    TransportHandler resolveHandler(TransportDefinition definition, TransportShape shape) {
+        if (definition != null && definition.getHandler() != null) {
+            return definition.getHandler();
+        }
+        if (shape == null) {
+            return null;
+        }
+
+        TransportHandler registered = transportRegistry.snapshot().handlerFor(shape);
+        return registered != null ? registered : handlers.get(shape);
+    }
+
+    /**
+     * Checks a registered transport's requirements and its own condition against live state.
+     *
+     * @param definition the registered transport about to be operated
+     * @return the reasons it cannot be used right now, empty when it can
+     */
+    private List<String> unmetReasons(TransportDefinition definition) {
+        TransportRequirements.PlayerState state =
+                playerStateReader.read(Collections.singletonList(definition.getRequirements()));
+        List<String> unmet = TransportRequirements.unmetReasons(definition.getRequirements(), state);
+        if (!unmet.isEmpty() || definition.getAvailableWhen() == null) {
+            return unmet;
+        }
+
+        boolean available = Boolean.TRUE.equals(
+                ctx.runOnClientThread(() -> definition.getAvailableWhen().getAsBoolean(), Boolean.FALSE));
+        return available ? unmet : Collections.singletonList("its own condition no longer holds");
+    }
+
+    /**
+     * Names a transport for logs and failure reasons: the registered id when there is one, since
+     * every registered transport is planned as the same generic type.
+     */
+    private static String label(GlobalPathfinder.TransportUsage usage) {
+        return usage.getDefinition() != null
+                ? usage.getDefinition().getId()
+                : String.valueOf(usage.getType());
     }
 
     /**
