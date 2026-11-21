@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-11-20
+- Last updated: 2026-11-21
 - Scope: Kraken API main library (`com.kraken.api`)
 
 ### Maintenance (agents and contributors)
@@ -64,6 +64,7 @@
 - Walker transports that are not in the shortest-path dataset go through `TransportRegistry`
   (`service/walker/transport/registry`). That package is Kraken owned: only `ShortestPathBridge` may
   import `shortestpath.*`, so the planner can be replaced without changing what plugins compile against.
+  A definition without an origin tile is a teleport usable from anywhere (an item or a spell).
 - Tile reachability uses live scene bounds and exact collision snapshots on the client thread.
   Entity menu actions use their owning world view; see `docs/API.md`.
 
@@ -149,6 +150,10 @@ The following files or directories are generated or derived; edit their sources 
   - Source: `src/main/java/com/kraken/api/**`
   - `build/**`
   - Source: Gradle build outputs
+  - Rows of `src/main/resources/walker/transports.json` whose id starts with `kraken:upstream-`
+  - Source: a checkout of upstream shortest-path and a game cache dump
+  - Regenerate: `python3 scripts/update_walker_transports.py <shortest-path checkout> --cache-dump <dir>`, with the dump
+    written by `scripts/WalkerCacheDump.java` (see `docs/WALKER.md`). Rows under any other id prefix are hand written and kept.
   - `llms.txt`, `llms-full.txt`, `llms-api.txt` (release assets and `kraken-frontend/public/`)
   - Source: `docs/llms/overview.md`, the guides in `docs/*.md` and the public API in `src/main/java/com/kraken/api/**`
   - Regenerate: `VERSION=<release> ./gradlew generateLlmsTxt` (writes `build/llms/`; add `-PllmsOutput=../kraken-frontend/public` to refresh the website copy)
@@ -161,7 +166,8 @@ Do not treat these as hand-edited sources.
 - `docs/INTERACTION.md` covers packet-based interaction and runtime hook behavior.
 - `docs/SHOPS.md` covers `ShopService`, shop price discovery, and buying/selling under limits.
 - `docs/WALKER.md` covers `Walker`, transport execution shapes, which transport kinds are not yet supported, and
-  adding transports at runtime through `TransportRegistry` and the bundled `src/main/resources/walker/transports.json`.
+  adding transports at runtime through `TransportRegistry` (including teleports usable from anywhere) and the bundled
+  `src/main/resources/walker/transports.json`, with how its rows are regenerated.
 - `docs/MOUSE.md` covers mouse movement strategies.
 - `docs/SCRIPTING.md` covers `Script`, `Task`, and break management.
 - `docs/SIMULATION.md` is the simulation overview; deep dives live in `docs/simulation/`

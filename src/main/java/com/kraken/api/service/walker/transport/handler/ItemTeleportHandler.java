@@ -11,11 +11,16 @@ import com.kraken.api.service.ui.tab.TabService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.service.walker.transport.TransportContext;
 import com.kraken.api.service.walker.transport.TransportHandler;
+import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
 import shortestpath.transport.requirement.ItemRequirement;
 import shortestpath.transport.requirement.TransportItems;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -29,6 +34,9 @@ import java.util.Optional;
  * the live action instead of inventing one from the item definition.
  * Tablets are a bare name such as {@code "Lumbridge tablet"}: Break is the teleport, and there is no
  * destination list to pick from.</p>
+ *
+ * <p>A teleport from the transport registry says the same things in fields of its own: the item ids,
+ * the action on the item when it is an unusual one, and the stop to choose when there is one.</p>
  */
 @Slf4j
 public class ItemTeleportHandler implements TransportHandler {
@@ -48,10 +56,24 @@ public class ItemTeleportHandler implements TransportHandler {
     @Override
     public boolean execute(TransportContext context) {
         String displayInfo = context.getDisplayInfo();
-        String destination = destinationLabel(displayInfo);
-        if (destination == null) {
-            log.debug("Teleport item transport has no usable display info: {}", displayInfo);
-            return false;
+        TransportDefinition definition = context.getDefinition();
+
+        // A registered teleport states its stop and its action in fields of their own. A dataset
+        // row packs the stop into display info behind the item's name.
+        String destination;
+        boolean namedStop;
+        String preferredMenu = null;
+        if (definition != null) {
+            destination = blankToNull(definition.getDisplayInfo());
+            namedStop = destination != null;
+            preferredMenu = blankToNull(definition.getMenuOption());
+        } else {
+            destination = destinationLabel(displayInfo);
+            namedStop = hasSubDestination(displayInfo);
+            if (destination == null) {
+                log.debug("Teleport item transport has no usable display info: {}", displayInfo);
+                return false;
+            }
         }
 
         ContainerItem item = revealItem(context);
@@ -61,12 +83,35 @@ public class ItemTeleportHandler implements TransportHandler {
         }
 
         WorldPoint before = context.playerLocation();
-        if (!use(context.getCtx(), item, destination, hasSubDestination(displayInfo))) {
+        if (!use(context.getCtx(), item, destination, namedStop, menusToTry(preferredMenu))) {
             return false;
         }
 
         awaitTeleport(context, before);
         return true;
+    }
+
+    /**
+     * Orders the menu actions to try on a teleport item, with the one a definition names first.
+     *
+     * @param preferred the action a registered teleport names, or null when it names none
+     * @return the actions to try, in order, without repeats
+     */
+    public static List<String> menusToTry(String preferred) {
+        List<String> menus = new ArrayList<>(CANDIDATE_MENUS.length + 1);
+        if (preferred != null && !preferred.trim().isEmpty()) {
+            menus.add(preferred.trim());
+        }
+        for (String candidate : CANDIDATE_MENUS) {
+            if (menus.stream().noneMatch(candidate::equalsIgnoreCase)) {
+                menus.add(candidate);
+            }
+        }
+        return menus;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.trim().isEmpty() ? null : value.trim();
     }
 
     /**
@@ -125,33 +170,54 @@ public class ItemTeleportHandler implements TransportHandler {
      * @return the first matching worn or carried item, or null when none is held
      */
     private ContainerItem findItem(TransportContext context) {
+        Context ctx = context.getCtx();
+        for (int id : candidateItemIds(context)) {
+            Optional<EquipmentEntity> worn = ctx.equipment().inInterface().withId(id).first();
+            if (worn.isPresent()) {
+                return worn.get().raw();
+            }
+
+            Optional<InventoryEntity> carried = ctx.inventory().withId(id).first();
+            if (carried.isPresent()) {
+                return carried.get().raw();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Lists the item ids that carry the teleport, in the order they should be looked for.
+     *
+     * <p>A registered teleport lists them itself. A dataset row lists them as its item
+     * requirements, so every interchangeable id of every requirement is a candidate.</p>
+     *
+     * @param context the transport being operated
+     * @return the candidate ids, empty when the transport names no item
+     */
+    public static List<Integer> candidateItemIds(TransportContext context) {
+        TransportDefinition definition = context.getDefinition();
+        if (definition != null) {
+            return definition.getItemIds();
+        }
+
         TransportItems requirements = context.getTransport() != null
                 ? context.getTransport().getItemRequirements() : null;
         if (requirements == null || requirements.getRequirements() == null) {
-            return null;
+            return Collections.emptyList();
         }
 
-        Context ctx = context.getCtx();
+        List<Integer> candidates = new ArrayList<>();
         for (ItemRequirement requirement : requirements.getRequirements()) {
             int[] ids = requirement.getItemIds();
             if (ids == null) {
                 continue;
             }
-
             for (int id : ids) {
-                Optional<EquipmentEntity> worn = ctx.equipment().inInterface().withId(id).first();
-                if (worn.isPresent()) {
-                    return worn.get().raw();
-                }
-
-                Optional<InventoryEntity> carried = ctx.inventory().withId(id).first();
-                if (carried.isPresent()) {
-                    return carried.get().raw();
-                }
+                candidates.add(id);
             }
         }
-
-        return null;
+        return candidates;
     }
 
     /**
@@ -220,11 +286,13 @@ public class ItemTeleportHandler implements TransportHandler {
      *
      * @param ctx the API context
      * @param item the item to use
-     * @param destination the destination label, or the whole display info for a tablet
+     * @param destination the destination label, the whole display info for a tablet, or null when
+     *                    a registered teleport names no stop
      * @param namedStop true when a submenu or chat option must be chosen
+     * @param menus the menu actions to try on the item, in order
      * @return true when the interaction was dispatched
      */
-    private boolean use(Context ctx, ContainerItem item, String destination, boolean namedStop) {
+    private boolean use(Context ctx, ContainerItem item, String destination, boolean namedStop, List<String> menus) {
         Widget widget = item.getWidget();
         if (widget == null) {
             return false;
@@ -235,7 +303,7 @@ public class ItemTeleportHandler implements TransportHandler {
             return ctx.getInteractionManager().interact(widget, destination);
         }
 
-        for (String menu : CANDIDATE_MENUS) {
+        for (String menu : menus) {
             if (!hasLiveAction(live, menu)) {
                 continue;
             }

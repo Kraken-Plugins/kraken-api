@@ -3,6 +3,7 @@ package com.kraken.api.service.walker.transport;
 import com.kraken.api.Context;
 import com.kraken.api.core.ClientThreadException;
 import com.kraken.api.core.script.ScriptStoppedException;
+import com.kraken.api.service.magic.MagicService;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.tile.TileService;
@@ -26,6 +27,7 @@ import shortestpath.transport.Transport;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -151,7 +153,8 @@ public class TransportExecutor {
      * apart from the shape dispatch.</p>
      *
      * <p>A transport that came from the {@link TransportRegistry} takes its shape, its click target
-     * and its requirements from its definition rather than from the dataset.</p>
+     * and its requirements from its definition rather than from the dataset. That includes a
+     * registered teleport usable from anywhere, which the planner reports as a teleport type.</p>
      *
      * @param usage the transport edge chosen by the planner
      * @return what happened, with a readable reason when it did not work
@@ -186,7 +189,7 @@ public class TransportExecutor {
         List<String> unmet;
         ObjectInfo objectInfo;
         if (definition != null) {
-            unmet = unmetReasons(definition);
+            unmet = unmetReasons(definition, handler);
             objectInfo = definition.toObjectInfo();
         } else {
             TransportRequirements.PlayerState state = playerStateReader.read(transport);
@@ -302,13 +305,35 @@ public class TransportExecutor {
     /**
      * Checks a registered transport's requirements and its own condition against live state.
      *
+     * <p>A teleport usable from anywhere is also refused above its wilderness level, and a spell
+     * that the built in handler would cast is refused while the client reports it as not castable.
+     * The planner applied both rules when it chose the route; the player may have moved or spent a
+     * rune since.</p>
+     *
      * @param definition the registered transport about to be operated
+     * @param handler the handler that will operate it
      * @return the reasons it cannot be used right now, empty when it can
      */
-    private List<String> unmetReasons(TransportDefinition definition) {
+    private List<String> unmetReasons(TransportDefinition definition, TransportHandler handler) {
         TransportRequirements.PlayerState state =
                 playerStateReader.read(Collections.singletonList(definition.getRequirements()));
-        List<String> unmet = TransportRequirements.unmetReasons(definition.getRequirements(), state);
+        List<String> unmet = new ArrayList<>(TransportRequirements.unmetReasons(definition.getRequirements(), state));
+
+        if (definition.isUsableAnywhere()) {
+            int wildernessLevel = WildernessLevels.of(ctx.players().local().location());
+            if (!usableAtWildernessLevel(definition, wildernessLevel)) {
+                unmet.add("not usable at wilderness level " + wildernessLevel);
+            }
+        }
+
+        if (handler == handlers.get(TransportShape.SPELL)) {
+            String refusal = SpellTeleportHandler.castRefusal(
+                    ctx.getService(MagicService.class), definition.getDisplayInfo());
+            if (refusal != null) {
+                unmet.add(refusal);
+            }
+        }
+
         if (!unmet.isEmpty() || definition.getAvailableWhen() == null) {
             return unmet;
         }
@@ -316,6 +341,18 @@ public class TransportExecutor {
         boolean available = Boolean.TRUE.equals(
                 ctx.runOnClientThread(() -> definition.getAvailableWhen().getAsBoolean(), Boolean.FALSE));
         return available ? unmet : Collections.singletonList("its own condition no longer holds");
+    }
+
+    /**
+     * Reports whether a registered teleport works at a wilderness level.
+     *
+     * @param definition the registered teleport
+     * @param wildernessLevel the planner's wilderness bucket for where the player stands, as
+     *                        {@link WildernessLevels} reports it
+     * @return true when the player is not too deep in the wilderness for it
+     */
+    static boolean usableAtWildernessLevel(TransportDefinition definition, int wildernessLevel) {
+        return wildernessLevel <= definition.getMaxWildernessLevel();
     }
 
     /**

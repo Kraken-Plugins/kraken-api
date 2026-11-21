@@ -9,6 +9,9 @@ import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -110,7 +113,7 @@ class TransportDefinitionTest {
     }
 
     @Test
-    void anIdAndBothTilesAreRequired() {
+    void anIdAndADestinationAreRequiredAndAClickedTransportNeedsAnOrigin() {
         assertThrows(IllegalArgumentException.class,
                 () -> TransportDefinition.object(" ", ORIGIN, DESTINATION, 1, "Open").build());
         assertThrows(IllegalArgumentException.class,
@@ -119,6 +122,109 @@ class TransportDefinitionTest {
                 () -> TransportDefinition.object("test:door", ORIGIN, null, 1, "Open").build());
         assertThrows(IllegalArgumentException.class,
                 () -> TransportDefinition.object("test:door", ORIGIN, ORIGIN, 1, "Open").build());
+    }
+
+    @Test
+    void anItemTeleportIsUsableFromAnywhereAndRequiresOneOfItsItems() {
+        TransportDefinition tablet = TransportDefinition.itemTeleport("test:varrock-tab", DESTINATION, 8007).build();
+
+        assertTrue(tablet.isUsableAnywhere());
+        assertNull(tablet.getOrigin());
+        assertEquals(TransportShape.ITEM_SUBOP, tablet.getShape());
+        assertEquals(TransportCategory.TELEPORTATION_ITEM, tablet.getCategory());
+        assertEquals(List.of(8007), tablet.getItemIds());
+        assertEquals(TransportDefinition.DEFAULT_MAX_WILDERNESS_LEVEL, tablet.getMaxWildernessLevel());
+        assertEquals(1, tablet.getRequirements().getItems().size());
+        assertArrayEquals(new int[]{8007}, tablet.getRequirements().getItems().get(0).getAnyOf());
+        assertTrue(tablet.toString().contains("anywhere"), tablet.toString());
+    }
+
+    @Test
+    void theItemsOfATeleportAreRequiredOnTopOfWhatItStates() {
+        TransportDefinition glory = TransportDefinition.itemTeleport("test:glory", DESTINATION, 1712, 1710)
+                .menuOption("Rub")
+                .displayInfo("Edgeville")
+                .maxWildernessLevel(30)
+                .requirements(DefinitionRequirements.builder().membersOnly(true).build())
+                .build();
+
+        assertTrue(glory.getRequirements().isMembersOnly());
+        assertArrayEquals(new int[]{1712, 1710}, glory.getRequirements().getItems().get(0).getAnyOf());
+        assertEquals(1, glory.getRequirements().getItems().get(0).getQuantity());
+        assertEquals(30, glory.getMaxWildernessLevel());
+        assertEquals("Rub", glory.getObjectInfo());
+        assertThrows(UnsupportedOperationException.class, () -> glory.getItemIds().add(1));
+    }
+
+    @Test
+    void aSpellTeleportNamesItsSpellAndStatesNoRequirements() {
+        TransportDefinition spell =
+                TransportDefinition.spellTeleport("test:varrock", DESTINATION, "Varrock Teleport").build();
+
+        assertTrue(spell.isUsableAnywhere());
+        assertEquals(TransportShape.SPELL, spell.getShape());
+        assertEquals(TransportCategory.TELEPORTATION_SPELL, spell.getCategory());
+        assertEquals("Varrock Teleport", spell.getDisplayInfo());
+        assertSame(DefinitionRequirements.NONE, spell.getRequirements());
+        assertNull(spell.getObjectInfo());
+    }
+
+    @Test
+    void aCategoryThatIsStatedIsKeptWhateverTheShape() {
+        TransportDefinition whistle = TransportDefinition.itemTeleport("test:whistle", DESTINATION, 29271)
+                .category(TransportCategory.QUETZAL)
+                .build();
+
+        assertEquals(TransportCategory.QUETZAL, whistle.getCategory());
+    }
+
+    @Test
+    void aTeleportUsableFromAnywhereCannotClickTheSceneGoBackOrReplaceAnEdge() {
+        assertThrows(IllegalArgumentException.class, () -> TransportDefinition.builder()
+                .id("test:nowhere-door")
+                .destination(DESTINATION)
+                .shape(TransportShape.SINGLE_CLICK)
+                .entityId(1535)
+                .build());
+        assertThrows(IllegalArgumentException.class,
+                () -> TransportDefinition.itemTeleport("test:tab", DESTINATION, 8007).bidirectional(true).build());
+        assertThrows(IllegalArgumentException.class,
+                () -> TransportDefinition.itemTeleport("test:tab", DESTINATION, 8007).replaces(true).build());
+        assertThrows(IllegalArgumentException.class,
+                () -> TransportDefinition.itemTeleport("test:tab", DESTINATION, 8007).maxWildernessLevel(-1).build());
+    }
+
+    @Test
+    void aDeclarativeTeleportMustNameItsItemsOrItsSpell() {
+        assertThrows(IllegalArgumentException.class,
+                () -> TransportDefinition.itemTeleport("test:no-items", DESTINATION).build());
+        assertThrows(IllegalArgumentException.class,
+                () -> TransportDefinition.itemTeleport("test:bad-item", DESTINATION, -1).build());
+        assertThrows(IllegalArgumentException.class,
+                () -> TransportDefinition.spellTeleport("test:no-spell", DESTINATION, " ").build());
+    }
+
+    @Test
+    void aTeleportWithItsOwnHandlerNeedsNothingElse() {
+        TransportDefinition custom = TransportDefinition.builder()
+                .id("test:custom-teleport")
+                .destination(DESTINATION)
+                .handler(context -> true)
+                .build();
+
+        assertTrue(custom.isUsableAnywhere());
+        assertEquals(TransportCategory.GENERAL, custom.getCategory());
+        assertTrue(custom.getItemIds().isEmpty());
+    }
+
+    @Test
+    void anItemTeleportMayAlsoStartFromAFixedTile() {
+        TransportDefinition fixed = TransportDefinition.itemTeleport("test:fixed", DESTINATION, 8007)
+                .origin(ORIGIN)
+                .build();
+
+        assertFalse(fixed.isUsableAnywhere());
+        assertEquals(ORIGIN, fixed.getOrigin());
     }
 
     @Test
@@ -188,8 +294,11 @@ class TransportDefinitionTest {
                 .useQuetzals(false)
                 .useSeasonalTransports(false)
                 .useSpiritTrees(false)
+                .useTeleportationItems(false)
                 .useTeleportationLevers(false)
+                .useTeleportationMinigames(false)
                 .useTeleportationPortals(false)
+                .useTeleportationSpells(false)
                 .useWildernessObelisks(false)
                 .build();
         GlobalPathfinderConfig allOn = GlobalPathfinderConfig.builder().build();

@@ -278,11 +278,13 @@ definition whose id starts with `my-plugin:`.
 | Field | Meaning |
 | --- | --- |
 | `id` | Stable key written `owner:name`. Registering the same id again replaces the definition. |
-| `origin`, `destination` | The tile the transport is entered from and the tile it leads to. Both are required. |
-| `category` | Which planning option turns it on and off. `BOAT` follows `useBoats`. `GENERAL` (the default) is always planned. |
+| `origin`, `destination` | The tile the transport is entered from and the tile it leads to. A definition with no origin is a teleport usable from anywhere. |
+| `category` | Which planning option turns it on and off. `BOAT` follows `useBoats`. `GENERAL` is always planned, and is the default for everything except an item teleport, a spell and a minigame teleport, which take the category of their shape. |
 | `shape` | How it is operated, when no handler is given. |
-| `menuOption`, `menuTarget`, `entityId` | What to click. The id is tried first, then the name. |
-| `displayInfo` | The destination to choose: a chat option, a numbered hub entry, or a fairy ring code. |
+| `menuOption`, `menuTarget`, `entityId` | What to click. The id is tried first, then the name. For an item teleport `menuOption` is the action on the item. |
+| `displayInfo` | The destination to choose: a chat option, a numbered hub entry, a fairy ring code, or the stop an item lists. For a spell it is the spell's name. |
+| `itemIds` | The items that carry an item teleport. Any one of them works, worn or carried. |
+| `maxWildernessLevel` | The deepest wilderness level a teleport usable from anywhere works at. Defaults to 20. |
 | `duration` | Game ticks. It is the planning cost and sets the arrival timeout. Defaults to 1. |
 | `bidirectional` | Also usable from the destination back to the origin. |
 | `replaces` | Removes the dataset's transports between the same two tiles from every search, including searches where this definition's requirements are not met. |
@@ -290,13 +292,14 @@ definition whose id starts with `my-plugin:`.
 | `availableWhen` | An extra condition for what requirements cannot express. It runs on the client thread at every search, so keep it quick. |
 | `handler` | A `TransportHandler` that operates this transport in place of the handler for its shape. |
 
-`TransportDefinition.object`, `npc` and `npcDialogue` start a builder for the common cases. A
-definition without a handler is declarative: it reuses the handler for its shape, and the click
-goes through the same `TransportEntityResolver` the dataset rows use. `SINGLE_CLICK`,
-`CLICK_THEN_DIALOGUE`, `HUB_DIALOGUE`, `HUB_RESUME_PAUSE` and `FAIRY_RING` work that way. The
-handlers for the other shapes read detail only the dataset carries, so a definition with one of
-those shapes needs a handler. A fairy ring defined this way does not get the staff or diary rule the
-dataset's rings get; state it in the definition's requirements or `availableWhen`.
+`TransportDefinition.object`, `npc`, `npcDialogue`, `itemTeleport` and `spellTeleport` start a
+builder for the common cases. A definition without a handler is declarative: it reuses the handler
+for its shape, and a click goes through the same `TransportEntityResolver` the dataset rows use.
+`SINGLE_CLICK`, `CLICK_THEN_DIALOGUE`, `HUB_DIALOGUE`, `HUB_RESUME_PAUSE`, `FAIRY_RING`,
+`ITEM_SUBOP` and `SPELL` work that way. The handlers for the other shapes read detail only the
+dataset carries, so a definition with one of those shapes needs a handler. A fairy ring defined
+this way does not get the staff or diary rule the dataset's rings get; state it in the definition's
+requirements or `availableWhen`.
 
 A handler blocks off the client thread, like the built in ones, and only operates the transport.
 Arrival is judged by `TransportExecutor` the same way for every transport. A registered handler
@@ -312,13 +315,57 @@ transports.register(TransportDefinition.builder()
         .build());
 ```
 
+### Teleports usable from anywhere
+
+A definition with no origin is a teleport the player can use wherever they stand. The planner
+considers it from every tile of a search, the way it considers the dataset's tablets, jewellery and
+spells, and stops considering it above the definition's `maxWildernessLevel`.
+
+```java
+// A tablet: holding it is the requirement, and Break is one of the actions the handler tries.
+transports.register(TransportDefinition
+        .itemTeleport("my-plugin:varrock-tablet", new WorldPoint(3213, 3424, 0), ItemID.POH_TABLET_VARROCKTELEPORT)
+        .build());
+
+// Jewellery: every charge level is listed, the stop is chosen behind Rub, and it works up to level 30.
+transports.register(TransportDefinition
+        .itemTeleport("my-plugin:glory-edgeville", new WorldPoint(3087, 3496, 0), 1712, 1710, 1708, 1706)
+        .menuOption("Rub")
+        .displayInfo("Edgeville")
+        .maxWildernessLevel(30)
+        .build());
+
+// A spell, named as the spellbook shows it.
+transports.register(TransportDefinition
+        .spellTeleport("my-plugin:varrock-spell", new WorldPoint(3213, 3424, 0), "Varrock Teleport")
+        .build());
+```
+
+An item teleport requires one of its `itemIds` to be worn or carried, without that being repeated in
+its requirements. `ItemTeleportHandler` clicks the stop when the item's live menu offers it
+directly, as worn jewellery does, and otherwise tries `menuOption` and then the usual teleport
+actions (Rub, Teleport, Operate, Break, Invoke, Play), choosing the stop from the sub menu or the
+conversation that follows.
+
+A spell teleport states no runes, level or spellbook. It is planned only while the client reports
+the spell as castable (`MagicService.castRefusal`), which already accounts for staves, tomes, the
+rune pouch and combination runes, and the walker asks again before it casts. The name has to match
+a spell in the `Standard`, `Ancient`, `Lunar` or `Arceuus` enums.
+
+A teleport usable from anywhere cannot be `bidirectional` and cannot `replace` a dataset
+transport, since both need an origin tile. While the player is aboard a boat at sea no teleport is
+planned, which is the rule the planner applies to its own. A shape that clicks something in the
+scene needs an origin; without one, give the definition `ITEM_SUBOP`, `SPELL`, `GROUPING_TELEPORT`
+(with a handler registered for that shape) or a handler of its own.
+
 ### Requirements are checked twice
 
 When a search captures state, the registry drops every definition whose category is off, whose
 requirements are not met, or whose `availableWhen` is false. Player state is read once for all
 definitions. The walker checks the same requirements again just before it operates the transport
-and ends with `TRANSPORT_REQUIREMENTS_UNMET` naming what is missing. A condition that throws counts
-as false, so one plugin's fault cannot stop every walk.
+and ends with `TRANSPORT_REQUIREMENTS_UNMET` naming what is missing. For a teleport usable from
+anywhere that second check includes the wilderness level the player now stands at. A condition that
+throws counts as false, so one plugin's fault cannot stop every walk.
 
 ### Handlers for a whole shape
 
@@ -364,32 +411,79 @@ loader when the registry is created. It is a JSON array of declarative definitio
 ]
 ```
 
-Only `id`, `origin`, `destination`, `shape` and something to click are required. The file is read
-strictly, because reading around a spelling mistake would load a gated transport without its gate.
-A row is logged and skipped when it has a key the loader does not know, a category, shape, skill,
-quest or comparison that is not a known name, a missing required field, or a shape that needs a
-handler (a file cannot carry one). Each row is judged on its own, so the rest still load.
-`BundledTransportsTest` fails the build when any row of the shipped file is skipped or two rows
-share an id. The file ships empty; the row above is an example of the format, not shipped data.
+Only `id`, `origin`, `destination`, `shape` and something to click are required. A row without an
+`origin` is a teleport usable from anywhere, and names its `itemIds` or, for a spell, its
+`displayInfo`:
+
+```json
+{
+  "id": "kraken:example-glory-edgeville",
+  "destination": {"x": 3087, "y": 3496, "plane": 0},
+  "shape": "ITEM_SUBOP",
+  "itemIds": [1712, 1710, 1708, 1706],
+  "menuOption": "Rub",
+  "displayInfo": "Edgeville",
+  "maxWildernessLevel": 30,
+  "duration": 4
+}
+```
+
+The file is read strictly, because reading around a spelling mistake would load a gated transport
+without its gate. A row is logged and skipped when it has a key the loader does not know, a
+category, shape, skill, quest or comparison that is not a known name, a missing required field, or
+a shape that needs a handler (a file cannot carry one). Each row is judged on its own, so the rest
+still load. `BundledTransportsTest` fails the build when any row of the shipped file is skipped or
+two rows share an id. The two rows above are examples of the format, not shipped data.
+
+#### What the bundled file holds
+
+The file ships with the transports that upstream [shortest-path](https://github.com/Skretzo/shortest-path)
+has gained since the fork the walker plans with was pinned, limited to the ones a single click
+operates: stairs, ladders, cave entrances, agility shortcuts, portals, and a few teleport items.
+Each row was checked against the game cache. For an object, the object has to stand within four
+tiles of the origin and offer the menu action, and the row records the id the object is placed
+under, which is the id the walker searches the scene for. For a teleport item, the item's menu has
+to list the stop or one of the usual teleport actions. None of that proves a row in a live game, so
+a walk through a bundled transport can still end in `TRANSPORT_FAILED`. Every bundled row belongs to
+the owner `kraken`, so `transports.unregisterAll("kraken")` removes them all until the client
+restarts, for every plugin, since the registry is shared.
+
+`scripts/update_walker_transports.py` regenerates those rows and says why it leaves the others
+out: hub networks, boats and anything that needs a conversation, objects that offer several
+destinations, obstacles that are cleared instead of crossed (rockfalls, locks, levers),
+requirements the format cannot state, rows upstream marks as unconfirmed, and rows the cache does
+not confirm. Its rows have ids starting with `kraken:upstream-`. A row with any other id is kept as
+it is when the script runs again, so rows written by hand belong under a different prefix.
+
+```bash
+# 1. dump the game cache with RuneLite's cache library (see the header of the Java file)
+java -Xmx3g -cp "libs/*" scripts/WalkerCacheDump.java cache-copy cache-dump
+# 2. rewrite the generated rows from a checkout of upstream shortest-path
+python3 scripts/update_walker_transports.py ../shortest-path --cache-dump cache-dump
+# 3. every written row has to load
+./gradlew test --tests '*BundledTransportsTest'
+```
 
 ### How a registered transport reaches a route
 
 `GlobalPathfinder` asks `ShortestPathBridge` to apply the registry after the search's own
 configuration has been refreshed and the Al Kharid overlay has run. The bridge takes one immutable
 snapshot of the registry, removes the hidden dataset edges, and adds an edge for each usable
-definition ahead of whatever else leaves its origin tile. A registration made while a search is
-running cannot change that search. `TransportUsage.getDefinition()` returns the definition behind a
-route step, or null for a dataset edge.
+definition ahead of whatever else leaves its origin tile. A definition without an origin has no
+tile to be filed under. It is compiled as a teleport and handed to the search's own configuration
+(`RequestPathfinderConfig`), which offers it beside the dataset's teleports, registered ones first.
+A registration made while a search is running cannot change that search.
+`TransportUsage.getDefinition()` returns the definition behind a route step, or null for a dataset
+edge. For a teleport usable from anywhere the step's type is a teleport type and its origin is the
+tile the route leaves from.
 
 When several transports join the same two tiles, a registered one is operated in preference to the
 dataset's, and the latest registration in preference to an earlier one. A transport that is
 unregistered after a route was planned through it is not operated: the walk ends with
 `TRANSPORT_FAILED` saying so, and the next walk plans without it.
 
-Two limits apply today. A definition needs an origin tile, so teleports usable from anywhere cannot
-be registered yet. And a registered transport is planned as the generic `TRANSPORT` type with its
-requirements checked against what the player carries and wears, so `includeBankPath` does not plan
-a bank visit to fetch an item for it.
+One limit applies today. A registered transport's requirements are checked against what the
+player carries and wears, so `includeBankPath` does not plan a bank visit to fetch an item for it.
 
 ## Doors the planner does not know about
 

@@ -31,8 +31,16 @@ public enum TransportCategory {
     QUETZAL(GlobalPathfinderConfig::isUseQuetzals),
     SEASONAL(GlobalPathfinderConfig::isUseSeasonalTransports),
     SPIRIT_TREE(GlobalPathfinderConfig::isUseSpiritTrees),
+    /** Teleports from an item that is worn or carried, such as jewellery, tablets and scrolls. */
+    TELEPORTATION_ITEM(GlobalPathfinderConfig::isUseTeleportationItems),
     TELEPORTATION_LEVER(GlobalPathfinderConfig::isUseTeleportationLevers),
+
+    /** Teleports from the grouping tab's minigame list. */
+    TELEPORTATION_MINIGAME(GlobalPathfinderConfig::isUseTeleportationMinigames),
     TELEPORTATION_PORTAL(GlobalPathfinderConfig::isUseTeleportationPortals),
+
+    /** Teleports cast from the spellbook. */
+    TELEPORTATION_SPELL(GlobalPathfinderConfig::isUseTeleportationSpells),
     WILDERNESS_OBELISK(GlobalPathfinderConfig::isUseWildernessObelisks);
 
     private final Predicate<GlobalPathfinderConfig> enabled;

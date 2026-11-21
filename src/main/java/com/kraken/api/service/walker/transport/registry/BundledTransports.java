@@ -29,7 +29,9 @@ import java.util.Set;
  *
  * <p>The data lives in {@code src/main/resources/walker/transports.json} and is read through the
  * class loader, so it is available wherever the jar is. Only declarative definitions can be written
- * there, since a file cannot carry a handler or a condition.</p>
+ * there, since a file cannot carry a handler or a condition. A row without an {@code origin} is a
+ * teleport usable from anywhere, which an item ({@code itemIds}) or a spell ({@code displayInfo})
+ * provides.</p>
  *
  * <p>The file is read strictly. A row with a key this class does not know, a category or shape that
  * is not a known name, or a requirement it cannot resolve is logged and skipped, because reading
@@ -123,7 +125,7 @@ public final class BundledTransports {
                     + " needs a handler, which a data file cannot carry");
         }
 
-        return TransportDefinition.builder()
+        var builder = TransportDefinition.builder()
                 .id(id)
                 .origin(toWorldPoint(row.origin))
                 .destination(toWorldPoint(row.destination))
@@ -136,8 +138,18 @@ public final class BundledTransports {
                 .duration(row.duration != null ? row.duration : 1)
                 .bidirectional(row.bidirectional)
                 .replaces(row.replaces)
-                .requirements(toRequirements(id, object.get("requirements"), row.requirements))
-                .build();
+                .requirements(toRequirements(id, object.get("requirements"), row.requirements));
+
+        if (row.itemIds != null) {
+            for (int itemId : row.itemIds) {
+                builder.itemId(itemId);
+            }
+        }
+        if (row.maxWildernessLevel != null) {
+            builder.maxWildernessLevel(row.maxWildernessLevel);
+        }
+
+        return builder.build();
     }
 
     private static WorldPoint toWorldPoint(Point point) {
@@ -267,6 +279,8 @@ public final class BundledTransports {
         private boolean bidirectional;
         private boolean replaces;
         private RequirementsRow requirements;
+        private int[] itemIds;
+        private Integer maxWildernessLevel;
     }
 
     private static final class Point {

@@ -1,6 +1,7 @@
 package com.kraken.api.service.pathfinding;
 
 import com.kraken.api.Context;
+import com.kraken.api.service.magic.MagicService;
 import com.kraken.api.service.walker.transport.PlayerStateReader;
 import com.kraken.api.service.walker.transport.registry.ShortestPathBridge;
 import com.kraken.api.service.walker.transport.registry.TransportRegistry;
@@ -27,9 +28,9 @@ class GlobalPathfinderConcurrencyTest {
     private Runnable duringExpansion = () -> {};
     private final GlobalPathfinder pathfinder = new GlobalPathfinder() {
         @Override
-        PathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
+        RequestPathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
             assertFalse(client.isClientThread());
-            PathfinderConfig request = mock(PathfinderConfig.class);
+            RequestPathfinderConfig request = mock(RequestPathfinderConfig.class);
             when(request.getCalculationCutoffMillis()).thenReturn(10000L);
             when(request.getTransportsPacked(anyBoolean())).thenReturn(new PrimitiveIntHashMap<>(1));
             CollisionMap map = mock(CollisionMap.class);
@@ -58,7 +59,8 @@ class GlobalPathfinderConcurrencyTest {
     void setup() throws Exception {
         inject("ctx", ctx);
         inject("client", client);
-        inject("transportBridge", new ShortestPathBridge(new TransportRegistry(), mock(PlayerStateReader.class)));
+        inject("transportBridge", new ShortestPathBridge(
+                new TransportRegistry(), mock(PlayerStateReader.class), mock(MagicService.class)));
         when(client.getIntStack()).thenReturn(new int[]{1});
         when(ctx.runOnClientThread(any(Callable.class))).thenAnswer(call -> {
             assertFalse(Thread.holdsLock(pathfinder), "capture must not hold the pathfinder monitor");

@@ -153,11 +153,72 @@ class BundledTransportsTest {
 
     @Test
     void aShapeThatNeedsAHandlerCannotComeFromAFile() {
+        // The row carries what every declarative shape works from: a click target, an item and a
+        // spell name. Only the shape decides whether it loads.
+        String complete = MINIMAL_ROW.replace("\"entityId\": 1535",
+                "\"entityId\": 1535, \"itemIds\": [8007], \"displayInfo\": \"Varrock Teleport\"");
+
         for (TransportShape shape : TransportShape.values()) {
-            String row = MINIMAL_ROW.replace("SINGLE_CLICK", shape.name());
+            String row = complete.replace("SINGLE_CLICK", shape.name());
 
             assertEquals(TransportDefinition.DECLARATIVE_SHAPES.contains(shape),
                     !BundledTransports.parse("[" + row + "]").isEmpty(), shape.name());
+        }
+    }
+
+    @Test
+    void aRowWithoutAnOriginIsAnItemTeleportUsableFromAnywhere() {
+        String row = "{"
+                + "\"id\": \"kraken:glory-edgeville\","
+                + "\"destination\": {\"x\": 3087, \"y\": 3496, \"plane\": 0},"
+                + "\"shape\": \"ITEM_SUBOP\","
+                + "\"itemIds\": [1712, 1710, 1708, 1706],"
+                + "\"menuOption\": \"Rub\","
+                + "\"displayInfo\": \"Edgeville\","
+                + "\"maxWildernessLevel\": 30,"
+                + "\"duration\": 4"
+                + "}";
+
+        TransportDefinition definition = BundledTransports.parse("[" + row + "]").get(0);
+
+        assertTrue(definition.isUsableAnywhere());
+        assertEquals(new WorldPoint(3087, 3496, 0), definition.getDestination());
+        assertEquals(TransportCategory.TELEPORTATION_ITEM, definition.getCategory());
+        assertEquals(List.of(1712, 1710, 1708, 1706), definition.getItemIds());
+        assertEquals("Rub", definition.getMenuOption());
+        assertEquals("Edgeville", definition.getDisplayInfo());
+        assertEquals(30, definition.getMaxWildernessLevel());
+        assertArrayEquals(new int[]{1712, 1710, 1708, 1706},
+                definition.getRequirements().getItems().get(0).getAnyOf());
+    }
+
+    @Test
+    void aRowWithoutAnOriginCanBeASpell() {
+        String row = "{"
+                + "\"id\": \"kraken:varrock-teleport\","
+                + "\"destination\": {\"x\": 3213, \"y\": 3424, \"plane\": 0},"
+                + "\"shape\": \"SPELL\","
+                + "\"displayInfo\": \"Varrock Teleport\""
+                + "}";
+
+        TransportDefinition definition = BundledTransports.parse("[" + row + "]").get(0);
+
+        assertTrue(definition.isUsableAnywhere());
+        assertEquals(TransportCategory.TELEPORTATION_SPELL, definition.getCategory());
+        assertEquals(TransportDefinition.DEFAULT_MAX_WILDERNESS_LEVEL, definition.getMaxWildernessLevel());
+    }
+
+    @Test
+    void aTeleportRowThatLeavesOutWhatItsShapeNeedsIsSkipped() {
+        String noItems = "{\"id\": \"kraken:tab\", \"destination\": {\"x\": 3213, \"y\": 3424, \"plane\": 0},"
+                + " \"shape\": \"ITEM_SUBOP\"}";
+        String noSpell = noItems.replace("ITEM_SUBOP", "SPELL");
+        String doorWithoutOrigin = MINIMAL_ROW.replace(
+                "\"origin\": {\"x\": 3200, \"y\": 3200, \"plane\": 0},", "");
+        String misspelledItems = noItems.replace("\"shape\"", "\"itemIDs\": [8007], \"shape\"");
+
+        for (String row : List.of(noItems, noSpell, doorWithoutOrigin, misspelledItems)) {
+            assertTrue(BundledTransports.parse("[" + row + "]").isEmpty(), row);
         }
     }
 
@@ -179,6 +240,29 @@ class BundledTransportsTest {
         Set<String> ids = new HashSet<>();
         for (TransportDefinition definition : definitions) {
             assertTrue(ids.add(definition.getId()), "duplicate id " + definition.getId());
+        }
+    }
+
+    @Test
+    void theBundledFileHoldsOnlyTransportsThatOneClickOperates() {
+        List<TransportDefinition> definitions = BundledTransports.load();
+
+        assertFalse(definitions.isEmpty(), "the bundled file ships with transports");
+        for (TransportDefinition definition : definitions) {
+            String id = definition.getId();
+            assertEquals("kraken", definition.getOwner(), id);
+            assertFalse(definition.isReplaces(), id + " must not hide a dataset transport");
+
+            if (definition.isUsableAnywhere()) {
+                assertEquals(TransportShape.ITEM_SUBOP, definition.getShape(), id);
+                assertEquals(TransportCategory.TELEPORTATION_ITEM, definition.getCategory(), id);
+                assertFalse(definition.getItemIds().isEmpty(), id);
+            } else {
+                assertEquals(TransportShape.SINGLE_CLICK, definition.getShape(), id);
+                assertTrue(definition.toObjectInfo().hasId(), id + " names no object id");
+                assertFalse(definition.toObjectInfo().getMenuOption().isEmpty(), id + " names no menu option");
+                assertFalse(definition.toObjectInfo().getMenuTarget().isEmpty(), id + " names no object");
+            }
         }
     }
 

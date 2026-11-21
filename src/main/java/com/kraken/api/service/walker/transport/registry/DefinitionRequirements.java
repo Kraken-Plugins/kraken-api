@@ -20,7 +20,7 @@ import java.util.Set;
  * transport.</p>
  */
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public final class DefinitionRequirements {
 
     /** Requirements that are always met. */

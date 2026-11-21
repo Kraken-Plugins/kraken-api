@@ -48,6 +48,7 @@ class TransportExecutorTest {
 
     private final TransportRegistry registry = new TransportRegistry();
     private final ObjectTransportHandler objectHandler = mock(ObjectTransportHandler.class);
+    private final ItemTeleportHandler itemHandler = mock(ItemTeleportHandler.class);
     private final UnsupportedTransportHandler unsupportedHandler = mock(UnsupportedTransportHandler.class);
     private final PlayerStateReader playerStateReader = mock(PlayerStateReader.class);
 
@@ -58,7 +59,7 @@ class TransportExecutorTest {
             mock(HubDialogueHandler.class),
             mock(HubResumePauseHandler.class),
             mock(FairyRingHandler.class),
-            mock(ItemTeleportHandler.class),
+            itemHandler,
             mock(SpellTeleportHandler.class),
             mock(WidgetSelectHandler.class),
             unsupportedHandler);
@@ -123,6 +124,27 @@ class TransportExecutorTest {
         assertTrue(result.getReason().contains("test:shortcut"), result.getReason());
         assertTrue(result.getReason().contains("Agility"), result.getReason());
         verify(objectHandler, never()).execute(any());
+    }
+
+    @Test
+    void aRegisteredTeleportIsRefusedAboveItsWildernessLevel() {
+        TransportDefinition tablet = TransportDefinition.itemTeleport("test:tab", DESTINATION, 8007).build();
+        TransportDefinition glory = TransportDefinition.itemTeleport("test:glory", DESTINATION, 1712)
+                .maxWildernessLevel(30)
+                .build();
+
+        assertTrue(TransportExecutor.usableAtWildernessLevel(tablet, 0));
+        assertTrue(TransportExecutor.usableAtWildernessLevel(tablet, 20));
+        assertFalse(TransportExecutor.usableAtWildernessLevel(tablet, 30));
+        assertTrue(TransportExecutor.usableAtWildernessLevel(glory, 30));
+        assertFalse(TransportExecutor.usableAtWildernessLevel(glory, 31));
+    }
+
+    @Test
+    void aRegisteredItemTeleportIsOperatedByTheItemHandler() {
+        TransportDefinition tablet = TransportDefinition.itemTeleport("test:tab", DESTINATION, 8007).build();
+
+        assertSame(itemHandler, executor.resolveHandler(tablet, tablet.getShape()));
     }
 
     @Test

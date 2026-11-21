@@ -267,7 +267,7 @@ public class GlobalPathfinder {
 
         // Load static graph resources on the worker. The client capture refreshes only this request's
         // configuration; no subsequent capture can mutate the inputs while this worker searches.
-        PathfinderConfig requestConfig = createRequestConfig(resolvedConfig);
+        RequestPathfinderConfig requestConfig = createRequestConfig(resolvedConfig);
         PreparedPathfinder prepared = ctx.runOnClientThread(
                 () -> prepare(source, destination, requestConfig, resolvedConfig));
         if (prepared == null || prepared.targets.isEmpty() || searchCancelled()) {
@@ -279,8 +279,8 @@ public class GlobalPathfinder {
     }
 
     /** Creates a private search configuration; static resource loading must stay on the worker. */
-    PathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
-        return new PathfinderConfig(client, new ShortestPathConfigAdapter(config));
+    RequestPathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
+        return new RequestPathfinderConfig(client, new ShortestPathConfigAdapter(config));
     }
 
     private void requireWorkerThread() {
@@ -303,10 +303,12 @@ public class GlobalPathfinder {
      *
      * <p>The transport registry is applied last, after the dataset's own transports have been
      * refreshed and the Al Kharid overlay has run, so a registered transport is never stripped by
-     * either and is found ahead of a dataset edge between the same tiles.</p>
+     * either and is found ahead of a dataset edge between the same tiles. Registered teleports
+     * usable from anywhere have no tile to be filed under, so they are handed to the request's
+     * configuration, which offers them to the search beside the dataset's teleports.</p>
      */
     private PreparedPathfinder prepare(WorldPoint source, WorldPoint destination,
-                                       PathfinderConfig pathfinderConfig, GlobalPathfinderConfig config) {
+                                       RequestPathfinderConfig pathfinderConfig, GlobalPathfinderConfig config) {
         pathfinderConfig.bank = client.getItemContainer(InventoryID.BANK);
         pathfinderConfig.refresh();
         int gateVarp = client.getVarpValue(AlKharidGate.GATE_VARP);
@@ -318,6 +320,7 @@ public class GlobalPathfinder {
                 gateVarp,
                 princeAliFinished);
         ShortestPathBridge.Injection registeredEdges = transportBridge.apply(config, pathfinderConfig);
+        pathfinderConfig.addUsableTeleports(registeredEdges.getTeleports());
 
         Set<Integer> targets = new HashSet<>();
         targets.add(WorldPointUtil.packWorldPoint(destination));
@@ -566,7 +569,8 @@ public class GlobalPathfinder {
      *
      * <p>Edges attached to the origin tile are preferred (doors, gliders, fairy rings). Player-centered
      * teleports — jewellery, tabs, spells — have an undefined origin and are only used when the hop
-     * is not a walkable neighbour.</p>
+     * is not a walkable neighbour. The first teleport that lands on the destination is taken, so
+     * the caller lists registered teleports ahead of the dataset's.</p>
      *
      * @param fromOrigin transports keyed by the path tile, may be null
      * @param playerCentered teleports usable from wherever the player stands, may be null
