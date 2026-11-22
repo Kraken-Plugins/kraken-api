@@ -8,7 +8,9 @@ package com.kraken.api.service.walker.transport;
  * actually arrived is the walker's job, because arrival is checked the same way for every type.</p>
  *
  * <p>Implementations must be stateless and safe to share; per-crossing state lives on
- * {@link TransportContext}. They block, so they run off the client thread.</p>
+ * {@link TransportContext}. They block, so they run off the client thread. A handler that cannot
+ * operate its transport can say why with {@link TransportContext#fail(String)}, and the walk's
+ * result carries that reason.</p>
  */
 public interface TransportHandler {
 

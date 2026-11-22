@@ -265,7 +265,7 @@ public class Walker {
                     "could not read the player's location", null, round);
         }
 
-        boolean teleport = next.getType() != null && next.getType().isTeleport();
+        boolean teleport = next.isTeleport();
         if (!teleport && here.distanceTo(next.getOrigin()) > config.getTransportFireRadius()) {
             // Not there yet. Re-planning from here is safer than firing at a distance, because the
             // scene may simply not have loaded the rest of the approach yet.
@@ -525,7 +525,7 @@ public class Walker {
             return false;
         }
 
-        if (next != null && next.getType() != null && next.getType().isTeleport()) {
+        if (next != null && next.isTeleport()) {
             return false;
         }
 

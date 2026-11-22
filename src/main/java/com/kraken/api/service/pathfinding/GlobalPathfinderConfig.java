@@ -31,9 +31,17 @@ public class GlobalPathfinderConfig {
     @Builder.Default
     private final boolean avoidWilderness = false;
 
+    /**
+     * Reserved. A search checks what a transport needs against the items the player carries and
+     * wears, and does not plan a visit to a bank to fetch one, so this changes no route.
+     */
     @Builder.Default
     private final boolean includeBankPath = false;
 
+    /**
+     * The most of one currency a single transport may ask for. A fare above it keeps the transport
+     * out of the route even when the player carries enough.
+     */
     @Builder.Default
     private final int currencyThreshold = 100000;
 

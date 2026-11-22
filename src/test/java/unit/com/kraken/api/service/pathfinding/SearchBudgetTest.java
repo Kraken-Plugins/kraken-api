@@ -1,7 +1,6 @@
 package com.kraken.api.service.pathfinding;
 
 import org.junit.jupiter.api.Test;
-import shortestpath.pathfinder.AbstractNodeKind;
 import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,11 +21,11 @@ class SearchBudgetTest {
         BudgetedNodeGraph graph = new BudgetedNodeGraph(new SearchBudget(1000, 1, () -> 0));
         int start = graph.createStart(0);
         assertThrows(SearchBudget.Exhausted.class, () -> graph.createStart(1));
-        assertThrows(SearchBudget.Exhausted.class, () -> graph.createTile(1, start, false));
+        assertThrows(SearchBudget.Exhausted.class, () -> graph.createTile(1, start));
         assertThrows(SearchBudget.Exhausted.class,
-                () -> graph.createTransport(1, start, 1, 0, false, false, 0));
+                () -> graph.createTransport(1, start, 1, 0, false, 0));
         assertThrows(SearchBudget.Exhausted.class,
-                () -> graph.createAbstract(AbstractNodeKind.GLOBAL_TELEPORTS_NORMAL, start, false));
+                () -> graph.createTeleportNode(TeleportBucket.OUTSIDE_WILDERNESS, start));
         assertEquals(1, graph.size());
         graph.release();
     }

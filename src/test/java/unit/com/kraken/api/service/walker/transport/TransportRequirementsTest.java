@@ -1,292 +1,246 @@
 package unit.com.kraken.api.service.walker.transport;
 
-import com.kraken.api.service.walker.transport.AlKharidGate;
 import com.kraken.api.service.walker.transport.TransportRequirements;
+import com.kraken.api.service.walker.transport.registry.DefinitionRequirements;
+import com.kraken.api.service.walker.transport.registry.DefinitionRequirements.Comparison;
+import com.kraken.api.service.walker.transport.registry.DefinitionRequirements.RequiredItem;
+import com.kraken.api.service.walker.transport.registry.DefinitionRequirements.RequiredVar;
+import com.kraken.api.service.walker.transport.registry.TransportCategory;
+import com.kraken.api.service.walker.transport.registry.TransportDataset;
+import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import net.runelite.api.gameval.ItemID;
-import shortestpath.transport.Transport;
-import shortestpath.transport.TransportType;
-import shortestpath.transport.TransportLoader;
-import shortestpath.transport.requirement.ItemRequirement;
-import shortestpath.transport.requirement.TransportItems;
+import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Covers the gate that stops the walker clicking a transport it cannot actually use.
+ * Covers the gate that stops the walker planning through or clicking a transport the player cannot
+ * actually use.
  *
- * <p>Transports are read from the dataset the pathfinder itself loads rather than hand-built, because
- * their constructor is not visible outside the library. Each test picks a transport by the shape of
- * its requirements rather than by identity, so the suite survives dataset updates.</p>
+ * <p>The rules are checked on requirements built here, and then on transports picked from the
+ * bundled dataset by the kind of requirement they carry, so the suite survives a regenerated
+ * dataset.</p>
  */
 class TransportRequirementsTest {
 
-    private static List<Transport> transports;
+    private static final int AIR_RUNE = 556;
+    private static final int FIRE_RUNE = 554;
+    private static final int LAW_RUNE = 563;
+    private static final int STAFF_OF_AIR = 1381;
+    private static final int STAFF_OF_FIRE = 1387;
+    private static final int SMOKE_BATTLESTAFF = 11998;
+    private static final int TOME_OF_FIRE = 20714;
+    private static final int FAIRY_RING_DIARY_VARBIT = 4498;
 
-    @BeforeAll
-    static void loadTransports() {
-        transports = new ArrayList<>();
-        for (Set<Transport> set : TransportLoader.loadAllFromResources().values()) {
-            transports.addAll(set);
-        }
-    }
+    private static final RequiredItem AIR_RUNES = RequiredItem.builder()
+            .anyOf(new int[]{AIR_RUNE}).quantity(3).staves(new int[]{STAFF_OF_AIR, SMOKE_BATTLESTAFF}).build();
+    private static final RequiredItem FIRE_RUNES = RequiredItem.builder()
+            .anyOf(new int[]{FIRE_RUNE}).quantity(1).staves(new int[]{STAFF_OF_FIRE, SMOKE_BATTLESTAFF})
+            .offhands(new int[]{TOME_OF_FIRE}).build();
+    private static final DefinitionRequirements VARROCK_TELEPORT = DefinitionRequirements.builder()
+            .item(AIR_RUNES).item(FIRE_RUNES).item(RequiredItem.of(LAW_RUNE)).build();
 
-    private static Transport find(Predicate<Transport> predicate) {
-        return transports.stream().filter(predicate).findFirst().orElse(null);
+    private static TransportRequirements.PlayerState.PlayerStateBuilder player() {
+        return TransportRequirements.PlayerState.builder().skillLevels(new int[Skill.values().length]);
     }
 
     private static TransportRequirements.PlayerState.PlayerStateBuilder maxedPlayer() {
         int[] levels = new int[Skill.values().length];
-        for (int i = 0; i < levels.length; i++) {
-            levels[i] = 99;
-        }
-        return TransportRequirements.PlayerState.builder().skillLevels(levels);
+        java.util.Arrays.fill(levels, 99);
+        return TransportRequirements.PlayerState.builder()
+                .skillLevels(levels)
+                .combatLevel(126)
+                .totalLevel(TransportRequirements.highestTotalLevel());
+    }
+
+    private static boolean met(DefinitionRequirements requirements, TransportRequirements.PlayerState state) {
+        return TransportRequirements.unmetReasons(requirements, state).isEmpty();
+    }
+
+    private static TransportDefinition datasetRow(Predicate<TransportDefinition> wanted) {
+        return TransportDataset.bundled().stream().filter(wanted).findFirst()
+                .orElseThrow(() -> new AssertionError("the dataset has no such transport"));
     }
 
     @Test
-    void theDatasetLoads() {
-        assertFalse(transports.isEmpty());
+    void noRequirementsAreAlwaysMetAndRequirementsWithoutAStateNever() {
+        assertTrue(met(DefinitionRequirements.NONE, null));
+        assertTrue(met(null, player().build()));
+        assertEquals(List.of("player state could not be read"),
+                TransportRequirements.unmetReasons(VARROCK_TELEPORT, null));
     }
 
     @Test
-    void aTransportWithNoRequirementsIsUsable() {
-        Transport open = find(t -> (t.getQuests() == null || t.getQuests().isEmpty())
-                && t.getItemRequirements() == null
-                && (t.getVarRequirements() == null || t.getVarRequirements().isEmpty())
-                && noSkillRequirement(t)
-                && !AlKharidGate.matches(t));
-        assertNotNull(open, "expected at least one unrestricted transport");
-
-        assertTrue(TransportRequirements.met(open, maxedPlayer().build()));
-    }
-
-    @Test
-    void aNullTransportIsTreatedAsUsable() {
-        assertTrue(TransportRequirements.met(null, maxedPlayer().build()));
-    }
-
-    @Test
-    void anUnfinishedQuestIsReported() {
-        Transport questLocked = find(t -> t.getQuests() != null && !t.getQuests().isEmpty());
-        assertNotNull(questLocked, "expected at least one quest locked transport");
-
-        List<String> reasons = TransportRequirements.unmetReasons(questLocked, maxedPlayer().build());
-
-        assertFalse(reasons.isEmpty());
-        assertTrue(reasons.stream().anyMatch(r -> r.startsWith("needs quest ")), reasons.toString());
-    }
-
-    @Test
-    void aFinishedQuestSatisfiesTheRequirement() {
-        Transport questLocked = find(t -> t.getQuests() != null && t.getQuests().size() == 1
-                && t.getItemRequirements() == null
-                && (t.getVarRequirements() == null || t.getVarRequirements().isEmpty())
-                && noSkillRequirement(t));
-        assertNotNull(questLocked, "expected a transport gated only by one quest");
-
-        Quest quest = questLocked.getQuests().iterator().next();
-        TransportRequirements.PlayerState state = maxedPlayer().completedQuest(quest).build();
-
-        assertTrue(TransportRequirements.met(questLocked, state),
-                TransportRequirements.unmetReasons(questLocked, state).toString());
-    }
-
-    @Test
-    void aMissingItemIsReported() {
-        Transport needsItem = find(t -> hasItemRequirement(t));
-        assertNotNull(needsItem, "expected at least one transport requiring an item");
-
-        List<String> reasons = TransportRequirements.unmetReasons(needsItem, maxedPlayer().build());
-
-        assertTrue(reasons.stream().anyMatch(r -> r.startsWith("missing a required item")), reasons.toString());
-    }
-
-    @Test
-    void holdingTheItemSatisfiesTheRequirement() {
-        Transport needsItem = find(t -> hasItemRequirement(t)
-                && (t.getQuests() == null || t.getQuests().isEmpty())
-                && (t.getVarRequirements() == null || t.getVarRequirements().isEmpty())
-                && noSkillRequirement(t));
-        assertNotNull(needsItem, "expected a transport gated only by items");
-
-        TransportRequirements.PlayerState.PlayerStateBuilder builder = maxedPlayer();
-        for (ItemRequirement requirement : needsItem.getItemRequirements().getRequirements()) {
-            int[] ids = requirement.getItemIds();
-            if (ids != null && ids.length > 0) {
-                builder.item(ids[0], Math.max(requirement.getQuantity(), 1));
-            }
-        }
-
-        TransportRequirements.PlayerState state = builder.build();
-        assertTrue(TransportRequirements.met(needsItem, state),
-                TransportRequirements.unmetReasons(needsItem, state).toString());
-    }
-
-    @Test
-    void anInsufficientQuantityIsReported() {
-        Transport needsMany = find(t -> {
-            if (!hasItemRequirement(t)) {
-                return false;
-            }
-            return t.getItemRequirements().getRequirements().stream().anyMatch(r -> r.getQuantity() > 1);
-        });
-        assertNotNull(needsMany, "expected a transport requiring more than one of something");
-
-        TransportRequirements.PlayerState.PlayerStateBuilder builder = maxedPlayer();
-        for (ItemRequirement requirement : needsMany.getItemRequirements().getRequirements()) {
-            int[] ids = requirement.getItemIds();
-            if (ids != null && ids.length > 0) {
-                builder.item(ids[0], 1);
-            }
-        }
-
-        List<String> reasons = TransportRequirements.unmetReasons(needsMany, builder.build());
-
-        assertTrue(reasons.stream().anyMatch(r -> r.startsWith("missing a required item")), reasons.toString());
-    }
-
-    @Test
-    void aSkillLevelShortfallIsReported() {
-        Transport needsSkill = find(TransportRequirementsTest::hasCheckableSkillRequirement);
-        assertNotNull(needsSkill, "expected at least one transport with a skill requirement");
-
-        TransportRequirements.PlayerState noSkills = TransportRequirements.PlayerState.builder()
-                .skillLevels(new int[Skill.values().length])
+    void aSkillShortfallAnUnfinishedQuestAndAMissingItemAreEachNamed() {
+        DefinitionRequirements requirements = DefinitionRequirements.builder()
+                .skill(Skill.AGILITY, 50)
+                .quest(Quest.DRAGON_SLAYER_I)
+                .item(RequiredItem.of(ItemID.COINS, 30))
                 .build();
 
-        List<String> reasons = TransportRequirements.unmetReasons(needsSkill, noSkills);
+        List<String> reasons = TransportRequirements.unmetReasons(requirements, player().item(ItemID.COINS, 29).build());
 
-        assertTrue(reasons.stream().anyMatch(r -> r.startsWith("needs ")), reasons.toString());
+        assertEquals(3, reasons.size(), reasons.toString());
+        assertTrue(reasons.get(0).startsWith("needs 50 Agility"), reasons.toString());
+        assertTrue(reasons.get(1).startsWith("needs quest "), reasons.toString());
+        assertEquals("missing a required item (30 of [995])", reasons.get(2));
+        assertTrue(met(requirements, maxedPlayer().completedQuest(Quest.DRAGON_SLAYER_I).item(ItemID.COINS, 30).build()));
     }
 
     @Test
-    void aMaxedPlayerMeetsEverySkillRequirement() {
-        Transport needsSkill = find(TransportRequirementsTest::hasCheckableSkillRequirement);
-        assertNotNull(needsSkill);
+    void combatAndTotalLevelAreChecked() {
+        DefinitionRequirements combat = DefinitionRequirements.builder().combatLevel(100).build();
+        DefinitionRequirements maxed = DefinitionRequirements.builder()
+                .totalLevel(DefinitionRequirements.MAX_TOTAL_LEVEL).build();
+        int highest = TransportRequirements.highestTotalLevel();
 
-        List<String> reasons = TransportRequirements.unmetReasons(needsSkill, maxedPlayer().build());
-
-        assertTrue(reasons.stream().noneMatch(r -> r.startsWith("needs ") && r.contains(", have ")), reasons.toString());
+        assertFalse(met(combat, player().combatLevel(99).build()));
+        assertTrue(met(combat, player().combatLevel(100).build()));
+        assertEquals(0, highest % 99, "every skill counts 99 levels");
+        assertTrue(highest >= 24 * 99 && highest <= Skill.values().length * 99, "the highest total is " + highest);
+        assertFalse(met(maxed, player().totalLevel(highest - 1).build()));
+        assertTrue(met(maxed, player().totalLevel(highest).build()));
     }
 
     @Test
-    void aFairyRingNeedsAStaff() {
-        Transport ring = find(t -> t.getType() == TransportType.FAIRY_RING);
-        assertNotNull(ring, "expected fairy ring transports in the dataset");
-
-        List<String> reasons = TransportRequirements.unmetReasons(ring, maxedPlayer().build());
-
-        assertTrue(reasons.stream().anyMatch(r -> r.contains("dramen")), reasons.toString());
-    }
-
-    @Test
-    void aDramenStaffSatisfiesAFairyRing() {
-        Transport ring = find(TransportRequirementsTest::isUnencumberedFairyRing);
-        assertNotNull(ring, "expected a fairy ring gated only by the staff rule");
-
-        TransportRequirements.PlayerState state = maxedPlayer().item(ItemID.DRAMEN_STAFF, 1).build();
-
-        assertTrue(TransportRequirements.met(ring, state),
-                TransportRequirements.unmetReasons(ring, state).toString());
-    }
-
-    @Test
-    void theLumbridgeEliteDiaryReplacesTheStaff() {
-        Transport ring = find(TransportRequirementsTest::isUnencumberedFairyRing);
-        assertNotNull(ring, "expected a fairy ring gated only by the staff rule");
-
-        TransportRequirements.PlayerState state = maxedPlayer()
-                .varbit(TransportRequirements.FAIRY_RING_DIARY_VARBIT, 1)
+    void anAlternativeWithItsOwnQuantityMeetsARequirement() {
+        DefinitionRequirements shantayPass = DefinitionRequirements.builder()
+                .item(RequiredItem.builder().anyOf(new int[]{1854}).quantity(1)
+                        .alternatives(List.of(RequiredItem.of(ItemID.COINS, 5))).build())
                 .build();
 
-        assertTrue(TransportRequirements.met(ring, state),
-                TransportRequirements.unmetReasons(ring, state).toString());
+        assertTrue(met(shantayPass, player().item(1854, 1).build()));
+        assertTrue(met(shantayPass, player().item(ItemID.COINS, 5).build()));
+        assertFalse(met(shantayPass, player().item(ItemID.COINS, 4).build()));
     }
 
     @Test
-    void theStaffRuleOnlyAppliesToFairyRings() {
-        Transport door = find(t -> t.getType() == TransportType.TRANSPORT && !AlKharidGate.matches(t));
-        assertNotNull(door);
+    void aQuantityOfZeroMeansTheItemMustNotBeHeld() {
+        DefinitionRequirements withoutMap = DefinitionRequirements.builder()
+                .item(new RequiredItem(new int[]{2376}, 0)).build();
 
-        List<String> reasons = TransportRequirements.unmetReasons(door, maxedPlayer().build());
-
-        assertTrue(reasons.stream().noneMatch(r -> r.contains("dramen")), reasons.toString());
+        assertTrue(met(withoutMap, player().build()));
+        assertFalse(met(withoutMap, player().item(2376, 1).build()));
     }
 
     @Test
-    void aTeleportOutsideTheWildernessIsUsable() {
-        Transport teleport = find(t -> t.getType() != null && t.getType().isTeleport()
-                && t.getMaxWildernessLevel() == 20);
-        assertNotNull(teleport, "expected a teleport with a wilderness-20 ceiling");
-
-        List<String> reasons = TransportRequirements.unmetReasons(teleport, maxedPlayer().wildernessLevel(0).build());
-
-        assertTrue(reasons.stream().noneMatch(r -> r.contains("wilderness")), reasons.toString());
+    void aStaffStandsInForItsRuneHoweverManyAreNeeded() {
+        assertTrue(met(VARROCK_TELEPORT, player().item(AIR_RUNE, 3).item(FIRE_RUNE, 1).item(LAW_RUNE, 1).build()));
+        assertTrue(met(VARROCK_TELEPORT, player().item(STAFF_OF_AIR, 1).item(FIRE_RUNE, 1).item(LAW_RUNE, 1).build()));
+        assertFalse(met(VARROCK_TELEPORT, player().item(AIR_RUNE, 2).item(FIRE_RUNE, 1).item(LAW_RUNE, 1).build()));
+        assertFalse(met(VARROCK_TELEPORT, player().item(STAFF_OF_AIR, 1).item(FIRE_RUNE, 1).build()),
+                "nothing stands in for the law rune");
     }
 
     @Test
-    void aTeleportInDeepWildernessIsNotUsable() {
-        Transport teleport = find(t -> t.getType() != null && t.getType().isTeleport()
-                && t.getMaxWildernessLevel() == 20);
-        assertNotNull(teleport, "expected a teleport with a wilderness-20 ceiling");
+    void oneStaffHasToCoverEveryRuneThatIsMetByAStaff() {
+        TransportRequirements.PlayerState twoStaves = player()
+                .item(STAFF_OF_AIR, 1).item(STAFF_OF_FIRE, 1).item(LAW_RUNE, 1).build();
+        TransportRequirements.PlayerState combinationStaff = player()
+                .item(SMOKE_BATTLESTAFF, 1).item(LAW_RUNE, 1).build();
 
-        List<String> reasons = TransportRequirements.unmetReasons(teleport, maxedPlayer().wildernessLevel(31).build());
-
-        assertTrue(reasons.stream().anyMatch(r -> r.contains("wilderness")), reasons.toString());
+        assertFalse(met(VARROCK_TELEPORT, twoStaves), "only one staff can be wielded");
+        assertTrue(met(VARROCK_TELEPORT, combinationStaff));
     }
 
     @Test
-    void theAlKharidGateNeedsTenCoinsWhenTheQuestIsUnpaid() {
-        Transport gate = find(AlKharidGate::matches);
-        assertNotNull(gate, "expected the Al Kharid gate in the dataset");
+    void anOffhandCoversOneRuneBesideAStaff() {
+        TransportRequirements.PlayerState staffAndTome = player()
+                .item(STAFF_OF_AIR, 1).item(TOME_OF_FIRE, 1).item(LAW_RUNE, 1).build();
 
-        List<String> reasons = TransportRequirements.unmetReasons(gate, maxedPlayer().build());
-
-        assertTrue(reasons.stream().anyMatch(r -> r.contains("10 coins")), reasons.toString());
+        assertTrue(met(VARROCK_TELEPORT, staffAndTome));
     }
 
-    /** A fairy ring carrying no requirement of its own, so only the staff rule can block it. */
-    private static boolean isUnencumberedFairyRing(Transport transport) {
-        return transport.getType() == TransportType.FAIRY_RING
-                && (transport.getQuests() == null || transport.getQuests().isEmpty())
-                && transport.getItemRequirements() == null
-                && (transport.getVarRequirements() == null || transport.getVarRequirements().isEmpty())
-                && noSkillRequirement(transport);
+    @Test
+    void aVarbitCanWaiveAnItem() {
+        DefinitionRequirements fairyRing = DefinitionRequirements.builder()
+                .item(RequiredItem.builder().anyOf(new int[]{ItemID.DRAMEN_STAFF}).quantity(1)
+                        .waivedByVarbit(new RequiredVar(FAIRY_RING_DIARY_VARBIT, Comparison.EQUAL, 1)).build())
+                .build();
+
+        assertFalse(met(fairyRing, player().build()));
+        assertTrue(met(fairyRing, player().item(ItemID.DRAMEN_STAFF, 1).build()));
+        assertTrue(met(fairyRing, player().varbit(FAIRY_RING_DIARY_VARBIT, 1).build()));
     }
 
-    private static boolean noSkillRequirement(Transport transport) {
-        return !hasCheckableSkillRequirement(transport);
+    @Test
+    void aFareAboveTheCurrencyThresholdIsRefusedEvenWhenItIsHeld() {
+        DefinitionRequirements fare = DefinitionRequirements.builder().item(RequiredItem.of(ItemID.COINS, 3_200)).build();
+        TransportRequirements.PlayerState rich = player().item(ItemID.COINS, 1_000_000).build();
+
+        assertTrue(TransportRequirements.unmetReasons(fare, rich, 100_000).isEmpty());
+        assertTrue(TransportRequirements.unmetReasons(fare, rich).isEmpty(), "no threshold means no limit");
+        List<String> refused = TransportRequirements.unmetReasons(fare, rich, 1_000);
+        assertEquals(1, refused.size());
+        assertTrue(refused.get(0).contains("currency"), refused.toString());
     }
 
-    private static boolean hasCheckableSkillRequirement(Transport transport) {
-        int[] levels = transport.getSkillLevels();
-        if (levels == null) {
-            return false;
-        }
-
-        int checkable = Math.min(levels.length, Skill.values().length);
-        for (int i = 0; i < checkable; i++) {
-            if (levels[i] > 0) {
-                return true;
-            }
-        }
-
-        return false;
+    @Test
+    void varsAreComparedTheWayEachComparisonSays() {
+        assertTrue(new RequiredVar(1, Comparison.BIT_SET, 3).matches(0b1000));
+        assertFalse(new RequiredVar(1, Comparison.BIT_SET, 3).matches(0b0100));
+        assertTrue(new RequiredVar(1, Comparison.ANY_BIT_OF, 0b0110).matches(0b0100));
+        assertFalse(new RequiredVar(1, Comparison.ANY_BIT_OF, 0b0110).matches(0b1001));
+        assertTrue(new RequiredVar(1, Comparison.AT_LEAST, 40).matches(40));
+        assertFalse(new RequiredVar(1, Comparison.AT_MOST, 39).matches(40));
     }
 
-    private static boolean hasItemRequirement(Transport transport) {
-        TransportItems items = transport.getItemRequirements();
-        return items != null && items.getRequirements() != null && !items.getRequirements().isEmpty();
+    @Test
+    void aCooldownPassesOnceMoreThanItsMinutesHaveGoneBy() {
+        DefinitionRequirements homeTeleport = DefinitionRequirements.builder()
+                .varPlayer(new RequiredVar(892, Comparison.COOLDOWN_MINUTES, 30)).build();
+        long now = 30_000_000L;
+
+        assertFalse(met(homeTeleport, player().epochMinutes(now).varPlayer(892, (int) now - 30).build()));
+        assertTrue(met(homeTeleport, player().epochMinutes(now).varPlayer(892, (int) now - 31).build()));
+        assertTrue(met(homeTeleport, player().epochMinutes(now).build()), "a teleport never used is not on cooldown");
+    }
+
+    @Test
+    void aDatasetFairyRingNeedsAStaffOrTheLumbridgeEliteDiary() {
+        TransportDefinition ring = datasetRow(row -> row.getCategory() == TransportCategory.FAIRY_RING
+                && row.getRequirements().getQuests().isEmpty()
+                && row.getRequirements().getItems().size() == 1);
+        TransportRequirements.PlayerState.PlayerStateBuilder curedTheQueen = maxedPlayer().varbit(2326, 40);
+
+        assertFalse(met(ring.getRequirements(), curedTheQueen.build()), ring.getId());
+        assertTrue(met(ring.getRequirements(), maxedPlayer().varbit(2326, 40).item(ItemID.DRAMEN_STAFF, 1).build()));
+        assertTrue(met(ring.getRequirements(),
+                maxedPlayer().varbit(2326, 40).varbit(FAIRY_RING_DIARY_VARBIT, 1).build()));
+        assertFalse(met(ring.getRequirements(), maxedPlayer().item(ItemID.DRAMEN_STAFF, 1).build()),
+                "the rings do not work before Fairytale II has got far enough");
+    }
+
+    @Test
+    void aDatasetSpellIsMetByRunesOrByAStaffInPlaceOfOne() {
+        TransportDefinition varrock = datasetRow(row -> row.getCategory() == TransportCategory.TELEPORTATION_SPELL
+                && "Varrock Teleport".equals(row.getDisplayInfo()));
+        TransportRequirements.PlayerState.PlayerStateBuilder standardBook = maxedPlayer().varbit(4070, 0);
+
+        assertFalse(met(varrock.getRequirements(), standardBook.build()));
+        assertTrue(met(varrock.getRequirements(),
+                maxedPlayer().varbit(4070, 0).item(AIR_RUNE, 3).item(FIRE_RUNE, 1).item(LAW_RUNE, 1).build()));
+        assertTrue(met(varrock.getRequirements(),
+                maxedPlayer().varbit(4070, 0).item(STAFF_OF_AIR, 1).item(FIRE_RUNE, 1).item(LAW_RUNE, 1).build()));
+        assertFalse(met(varrock.getRequirements(),
+                player().varbit(4070, 0).item(AIR_RUNE, 3).item(FIRE_RUNE, 1).item(LAW_RUNE, 1).build()),
+                "the spell needs its magic level");
+    }
+
+    @Test
+    void aDatasetItemTeleportRequiresOneOfItsItems() {
+        TransportDefinition glory = datasetRow(row -> row.getCategory() == TransportCategory.TELEPORTATION_ITEM
+                && row.getId().contains("amulet-of-glory-edgeville"));
+
+        assertFalse(met(glory.getRequirements(), maxedPlayer().build()));
+        assertTrue(met(glory.getRequirements(), maxedPlayer().item(glory.getItemIds().get(0), 1).build()));
+        assertEquals(30, glory.getMaxWildernessLevel());
     }
 }

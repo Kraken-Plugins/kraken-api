@@ -3,7 +3,7 @@ package unit.com.kraken.api.service.walker.transport;
 import com.kraken.api.service.walker.transport.DisplayInfo;
 import com.kraken.api.service.walker.transport.HubWidgets;
 import org.junit.jupiter.api.Test;
-import shortestpath.transport.TransportType;
+import com.kraken.api.service.walker.transport.registry.TransportCategory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +36,7 @@ class HubWidgetsTest {
     private static final List<String> MUSHTREE_STOPS = Arrays.asList(
             "1. House on the Hill", "2. Verdant Valley", "3. Sticky Swamp", "4. Mushroom Meadow");
 
-    private static int resolve(TransportType type, String displayInfo) {
+    private static int resolve(TransportCategory type, String displayInfo) {
         return HubWidgets.component(type, DisplayInfo.parse(displayInfo));
     }
 
@@ -44,7 +44,7 @@ class HubWidgetsTest {
     void everyGliderStopResolves() {
         List<String> missing = new ArrayList<>();
         for (String stop : GLIDER_STOPS) {
-            if (resolve(TransportType.GNOME_GLIDER, stop) == HubWidgets.NOT_FOUND) {
+            if (resolve(TransportCategory.GNOME_GLIDER, stop) == HubWidgets.NOT_FOUND) {
                 missing.add(stop);
             }
         }
@@ -56,7 +56,7 @@ class HubWidgetsTest {
     void everyBalloonStopResolves() {
         List<String> missing = new ArrayList<>();
         for (String stop : BALLOON_STOPS) {
-            if (resolve(TransportType.HOT_AIR_BALLOON, stop) == HubWidgets.NOT_FOUND) {
+            if (resolve(TransportCategory.HOT_AIR_BALLOON, stop) == HubWidgets.NOT_FOUND) {
                 missing.add(stop);
             }
         }
@@ -68,7 +68,7 @@ class HubWidgetsTest {
     void everyMushtreeStopResolves() {
         List<String> missing = new ArrayList<>();
         for (String stop : MUSHTREE_STOPS) {
-            if (resolve(TransportType.MAGIC_MUSHTREE, stop) == HubWidgets.NOT_FOUND) {
+            if (resolve(TransportCategory.MAGIC_MUSHTREE, stop) == HubWidgets.NOT_FOUND) {
                 missing.add(stop);
             }
         }
@@ -78,45 +78,45 @@ class HubWidgetsTest {
 
     @Test
     void distinctStopsResolveToDistinctComponents() {
-        assertNotEquals(resolve(TransportType.GNOME_GLIDER, "Gandius"),
-                resolve(TransportType.GNOME_GLIDER, "Sindarpos"));
-        assertNotEquals(resolve(TransportType.HOT_AIR_BALLOON, "Entrana"),
-                resolve(TransportType.HOT_AIR_BALLOON, "Taverley"));
-        assertNotEquals(resolve(TransportType.MAGIC_MUSHTREE, "1. House on the Hill"),
-                resolve(TransportType.MAGIC_MUSHTREE, "4. Mushroom Meadow"));
+        assertNotEquals(resolve(TransportCategory.GNOME_GLIDER, "Gandius"),
+                resolve(TransportCategory.GNOME_GLIDER, "Sindarpos"));
+        assertNotEquals(resolve(TransportCategory.HOT_AIR_BALLOON, "Entrana"),
+                resolve(TransportCategory.HOT_AIR_BALLOON, "Taverley"));
+        assertNotEquals(resolve(TransportCategory.MAGIC_MUSHTREE, "1. House on the Hill"),
+                resolve(TransportCategory.MAGIC_MUSHTREE, "4. Mushroom Meadow"));
     }
 
     @Test
     void stopNamesAreMatchedLoosely() {
-        assertEquals(resolve(TransportType.GNOME_GLIDER, "Kar-Hewo"),
-                resolve(TransportType.GNOME_GLIDER, "kar hewo"));
-        assertEquals(resolve(TransportType.HOT_AIR_BALLOON, "Castle Wars"),
-                resolve(TransportType.HOT_AIR_BALLOON, "castlewars"));
+        assertEquals(resolve(TransportCategory.GNOME_GLIDER, "Kar-Hewo"),
+                resolve(TransportCategory.GNOME_GLIDER, "kar hewo"));
+        assertEquals(resolve(TransportCategory.HOT_AIR_BALLOON, "Castle Wars"),
+                resolve(TransportCategory.HOT_AIR_BALLOON, "castlewars"));
     }
 
     @Test
     void anUnknownStopDoesNotResolve() {
-        assertEquals(HubWidgets.NOT_FOUND, resolve(TransportType.GNOME_GLIDER, "Nowhere"));
-        assertEquals(HubWidgets.NOT_FOUND, resolve(TransportType.HOT_AIR_BALLOON, "Nowhere"));
+        assertEquals(HubWidgets.NOT_FOUND, resolve(TransportCategory.GNOME_GLIDER, "Nowhere"));
+        assertEquals(HubWidgets.NOT_FOUND, resolve(TransportCategory.HOT_AIR_BALLOON, "Nowhere"));
     }
 
     @Test
     void nullsDoNotResolve() {
         assertEquals(HubWidgets.NOT_FOUND, HubWidgets.component(null, null));
-        assertEquals(HubWidgets.NOT_FOUND, HubWidgets.component(TransportType.GNOME_GLIDER, null));
+        assertEquals(HubWidgets.NOT_FOUND, HubWidgets.component(TransportCategory.GNOME_GLIDER, null));
     }
 
     @Test
     void quetzalsAreSelectedByReadingTheList() {
-        assertFalse(HubWidgets.hasFixedComponents(TransportType.QUETZAL));
-        assertNotEquals(HubWidgets.NOT_FOUND, HubWidgets.textInterfaceGroup(TransportType.QUETZAL));
+        assertFalse(HubWidgets.hasFixedComponents(TransportCategory.QUETZAL));
+        assertNotEquals(HubWidgets.NOT_FOUND, HubWidgets.textInterfaceGroup(TransportCategory.QUETZAL));
     }
 
     @Test
     void hubsWithFixedComponentsAreFlagged() {
-        assertTrue(HubWidgets.hasFixedComponents(TransportType.GNOME_GLIDER));
-        assertTrue(HubWidgets.hasFixedComponents(TransportType.HOT_AIR_BALLOON));
-        assertTrue(HubWidgets.hasFixedComponents(TransportType.MAGIC_MUSHTREE));
-        assertFalse(HubWidgets.hasFixedComponents(TransportType.TRANSPORT));
+        assertTrue(HubWidgets.hasFixedComponents(TransportCategory.GNOME_GLIDER));
+        assertTrue(HubWidgets.hasFixedComponents(TransportCategory.HOT_AIR_BALLOON));
+        assertTrue(HubWidgets.hasFixedComponents(TransportCategory.MAGIC_MUSHTREE));
+        assertFalse(HubWidgets.hasFixedComponents(TransportCategory.GENERAL));
     }
 }

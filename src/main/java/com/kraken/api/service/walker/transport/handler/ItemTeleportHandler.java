@@ -11,24 +11,29 @@ import com.kraken.api.service.ui.tab.TabService;
 import com.kraken.api.service.util.SleepService;
 import com.kraken.api.service.walker.transport.TransportContext;
 import com.kraken.api.service.walker.transport.TransportHandler;
+import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
-import shortestpath.transport.requirement.ItemRequirement;
-import shortestpath.transport.requirement.TransportItems;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 /**
  * Teleports using an item, whether it is worn or carried.
  *
- * <p>These transports carry no object info at all. What identifies them is the item requirement — a
- * list of interchangeable item ids such as every charge level of an Ardougne cloak — plus display info
- * naming the destination. Two shapes appear. Jewellery is {@code "Amulet of glory: Al Kharid"}: the
- * destination is a sub-option behind Rub, and clicking Rub alone would land on a default stop. Worn
- * jewellery lists that same stop on the equipment widget, so the handler opens that tab and clicks
- * the live action instead of inventing one from the item definition.
- * Tablets are a bare name such as {@code "Lumbridge tablet"}: Break is the teleport, and there is no
- * destination list to pick from.</p>
+ * <p>These transports click nothing in the scene. What identifies them is a list of interchangeable
+ * item ids, such as every charge level of an Ardougne cloak, plus the stop to choose when the item
+ * offers several. Two kinds appear. Jewellery names a stop, such as {@code Al Kharid} on an amulet
+ * of glory: the stop is a sub-option behind Rub, and clicking Rub alone would land on a default
+ * stop. Worn jewellery lists that same stop on the equipment widget, so the handler opens that tab
+ * and clicks the live action instead of inventing one from the item definition. A tablet names no
+ * stop: Break is the teleport, and there is no destination list to pick from.</p>
+ *
+ * <p>A definition says all of that in fields of its own: the item ids, the action on the item when
+ * it is an unusual one, and the stop to choose when there is one.</p>
  */
 @Slf4j
 public class ItemTeleportHandler implements TransportHandler {
@@ -47,21 +52,23 @@ public class ItemTeleportHandler implements TransportHandler {
 
     @Override
     public boolean execute(TransportContext context) {
-        String displayInfo = context.getDisplayInfo();
-        String destination = destinationLabel(displayInfo);
-        if (destination == null) {
-            log.debug("Teleport item transport has no usable display info: {}", displayInfo);
-            return false;
+        TransportDefinition definition = context.getDefinition();
+        if (definition == null) {
+            return context.fail("the teleport carries no definition to say which item to use");
         }
+
+        String destination = blankToNull(definition.getDisplayInfo());
+        boolean namedStop = destination != null;
+        String preferredMenu = blankToNull(definition.getMenuOption());
 
         ContainerItem item = revealItem(context);
         if (item == null || item.getWidget() == null) {
-            log.debug("Holding none of the items for '{}'", displayInfo);
+            log.debug("Holding none of the items for '{}'", definition.getId());
             return false;
         }
 
         WorldPoint before = context.playerLocation();
-        if (!use(context.getCtx(), item, destination, hasSubDestination(displayInfo))) {
+        if (!use(context.getCtx(), item, destination, namedStop, menusToTry(preferredMenu))) {
             return false;
         }
 
@@ -70,48 +77,26 @@ public class ItemTeleportHandler implements TransportHandler {
     }
 
     /**
-     * Splits display info into the destination it names.
+     * Orders the menu actions to try on a teleport item, with the one a definition names first.
      *
-     * <p>Display info reads {@code "<item>: <destination>"}. The item half is already known from the
-     * requirement list, so only the destination is needed, and it is what the menu shows. A tablet row
-     * has no colon, so the whole string is returned — it is not a menu option.</p>
-     *
-     * @param displayInfo the transport's display info
-     * @return the destination text, or null when there is none
+     * @param preferred the action a registered teleport names, or null when it names none
+     * @return the actions to try, in order, without repeats
      */
-    public static String destinationLabel(String displayInfo) {
-        if (displayInfo == null || displayInfo.trim().isEmpty()) {
-            return null;
+    public static List<String> menusToTry(String preferred) {
+        List<String> menus = new ArrayList<>(CANDIDATE_MENUS.length + 1);
+        if (preferred != null && !preferred.trim().isEmpty()) {
+            menus.add(preferred.trim());
         }
-
-        String trimmed = displayInfo.trim();
-        int separator = trimmed.indexOf(':');
-        if (separator < 0) {
-            return trimmed;
+        for (String candidate : CANDIDATE_MENUS) {
+            if (menus.stream().noneMatch(candidate::equalsIgnoreCase)) {
+                menus.add(candidate);
+            }
         }
-
-        String destination = trimmed.substring(separator + 1).trim();
-        return destination.isEmpty() ? null : destination;
+        return menus;
     }
 
-    /**
-     * Reports whether display info names a stop that must be selected after the first click.
-     *
-     * <p>{@code "Amulet of glory: Al Kharid"} does; {@code "Lumbridge tablet"} does not. Treating the
-     * tablet name as a sub-option made Break succeed and then fail the walk in Lumbridge.</p>
-     *
-     * @param displayInfo the transport's display info, may be null
-     * @return true when a destination must be chosen from a submenu or chat list
-     */
-    public static boolean hasSubDestination(String displayInfo) {
-        if (displayInfo == null) {
-            return false;
-        }
-
-        String trimmed = displayInfo.trim();
-        int separator = trimmed.indexOf(':');
-        return separator > 0 && separator < trimmed.length() - 1
-                && !trimmed.substring(separator + 1).trim().isEmpty();
+    private static String blankToNull(String value) {
+        return value == null || value.trim().isEmpty() ? null : value.trim();
     }
 
     /**
@@ -125,33 +110,31 @@ public class ItemTeleportHandler implements TransportHandler {
      * @return the first matching worn or carried item, or null when none is held
      */
     private ContainerItem findItem(TransportContext context) {
-        TransportItems requirements = context.getTransport() != null
-                ? context.getTransport().getItemRequirements() : null;
-        if (requirements == null || requirements.getRequirements() == null) {
-            return null;
-        }
-
         Context ctx = context.getCtx();
-        for (ItemRequirement requirement : requirements.getRequirements()) {
-            int[] ids = requirement.getItemIds();
-            if (ids == null) {
-                continue;
+        for (int id : candidateItemIds(context)) {
+            Optional<EquipmentEntity> worn = ctx.equipment().inInterface().withId(id).first();
+            if (worn.isPresent()) {
+                return worn.get().raw();
             }
 
-            for (int id : ids) {
-                Optional<EquipmentEntity> worn = ctx.equipment().inInterface().withId(id).first();
-                if (worn.isPresent()) {
-                    return worn.get().raw();
-                }
-
-                Optional<InventoryEntity> carried = ctx.inventory().withId(id).first();
-                if (carried.isPresent()) {
-                    return carried.get().raw();
-                }
+            Optional<InventoryEntity> carried = ctx.inventory().withId(id).first();
+            if (carried.isPresent()) {
+                return carried.get().raw();
             }
         }
 
         return null;
+    }
+
+    /**
+     * Lists the item ids that carry the teleport, in the order they should be looked for.
+     *
+     * @param context the transport being operated
+     * @return the candidate ids, empty when the transport names no item
+     */
+    public static List<Integer> candidateItemIds(TransportContext context) {
+        TransportDefinition definition = context.getDefinition();
+        return definition != null ? definition.getItemIds() : Collections.emptyList();
     }
 
     /**
@@ -220,11 +203,12 @@ public class ItemTeleportHandler implements TransportHandler {
      *
      * @param ctx the API context
      * @param item the item to use
-     * @param destination the destination label, or the whole display info for a tablet
+     * @param destination the stop to choose, or null when the teleport names none
      * @param namedStop true when a submenu or chat option must be chosen
+     * @param menus the menu actions to try on the item, in order
      * @return true when the interaction was dispatched
      */
-    private boolean use(Context ctx, ContainerItem item, String destination, boolean namedStop) {
+    private boolean use(Context ctx, ContainerItem item, String destination, boolean namedStop, List<String> menus) {
         Widget widget = item.getWidget();
         if (widget == null) {
             return false;
@@ -235,7 +219,7 @@ public class ItemTeleportHandler implements TransportHandler {
             return ctx.getInteractionManager().interact(widget, destination);
         }
 
-        for (String menu : CANDIDATE_MENUS) {
+        for (String menu : menus) {
             if (!hasLiveAction(live, menu)) {
                 continue;
             }

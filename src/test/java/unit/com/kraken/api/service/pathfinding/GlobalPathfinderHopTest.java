@@ -1,101 +1,85 @@
-package unit.com.kraken.api.service.pathfinding;
+package com.kraken.api.service.pathfinding;
 
-import com.kraken.api.service.pathfinding.GlobalPathfinder;
-import org.junit.jupiter.api.BeforeAll;
+import com.kraken.api.service.walker.transport.registry.TransportDefinition;
+import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.Test;
-import shortestpath.WorldPointUtil;
-import shortestpath.transport.Transport;
-import shortestpath.transport.TransportLoader;
-import shortestpath.transport.TransportType;
 
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Covers recovering player-centered teleports (jewellery, tabs) from consecutive path tiles.
+ * Covers recovering the transport a route step took from two consecutive path tiles, teleports
+ * usable from anywhere included.
  */
 class GlobalPathfinderHopTest {
 
-    private static Transport itemTeleport;
-    private static Transport tileTransport;
+    private static final WorldPoint AL_KHARID = new WorldPoint(3263, 3227, 0);
+    private static final WorldPoint GRAND_EXCHANGE = new WorldPoint(3162, 3480, 0);
 
-    @BeforeAll
-    static void loadSampleEdges() {
-        for (Set<Transport> set : TransportLoader.loadAllFromResources().values()) {
-            for (Transport transport : set) {
-                if (itemTeleport == null
-                        && transport.getType() == TransportType.TELEPORTATION_ITEM
-                        && transport.getOrigin() == Transport.UNDEFINED_ORIGIN) {
-                    itemTeleport = transport;
-                }
-                if (tileTransport == null
-                        && transport.getOrigin() != Transport.UNDEFINED_ORIGIN
-                        && transport.getDestination() != Transport.UNDEFINED_DESTINATION) {
-                    tileTransport = transport;
-                }
-            }
-        }
-    }
+    private static final TransportEdge RING = TransportEdge.of(
+            TransportDefinition.itemTeleport("test:ring-of-wealth", GRAND_EXCHANGE, 2572).build())[0];
+    private static final TransportEdge LADDER = TransportEdge.of(TransportDefinition
+            .object("test:ladder", AL_KHARID, new WorldPoint(3263, 3227, 1), 16683, "Climb-up").build())[0];
 
     @Test
     void adjacentTilesOnTheSamePlaneAreWalking() {
-        int here = WorldPointUtil.packWorldPoint(3263, 3227, 0);
+        int here = PackedPoint.pack(AL_KHARID);
 
         assertTrue(GlobalPathfinder.isWalkNeighbour(here, here));
-        assertTrue(GlobalPathfinder.isWalkNeighbour(
-                here, WorldPointUtil.packWorldPoint(3264, 3227, 0)));
-        assertTrue(GlobalPathfinder.isWalkNeighbour(
-                here, WorldPointUtil.packWorldPoint(3264, 3228, 0)));
+        assertTrue(GlobalPathfinder.isWalkNeighbour(here, PackedPoint.pack(3264, 3227, 0)));
+        assertTrue(GlobalPathfinder.isWalkNeighbour(here, PackedPoint.pack(3264, 3228, 0)));
     }
 
     @Test
-    void aJewelleryLandingIsNotAWalkingStep() {
-        int here = WorldPointUtil.packWorldPoint(3263, 3227, 0);
-        int ge = WorldPointUtil.packWorldPoint(3162, 3480, 0);
+    void aJewelleryLandingAndATileOnAnotherPlaneAreNotWalkingSteps() {
+        int here = PackedPoint.pack(AL_KHARID);
 
-        assertFalse(GlobalPathfinder.isWalkNeighbour(here, ge));
+        assertFalse(GlobalPathfinder.isWalkNeighbour(here, PackedPoint.pack(GRAND_EXCHANGE)));
+        assertFalse(GlobalPathfinder.isWalkNeighbour(here, PackedPoint.pack(3263, 3227, 1)));
     }
 
     @Test
-    void aJumpMatchesAPlayerCenteredTeleport() {
-        assertNotNull(itemTeleport, "dataset should include an inventory teleport");
+    void aJumpMatchesATeleportUsableFromAnywhere() {
+        TransportEdge hop = GlobalPathfinder.hopBetween(
+                TransportNetwork.NO_EDGES, new TransportEdge[]{RING}, PackedPoint.pack(AL_KHARID), RING.destination);
 
-        int here = WorldPointUtil.packWorldPoint(3263, 3227, 0);
-        Transport hop = GlobalPathfinder.hopBetween(
-                new Transport[0], new Transport[]{itemTeleport}, here, itemTeleport.getDestination());
-
-        assertEquals(itemTeleport, hop);
+        assertSame(RING, hop);
     }
 
     @Test
     void walkingOntoATeleportLandingIsNotRubbingTheRing() {
-        assertNotNull(itemTeleport);
-
-        int landing = itemTeleport.getDestination();
-        int beside = WorldPointUtil.packWorldPoint(
-                WorldPointUtil.unpackWorldX(landing) + 1,
-                WorldPointUtil.unpackWorldY(landing),
-                WorldPointUtil.unpackWorldPlane(landing));
+        int beside = PackedPoint.pack(GRAND_EXCHANGE.dx(1));
 
         assertNull(GlobalPathfinder.hopBetween(
-                new Transport[0], new Transport[]{itemTeleport}, beside, landing));
+                TransportNetwork.NO_EDGES, new TransportEdge[]{RING}, beside, RING.destination));
     }
 
     @Test
-    void aTileOriginEdgeIsPreferredOnAJump() {
-        assertNotNull(tileTransport);
+    void anEdgeThatLeavesTheTileIsPreferredOnAJump() {
+        TransportEdge hop = GlobalPathfinder.hopBetween(
+                new TransportEdge[]{LADDER}, new TransportEdge[]{RING}, LADDER.origin, LADDER.destination);
 
-        Transport hop = GlobalPathfinder.hopBetween(
-                new Transport[]{tileTransport},
-                new Transport[]{itemTeleport},
-                tileTransport.getOrigin(),
-                tileTransport.getDestination());
+        assertSame(LADDER, hop);
+    }
 
-        assertEquals(tileTransport, hop);
+    @Test
+    void theFirstOfTwoEdgesToTheSameTileIsTheOneReported() {
+        TransportEdge other = TransportEdge.of(TransportDefinition
+                .object("test:other-ladder", AL_KHARID, new WorldPoint(3263, 3227, 1), 16684, "Climb").build())[0];
+
+        assertSame(other, GlobalPathfinder.hopBetween(
+                new TransportEdge[]{other, LADDER}, TransportNetwork.NO_EDGES, LADDER.origin, LADDER.destination));
+    }
+
+    @Test
+    void aBidirectionalDefinitionGivesAnEdgeEachWay() {
+        TransportEdge[] edges = TransportEdge.of(TransportDefinition
+                .object("test:gate", AL_KHARID, AL_KHARID.dx(1), 44598, "Open").bidirectional(true).build());
+
+        assertTrue(edges.length == 2 && edges[0].origin == edges[1].destination && edges[0].destination == edges[1].origin);
+        assertFalse(edges[0].isTeleport());
+        assertTrue(RING.isTeleport());
     }
 }

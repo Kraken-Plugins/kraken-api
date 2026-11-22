@@ -74,11 +74,30 @@ public class MagicService {
      *         missing runes, or insufficient Prayer points for certain CastableSpell.</p>
      */
     public boolean canCast(CastableSpell spell) {
-        if (spell == null) return false;
+        String refusal = castRefusal(spell);
+        if (refusal != null) {
+            log.warn("Cannot cast spell {}. {}", spell != null ? spell.getName() : null, refusal);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Reports why a spell cannot be cast right now. It applies the same checks as
+     * {@link #canCast(CastableSpell)} but does not log a warning, so callers that test many spells,
+     * such as a route planner, can ask quietly.
+     *
+     * @param spell The spell to check, may be null.
+     * @return The reason the spell cannot be cast, or null when it can.
+     */
+    public String castRefusal(CastableSpell spell) {
+        if (spell == null) {
+            return "No spell given";
+        }
 
         if (Spellbook.getCurrentSpellbook() != spell.getSpellbook()) {
-            log.warn("Cannot cast spell {}. Wrong spellbook: {}", spell, Spellbook.getCurrentSpellbook());
-            return false;
+            return "Wrong spellbook: " + Spellbook.getCurrentSpellbook();
         }
 
         // Vengeance and Vengeance Other share a 30 second cooldown, and Vengeance cannot be recast
@@ -88,36 +107,30 @@ public class MagicService {
             boolean onCooldown = ctx.getVarbitValue(VarbitID.VENGEANCE_TIMELIMIT) > 0;
             boolean reboundActive = spell == Lunar.VENGEANCE && ctx.getVarbitValue(VarbitID.VENGEANCE_REBOUND) > 0;
             if (onCooldown || reboundActive) {
-                log.warn("Cannot cast spell {}. On cooldown: {}, rebound already active: {}", spell.getName(), onCooldown, reboundActive);
-                return false;
+                return "On cooldown: " + onCooldown + ", rebound already active: " + reboundActive;
             }
         }
 
         int boostedLevel = ctx.getClient().getBoostedSkillLevel(Skill.MAGIC);
         if (boostedLevel < spell.getLevel()) {
-            log.warn("Cannot cast spell {}. Required magic level: {}, current level: {}",
-                    spell.getName(), spell.getLevel(), boostedLevel);
-            return false;
+            return "Required magic level: " + spell.getLevel() + ", current level: " + boostedLevel;
         }
 
-        if(!spell.isCastable()) {
-            log.warn("Cannot cast spell {}. Check required runes (CS2 un-castable).", spell.getName());
-            return false;
+        if (!spell.isCastable()) {
+            return "Check required runes (CS2 un-castable).";
         }
 
         // isCastable() was already checked above, so only the rune requirement is verified here;
         // calling hasRequiredRunes would re-run the CS2 castability script a second time.
         if (!hasRunes(spell)) {
-            log.warn("Cannot cast spell {}. Missing required runes: {}", spell.getName(), spell.getRuneRequirement());
-            return false;
+            return "Missing required runes: " + spell.getRuneRequirement();
         }
 
         if (SPELLS_REQUIRING_PRAYER.contains(spell.getWidget()) && ctx.getClient().getBoostedSkillLevel(Skill.PRAYER) < 6) {
-            log.warn("Cannot cast spell {}. Required prayer points: 6, current prayer: {}", spell.getName(), ctx.getClient().getBoostedSkillLevel(Skill.PRAYER));
-            return false;
+            return "Required prayer points: 6, current prayer: " + ctx.getClient().getBoostedSkillLevel(Skill.PRAYER);
         }
 
-        return true;
+        return null;
     }
 
     /**

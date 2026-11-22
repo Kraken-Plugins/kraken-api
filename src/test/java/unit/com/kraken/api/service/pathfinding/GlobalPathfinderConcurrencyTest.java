@@ -1,14 +1,14 @@
 package com.kraken.api.service.pathfinding;
 
 import com.kraken.api.Context;
+import com.kraken.api.service.magic.MagicService;
+import com.kraken.api.service.walker.transport.PlayerStateReader;
+import com.kraken.api.service.walker.transport.TransportRequirements;
+import com.kraken.api.service.walker.transport.registry.TestRegistries;
 import net.runelite.api.Client;
 import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import shortestpath.PrimitiveIntHashMap;
-import shortestpath.PrimitiveIntList;
-import shortestpath.WorldPointUtil;
-import shortestpath.pathfinder.*;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.*;
@@ -24,38 +24,33 @@ class GlobalPathfinderConcurrencyTest {
     private Runnable duringExpansion = () -> {};
     private final GlobalPathfinder pathfinder = new GlobalPathfinder() {
         @Override
-        PathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
-            assertFalse(client.isClientThread());
-            PathfinderConfig request = mock(PathfinderConfig.class);
-            when(request.getCalculationCutoffMillis()).thenReturn(10000L);
-            when(request.getTransportsPacked(anyBoolean())).thenReturn(new PrimitiveIntHashMap<>(1));
-            CollisionMap map = mock(CollisionMap.class);
-            when(map.getRegionPlaneCounts(anyInt())).thenReturn((byte) 4);
-            when(request.getMap()).thenReturn(map);
-            when(map.getNeighbors(anyInt(), any(), any(), anyInt(), anyBoolean(), any())).thenAnswer(call -> {
-                duringExpansion.run();
-                NodeGraph graph = call.getArgument(5);
-                int previous = call.getArgument(0);
-                WorldPoint position = WorldPointUtil.unpackWorldPoint(graph.packedPosition(previous));
-                PrimitiveIntList neighbors = new PrimitiveIntList();
-                neighbors.add(graph.createTile(WorldPointUtil.packWorldPoint(position.dx(1)), previous, false));
-                return neighbors;
-            });
-            return request;
+        CollisionMap createCollisionMap() {
+            assertFalse(client.isClientThread(), "the map is read from the jar on the worker");
+            // Every tile has one neighbour, the tile to its east, so a search walks a straight line.
+            return new CollisionMap(WorldCollisionData.bundled()) {
+                @Override
+                IntList getNeighbors(int node, VisitedTiles visited, TransportNetwork network, int wildernessLevel,
+                                     boolean targetInWilderness, NodeGraph graph) {
+                    duringExpansion.run();
+                    WorldPoint position = PackedPoint.unpack(graph.packedPosition(node));
+                    IntList neighbors = new IntList(1);
+                    neighbors.add(graph.createTile(PackedPoint.pack(position.dx(1)), node));
+                    return neighbors;
+                }
+            };
         }
     };
     private final WorldPoint source = new WorldPoint(3200, 3200, 0);
-
-    @org.junit.jupiter.api.BeforeAll
-    static void initializeGlobalMapExtents() {
-        SplitFlagMap.fromResources();
-    }
 
     @BeforeEach
     void setup() throws Exception {
         inject("ctx", ctx);
         inject("client", client);
-        when(client.getIntStack()).thenReturn(new int[]{1});
+        PlayerStateReader playerStateReader = mock(PlayerStateReader.class);
+        when(playerStateReader.read(any(PlayerStateReader.Needs.class)))
+                .thenReturn(TransportRequirements.PlayerState.builder().build());
+        inject("transportPlanner", new TransportPlanner(
+                TestRegistries.empty(), playerStateReader, mock(MagicService.class), client));
         when(ctx.runOnClientThread(any(Callable.class))).thenAnswer(call -> {
             assertFalse(Thread.holdsLock(pathfinder), "capture must not hold the pathfinder monitor");
             captures.incrementAndGet();

@@ -3,14 +3,29 @@ package com.kraken.api.service.walker.transport;
 /**
  * How a transport is operated, as opposed to what it is.
  *
- * <p>The dataset distinguishes twenty six kinds of transport, but they are worked in far fewer ways.
+ * <p>There are more than two dozen kinds of transport, but they are worked in far fewer ways.
  * Grouping by mechanism is what keeps the number of handlers small: a gate, a lever and a portal are
- * all one click on something the dataset names.</p>
+ * all one click on something the transport names.</p>
  */
 public enum TransportShape {
 
-    /** One menu action on an object or NPC found from the transport's object info. */
+    /** One menu action on an object or NPC the transport names. */
     SINGLE_CLICK,
+
+    /**
+     * An obstacle that is cleared and then walked through, such as a web that is slashed.
+     *
+     * <p>Operating it does not move the player and can fail, so the action is repeated until the far
+     * side is reachable and the player is then walked across.</p>
+     */
+    CLEAR_THEN_WALK,
+
+    /**
+     * Nothing is operated: the two tiles are joined by walking, in a place where the bundled
+     * collision map says they are not. The player is walked across when the far tile is reachable
+     * in the live scene.
+     */
+    WALK,
 
     /** A click that opens a conversation, where the destination or a confirmation is chosen. */
     CLICK_THEN_DIALOGUE,
@@ -24,7 +39,7 @@ public enum TransportShape {
     /**
      * A click that opens a numbered destination list selected with resume-pause, not chat options.
      *
-     * <p>Spirit trees and minecarts look like {@code "4: Grand Exchange"} in the dataset, but the live
+     * <p>Spirit trees and minecarts name their stops like {@code "4: Grand Exchange"}, but the live
      * list is a dedicated widget rather than {@code DialogueService}'s chat group.</p>
      */
     HUB_RESUME_PAUSE,

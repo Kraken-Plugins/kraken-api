@@ -1,20 +1,16 @@
 package com.kraken.api.service.walker.transport;
 
+import com.kraken.api.service.walker.transport.registry.DefinitionRequirements;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
 import net.runelite.api.gameval.ItemID;
-import net.runelite.api.gameval.VarbitID;
-import shortestpath.transport.TransportType;
-import shortestpath.transport.Transport;
-import shortestpath.transport.parser.VarRequirement;
-import shortestpath.transport.requirement.ItemRequirement;
-import shortestpath.transport.requirement.TransportItems;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,10 +18,10 @@ import java.util.Set;
 /**
  * Decides whether the player can currently use a transport, and says why not when they cannot.
  *
- * <p>The planner already filters transports by requirement when it refreshes, so a routed transport
- * was usable at planning time. State drifts though: a charter fare gets spent, a teleport tab gets
- * used, a stamina dose runs out. Re-checking immediately before clicking turns a silent failure — the
- * walker clicking a boat that will not move — into an abort with a readable reason.</p>
+ * <p>A search filters transports by requirement when it captures state, so a routed transport was
+ * usable at planning time. State drifts though: a charter fare gets spent, a teleport tab gets
+ * used, a stamina dose runs out. Checking again immediately before clicking turns a silent failure,
+ * the walker clicking a boat that will not move, into an abort with a readable reason.</p>
  *
  * <p>Checks are made against a {@link PlayerState} snapshot rather than the live client so the logic
  * stays pure and unit testable.</p>
@@ -33,19 +29,14 @@ import java.util.Set;
 public final class TransportRequirements {
 
     /**
-     * Staves that let a player use a fairy ring.
-     *
-     * <p>This requirement is not in the dataset — the pathfinder hardcodes it in its own config — so
-     * it has to be applied here too, or a fairy ring route passes the check and then fails at the
-     * ring.</p>
+     * Items a transport takes as a fare. A search refuses to spend more of one than its currency
+     * threshold allows, even when the player holds enough.
      */
-    private static final int[] FAIRY_RING_STAVES = {
-            ItemID.DRAMEN_STAFF,
-            ItemID.LUNAR_MOONCLAN_LIMINAL_STAFF
-    };
+    private static final Set<Integer> CURRENCIES = Set.of(
+            ItemID.COINS, ItemID.VILLAGE_TRADE_STICKS, ItemID.ECTOTOKEN, ItemID.WARGUILD_TOKENS);
 
-    /** Completing the Lumbridge elite diary removes the need for a staff. */
-    public static final int FAIRY_RING_DIARY_VARBIT = VarbitID.LUMBRIDGE_DIARY_ELITE_COMPLETE;
+    /** The highest level a skill reaches, which a total level requirement of "maximum" counts in. */
+    private static final int HIGHEST_SKILL_LEVEL = 99;
 
     private TransportRequirements() {
     }
@@ -54,7 +45,8 @@ public final class TransportRequirements {
      * An immutable snapshot of the player state a transport's requirements are checked against.
      *
      * <p>Item quantities should combine inventory and equipment, since a requirement such as a ring of
-     * dueling is satisfied whether it is worn or carried.</p>
+     * dueling is satisfied whether it is worn or carried. Runes inside a carried rune pouch count
+     * too.</p>
      */
     @Getter
     @Builder
@@ -63,11 +55,17 @@ public final class TransportRequirements {
         /** Boosted skill levels indexed by {@link Skill} ordinal. */
         private final int[] skillLevels;
 
+        /** The player's combat level, or 0 when it was not read. */
+        private final int combatLevel;
+
+        /** The sum of the player's skill levels, or 0 when it was not read. */
+        private final int totalLevel;
+
         /** Quests the player has completed. */
         @Singular("completedQuest")
         private final Set<Quest> completedQuests;
 
-        /** Item id to total quantity held across inventory and equipment. */
+        /** Item id to total quantity held across inventory, equipment and a carried rune pouch. */
         @Singular("item")
         private final Map<Integer, Integer> itemQuantities;
 
@@ -81,97 +79,124 @@ public final class TransportRequirements {
 
         /** The player's current wilderness level, or 0 when outside the wilderness. */
         private final int wildernessLevel;
+
+        /** Whether the player is logged in to a members world. */
+        private final boolean membersWorld;
+
+        /**
+         * When the snapshot was taken, in minutes since 1970, which is what a cooldown is judged
+         * against. Zero means the clock is read when the cooldown is checked.
+         */
+        private final long epochMinutes;
     }
 
     /**
-     * Reports whether every requirement of a transport is currently satisfied.
+     * Lists the reasons a transport cannot currently be used, with no limit on what it may spend.
      *
-     * @param transport the transport about to be executed
-     * @param state the player state to check against
-     * @return true when the transport can be used
+     * <p>A transport that has requirements is not usable when the state to check them against is
+     * missing: a failed read must not open a gated transport.</p>
+     *
+     * @param requirements what the transport needs, may be null
+     * @param state the player state to check against, may be null
+     * @return the unmet requirements as readable text, empty when the transport is usable
      */
-    public static boolean met(Transport transport, PlayerState state) {
-        return unmetReasons(transport, state).isEmpty();
+    public static List<String> unmetReasons(DefinitionRequirements requirements, PlayerState state) {
+        return unmetReasons(requirements, state, Integer.MAX_VALUE);
     }
 
     /**
      * Lists the reasons a transport cannot currently be used.
      *
-     * <p>Skill levels beyond {@link Skill} are ignored: the dataset's level array carries three slots
-     * past the known skills whose meaning is not part of the published API, so they are not enforced.
-     * The effect is that such a transport is attempted rather than refused.</p>
-     *
-     * @param transport the transport about to be executed, may be null
+     * @param requirements what the transport needs, may be null
      * @param state the player state to check against, may be null
+     * @param currencyThreshold the most of one currency the transport may ask for. A fare above it
+     *                          counts as unmet even when the player holds enough
      * @return the unmet requirements as readable text, empty when the transport is usable
      */
-    public static List<String> unmetReasons(Transport transport, PlayerState state) {
-        if (transport == null || state == null) {
+    public static List<String> unmetReasons(DefinitionRequirements requirements, PlayerState state,
+                                            int currencyThreshold) {
+        if (requirements == null || requirements.isEmpty()) {
             return Collections.emptyList();
+        }
+        if (state == null) {
+            return Collections.singletonList("player state could not be read");
         }
 
         List<String> reasons = new ArrayList<>();
 
-        addSkillReasons(transport, state, reasons);
-        addQuestReasons(transport, state, reasons);
-        addItemReasons(transport, state, reasons);
-        addVarReasons(transport, state, reasons);
-
-        if (!transport.isUsableAtWildernessLevel(state.getWildernessLevel())) {
-            reasons.add("not usable at wilderness level " + state.getWildernessLevel());
+        if (requirements.isMembersOnly() && !state.isMembersWorld()) {
+            reasons.add("needs a members world");
         }
 
-        addFairyRingReasons(transport, state, reasons);
-        reasons.addAll(AlKharidGate.unmetReasons(transport, state));
+        for (Map.Entry<Skill, Integer> level : requirements.getSkillLevels().entrySet()) {
+            addSkillReason(level.getKey(), level.getValue(), state, reasons);
+        }
+        addLevelReasons(requirements, state, reasons);
+        addQuestReasons(requirements.getQuests(), state, reasons);
+        addItemReasons(requirements.getItems(), state, currencyThreshold, reasons);
+        addVarReasons(requirements.getVarbits(), state.getVarbitValues(), state, reasons);
+        addVarReasons(requirements.getVarPlayers(), state.getVarPlayerValues(), state, reasons);
 
         return reasons;
     }
 
-    /**
-     * Applies the staff requirement that fairy rings carry but the dataset does not record.
-     */
-    private static void addFairyRingReasons(Transport transport, PlayerState state, List<String> reasons) {
-        if (transport.getType() != TransportType.FAIRY_RING) {
-            return;
+    private static void addVarReasons(List<DefinitionRequirements.RequiredVar> required,
+                                      Map<Integer, Integer> values,
+                                      PlayerState state,
+                                      List<String> reasons) {
+        for (DefinitionRequirements.RequiredVar requirement : required) {
+            if (!holds(requirement, values, state)) {
+                reasons.add("world state not met (" + requirement + ")");
+            }
         }
-
-        Map<Integer, Integer> varbits = state.getVarbitValues();
-        if (varbits != null && varbits.getOrDefault(FAIRY_RING_DIARY_VARBIT, 0) > 0) {
-            return;
-        }
-
-        Map<Integer, Integer> held = state.getItemQuantities();
-        if (held != null && holdsAny(held, FAIRY_RING_STAVES, 1)) {
-            return;
-        }
-
-        reasons.add("needs a dramen or lunar staff, or the Lumbridge elite diary");
     }
 
-    private static void addSkillReasons(Transport transport, PlayerState state, List<String> reasons) {
-        int[] required = transport.getSkillLevels();
-        if (required == null) {
-            return;
-        }
+    private static boolean holds(DefinitionRequirements.RequiredVar requirement, Map<Integer, Integer> values,
+                                 PlayerState state) {
+        int actual = values != null ? values.getOrDefault(requirement.getId(), 0) : 0;
+        return state.getEpochMinutes() > 0
+                ? requirement.matches(actual, state.getEpochMinutes())
+                : requirement.matches(actual);
+    }
 
+    private static void addSkillReason(Skill skill, int required, PlayerState state, List<String> reasons) {
         int[] actual = state.getSkillLevels();
-        Skill[] skills = Skill.values();
-        int checkable = Math.min(required.length, skills.length);
-
-        for (int i = 0; i < checkable; i++) {
-            if (required[i] <= 0) {
-                continue;
-            }
-
-            int have = actual != null && i < actual.length ? actual[i] : 0;
-            if (have < required[i]) {
-                reasons.add("needs " + required[i] + " " + skills[i].getName() + ", have " + have);
-            }
+        int index = skill.ordinal();
+        int have = actual != null && index < actual.length ? actual[index] : 0;
+        if (have < required) {
+            reasons.add("needs " + required + " " + skill.getName() + ", have " + have);
         }
     }
 
-    private static void addQuestReasons(Transport transport, PlayerState state, List<String> reasons) {
-        Set<Quest> required = transport.getQuests();
+    private static void addLevelReasons(DefinitionRequirements requirements, PlayerState state, List<String> reasons) {
+        if (state.getCombatLevel() < requirements.getCombatLevel()) {
+            reasons.add("needs combat level " + requirements.getCombatLevel() + ", have " + state.getCombatLevel());
+        }
+
+        int totalLevel = requirements.getTotalLevel() == DefinitionRequirements.MAX_TOTAL_LEVEL
+                ? highestTotalLevel() : requirements.getTotalLevel();
+        if (state.getTotalLevel() < totalLevel) {
+            reasons.add("needs total level " + totalLevel + ", have " + state.getTotalLevel());
+        }
+    }
+
+    /**
+     * Returns the total level of a player with every skill at its highest level.
+     *
+     * @return the highest total level the game allows
+     */
+    public static int highestTotalLevel() {
+        int skills = 0;
+        for (Skill skill : Skill.values()) {
+            // RuneLite lists the hiscore's overall rank among the skills.
+            if (!"OVERALL".equals(skill.name())) {
+                skills++;
+            }
+        }
+        return skills * HIGHEST_SKILL_LEVEL;
+    }
+
+    private static void addQuestReasons(Set<Quest> required, PlayerState state, List<String> reasons) {
         if (required == null || required.isEmpty()) {
             return;
         }
@@ -184,39 +209,135 @@ public final class TransportRequirements {
         }
     }
 
-    private static void addItemReasons(Transport transport, PlayerState state, List<String> reasons) {
-        TransportItems items = transport.getItemRequirements();
-        if (items == null) {
+    /**
+     * Checks the item requirements of one transport together, since a staff and an offhand are
+     * shared between them.
+     *
+     * <p>Each requirement is first tried against the items held. One that is still open may be
+     * covered by an offhand, which serves a single requirement. Whatever is open after that has to
+     * be covered by one staff that serves all of it, because only one staff can be wielded.</p>
+     */
+    private static void addItemReasons(List<DefinitionRequirements.RequiredItem> required, PlayerState state,
+                                       int currencyThreshold, List<String> reasons) {
+        if (required.isEmpty()) {
             return;
         }
 
-        List<ItemRequirement> requirements = items.getRequirements();
-        if (requirements == null) {
-            return;
+        Map<Integer, Integer> held = state.getItemQuantities() != null
+                ? state.getItemQuantities() : Collections.emptyMap();
+        List<DefinitionRequirements.RequiredItem> open = new ArrayList<>();
+        boolean offhandUsed = false;
+
+        for (DefinitionRequirements.RequiredItem item : required) {
+            DefinitionRequirements.RequiredVar waiver = item.getWaivedByVarbit();
+            if (waiver != null && holds(waiver, state.getVarbitValues(), state)) {
+                continue;
+            }
+
+            Boolean met = metByItems(item, held, currencyThreshold);
+            if (met == null) {
+                reasons.add("would spend more of a currency than allowed (" + item + ")");
+            } else if (!met) {
+                if (!offhandUsed && holdsSubstitute(item, held, false)) {
+                    offhandUsed = true;
+                } else {
+                    open.add(item);
+                }
+            }
         }
 
-        for (ItemRequirement requirement : requirements) {
-            if (!satisfies(requirement, state)) {
-                reasons.add("missing a required item (any of " + describe(requirement) + ")");
+        if (!open.isEmpty() && !oneStaffCovers(open, held)) {
+            for (DefinitionRequirements.RequiredItem item : open) {
+                reasons.add("missing a required item (" + item + ")");
             }
         }
     }
 
     /**
-     * A requirement is satisfied by holding enough of any listed item, or by a staff or offhand that
-     * stands in for it — an elemental staff supplies its rune without the rune being carried.
+     * Tries a requirement and its alternatives against the items held.
+     *
+     * @return true when one of them is met, false when none is, and null when the only ones that
+     *         are met ask for more of a currency than the threshold allows
      */
-    private static boolean satisfies(ItemRequirement requirement, PlayerState state) {
-        Map<Integer, Integer> held = state.getItemQuantities();
-        if (held == null) {
-            return false;
+    private static Boolean metByItems(DefinitionRequirements.RequiredItem item, Map<Integer, Integer> held,
+                                      int currencyThreshold) {
+        boolean overThreshold = false;
+        for (DefinitionRequirements.RequiredItem way : ways(item)) {
+            int quantity = way.getQuantity();
+            if (quantity == 0) {
+                if (!holdsAny(held, way.getAnyOf(), 1)) {
+                    return true;
+                }
+                continue;
+            }
+
+            for (int id : way.getAnyOf()) {
+                if (held.getOrDefault(id, 0) < quantity) {
+                    continue;
+                }
+                if (CURRENCIES.contains(id) && quantity > currencyThreshold) {
+                    overThreshold = true;
+                    break;
+                }
+                return true;
+            }
         }
+        return overThreshold ? null : Boolean.FALSE;
+    }
 
-        int quantity = Math.max(requirement.getQuantity(), 1);
+    /** Lists a requirement followed by its alternatives, which are tried in that order. */
+    private static List<DefinitionRequirements.RequiredItem> ways(DefinitionRequirements.RequiredItem item) {
+        if (item.getAlternatives().isEmpty()) {
+            return Collections.singletonList(item);
+        }
+        List<DefinitionRequirements.RequiredItem> ways = new ArrayList<>(item.getAlternatives().size() + 1);
+        ways.add(item);
+        ways.addAll(item.getAlternatives());
+        return ways;
+    }
 
-        return holdsAny(held, requirement.getItemIds(), quantity)
-                || holdsAny(held, requirement.getStaffIds(), 1)
-                || holdsAny(held, requirement.getOffhandIds(), 1);
+    /**
+     * Reports whether a staff or an offhand that stands in for a requirement is held.
+     *
+     * @param staff true to look at the staves, false to look at the offhands
+     */
+    private static boolean holdsSubstitute(DefinitionRequirements.RequiredItem item, Map<Integer, Integer> held,
+                                           boolean staff) {
+        return !heldSubstitutes(item, held, staff).isEmpty();
+    }
+
+    private static Set<Integer> heldSubstitutes(DefinitionRequirements.RequiredItem item, Map<Integer, Integer> held,
+                                                boolean staff) {
+        Set<Integer> found = new HashSet<>();
+        for (DefinitionRequirements.RequiredItem way : ways(item)) {
+            // A substitute stands in for items that are needed, never for ones that must be absent.
+            if (way.getQuantity() == 0) {
+                continue;
+            }
+            for (int id : staff ? way.getStaves() : way.getOffhands()) {
+                if (held.getOrDefault(id, 0) >= 1) {
+                    found.add(id);
+                }
+            }
+        }
+        return found;
+    }
+
+    /** Reports whether a single held staff stands in for every one of the given requirements. */
+    private static boolean oneStaffCovers(List<DefinitionRequirements.RequiredItem> open, Map<Integer, Integer> held) {
+        Set<Integer> candidates = null;
+        for (DefinitionRequirements.RequiredItem item : open) {
+            Set<Integer> staves = heldSubstitutes(item, held, true);
+            if (candidates == null) {
+                candidates = staves;
+            } else {
+                candidates.retainAll(staves);
+            }
+            if (candidates.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean holdsAny(Map<Integer, Integer> held, int[] ids, int quantity) {
@@ -231,41 +352,5 @@ public final class TransportRequirements {
         }
 
         return false;
-    }
-
-    private static void addVarReasons(Transport transport, PlayerState state, List<String> reasons) {
-        Set<VarRequirement> required = transport.getVarRequirements();
-        if (required == null || required.isEmpty()) {
-            return;
-        }
-
-        Map<Integer, Integer> varbits = state.getVarbitValues() != null
-                ? state.getVarbitValues() : Collections.emptyMap();
-        Map<Integer, Integer> varPlayers = state.getVarPlayerValues() != null
-                ? state.getVarPlayerValues() : Collections.emptyMap();
-
-        for (VarRequirement requirement : required) {
-            Map<Integer, Integer> values = requirement.isVarbit() ? varbits : varPlayers;
-            if (!requirement.check(values)) {
-                reasons.add("world state not met (" + requirement + ")");
-            }
-        }
-    }
-
-    private static String describe(ItemRequirement requirement) {
-        int[] ids = requirement.getItemIds();
-        if (ids == null || ids.length == 0) {
-            return "no items listed";
-        }
-
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < ids.length; i++) {
-            if (i > 0) {
-                builder.append(", ");
-            }
-            builder.append(ids[i]);
-        }
-
-        return builder.toString();
     }
 }
