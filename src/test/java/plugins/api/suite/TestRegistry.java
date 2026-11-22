@@ -71,6 +71,7 @@ public class TestRegistry {
         register(injector, SpellServiceTest.class, "enableSpell", TestGroup.SERVICE);
         register(injector, MovementServiceTest.class, "enableMovement", TestGroup.SERVICE);
         register(injector, WalkerTest.class, "enableWalker", TestGroup.SERVICE);
+        register(injector, TransportTest.class, "enableTransports", TestGroup.SERVICE);
         register(injector, CameraServiceTest.class, "enableCamera", TestGroup.SERVICE);
         register(injector, DialogueServiceTest.class, "enableDialogueService", TestGroup.SERVICE);
         register(injector, ProcessingServiceTest.class, "enableProcessingService", TestGroup.SERVICE);

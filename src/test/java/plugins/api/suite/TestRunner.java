@@ -237,6 +237,13 @@ public class TestRunner {
 
             results.setPhase("Running " + test.getDisplayName());
             boolean passed = runWithTimeout(test, options, runToken);
+
+            // A search that is interrupted hands back an empty route and does not throw, so a
+            // test can return an ordinary result after its worker was interrupted.
+            if (runToken.isCancelled()) {
+                throw new TestCancelledException("Interrupted during " + test.getId());
+            }
+
             results.complete(test.getId(), passed, System.currentTimeMillis() - startedAt);
             return passed;
 
@@ -245,23 +252,14 @@ public class TestRunner {
                 Thread.currentThread().interrupt();
             }
 
-            // A timeout and a Stop press both arrive as a cancelled token, but they mean opposite
-            // things. Stopping should end the run; one test running long should not cost you the
-            // other thirty, and a hung test is a genuine defect rather than something skipped.
-            if (timedOut.get() && !userCancelled) {
-                long elapsed = System.currentTimeMillis() - startedAt;
-                results.fail(test.getId(),
-                        new IllegalStateException("exceeded its " + timeoutFor(test, options) + "ms budget"),
-                        elapsed);
-                recoverFromTimeout(runToken);
-                return false;
+            return endInterrupted(test, options, startedAt, runToken);
+        } catch (Exception e) {
+            // The API's own waits end an interrupted wait with an unchecked exception, so a test
+            // that was cancelled while walking or sleeping arrives here and not above.
+            if (runToken.isCancelled()) {
+                return endInterrupted(test, options, startedAt, runToken);
             }
 
-            results.markCancelled(test.getId());
-            throw e instanceof TestCancelledException
-                    ? (TestCancelledException) e
-                    : new TestCancelledException("Interrupted during " + test.getId());
-        } catch (Exception e) {
             log.error("Test {} threw", test.getId(), e);
             results.fail(test.getId(), e, System.currentTimeMillis() - startedAt);
             return false;
@@ -274,6 +272,35 @@ public class TestRunner {
                 log.warn("Cleanup after {} failed", test.getId(), e);
             }
         }
+    }
+
+    /**
+     * Ends a test whose worker was interrupted, by its own timeout or by a Stop press.
+     *
+     * <p>Both arrive as a cancelled token, but they mean opposite things. Stopping should end the
+     * run; one test running long should not cost you the other thirty, and a hung test is a genuine
+     * defect rather than something skipped.</p>
+     *
+     * @param test the test that was interrupted
+     * @param options run configuration
+     * @param startedAt when the test started, in epoch milliseconds
+     * @param runToken the run's cancellation token, re-armed after a timeout
+     * @return false when the test timed out and the run carries on
+     * @throws TestCancelledException when the run was stopped
+     */
+    private boolean endInterrupted(RegisteredTest test, SuiteOptions options, long startedAt,
+                                   CancellationToken runToken) {
+        if (timedOut.get() && !userCancelled) {
+            long elapsed = System.currentTimeMillis() - startedAt;
+            results.fail(test.getId(),
+                    new IllegalStateException("exceeded its " + timeoutFor(test, options) + "ms budget"),
+                    elapsed);
+            recoverFromTimeout(runToken);
+            return false;
+        }
+
+        results.markCancelled(test.getId());
+        throw new TestCancelledException("Cancelled during " + test.getId());
     }
 
     /**

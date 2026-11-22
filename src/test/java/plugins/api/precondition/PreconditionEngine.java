@@ -11,6 +11,7 @@ import com.kraken.api.query.equipment.EquipmentEntity;
 import com.kraken.api.query.npc.NpcQuery;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.magic.spellbook.Spellbook;
+import com.kraken.api.service.walker.WalkResult;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
 import net.runelite.api.coords.WorldPoint;
@@ -236,9 +237,10 @@ public class PreconditionEngine {
         NamedLocation staging = resolveStagingLocation(requirements);
         if (staging != null) {
             report(onPhase, "Travelling to " + staging.getDisplayName());
-            if (!walker.walkTo(staging, token)) {
-                return PreconditionResult.setupFailed(
-                        "could not travel to " + staging.getDisplayName() + " to collect items", steps);
+            WalkResult trip = walker.walkTo(staging, token);
+            if (!trip.isSuccess()) {
+                return PreconditionResult.setupFailed("could not travel to " + staging.getDisplayName()
+                        + " to collect items: " + SuiteWalker.describeFailure(trip), steps);
             }
             steps.add("Travelled to " + staging.getDisplayName());
         }
@@ -426,9 +428,10 @@ public class PreconditionEngine {
         }
 
         report(onPhase, "Travelling to " + destination.getDisplayName());
-        if (!walker.walkTo(destination, token)) {
-            return PreconditionResult.setupFailed(
-                    "could not travel to " + destination.getDisplayName(), steps);
+        WalkResult trip = walker.walkTo(destination, token);
+        if (!trip.isSuccess()) {
+            return PreconditionResult.setupFailed("could not travel to " + destination.getDisplayName()
+                    + ": " + SuiteWalker.describeFailure(trip), steps);
         }
 
         steps.add("Travelled to " + destination.getDisplayName());

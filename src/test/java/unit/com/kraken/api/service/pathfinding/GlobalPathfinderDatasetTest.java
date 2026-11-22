@@ -1,34 +1,22 @@
 package com.kraken.api.service.pathfinding;
 
-import com.kraken.api.Context;
-import com.kraken.api.service.magic.MagicService;
 import com.kraken.api.service.walker.WalkerConfig;
-import com.kraken.api.service.walker.transport.PlayerStateReader;
 import com.kraken.api.service.walker.transport.TransportRequirements;
 import com.kraken.api.service.walker.transport.registry.TransportCategory;
-import com.kraken.api.service.walker.transport.registry.TransportRegistry;
-import net.runelite.api.Client;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
-import net.runelite.api.WorldType;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ItemID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Runs the real search over everything that ships with the API: the collision map, the transport
@@ -49,31 +37,21 @@ class GlobalPathfinderDatasetTest {
     private static final int AMULET_OF_GLORY_4 = 1712;
     private static final int FAIRY_TALE_II_VARBIT = 2326;
 
-    private final Context ctx = mock(Context.class);
-    private final Client client = mock(Client.class);
-    private final PlayerStateReader playerStateReader = mock(PlayerStateReader.class);
-    private final MagicService magicService = mock(MagicService.class);
-    private final GlobalPathfinder pathfinder = new GlobalPathfinder();
+    private DatasetSearch search;
+    private GlobalPathfinder pathfinder;
 
     @BeforeEach
     void setup() throws Exception {
-        inject("ctx", ctx);
-        inject("client", client);
-        inject("transportPlanner", new TransportPlanner(new TransportRegistry(), playerStateReader, magicService, client));
-        when(ctx.runOnClientThread(any(Callable.class)))
-                .thenAnswer(call -> ((Callable<?>) call.getArgument(0)).call());
-        when(client.getWorldType()).thenReturn(EnumSet.of(WorldType.MEMBERS));
-        playing(newAccount().build());
+        search = new DatasetSearch();
+        pathfinder = search.getPathfinder();
     }
 
     private void playing(TransportRequirements.PlayerState state) {
-        when(playerStateReader.read(any(PlayerStateReader.Needs.class))).thenReturn(state);
+        search.playing(state);
     }
 
     private static TransportRequirements.PlayerState.PlayerStateBuilder newAccount() {
-        int[] levels = new int[Skill.values().length];
-        Arrays.fill(levels, 1);
-        return TransportRequirements.PlayerState.builder().skillLevels(levels).combatLevel(3).totalLevel(32);
+        return DatasetSearch.newAccount();
     }
 
     /** Plans with the options a walk uses, which leave out the kinds the walker cannot operate. */
@@ -227,11 +205,5 @@ class GlobalPathfinderDatasetTest {
         assertTrue(route(LUMBRIDGE_COURTYARD, VARROCK_SQUARE).isComplete());
 
         assertTrue(map == WorldCollisionData.bundled());
-    }
-
-    private void inject(String name, Object value) throws Exception {
-        Field field = GlobalPathfinder.class.getDeclaredField(name);
-        field.setAccessible(true);
-        field.set(pathfinder, value);
     }
 }

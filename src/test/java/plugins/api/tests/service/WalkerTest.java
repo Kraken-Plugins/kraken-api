@@ -2,8 +2,6 @@ package plugins.api.tests.service;
 
 import com.google.inject.Inject;
 import com.kraken.api.Context;
-import com.kraken.api.service.pathfinding.GlobalPathfinder;
-import com.kraken.api.service.pathfinding.PathfinderLiveConfig;
 import com.kraken.api.service.walker.WalkResult;
 import com.kraken.api.service.walker.Walker;
 import com.kraken.api.service.walker.WalkerConfig;
@@ -15,8 +13,7 @@ import plugins.api.requirements.SideEffect;
 import plugins.api.requirements.TargetTile;
 import plugins.api.requirements.TestRequirements;
 import plugins.api.tests.BaseApiTest;
-
-import java.util.List;
+import plugins.api.world.RouteInspector;
 
 /**
  * Walks to a chosen tile, operating whatever transports the route needs.
@@ -47,7 +44,7 @@ public class WalkerTest extends BaseApiTest {
     private Walker walker;
 
     @Inject
-    private GlobalPathfinder globalPathfinder;
+    private RouteInspector routes;
 
     @Inject
     private TargetTileProvider targetTileProvider;
@@ -88,7 +85,7 @@ public class WalkerTest extends BaseApiTest {
         WalkerConfig walkerConfig = WalkerConfig.builder()
                 .timeoutMillis(WALK_TIMEOUT_MS)
                 .build();
-        describeRoute(start, target, walkerConfig);
+        routes.planAndLog(start, target, walkerConfig);
 
         WalkResult result = walker.walkTo(target, walkerConfig);
 
@@ -99,44 +96,6 @@ public class WalkerTest extends BaseApiTest {
                 end != null ? end.distanceTo2D(target) : -1);
 
         return assertThat(result.isSuccess(), "the walk reached its destination: " + result.getReason());
-    }
-
-    /**
-     * Logs the transports the planner intends to use before anything is clicked.
-     *
-     * <p>Without this a failure only says the walk did not finish. With it the log names the transport
-     * that was about to be operated, its type, and what the dataset says to click, which is what makes
-     * an in-client failure diagnosable.</p>
-     *
-     * @param start where the walk begins
-     * @param target where it is headed
-     * @param walkerConfig the same settings the walk itself will use
-     */
-    private void describeRoute(WorldPoint start, WorldPoint target, WalkerConfig walkerConfig) {
-        GlobalPathfinder.PathResult route = globalPathfinder.findPathResult(
-                start, target, PathfinderLiveConfig.resolve(walkerConfig.getPathfinderConfig(), ctx));
-        if (route == null || route.getPath().isEmpty()) {
-            log.warn("The planner found no route, so the walk is expected to fail");
-            return;
-        }
-
-        List<GlobalPathfinder.TransportUsage> transports = route.getTransports();
-        log.info("Planned route: {} tiles, complete={}, {} transports, first={} last={}",
-                route.getPath().size(),
-                route.isComplete(),
-                transports.size(),
-                route.getPath().get(0),
-                route.getPath().get(route.getPath().size() - 1));
-
-        for (GlobalPathfinder.TransportUsage usage : transports) {
-            log.info("  at step {}: {} {} -> {} | object='{}' display='{}'",
-                    usage.getPathIndex(),
-                    usage.getType(),
-                    usage.getOrigin(),
-                    usage.getDestination(),
-                    usage.getObjectInfo(),
-                    usage.getDisplayInfo());
-        }
     }
 
     /**
