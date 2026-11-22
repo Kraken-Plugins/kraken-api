@@ -4,7 +4,7 @@ import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.walker.WalkPlan;
 import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.Test;
-import shortestpath.transport.TransportType;
+import com.kraken.api.service.walker.transport.registry.TransportCategory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +26,7 @@ class WalkPlanTest {
                 pathIndex,
                 new WorldPoint(3200, 3200, 0),
                 new WorldPoint(3300, 3300, 0),
-                TransportType.TRANSPORT,
+                TransportCategory.GENERAL,
                 "display",
                 "Open Door 9398",
                 false,

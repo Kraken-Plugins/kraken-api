@@ -4,37 +4,25 @@ import com.kraken.api.Context;
 import com.kraken.api.service.magic.MagicService;
 import com.kraken.api.service.walker.transport.PlayerStateReader;
 import com.kraken.api.service.walker.transport.TransportRequirements;
-import com.kraken.api.service.walker.transport.registry.BundledTransports;
 import com.kraken.api.service.walker.transport.registry.DefinitionRequirements;
-import com.kraken.api.service.walker.transport.registry.ShortestPathBridge;
+import com.kraken.api.service.walker.transport.registry.TestRegistries;
+import com.kraken.api.service.walker.transport.registry.TransportDataset;
 import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import com.kraken.api.service.walker.transport.registry.TransportRegistry;
 import net.runelite.api.Client;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import shortestpath.PrimitiveIntHashMap;
-import shortestpath.ShortestPathConfig;
-import shortestpath.TeleportationItem;
-import shortestpath.pathfinder.CollisionMap;
-import shortestpath.pathfinder.SplitFlagMap;
-import shortestpath.transport.Transport;
 
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,60 +30,28 @@ import static org.mockito.Mockito.when;
  * Runs the real search over the shipped collision map to show that a transport added to the
  * registry is planned through, and that the route says which definition it used.
  *
- * <p>The two tiles sit in different parts of the world with no dataset transports in the search, so
- * the only way from one to the other without walking is the registered edge.</p>
+ * <p>The two tiles sit in different parts of the world and the registry starts with no dataset, so
+ * the only way from one to the other without walking is the transport a test puts there.</p>
  */
 class GlobalPathfinderRegisteredTransportTest {
 
     private static final WorldPoint LUMBRIDGE = new WorldPoint(3222, 3218, 0);
     private static final WorldPoint VARROCK = new WorldPoint(3213, 3424, 0);
 
-    private static SplitFlagMap collisionData;
-
     private final Context ctx = mock(Context.class);
     private final Client client = mock(Client.class);
     private final PlayerStateReader playerStateReader = mock(PlayerStateReader.class);
-    private final TransportRegistry registry = new TransportRegistry();
 
-    private final GlobalPathfinder pathfinder = new GlobalPathfinder() {
-        @Override
-        RequestPathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
-            // The request starts with no dataset teleports and offers whatever it is handed, which
-            // is what the real configuration does with an empty dataset.
-            AtomicReference<Transport[]> teleports = new AtomicReference<>(new Transport[0]);
-            RequestPathfinderConfig request = mock(RequestPathfinderConfig.class);
-            when(request.getCalculationCutoffMillis()).thenReturn(10000L);
-            when(request.getTransportsPacked(false)).thenReturn(new PrimitiveIntHashMap<>(8));
-            when(request.getTransportsPacked(true)).thenReturn(new PrimitiveIntHashMap<>(8));
-            doAnswer(call -> {
-                teleports.set(call.getArgument(0));
-                return null;
-            }).when(request).addUsableTeleports(any());
-            when(request.getUsableTeleports(anyBoolean())).thenAnswer(call -> teleports.get());
-            when(request.getMap()).thenReturn(new CollisionMap(collisionData));
-            return request;
-        }
-    };
-
-    @BeforeAll
-    static void loadCollisionMap() {
-        collisionData = SplitFlagMap.fromResources();
-    }
+    private TransportRegistry registry = TestRegistries.empty();
+    private GlobalPathfinder pathfinder;
 
     @BeforeEach
     void setup() throws Exception {
-        inject("ctx", ctx);
-        inject("client", client);
-        inject("transportBridge", new ShortestPathBridge(registry, playerStateReader, mock(MagicService.class)));
-        // Start from an empty registry so the transports bundled with the API cannot change a route.
-        for (TransportDefinition bundled : registry.snapshot().getDefinitions()) {
-            registry.unregister(bundled.getId());
-        }
-        when(client.getIntStack()).thenReturn(new int[]{1});
         when(ctx.runOnClientThread(any(Callable.class)))
                 .thenAnswer(call -> ((Callable<?>) call.getArgument(0)).call());
-        when(playerStateReader.read(anyCollection()))
+        when(playerStateReader.read(any(PlayerStateReader.Needs.class)))
                 .thenReturn(TransportRequirements.PlayerState.builder().build());
+        pathfinder = pathfinderOver(registry);
     }
 
     @Test
@@ -118,7 +74,7 @@ class GlobalPathfinderRegisteredTransportTest {
         assertEquals(VARROCK, usage.getDestination());
         assertEquals("Travel Coachman", usage.getObjectInfo());
         assertEquals(3, usage.getDuration());
-        assertNotNull(usage.getTransport());
+        assertSame(carriage.getCategory(), usage.getType());
     }
 
     @Test
@@ -147,21 +103,61 @@ class GlobalPathfinderRegisteredTransportTest {
     }
 
     @Test
-    void aTransportFromTheBundledFileIsPlannedThroughByARealSearch() {
-        TransportDefinition bundled = BundledTransports.load().stream()
+    void aTransportOfTheDatasetIsPlannedThroughByARealSearch() throws Exception {
+        TransportDefinition stairs = TransportDataset.bundled().stream()
                 .filter(definition -> !definition.isUsableAnywhere())
                 .filter(definition -> definition.getRequirements().isEmpty())
                 .filter(definition -> definition.getOrigin().getPlane() != definition.getDestination().getPlane())
                 .findFirst()
                 .orElseThrow();
-        registry.register(bundled);
+        pathfinder = pathfinderOver(TestRegistries.over(List.of(stairs)));
 
         GlobalPathfinder.PathResult result =
-                pathfinder.findPathResult(bundled.getOrigin(), bundled.getDestination(), limits());
+                pathfinder.findPathResult(stairs.getOrigin(), stairs.getDestination(), limits());
 
-        assertTrue(result.isComplete(), bundled.toString());
-        assertEquals(1, result.getTransports().size(), bundled.toString());
-        assertSame(bundled, result.getTransports().get(0).getDefinition());
+        assertTrue(result.isComplete(), stairs.toString());
+        assertEquals(1, result.getTransports().size(), stairs.toString());
+        assertSame(stairs, result.getTransports().get(0).getDefinition());
+    }
+
+    @Test
+    void aRegisteredTransportIsOperatedInPlaceOfTheDatasetTransportBetweenTheSameTiles() throws Exception {
+        TransportDefinition datasetCarriage = TransportDefinition
+                .npc("kraken:upstream-carriage", LUMBRIDGE, VARROCK, "Coachman", "Travel").build();
+        TransportDefinition registered = TransportDefinition
+                .npc("test:carriage", LUMBRIDGE, VARROCK, "Driver", "Ride").build();
+        registry = TestRegistries.over(List.of(datasetCarriage));
+        pathfinder = pathfinderOver(registry);
+
+        assertSame(datasetCarriage, onlyTransport(pathfinder.findPathResult(LUMBRIDGE, VARROCK, limits())));
+
+        registry.register(registered);
+
+        assertSame(registered, onlyTransport(pathfinder.findPathResult(LUMBRIDGE, VARROCK, limits())));
+    }
+
+    @Test
+    void aDatasetTransportThatIsReplacedOrDisabledIsHiddenFromTheSearch() throws Exception {
+        TransportDefinition datasetCarriage = TransportDefinition
+                .npc("kraken:upstream-carriage", LUMBRIDGE, VARROCK, "Coachman", "Travel").build();
+        registry = TestRegistries.over(List.of(datasetCarriage));
+        pathfinder = pathfinderOver(registry);
+
+        TransportRegistry.Registration disabled = registry.disableEdge(LUMBRIDGE, VARROCK);
+        assertTrue(pathfinder.findPathResult(LUMBRIDGE, VARROCK, limits()).getTransports().isEmpty());
+        disabled.close();
+        assertSame(datasetCarriage, onlyTransport(pathfinder.findPathResult(LUMBRIDGE, VARROCK, limits())));
+
+        // A replacement the player cannot use still hides the edge it replaces, which is how a
+        // toll gate keeps a player without coins from being sent through the free dataset gate.
+        registry.register(TransportDefinition.npc("test:toll-carriage", LUMBRIDGE, VARROCK, "Coachman", "Pay")
+                .replaces(true)
+                .requirements(DefinitionRequirements.builder()
+                        .item(DefinitionRequirements.RequiredItem.of(995, 10))
+                        .build())
+                .build());
+
+        assertTrue(pathfinder.findPathResult(LUMBRIDGE, VARROCK, limits()).getTransports().isEmpty());
     }
 
     @Test
@@ -170,7 +166,7 @@ class GlobalPathfinderRegisteredTransportTest {
                 .duration(4)
                 .build();
         registry.register(tablet);
-        when(playerStateReader.read(anyCollection()))
+        when(playerStateReader.read(any(PlayerStateReader.Needs.class)))
                 .thenReturn(TransportRequirements.PlayerState.builder().item(8007, 1).build());
 
         GlobalPathfinder.PathResult result = pathfinder.findPathResult(LUMBRIDGE, VARROCK, limits());
@@ -181,49 +177,17 @@ class GlobalPathfinderRegisteredTransportTest {
 
         GlobalPathfinder.TransportUsage usage = result.getTransports().get(0);
         assertSame(tablet, usage.getDefinition());
-        assertTrue(usage.getType().isTeleport(), "the walker must treat it as a teleport, with no origin to walk to");
+        assertTrue(usage.isTeleport(), "the walker must treat it as a teleport, with no origin to walk to");
         assertEquals(LUMBRIDGE, usage.getOrigin());
         assertEquals(VARROCK, usage.getDestination());
         assertEquals(4, usage.getDuration());
     }
 
     @Test
-    void aRegisteredTeleportReachesTheSearchThroughTheRealRequestConfiguration() throws Exception {
-        // The other tests hand the search a stand in configuration. This one uses the real class,
-        // with the planner's dataset loaded but none of it enabled, so the only teleport the search
-        // can be offered is the registered one.
-        ShortestPathConfig planningOptions = mock(ShortestPathConfig.class);
-        when(planningOptions.calculationCutoff()).thenReturn(20);
-        when(planningOptions.useTeleportationItems()).thenReturn(TeleportationItem.NONE);
-        GlobalPathfinder realConfiguration = new GlobalPathfinder() {
-            @Override
-            RequestPathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
-                return new RequestPathfinderConfig(client, planningOptions);
-            }
-        };
-        inject(realConfiguration, "ctx", ctx);
-        inject(realConfiguration, "client", client);
-        inject(realConfiguration, "transportBridge",
-                new ShortestPathBridge(registry, playerStateReader, mock(MagicService.class)));
-
-        TransportDefinition tablet = TransportDefinition.itemTeleport("test:varrock-tab", VARROCK, 8007).build();
-        registry.register(tablet);
-        when(playerStateReader.read(anyCollection()))
-                .thenReturn(TransportRequirements.PlayerState.builder().item(8007, 1).build());
-
-        GlobalPathfinder.PathResult result = realConfiguration.findPathResult(LUMBRIDGE, VARROCK, limits());
-
-        assertTrue(result.isComplete());
-        assertEquals(List.of(LUMBRIDGE, VARROCK), result.getPath());
-        assertEquals(1, result.getTransports().size());
-        assertSame(tablet, result.getTransports().get(0).getDefinition());
-    }
-
-    @Test
     void aRegisteredTeleportIsNotUsedForAShortWalkItLeadsAwayFrom() {
         WorldPoint nearLumbridge = new WorldPoint(3222, 3230, 0);
         registry.register(TransportDefinition.itemTeleport("test:varrock-tab", VARROCK, 8007).build());
-        when(playerStateReader.read(anyCollection()))
+        when(playerStateReader.read(any(PlayerStateReader.Needs.class)))
                 .thenReturn(TransportRequirements.PlayerState.builder().item(8007, 1).build());
 
         GlobalPathfinder.PathResult result = pathfinder.findPathResult(nearLumbridge, LUMBRIDGE, limits());
@@ -242,12 +206,22 @@ class GlobalPathfinderRegisteredTransportTest {
         assertTrue(result.getPath().size() > 2, "without the tablet the route is walked tile by tile");
     }
 
+    private static TransportDefinition onlyTransport(GlobalPathfinder.PathResult result) {
+        assertEquals(1, result.getTransports().size());
+        return result.getTransports().get(0).getDefinition();
+    }
+
     private static GlobalPathfinderConfig limits() {
         return GlobalPathfinderConfig.builder().maxSearchNodes(200_000).build();
     }
 
-    private void inject(String name, Object value) throws Exception {
-        inject(pathfinder, name, value);
+    private GlobalPathfinder pathfinderOver(TransportRegistry transports) throws Exception {
+        GlobalPathfinder target = new GlobalPathfinder();
+        inject(target, "ctx", ctx);
+        inject(target, "client", client);
+        inject(target, "transportPlanner",
+                new TransportPlanner(transports, playerStateReader, mock(MagicService.class), client));
+        return target;
     }
 
     private static void inject(GlobalPathfinder target, String name, Object value) throws Exception {

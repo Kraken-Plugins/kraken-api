@@ -1,13 +1,12 @@
 package com.kraken.api.service.walker.transport;
 
 import com.kraken.api.Context;
+import com.kraken.api.service.walker.transport.registry.TransportCategory;
 import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
-import shortestpath.transport.Transport;
-import shortestpath.transport.TransportType;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -23,22 +22,19 @@ public final class TransportContext {
     /** The API context, used to reach queries and services. */
     private final Context ctx;
 
-    /** The transport edge being crossed, carrying its requirements. */
-    private final Transport transport;
-
     /** Where the transport is entered, or null for a teleport usable anywhere. */
     private final WorldPoint origin;
 
     /** Where the transport is expected to leave the player. */
     private final WorldPoint destination;
 
-    /** The parsed form of the transport's object info, or null when it carries none. */
+    /** What the transport clicks, or null when it clicks nothing in the scene. */
     private final ObjectInfo objectInfo;
 
     /** The transport's display info, which names the destination for teleports and hubs. */
     private final String displayInfo;
 
-    /** The registered definition this crossing came from, or null for a transport from the dataset. */
+    /** The definition of the transport being crossed, which says everything else about it. */
     private final TransportDefinition definition;
 
     @Getter(AccessLevel.NONE)
@@ -68,10 +64,10 @@ public final class TransportContext {
     /**
      * Returns the kind of transport being crossed.
      *
-     * @return the transport type
+     * @return the category of the transport's definition, or null when the context carries none
      */
-    public TransportType getType() {
-        return transport != null ? transport.getType() : null;
+    public TransportCategory getType() {
+        return definition != null ? definition.getCategory() : null;
     }
 
     /**
@@ -80,8 +76,7 @@ public final class TransportContext {
      * @return true for teleports
      */
     public boolean isTeleport() {
-        TransportType type = getType();
-        return type != null && type.isTeleport();
+        return definition != null && definition.isUsableAnywhere();
     }
 
     /**

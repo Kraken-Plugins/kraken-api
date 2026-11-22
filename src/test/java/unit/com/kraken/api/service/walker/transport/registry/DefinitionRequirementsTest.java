@@ -138,6 +138,61 @@ class DefinitionRequirementsTest {
         assertFalse(Comparison.BIT_SET.test(-1, 32));
     }
 
+    @Test
+    void joiningTwoSetsOfRequirementsAsksForBoth() {
+        RequiredItem coins = RequiredItem.of(ItemID.COINS, 30);
+        RequiredVar unlocked = new RequiredVar(100, Comparison.EQUAL, 1);
+        DefinitionRequirements stop = DefinitionRequirements.builder()
+                .skill(Skill.AGILITY, 40).skill(Skill.MAGIC, 10)
+                .combatLevel(50)
+                .quest(Quest.DRAGON_SLAYER_I)
+                .item(coins)
+                .varbit(unlocked)
+                .build();
+        DefinitionRequirements other = DefinitionRequirements.builder()
+                .skill(Skill.AGILITY, 60).skill(Skill.STRENGTH, 20)
+                .combatLevel(30)
+                .totalLevel(DefinitionRequirements.MAX_TOTAL_LEVEL)
+                .quest(Quest.DRAGON_SLAYER_I).quest(Quest.PRINCE_ALI_RESCUE)
+                .item(RequiredItem.of(ItemID.COINS, 30)).item(RequiredItem.of(ItemID.DRAMEN_STAFF))
+                .varbit(new RequiredVar(100, Comparison.EQUAL, 1))
+                .varPlayer(new RequiredVar(273, Comparison.AT_LEAST, 100))
+                .membersOnly(true)
+                .build();
+
+        DefinitionRequirements both = stop.and(other);
+
+        assertEquals(60, both.getSkillLevels().get(Skill.AGILITY), "the higher of two levels is kept");
+        assertEquals(10, both.getSkillLevels().get(Skill.MAGIC));
+        assertEquals(20, both.getSkillLevels().get(Skill.STRENGTH));
+        assertEquals(50, both.getCombatLevel());
+        assertEquals(DefinitionRequirements.MAX_TOTAL_LEVEL, both.getTotalLevel(), "the highest total level wins over any number");
+        assertEquals(2, both.getQuests().size());
+        assertEquals(List.of(coins, RequiredItem.of(ItemID.DRAMEN_STAFF)), both.getItems(), "a requirement both state is asked once");
+        assertEquals(List.of(unlocked), both.getVarbits());
+        assertEquals(1, both.getVarPlayers().size());
+        assertTrue(both.isMembersOnly());
+        assertEquals(40, stop.getSkillLevels().get(Skill.AGILITY), "the originals are left as they were");
+    }
+
+    @Test
+    void joiningWithNothingGivesBackTheSameRequirements() {
+        DefinitionRequirements stop = DefinitionRequirements.builder().skill(Skill.AGILITY, 40).build();
+
+        assertTrue(stop.and(DefinitionRequirements.NONE) == stop);
+        assertTrue(stop.and(null) == stop);
+        assertTrue(DefinitionRequirements.NONE.and(stop) == stop);
+    }
+
+    @Test
+    void theNewComparisonsReadAMaskAndACooldown() {
+        assertTrue(Comparison.ANY_BIT_OF.test(0b0100, 0b0110));
+        assertFalse(Comparison.ANY_BIT_OF.test(0b1001, 0b0110));
+        assertFalse(Comparison.COOLDOWN_MINUTES.test(1_000, 30, 1_030), "exactly thirty minutes is not yet more than thirty");
+        assertTrue(Comparison.COOLDOWN_MINUTES.test(1_000, 30, 1_031));
+        assertTrue(Comparison.COOLDOWN_MINUTES.test(0, 30), "something never used has cooled down");
+    }
+
     private static TransportRequirements.PlayerState.PlayerStateBuilder state() {
         return TransportRequirements.PlayerState.builder();
     }

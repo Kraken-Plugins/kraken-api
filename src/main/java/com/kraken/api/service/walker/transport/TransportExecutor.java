@@ -16,6 +16,7 @@ import com.kraken.api.service.walker.transport.handler.ItemTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.ObjectTransportHandler;
 import com.kraken.api.service.walker.transport.handler.SpellTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.UnsupportedTransportHandler;
+import com.kraken.api.service.walker.transport.handler.WalkTransportHandler;
 import com.kraken.api.service.walker.transport.handler.WidgetSelectHandler;
 import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import com.kraken.api.service.walker.transport.registry.TransportRegistry;
@@ -23,7 +24,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Constants;
 import net.runelite.api.coords.WorldPoint;
-import shortestpath.transport.Transport;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,10 +36,10 @@ import java.util.Map;
 /**
  * Operates one transport and reports whether the player got through it.
  *
- * <p>Dispatch is by {@link TransportShape} rather than by transport type, so twenty six kinds of
- * transport are served by a handful of handlers. The {@link TransportRegistry} can supply the
- * handler instead: a registered transport may bring its own, and a handler registered for a shape
- * takes the place of the built in one.</p>
+ * <p>Dispatch is by {@link TransportShape} rather than by kind of transport, so more than two dozen
+ * kinds are served by a handful of handlers. The {@link TransportRegistry} can supply the handler
+ * instead: a registered transport may bring its own, and a handler registered for a shape takes the
+ * place of the built in one.</p>
  */
 @Slf4j
 @Singleton
@@ -76,6 +76,7 @@ public class TransportExecutor {
     TransportExecutor(TransportRegistry transportRegistry,
                       ObjectTransportHandler objectHandler,
                       ClearThenWalkHandler clearThenWalkHandler,
+                      WalkTransportHandler walkHandler,
                       DialogueTransportHandler dialogueHandler,
                       HubDialogueHandler hubDialogueHandler,
                       HubResumePauseHandler hubResumePauseHandler,
@@ -87,6 +88,7 @@ public class TransportExecutor {
         this.transportRegistry = transportRegistry;
         handlers.put(TransportShape.SINGLE_CLICK, objectHandler);
         handlers.put(TransportShape.CLEAR_THEN_WALK, clearThenWalkHandler);
+        handlers.put(TransportShape.WALK, walkHandler);
         handlers.put(TransportShape.CLICK_THEN_DIALOGUE, dialogueHandler);
         handlers.put(TransportShape.HUB_DIALOGUE, hubDialogueHandler);
         handlers.put(TransportShape.HUB_RESUME_PAUSE, hubResumePauseHandler);
@@ -144,13 +146,14 @@ public class TransportExecutor {
      * <p>An obstacle that is cleared and then walked through, such as a web, is always handed to
      * its handler, including when the way is already open: the handler is what walks the player
      * across, and counting an open web as crossed without moving would leave the next round planning
-     * the same edge from the same tile.</p>
+     * the same edge from the same tile. A step that is only walked is handed to its handler for the
+     * same reason.</p>
      *
-     * <p>A transport that came from the {@link TransportRegistry} takes its shape, its click target
-     * and its requirements from its definition rather than from the dataset. That includes a
-     * registered teleport usable from anywhere, which the planner reports as a teleport type.</p>
+     * <p>Everything about the transport comes from its definition: its shape, what it clicks and
+     * what the player needs. That is so whether the definition is part of the bundled dataset or
+     * was registered by a plugin.</p>
      *
-     * @param usage the transport edge chosen by the planner
+     * @param usage the transport chosen by the planner
      * @return what happened, with a readable reason when it did not work
      */
     public Result execute(GlobalPathfinder.TransportUsage usage) {
@@ -158,21 +161,20 @@ public class TransportExecutor {
             return Result.unsupported("no transport to execute");
         }
 
-        Transport transport = usage.getTransport();
-        if (transport == null) {
+        TransportDefinition definition = usage.getDefinition();
+        if (definition == null) {
             return Result.unsupported("route carries no transport detail for " + usage.getType());
         }
 
-        TransportDefinition definition = usage.getDefinition();
         String label = label(usage);
 
         // A route can outlive the registration it was planned through. Once a plugin has closed its
         // handle, nothing of that plugin is run on its behalf.
-        if (definition != null && !transportRegistry.snapshot().getDefinitions().contains(definition)) {
+        if (!transportRegistry.snapshot().holds(definition)) {
             return Result.failed(label + " was unregistered after the route was planned");
         }
 
-        TransportShape shape = definition != null ? definition.getShape() : TransportShapes.of(usage.getType());
+        TransportShape shape = definition.getShape();
         TransportHandler handler = resolveHandler(definition, shape);
         if (handler == null) {
             return Result.unsupported(shape == null
@@ -180,27 +182,18 @@ public class TransportExecutor {
                     : "no handler registered for " + shape);
         }
 
-        List<String> unmet;
-        ObjectInfo objectInfo;
-        if (definition != null) {
-            unmet = unmetReasons(definition, handler);
-            objectInfo = definition.toObjectInfo();
-        } else {
-            TransportRequirements.PlayerState state = playerStateReader.read(transport);
-            unmet = TransportRequirements.unmetReasons(transport, state);
-            objectInfo = ObjectInfo.parse(transport.getObjectInfo());
-        }
+        List<String> unmet = unmetReasons(definition, handler);
         if (!unmet.isEmpty()) {
             return Result.unmet(label + " unusable: " + String.join("; ", unmet));
         }
 
+        ObjectInfo objectInfo = definition.toObjectInfo();
         WorldPoint before = ctx.players().local().location();
         WorldPoint destination = usage.getDestination();
-        boolean teleport = usage.getType() != null && usage.getType().isTeleport();
+        boolean teleport = usage.isTeleport();
 
         TransportContext context = TransportContext.builder()
                 .ctx(ctx)
-                .transport(transport)
                 .origin(usage.getOrigin())
                 .destination(destination)
                 .objectInfo(objectInfo)
@@ -223,7 +216,7 @@ public class TransportExecutor {
             return notOperated;
         }
 
-        if (!awaitArrival(usage, before, transport)) {
+        if (!awaitArrival(usage, before)) {
             WorldPoint now = ctx.players().local().location();
             return Result.failed("operated " + label + " (" + describe(usage) + ") but ended at "
                     + now + " instead of " + usage.getDestination());
@@ -236,9 +229,10 @@ public class TransportExecutor {
      * Reports whether a transport can be counted as crossed without operating it, because its
      * destination is the next tile and already reachable, as with a door someone left open.
      *
-     * <p>That shortcut never applies to an obstacle that is cleared and then walked through. Its
-     * handler is what walks the player across, and an open web that was counted as crossed while
-     * the player stood still would be planned again from the same tile.</p>
+     * <p>That shortcut never applies to an obstacle that is cleared and then walked through, or to
+     * a step that is only walked. The handler is what walks the player across, and an open web that
+     * was counted as crossed while the player stood still would be planned again from the same
+     * tile.</p>
      *
      * @param shape how the transport is operated, may be null
      * @param here where the player stands
@@ -247,7 +241,7 @@ public class TransportExecutor {
      * @return true when nothing should be clicked
      */
     boolean needsNoOperating(TransportShape shape, WorldPoint here, WorldPoint destination, boolean teleport) {
-        if (shape == TransportShape.CLEAR_THEN_WALK) {
+        if (shape == TransportShape.CLEAR_THEN_WALK || shape == TransportShape.WALK) {
             return false;
         }
         return TransportArrival.skipOperating(
@@ -304,7 +298,7 @@ public class TransportExecutor {
      * <p>The most specific choice wins: a registered transport's own handler, then a handler
      * registered for the whole shape, then the built in handler for the shape.</p>
      *
-     * @param definition the registered definition behind the transport, or null for a dataset edge
+     * @param definition the definition of the transport, may be null
      * @param shape how the transport is operated, may be null when the definition brings a handler
      * @return the handler, or null when nothing can operate the transport
      */
@@ -321,14 +315,14 @@ public class TransportExecutor {
     }
 
     /**
-     * Checks a registered transport's requirements and its own condition against live state.
+     * Checks a transport's requirements and its own condition against live state.
      *
      * <p>A teleport usable from anywhere is also refused above its wilderness level, and a spell
      * that the built in handler would cast is refused while the client reports it as not castable.
      * The planner applied both rules when it chose the route; the player may have moved or spent a
      * rune since.</p>
      *
-     * @param definition the registered transport about to be operated
+     * @param definition the transport about to be operated
      * @param handler the handler that will operate it
      * @return the reasons it cannot be used right now, empty when it can
      */
@@ -374,8 +368,7 @@ public class TransportExecutor {
     }
 
     /**
-     * Names a transport for logs and failure reasons: the registered id when there is one, since
-     * every registered transport is planned as the same generic type.
+     * Names a transport for logs and failure reasons by the id of its definition.
      */
     private static String label(GlobalPathfinder.TransportUsage usage) {
         return usage.getDefinition() != null
@@ -399,10 +392,10 @@ public class TransportExecutor {
      * them here, on every poll, is what lets the crossing finish instead of timing out on the south
      * bank.</p>
      */
-    private boolean awaitArrival(GlobalPathfinder.TransportUsage usage, WorldPoint before, Transport transport) {
+    private boolean awaitArrival(GlobalPathfinder.TransportUsage usage, WorldPoint before) {
         WorldPoint destination = usage.getDestination();
         long timeout = Math.max(MIN_ARRIVAL_TIMEOUT_MS,
-                (long) transport.getDuration() * Constants.GAME_TICK_LENGTH + ARRIVAL_GRACE_MS);
+                (long) usage.getDuration() * Constants.GAME_TICK_LENGTH + ARRIVAL_GRACE_MS);
 
         return SleepService.sleepUntil(() -> {
             WarningWidgets.dismiss(ctx);

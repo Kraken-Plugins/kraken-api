@@ -10,7 +10,6 @@ import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.shop.ShopService;
 import com.kraken.api.service.walker.Walker;
 import com.kraken.api.service.walker.transport.TransportExecutor;
-import com.kraken.api.service.walker.transport.registry.ShortestPathBridge;
 import com.kraken.api.service.walker.transport.registry.TransportRegistry;
 import net.runelite.api.Client;
 import net.runelite.client.callback.ClientThread;
@@ -28,7 +27,7 @@ import static org.mockito.Mockito.when;
  * Builds the walker and its planner through Guice the way the client does, with only the RuneLite
  * types supplied.
  *
- * <p>The transport bridge and the executor take their collaborators through their constructors,
+ * <p>The transport planner and the executor take their collaborators through their constructors,
  * and Guice cannot stand in for a class that is asked for again while its constructor is still
  * waiting on that request. This is the test that would fail if a collaborator ever led back to
  * them.</p>
@@ -36,7 +35,7 @@ import static org.mockito.Mockito.when;
 class WalkerWiringTest {
 
     @Test
-    void theWalkerItsPlannerAndTheTransportBridgeAreBuiltWithoutACircularDependency() {
+    void theWalkerItsPathfinderAndTheTransportPlannerAreBuiltWithoutACircularDependency() {
         Injector injector = clientInjector();
 
         Walker walker = injector.getInstance(Walker.class);
@@ -45,12 +44,11 @@ class WalkerWiringTest {
         assertNotNull(walker);
         assertNotNull(pathfinder);
         assertNotNull(injector.getInstance(TransportExecutor.class));
-        assertSame(injector.getInstance(ShortestPathBridge.class), injector.getInstance(ShortestPathBridge.class),
-                "one bridge serves every search");
+        assertSame(pathfinder, injector.getInstance(GlobalPathfinder.class), "one pathfinder serves every walk");
     }
 
     @Test
-    void theSharedRegistryStartsWithTheBundledTransports() {
+    void theSharedRegistryStartsWithTheHandWrittenTransportsOverTheDataset() {
         Injector injector = clientInjector();
 
         TransportRegistry registry = injector.getInstance(TransportRegistry.class);
@@ -58,6 +56,7 @@ class WalkerWiringTest {
         assertSame(registry, injector.createChildInjector().getInstance(TransportRegistry.class),
                 "a plugin's injector sees the registry of the root injector");
         assertFalse(registry.snapshot().getDefinitions().isEmpty());
+        assertFalse(registry.snapshot().getDataset().isEmpty());
     }
 
     private static Injector clientInjector() {

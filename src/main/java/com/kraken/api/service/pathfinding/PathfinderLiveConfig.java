@@ -8,9 +8,9 @@ import java.util.EnumSet;
 /**
  * Adjusts a pathfinder config for the world the player is actually on.
  *
- * <p>shortest-path has no members-world filter. On a free-to-play world the agility underwall,
- * canoes and jewellery the library would otherwise propose cannot be used, so those types are
- * turned off here. Boats, ships and standard-book spells stay on: Karamja and Varrock are
+ * <p>The transport dataset does not say which transports need a members world. On a free-to-play
+ * world the agility underwall, canoes and jewellery a search would otherwise propose cannot be
+ * used, so those types are turned off here. Boats, ships and standard-book spells stay on: Karamja and Varrock are
  * reachable without membership.</p>
  *
  * <p>A caller who already turned a type off keeps it off. This never turns a type back on.</p>
@@ -23,7 +23,7 @@ public final class PathfinderLiveConfig {
     /**
      * Applies live world restrictions to a requested config.
      *
-     * @param config the caller's options, or null for library defaults
+     * @param config the caller's options, or null for the defaults
      * @param ctx used to read whether the current world is members
      * @return the config to pass to a search
      */
@@ -34,7 +34,7 @@ public final class PathfinderLiveConfig {
     /**
      * Applies members-world restrictions without reading the client.
      *
-     * @param config the caller's options, or null for library defaults
+     * @param config the caller's options, or null for the defaults
      * @param membersWorld whether the current world is a members world
      * @return the config to pass to a search
      */

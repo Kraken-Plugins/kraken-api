@@ -67,6 +67,9 @@ class BundledTransportsTest {
             + "\"entityId\": 1535"
             + "}";
 
+    /** The minimal row spaced the way {@code BundledTransports.toJson} writes a row. */
+    private static final String SPACED_ROW = MINIMAL_ROW.replace(",\"", ", \"");
+
     @Test
     void everyFieldOfARowReachesTheDefinition() {
         TransportDefinition definition = BundledTransports.parse("[" + FULL_ROW + "]").get(0);
@@ -165,10 +168,75 @@ class BundledTransportsTest {
 
         for (TransportShape shape : TransportShape.values()) {
             String row = complete.replace("SINGLE_CLICK", shape.name());
+            if (shape == TransportShape.WALK) {
+                // A step that is only walked is the one shape that must name nothing to click.
+                row = row.replace("\"entityId\": 1535, ", "");
+            }
 
             assertEquals(TransportDefinition.DECLARATIVE_SHAPES.contains(shape),
-                    !BundledTransports.parse("[" + row + "]").isEmpty(), shape.name());
+                    !BundledTransports.parse("[" + row + "]").isEmpty(), shape.name() + ": " + row);
         }
+    }
+
+    @Test
+    void aRowThatStatesNoShapeIsOperatedTheUsualWayForItsCategory() {
+        String door = MINIMAL_ROW.replace("\"shape\": \"SINGLE_CLICK\",", "");
+        String boat = door.replace("\"entityId\"", "\"category\": \"BOAT\", \"entityId\"");
+        String canoe = door.replace("\"entityId\"", "\"category\": \"CANOE\", \"entityId\"");
+
+        assertEquals(TransportShape.SINGLE_CLICK, BundledTransports.parse("[" + door + "]").get(0).getShape());
+        assertEquals(TransportShape.CLICK_THEN_DIALOGUE, BundledTransports.parse("[" + boat + "]").get(0).getShape());
+        assertTrue(BundledTransports.parse("[" + canoe + "]").isEmpty(),
+                "a canoe has no built in handler, so a file a person writes cannot hold one");
+    }
+
+    @Test
+    void aClickCanBeStatedAsOneStringTheWayTheDatasetStatesIt() {
+        String raw = SPACED_ROW.replace("\"entityId\": 1535", "\"objectInfo\": \"Pass through Gate 2882\"");
+        String both = SPACED_ROW.replace("\"entityId\": 1535", "\"entityId\": 1535, \"objectInfo\": \"Open Door 1535\"");
+
+        TransportDefinition definition = BundledTransports.parse("[" + raw + "]").get(0);
+
+        assertTrue(definition.statesObjectInfo());
+        assertEquals("Pass through Gate 2882", definition.getObjectInfo());
+        assertEquals(2882, definition.toObjectInfo().getId());
+        assertEquals("Gate", definition.toObjectInfo().withEntityName("Gate").getMenuTarget());
+        assertEquals("Pass through", definition.toObjectInfo().withEntityName("Gate").getMenuOption());
+        assertEquals(raw, BundledTransports.toJson(definition));
+        assertTrue(BundledTransports.parse("[" + both + "]").isEmpty(), "a row states its click one way or the other");
+    }
+
+    @Test
+    void itemRequirementsCanNameAlternativesStavesOffhandsAndAWaiver() {
+        String requirements = "\"requirements\": {\"combatLevel\": 70, \"totalLevel\": -1, \"items\": ["
+                + "{\"anyOf\": [556, 4696], \"quantity\": 3, \"staves\": [1381], \"offhands\": [20714]}, "
+                + "{\"anyOf\": [1854], \"or\": [{\"anyOf\": [995], \"quantity\": 5}]}, "
+                + "{\"anyOf\": [2376], \"quantity\": 0}, "
+                + "{\"anyOf\": [772], \"waivedByVarbit\": {\"id\": 4498, \"comparison\": \"EQUAL\", \"value\": 1}}], "
+                + "\"varPlayers\": [{\"id\": 892, \"comparison\": \"COOLDOWN_MINUTES\", \"value\": 30}, "
+                + "{\"id\": 4560, \"comparison\": \"ANY_BIT_OF\", \"value\": 249}]}";
+        String row = SPACED_ROW.substring(0, SPACED_ROW.length() - 1) + ", " + requirements + "}";
+
+        TransportDefinition definition = BundledTransports.parse("[" + row + "]").get(0);
+        List<DefinitionRequirements.RequiredItem> items = definition.getRequirements().getItems();
+
+        assertEquals(70, definition.getRequirements().getCombatLevel());
+        assertEquals(DefinitionRequirements.MAX_TOTAL_LEVEL, definition.getRequirements().getTotalLevel());
+        assertEquals(3, items.get(0).getQuantity());
+        assertEquals(1381, items.get(0).getStaves()[0]);
+        assertEquals(20714, items.get(0).getOffhands()[0]);
+        assertEquals(5, items.get(1).getAlternatives().get(0).getQuantity());
+        assertEquals(0, items.get(2).getQuantity(), "a quantity of zero is kept: the item must not be held");
+        assertEquals(1, items.get(3).getQuantity(), "a quantity that is left out is one");
+        assertEquals(4498, items.get(3).getWaivedByVarbit().getId());
+        assertEquals(DefinitionRequirements.Comparison.COOLDOWN_MINUTES,
+                definition.getRequirements().getVarPlayers().get(0).getComparison());
+        assertEquals(row, BundledTransports.toJson(definition), "the row is written back as it was read");
+
+        String misspelled = row.replace("\"staves\"", "\"staffs\"");
+        String nested = row.replace("{\"anyOf\": [995], \"quantity\": 5}", "{\"anyOf\": [995], \"or\": []}");
+        assertTrue(BundledTransports.parse("[" + misspelled + "]").isEmpty());
+        assertTrue(BundledTransports.parse("[" + nested + "]").isEmpty(), "an alternative carries no alternatives");
     }
 
     @Test
@@ -256,26 +324,11 @@ class BundledTransportsTest {
     }
 
     @Test
-    void theGeneratedRowsAreOnlyTransportsThatOneClickOperates() {
-        List<TransportDefinition> definitions = BundledTransports.load().stream()
-                .filter(definition -> definition.getId().startsWith(GENERATED_ID_PREFIX))
-                .collect(Collectors.toList());
-
-        assertFalse(definitions.isEmpty(), "the bundled file ships with generated transports");
-        for (TransportDefinition definition : definitions) {
-            String id = definition.getId();
-            assertFalse(definition.isReplaces(), id + " must not hide a dataset transport");
-
-            if (definition.isUsableAnywhere()) {
-                assertEquals(TransportShape.ITEM_SUBOP, definition.getShape(), id);
-                assertEquals(TransportCategory.TELEPORTATION_ITEM, definition.getCategory(), id);
-                assertFalse(definition.getItemIds().isEmpty(), id);
-            } else {
-                assertEquals(TransportShape.SINGLE_CLICK, definition.getShape(), id);
-                assertTrue(definition.toObjectInfo().hasId(), id + " names no object id");
-                assertFalse(definition.toObjectInfo().getMenuOption().isEmpty(), id + " names no menu option");
-                assertFalse(definition.toObjectInfo().getMenuTarget().isEmpty(), id + " names no object");
-            }
+    void theBundledFileHoldsOnlyRowsWrittenByHand() {
+        for (TransportDefinition definition : BundledTransports.load()) {
+            assertFalse(definition.getId().startsWith(GENERATED_ID_PREFIX),
+                    definition.getId() + " is generated and belongs in the dataset");
+            assertTrue(definition.isReplaces(), definition.getId() + " is there to correct a dataset transport");
         }
     }
 

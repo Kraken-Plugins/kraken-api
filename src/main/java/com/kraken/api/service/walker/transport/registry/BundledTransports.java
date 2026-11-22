@@ -26,14 +26,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Reads the transports that ship inside the API jar, and reads and writes the format they are
- * stored in.
+ * Reads the hand written transports that ship inside the API jar, and reads and writes the row
+ * format that they and the bundled dataset are stored in.
  *
- * <p>The data lives in {@code src/main/resources/walker/transports.json} and is read through the
- * class loader, so it is available wherever the jar is. Only declarative definitions can be written
- * there, since a file cannot carry a handler or a condition. A row without an {@code origin} is a
- * teleport usable from anywhere, which an item ({@code itemIds}) or a spell ({@code displayInfo})
- * provides.</p>
+ * <p>The hand written rows live in {@code src/main/resources/walker/transports.json} and are read
+ * through the class loader, so they are available wherever the jar is. Only declarative
+ * definitions can be written there, since a file cannot carry a handler or a condition. A row
+ * without an {@code origin} is a teleport usable from anywhere, which an item ({@code itemIds}) or
+ * a spell ({@code displayInfo}) provides. The far larger set generated from upstream shortest-path
+ * is read by {@link TransportDataset}.</p>
  *
  * <p>{@link #parse(String)} and {@link #toJson(TransportDefinition)} are each other's inverse, so a
  * plugin can keep its own transports in a file of the same format and register what it parses.</p>
@@ -56,11 +57,12 @@ public final class BundledTransports {
     private static final Set<String> POINT_KEYS = fieldNames(Point.class);
     private static final Set<String> REQUIREMENTS_KEYS = fieldNames(RequirementsRow.class);
     private static final Set<String> ITEM_KEYS = fieldNames(ItemRow.class);
+    private static final Set<String> ALTERNATIVE_KEYS = Set.of("anyOf", "quantity", "staves", "offhands");
     private static final Set<String> VAR_KEYS = fieldNames(VarRow.class);
 
     /**
-     * Loads the bundled transports. A missing or unreadable file yields no transports rather than
-     * an exception, so the walker still works on the dataset alone.
+     * Loads the hand written bundled transports. A missing or unreadable file yields no transports
+     * rather than an exception, so the walker still works on the dataset alone.
      *
      * @return the definitions that parsed, in file order
      */
@@ -129,6 +131,9 @@ public final class BundledTransports {
         if (definition.getEntityId() != ObjectInfo.NO_ID) {
             row.addProperty("entityId", definition.getEntityId());
         }
+        if (definition.statesObjectInfo()) {
+            row.addProperty("objectInfo", definition.getObjectInfo());
+        }
         if (!definition.getItemIds().isEmpty()) {
             JsonArray itemIds = new JsonArray();
             definition.getItemIds().forEach(itemIds::add);
@@ -140,6 +145,9 @@ public final class BundledTransports {
         }
         if (definition.getMaxWildernessLevel() != TransportDefinition.DEFAULT_MAX_WILDERNESS_LEVEL) {
             row.addProperty("maxWildernessLevel", definition.getMaxWildernessLevel());
+        }
+        if (definition.isConsumable()) {
+            row.addProperty("consumable", true);
         }
         if (definition.isBidirectional()) {
             row.addProperty("bidirectional", true);
@@ -187,6 +195,12 @@ public final class BundledTransports {
             requirements.getSkillLevels().forEach((skill, level) -> skills.addProperty(skill.name(), level));
             json.add("skills", skills);
         }
+        if (requirements.getCombatLevel() != 0) {
+            json.addProperty("combatLevel", requirements.getCombatLevel());
+        }
+        if (requirements.getTotalLevel() != 0) {
+            json.addProperty("totalLevel", requirements.getTotalLevel());
+        }
 
         if (!requirements.getQuests().isEmpty()) {
             JsonArray quests = new JsonArray();
@@ -198,21 +212,21 @@ public final class BundledTransports {
         int[] implied = teleportItemIds.stream().mapToInt(Integer::intValue).toArray();
         if (implied.length > 0 && !items.isEmpty()) {
             DefinitionRequirements.RequiredItem last = items.get(items.size() - 1);
-            if (last.getQuantity() == 1 && Arrays.equals(last.getAnyOf(), implied)) {
+            if (last.isPlain() && last.getQuantity() == 1 && Arrays.equals(last.getAnyOf(), implied)) {
                 items.remove(items.size() - 1);
             }
         }
         if (!items.isEmpty()) {
             JsonArray written = new JsonArray();
             for (DefinitionRequirements.RequiredItem item : items) {
-                JsonObject entry = new JsonObject();
-                JsonArray anyOf = new JsonArray();
-                for (int itemId : item.getAnyOf()) {
-                    anyOf.add(itemId);
+                JsonObject entry = toJson(item);
+                if (!item.getAlternatives().isEmpty()) {
+                    JsonArray alternatives = new JsonArray();
+                    item.getAlternatives().forEach(alternative -> alternatives.add(toJson(alternative)));
+                    entry.add("or", alternatives);
                 }
-                entry.add("anyOf", anyOf);
-                if (item.getQuantity() > 1) {
-                    entry.addProperty("quantity", item.getQuantity());
+                if (item.getWaivedByVarbit() != null) {
+                    entry.add("waivedByVarbit", toJson(item.getWaivedByVarbit()));
                 }
                 written.add(entry);
             }
@@ -229,6 +243,40 @@ public final class BundledTransports {
         return json;
     }
 
+    /**
+     * Writes the items, quantity, staves and offhands of one way to meet an item requirement.
+     */
+    private static JsonObject toJson(DefinitionRequirements.RequiredItem item) {
+        JsonObject entry = new JsonObject();
+        entry.add("anyOf", toJson(item.getAnyOf()));
+        if (item.getQuantity() != 1) {
+            entry.addProperty("quantity", item.getQuantity());
+        }
+        if (item.getStaves().length > 0) {
+            entry.add("staves", toJson(item.getStaves()));
+        }
+        if (item.getOffhands().length > 0) {
+            entry.add("offhands", toJson(item.getOffhands()));
+        }
+        return entry;
+    }
+
+    private static JsonArray toJson(int[] values) {
+        JsonArray array = new JsonArray();
+        for (int value : values) {
+            array.add(value);
+        }
+        return array;
+    }
+
+    private static JsonObject toJson(DefinitionRequirements.RequiredVar requirement) {
+        JsonObject entry = new JsonObject();
+        entry.addProperty("id", requirement.getId());
+        entry.addProperty("comparison", requirement.getComparison().name());
+        entry.addProperty("value", requirement.getValue());
+        return entry;
+    }
+
     private static void addVars(JsonObject json, String key, List<DefinitionRequirements.RequiredVar> required) {
         if (required.isEmpty()) {
             return;
@@ -236,11 +284,7 @@ public final class BundledTransports {
 
         JsonArray written = new JsonArray();
         for (DefinitionRequirements.RequiredVar requirement : required) {
-            JsonObject entry = new JsonObject();
-            entry.addProperty("id", requirement.getId());
-            entry.addProperty("comparison", requirement.getComparison().name());
-            entry.addProperty("value", requirement.getValue());
-            written.add(entry);
+            written.add(toJson(requirement));
         }
         json.add(key, written);
     }
@@ -310,7 +354,7 @@ public final class BundledTransports {
         List<TransportDefinition> definitions = new ArrayList<>(rows.size());
         for (JsonElement element : rows) {
             try {
-                definitions.add(toDefinition(element));
+                definitions.add(toDefinition(element, true));
             } catch (IllegalArgumentException | JsonParseException e) {
                 log.warn("Skipping bundled walker transport: {}", e.getMessage());
             }
@@ -322,10 +366,16 @@ public final class BundledTransports {
      * Turns one row into a definition.
      *
      * <p>Gson reads an unknown key as nothing and an unknown enum name as null, so both are checked
-     * here before the row is trusted. The definition's own constructor then rejects a row that
+     * here before the row is trusted. The constructor of the definition then rejects a row that
      * leaves out something required.</p>
+     *
+     * @param element the row
+     * @param declarativeOnly true to refuse a shape whose built in handler cannot work from a row
+     *                        alone, which is the rule for a file a person writes. The dataset
+     *                        turns it off, because its canoes and minigame teleports are planned
+     *                        even though only a registered handler can operate them
      */
-    private static TransportDefinition toDefinition(JsonElement element) {
+    static TransportDefinition toDefinition(JsonElement element, boolean declarativeOnly) {
         if (element == null || !element.isJsonObject()) {
             throw new IllegalArgumentException("a row must be a JSON object");
         }
@@ -340,8 +390,12 @@ public final class BundledTransports {
         requireResolved(id, "category", object, row.category);
         requireResolved(id, "shape", object, row.shape);
 
-        if (row.shape != null && !TransportDefinition.DECLARATIVE_SHAPES.contains(row.shape)) {
-            throw new IllegalArgumentException(id + ": shape " + row.shape
+        // A row that states no shape is operated the usual way for its category, and a row that
+        // states no category either is an ordinary single click.
+        TransportShape shape = row.shape != null ? row.shape
+                : (row.category != null ? row.category : TransportCategory.GENERAL).getDefaultShape();
+        if (declarativeOnly && !TransportDefinition.DECLARATIVE_SHAPES.contains(shape)) {
+            throw new IllegalArgumentException(id + ": shape " + shape
                     + " needs a handler, which a data file cannot carry");
         }
 
@@ -350,13 +404,15 @@ public final class BundledTransports {
                 .origin(toWorldPoint(row.origin))
                 .destination(toWorldPoint(row.destination))
                 .category(row.category)
-                .shape(row.shape)
+                .shape(shape)
                 .menuOption(row.menuOption)
                 .menuTarget(row.menuTarget)
                 .entityId(row.entityId != null ? row.entityId : ObjectInfo.NO_ID)
+                .objectInfo(row.objectInfo)
                 .displayInfo(row.displayInfo)
                 .duration(row.duration != null ? row.duration : 1)
                 .bidirectional(row.bidirectional)
+                .consumable(row.consumable)
                 .replaces(row.replaces)
                 .requirements(toRequirements(id, object.get("requirements"), row.requirements));
 
@@ -376,6 +432,20 @@ public final class BundledTransports {
         return point != null ? new WorldPoint(point.x, point.y, point.plane) : null;
     }
 
+    /**
+     * Reads the requirements object of a row.
+     *
+     * @param id the id of the row, for error text
+     * @param json the requirements as written, may be null
+     * @return the requirements, {@link DefinitionRequirements#NONE} when the row states none
+     */
+    static DefinitionRequirements toRequirements(String id, JsonElement json) {
+        if (json == null || json.isJsonNull()) {
+            return DefinitionRequirements.NONE;
+        }
+        return toRequirements(id, json, GSON.fromJson(json, RequirementsRow.class));
+    }
+
     private static DefinitionRequirements toRequirements(String id, JsonElement json, RequirementsRow row) {
         if (row == null) {
             return DefinitionRequirements.NONE;
@@ -386,8 +456,19 @@ public final class BundledTransports {
         requireKnownKeysInEach(id, "items", object.get("items"), ITEM_KEYS);
         requireKnownKeysInEach(id, "varbits", object.get("varbits"), VAR_KEYS);
         requireKnownKeysInEach(id, "varPlayers", object.get("varPlayers"), VAR_KEYS);
+        if (object.get("items") != null && object.get("items").isJsonArray()) {
+            for (JsonElement item : object.get("items").getAsJsonArray()) {
+                if (item.isJsonObject()) {
+                    requireKnownKeysInEach(id, "items", item.getAsJsonObject().get("or"), ALTERNATIVE_KEYS);
+                    requireKnownKeys(id, "items", item.getAsJsonObject().get("waivedByVarbit"), VAR_KEYS);
+                }
+            }
+        }
 
-        var builder = DefinitionRequirements.builder().membersOnly(row.membersOnly);
+        var builder = DefinitionRequirements.builder()
+                .membersOnly(row.membersOnly)
+                .combatLevel(row.combatLevel)
+                .totalLevel(row.totalLevel);
 
         if (row.skills != null) {
             for (Map.Entry<Skill, Integer> entry : row.skills.entrySet()) {
@@ -409,10 +490,7 @@ public final class BundledTransports {
 
         if (row.items != null) {
             for (ItemRow item : row.items) {
-                if (item == null || item.anyOf == null || item.anyOf.length == 0) {
-                    throw new IllegalArgumentException(id + ": an item requirement lists no item ids");
-                }
-                builder.item(new DefinitionRequirements.RequiredItem(item.anyOf, Math.max(item.quantity, 1)));
+                builder.item(toRequiredItem(id, item));
             }
         }
 
@@ -422,6 +500,40 @@ public final class BundledTransports {
                 .build();
     }
 
+    /**
+     * Reads one item requirement with its alternatives and its waiver. A quantity that is left out
+     * means one. A quantity of zero is kept, since it says the items must not be held.
+     */
+    private static DefinitionRequirements.RequiredItem toRequiredItem(String id, ItemRow item) {
+        if (item == null || item.anyOf == null || item.anyOf.length == 0) {
+            throw new IllegalArgumentException(id + ": an item requirement lists no item ids");
+        }
+
+        List<DefinitionRequirements.RequiredItem> alternatives = new ArrayList<>();
+        if (item.or != null) {
+            for (ItemRow alternative : item.or) {
+                if (alternative == null || alternative.anyOf == null || alternative.anyOf.length == 0) {
+                    throw new IllegalArgumentException(id + ": an item alternative lists no item ids");
+                }
+                alternatives.add(new DefinitionRequirements.RequiredItem(alternative.anyOf, quantityOf(id, alternative),
+                        alternative.staves, alternative.offhands, null, null));
+            }
+        }
+
+        return new DefinitionRequirements.RequiredItem(item.anyOf, quantityOf(id, item), item.staves, item.offhands,
+                alternatives, item.waivedByVarbit != null ? toRequiredVar(id, item.waivedByVarbit) : null);
+    }
+
+    private static int quantityOf(String id, ItemRow item) {
+        if (item.quantity == null) {
+            return 1;
+        }
+        if (item.quantity < 0) {
+            throw new IllegalArgumentException(id + ": an item quantity cannot be negative");
+        }
+        return item.quantity;
+    }
+
     private static List<DefinitionRequirements.RequiredVar> toRequiredVars(String id, List<VarRow> rows) {
         if (rows == null) {
             return Collections.emptyList();
@@ -429,12 +541,16 @@ public final class BundledTransports {
 
         List<DefinitionRequirements.RequiredVar> required = new ArrayList<>(rows.size());
         for (VarRow row : rows) {
-            if (row == null || row.comparison == null) {
-                throw new IllegalArgumentException(id + ": a var requirement has no known comparison");
-            }
-            required.add(new DefinitionRequirements.RequiredVar(row.id, row.comparison, row.value));
+            required.add(toRequiredVar(id, row));
         }
         return required;
+    }
+
+    private static DefinitionRequirements.RequiredVar toRequiredVar(String id, VarRow row) {
+        if (row == null || row.comparison == null) {
+            throw new IllegalArgumentException(id + ": a var requirement has no known comparison");
+        }
+        return new DefinitionRequirements.RequiredVar(row.id, row.comparison, row.value);
     }
 
     /**
@@ -494,9 +610,11 @@ public final class BundledTransports {
         private String menuOption;
         private String menuTarget;
         private Integer entityId;
+        private String objectInfo;
         private String displayInfo;
         private Integer duration;
         private boolean bidirectional;
+        private boolean consumable;
         private boolean replaces;
         private RequirementsRow requirements;
         private int[] itemIds;
@@ -511,6 +629,8 @@ public final class BundledTransports {
 
     private static final class RequirementsRow {
         private Map<Skill, Integer> skills;
+        private int combatLevel;
+        private int totalLevel;
         private List<Quest> quests;
         private List<ItemRow> items;
         private List<VarRow> varbits;
@@ -520,7 +640,11 @@ public final class BundledTransports {
 
     private static final class ItemRow {
         private int[] anyOf;
-        private int quantity;
+        private Integer quantity;
+        private int[] staves;
+        private int[] offhands;
+        private List<ItemRow> or;
+        private VarRow waivedByVarbit;
     }
 
     private static final class VarRow {

@@ -1,9 +1,6 @@
 package com.kraken.api.service.pathfinding;
 
-import shortestpath.pathfinder.AbstractNodeKind;
-import shortestpath.pathfinder.NodeGraph;
-
-/** Applies the request budget before every allocation, including allocations inside getNeighbors. */
+/** Applies the request budget before every allocation, including allocations made while expanding a node. */
 final class BudgetedNodeGraph extends NodeGraph {
     private final SearchBudget budget;
 
@@ -14,30 +11,30 @@ final class BudgetedNodeGraph extends NodeGraph {
 
     /** {@inheritDoc} */
     @Override
-    public int createStart(int position) {
+    int createStart(int packed) {
         budget.beforeAllocation(size());
-        return super.createStart(position);
+        return super.createStart(packed);
     }
 
     /** {@inheritDoc} */
     @Override
-    public int createTile(int position, int previous, boolean bankVisited) {
+    int createTile(int packed, int from) {
         budget.beforeAllocation(size());
-        return super.createTile(position, previous, bankVisited);
+        return super.createTile(packed, from);
     }
 
     /** {@inheritDoc} */
     @Override
-    public int createTransport(int position, int previous, int cost, int differentialCost,
-                               boolean bankVisited, boolean delayedVisit, int duration) {
+    int createTransport(int packed, int from, int duration, int additionalCost, boolean delayedVisit,
+                        int differential) {
         budget.beforeAllocation(size());
-        return super.createTransport(position, previous, cost, differentialCost, bankVisited, delayedVisit, duration);
+        return super.createTransport(packed, from, duration, additionalCost, delayedVisit, differential);
     }
 
     /** {@inheritDoc} */
     @Override
-    public int createAbstract(AbstractNodeKind kind, int previous, boolean bankVisited) {
+    int createTeleportNode(TeleportBucket teleportBucket, int from) {
         budget.beforeAllocation(size());
-        return super.createAbstract(kind, previous, bankVisited);
+        return super.createTeleportNode(teleportBucket, from);
     }
 }

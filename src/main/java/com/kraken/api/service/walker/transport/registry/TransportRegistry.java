@@ -22,10 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 /**
- * The client wide set of transports and transport handlers that plugins and the bundled data file
- * add to the walker.
+ * The client wide set of transports and transport handlers the walker plans with.
+ *
+ * <p>It holds two things. The dataset is the transports of the game world that ship with the API,
+ * read from {@link TransportDataset}; it is fixed. On top of it sit the registered definitions:
+ * the hand written rows bundled with the API and whatever plugins add while the client runs.</p>
  *
  * <p>There is one registry per client, shared by every plugin, so a transport registered by one
  * plugin is planned through and operated by every walk from the next search on. Each registration
@@ -42,23 +46,37 @@ public class TransportRegistry {
     private final Map<String, TransportDefinition> definitions = new LinkedHashMap<>();
     private final Map<TransportShape, List<TransportHandler>> shapeHandlers = new EnumMap<>(TransportShape.class);
     private final List<Edge> disabledEdges = new ArrayList<>();
+    private final Supplier<List<TransportDefinition>> dataset;
 
     private volatile Snapshot snapshot = Snapshot.EMPTY;
 
     /**
-     * Creates the registry holding the transports bundled with the API.
+     * Creates the registry holding the dataset and the hand written transports bundled with the
+     * API. The dataset is read the first time a search asks for it.
      */
     @Inject
     public TransportRegistry() {
-        this(BundledTransports.load());
+        this(BundledTransports.load(), TransportDataset::bundled);
     }
 
     /**
-     * Creates a registry holding a given set of definitions.
+     * Creates a registry holding a given set of registered definitions and no dataset.
      *
      * @param initial the definitions to start with
      */
     TransportRegistry(Collection<TransportDefinition> initial) {
+        this(initial, List::of);
+    }
+
+    /**
+     * Creates a registry holding a given set of registered definitions over a given dataset.
+     *
+     * @param initial the definitions to start with
+     * @param dataset supplies the fixed transports underneath them, and is asked each time a
+     *                snapshot is read, so it should hand back the same list every time
+     */
+    TransportRegistry(Collection<TransportDefinition> initial, Supplier<List<TransportDefinition>> dataset) {
+        this.dataset = dataset;
         synchronized (this) {
             for (TransportDefinition definition : initial) {
                 definitions.put(definition.getId(), definition);
@@ -143,8 +161,8 @@ public class TransportRegistry {
     }
 
     /**
-     * Hides the dataset's transports from one tile to another from every search. Registered
-     * definitions between the same tiles are not affected.
+     * Hides the transports of the bundled dataset from one tile to another from every search.
+     * Registered definitions between the same tiles are not affected.
      *
      * @param origin the tile the unwanted transport starts on
      * @param destination the tile it leads to
@@ -231,7 +249,8 @@ public class TransportRegistry {
         snapshot = new Snapshot(
                 List.copyOf(definitions.values()),
                 Collections.unmodifiableSet(disabled),
-                Collections.unmodifiableMap(handlers));
+                Collections.unmodifiableMap(handlers),
+                dataset);
     }
 
     /**
@@ -265,9 +284,12 @@ public class TransportRegistry {
     @Getter
     public static final class Snapshot {
 
-        static final Snapshot EMPTY = new Snapshot(List.of(), Set.of(), Map.of());
+        static final Snapshot EMPTY = new Snapshot(List.of(), Set.of(), Map.of(), List::of);
 
-        /** Every registered transport, in registration order. */
+        /**
+         * Every registered transport, in registration order: the hand written bundled rows first,
+         * then what plugins added. The dataset is not part of this list, see {@link #getDataset()}.
+         */
         private final List<TransportDefinition> definitions;
 
         /**
@@ -279,21 +301,39 @@ public class TransportRegistry {
         @Getter(AccessLevel.NONE)
         private final Map<TransportShape, TransportHandler> shapeHandlers;
 
+        @Getter(AccessLevel.NONE)
+        private final Supplier<List<TransportDefinition>> dataset;
+
         private Snapshot(List<TransportDefinition> definitions,
                          Set<Edge> disabledEdges,
-                         Map<TransportShape, TransportHandler> shapeHandlers) {
+                         Map<TransportShape, TransportHandler> shapeHandlers,
+                         Supplier<List<TransportDefinition>> dataset) {
             this.definitions = definitions;
             this.disabledEdges = disabledEdges;
             this.shapeHandlers = shapeHandlers;
+            this.dataset = dataset;
         }
 
         /**
-         * Reports whether the snapshot changes nothing about a search.
+         * Returns the transports of the dataset bundled with the API, which sit underneath the
+         * registered ones. There are thousands, and the first call reads them from the jar, so
+         * call this off the client thread.
          *
-         * @return true when no transport is registered and no dataset edge is hidden
+         * @return the dataset's transports, which never change while the client runs
          */
-        public boolean changesNoSearch() {
-            return definitions.isEmpty() && disabledEdges.isEmpty();
+        public List<TransportDefinition> getDataset() {
+            return dataset.get();
+        }
+
+        /**
+         * Reports whether a definition is still part of what the walker plans with: registered
+         * right now, or a transport of the dataset.
+         *
+         * @param definition the definition to look for, may be null
+         * @return true when a walk may still operate it
+         */
+        public boolean holds(TransportDefinition definition) {
+            return definition != null && (definitions.contains(definition) || dataset.get().contains(definition));
         }
 
         /**
@@ -308,9 +348,9 @@ public class TransportRegistry {
 
         /**
          * Lists the requirements of every registered transport, so the player state they need can be
-         * read once.
+         * read once. The dataset's are not included.
          *
-         * @return one entry per definition
+         * @return one entry per registered definition
          */
         public List<DefinitionRequirements> requirements() {
             List<DefinitionRequirements> requirements = new ArrayList<>(definitions.size());
@@ -329,23 +369,34 @@ public class TransportRegistry {
          *
          * @param config the planning options of the search, or null for the defaults
          * @param state the player state the requirements are checked against
-         * @return the usable definitions, in registration order
+         * @return the usable registered definitions, in registration order
          */
         public List<TransportDefinition> usable(GlobalPathfinderConfig config, TransportRequirements.PlayerState state) {
             List<TransportDefinition> usable = new ArrayList<>(definitions.size());
             for (TransportDefinition definition : definitions) {
-                if (!definition.getCategory().isEnabled(config)) {
-                    continue;
+                if (isUsable(definition, config, state)) {
+                    usable.add(definition);
                 }
-                if (!TransportRequirements.unmetReasons(definition.getRequirements(), state).isEmpty()) {
-                    continue;
-                }
-                if (!conditionHolds(definition)) {
-                    continue;
-                }
-                usable.add(definition);
             }
             return usable;
+        }
+
+        /**
+         * Reports whether a search may plan through one definition: its category is turned on, its
+         * requirements are met without spending more of a currency than the search allows, and its
+         * own condition holds.
+         *
+         * @param definition the definition to judge
+         * @param config the planning options of the search, or null for the defaults
+         * @param state the player state the requirements are checked against
+         * @return true when the definition is usable
+         */
+        public static boolean isUsable(TransportDefinition definition, GlobalPathfinderConfig config,
+                                       TransportRequirements.PlayerState state) {
+            int currencyThreshold = config != null ? config.getCurrencyThreshold() : Integer.MAX_VALUE;
+            return definition.getCategory().isEnabled(config)
+                    && TransportRequirements.unmetReasons(definition.getRequirements(), state, currencyThreshold).isEmpty()
+                    && conditionHolds(definition);
         }
 
         private static boolean conditionHolds(TransportDefinition definition) {

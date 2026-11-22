@@ -295,9 +295,11 @@ class TransportDefinitionTest {
                 .useSeasonalTransports(false)
                 .useSpiritTrees(false)
                 .useTeleportationItems(false)
+                .useTeleportationBoxes(false)
                 .useTeleportationLevers(false)
                 .useTeleportationMinigames(false)
                 .useTeleportationPortals(false)
+                .useTeleportationPortalsPoh(false)
                 .useTeleportationSpells(false)
                 .useWildernessObelisks(false)
                 .build();
@@ -305,8 +307,9 @@ class TransportDefinitionTest {
 
         for (TransportCategory category : TransportCategory.values()) {
             assertTrue(category.isEnabled(allOn), category + " should be on by default");
-            assertEquals(category == TransportCategory.GENERAL, category.isEnabled(allOff),
-                    category + " should follow its planning option");
+            boolean hasNoOption = category == TransportCategory.GENERAL
+                    || category == TransportCategory.TELEPORTATION_SPELL_HOME;
+            assertEquals(hasNoOption, category.isEnabled(allOff), category + " should follow its planning option");
         }
     }
 }

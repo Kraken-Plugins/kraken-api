@@ -12,19 +12,19 @@ import com.kraken.api.service.walker.transport.handler.ItemTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.ObjectTransportHandler;
 import com.kraken.api.service.walker.transport.handler.SpellTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.UnsupportedTransportHandler;
+import com.kraken.api.service.walker.transport.handler.WalkTransportHandler;
 import com.kraken.api.service.walker.transport.handler.WidgetSelectHandler;
 import com.kraken.api.service.walker.transport.registry.DefinitionRequirements;
+import com.kraken.api.service.walker.transport.registry.TestRegistries;
 import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import com.kraken.api.service.walker.transport.registry.TransportRegistry;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import shortestpath.WorldPointUtil;
-import shortestpath.transport.Transport;
-import shortestpath.transport.TransportType;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -39,8 +39,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Covers which handler operates a transport once the registry is involved, and that a registered
- * transport's own requirements stop the click.
+ * Covers which handler operates a transport, and that a transport's requirements stop the click
+ * whether it comes from the dataset or was registered.
  */
 class TransportExecutorTest {
 
@@ -48,9 +48,15 @@ class TransportExecutorTest {
     private static final WorldPoint DESTINATION = new WorldPoint(3300, 3300, 0);
     private static final TransportContext CONTEXT = TransportContext.builder().build();
 
-    private final TransportRegistry registry = new TransportRegistry();
+    private static final TransportDefinition DATASET_SHORTCUT = TransportDefinition
+            .object("kraken:upstream-shortcut", ORIGIN, DESTINATION, 1535, "Climb")
+            .requirements(DefinitionRequirements.builder().skill(Skill.AGILITY, 50).build())
+            .build();
+
+    private final TransportRegistry registry = TestRegistries.over(List.of(DATASET_SHORTCUT));
     private final ObjectTransportHandler objectHandler = mock(ObjectTransportHandler.class);
     private final ClearThenWalkHandler clearThenWalkHandler = mock(ClearThenWalkHandler.class);
+    private final WalkTransportHandler walkHandler = mock(WalkTransportHandler.class);
     private final ItemTeleportHandler itemHandler = mock(ItemTeleportHandler.class);
     private final UnsupportedTransportHandler unsupportedHandler = mock(UnsupportedTransportHandler.class);
     private final PlayerStateReader playerStateReader = mock(PlayerStateReader.class);
@@ -60,6 +66,7 @@ class TransportExecutorTest {
             registry,
             objectHandler,
             clearThenWalkHandler,
+            walkHandler,
             mock(DialogueTransportHandler.class),
             mock(HubDialogueHandler.class),
             mock(HubResumePauseHandler.class),
@@ -81,10 +88,35 @@ class TransportExecutorTest {
     }
 
     @Test
-    void aDatasetTransportUsesTheBuiltInHandlerForItsShape() {
+    void aShapeIsOperatedByItsBuiltInHandler() {
         assertSame(objectHandler, executor.resolveHandler(null, TransportShape.SINGLE_CLICK));
+        assertSame(walkHandler, executor.resolveHandler(null, TransportShape.WALK));
         assertSame(unsupportedHandler, executor.resolveHandler(null, TransportShape.CANOE));
         assertNull(executor.resolveHandler(null, null));
+    }
+
+    @Test
+    void aDatasetTransportWhoseRequirementsAreUnmetIsNotClicked() {
+        when(playerStateReader.read(anyCollection()))
+                .thenReturn(TransportRequirements.PlayerState.builder().build());
+
+        TransportExecutor.Result result = executor.execute(usage(DATASET_SHORTCUT));
+
+        assertFalse(result.isCrossed());
+        assertTrue(result.isRequirementsUnmet(), result.getReason());
+        assertTrue(result.getReason().contains("Agility"), result.getReason());
+        verify(objectHandler, never()).execute(any());
+    }
+
+    @Test
+    void aRouteStepThatCarriesNoDefinitionCannotBeOperated() {
+        GlobalPathfinder.TransportUsage bare = new GlobalPathfinder.TransportUsage(
+                0, ORIGIN, DESTINATION, null, null, "Open Door 9398", false, 1);
+
+        TransportExecutor.Result result = executor.execute(bare);
+
+        assertFalse(result.isCrossed());
+        assertFalse(result.isSupported());
     }
 
     @Test
@@ -127,6 +159,8 @@ class TransportExecutorTest {
         assertTrue(executor.needsNoOperating(TransportShape.SINGLE_CLICK, here, next, false));
         assertFalse(executor.needsNoOperating(TransportShape.CLEAR_THEN_WALK, here, next, false),
                 "the handler walks the player through; skipping it would leave them where they stand");
+        assertFalse(executor.needsNoOperating(TransportShape.WALK, here, next, false),
+                "a step that is only walked is walked by its handler");
         assertFalse(executor.needsNoOperating(TransportShape.SINGLE_CLICK, here, next, true),
                 "a teleport is always operated");
         assertFalse(executor.needsNoOperating(TransportShape.SINGLE_CLICK, here, DESTINATION, false),
@@ -260,22 +294,15 @@ class TransportExecutorTest {
     }
 
     private static GlobalPathfinder.TransportUsage usage(TransportDefinition definition) {
-        Transport edge = new Transport.TransportBuilder()
-                .type(TransportType.TRANSPORT)
-                .origin(WorldPointUtil.packWorldPoint(definition.getOrigin()))
-                .destination(WorldPointUtil.packWorldPoint(definition.getDestination()))
-                .build();
-
         return new GlobalPathfinder.TransportUsage(
                 0,
                 definition.getOrigin(),
                 definition.getDestination(),
-                edge.getType(),
+                definition.getCategory(),
                 definition.getDisplayInfo(),
                 definition.getObjectInfo(),
                 false,
                 definition.getDuration(),
-                edge,
                 definition);
     }
 }

@@ -2,7 +2,8 @@ package com.kraken.api.service.pathfinding;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.script.ScriptCancellation;
-import com.kraken.api.service.walker.transport.registry.ShortestPathBridge;
+import com.kraken.api.service.walker.transport.WildernessLevels;
+import com.kraken.api.service.walker.transport.registry.TransportCategory;
 import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,26 +11,29 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
 import net.runelite.api.Player;
+import net.runelite.api.WorldView;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.gameval.InventoryID;
-import shortestpath.*;
-import shortestpath.pathfinder.*;
-import shortestpath.transport.Transport;
-import shortestpath.transport.TransportType;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Finds routes between tiles across the game world. A route can use walking and the transports allowed by a
  * {@link GlobalPathfinderConfig}, such as shortcuts, teleports and boats.
+ *
+ * <p>The search runs over the collision map and the transport dataset bundled with the API, plus
+ * whatever transports are registered with the transport registry.</p>
  */
 @Slf4j
 @Singleton
 public class GlobalPathfinder {
     private static final GlobalPathfinderConfig DEFAULT_CONFIG = GlobalPathfinderConfig.builder().build();
-    private static final Transport[] NO_TRANSPORTS = new Transport[0];
     private static final PathResult EMPTY_RESULT = PathResult.empty();
 
     @Inject
@@ -39,7 +43,7 @@ public class GlobalPathfinder {
     private Client client;
 
     @Inject
-    private ShortestPathBridge transportBridge;
+    private TransportPlanner transportPlanner;
 
     @Getter
     private volatile PathResult lastResult = EMPTY_RESULT;
@@ -259,22 +263,27 @@ public class GlobalPathfinder {
             return lastResult = PathResult.empty(resolvedConfig, source, destination);
         }
 
-        // Load static graph resources on the worker. The client capture refreshes only this request's
-        // configuration; no subsequent capture can mutate the inputs while this worker searches.
-        RequestPathfinderConfig requestConfig = createRequestConfig(resolvedConfig);
-        PreparedPathfinder prepared = ctx.runOnClientThread(
-                () -> prepare(source, destination, requestConfig, resolvedConfig));
-        if (prepared == null || prepared.targets.isEmpty() || searchCancelled()) {
+        // The dataset and the collision map are read from the jar on this worker. The transports
+        // the search may use are then captured on the client thread into a network of its own,
+        // which no later capture can change while this worker searches.
+        transportPlanner.warmUp();
+        CollisionMap map = createCollisionMap();
+        PreparedSearch prepared = ctx.runOnClientThread(() -> prepare(source, destination, map, resolvedConfig));
+        if (prepared == null || searchCancelled()) {
             return lastResult = PathResult.empty(resolvedConfig, source, destination);
         }
-        SearchState searchState = search(prepared.start, prepared.targets, prepared.pathfinderConfig, resolvedConfig);
-        return lastResult = buildResult(source, destination, resolvedConfig, prepared.pathfinderConfig,
-                searchState, prepared.registeredEdges);
+        SearchState searchState = search(prepared.start, prepared.target, prepared.network, prepared.map, resolvedConfig);
+        return lastResult = buildResult(source, destination, resolvedConfig, prepared.network, searchState);
     }
 
-    /** Creates a private search configuration; static resource loading must stay on the worker. */
-    RequestPathfinderConfig createRequestConfig(GlobalPathfinderConfig config) {
-        return new RequestPathfinderConfig(client, new ShortestPathConfigAdapter(config));
+    /**
+     * Creates the map one search walks over. The map keeps scratch buffers, so each search gets
+     * its own. This reads the bundled collision data on first use, so it belongs on a worker.
+     *
+     * @return a map over the collision data bundled with the API
+     */
+    CollisionMap createCollisionMap() {
+        return new CollisionMap(WorldCollisionData.bundled());
     }
 
     private void requireWorkerThread() {
@@ -293,46 +302,45 @@ public class GlobalPathfinder {
     }
 
     /**
-     * Captures live eligibility into a request-owned config on the client thread.
-     *
-     * <p>The transport registry is applied after the dataset's own transports have been refreshed,
-     * so a registered transport is found ahead of a dataset edge between the same tiles. Registered
-     * teleports usable from anywhere have no tile to be filed under, so they are handed to the
-     * request's configuration, which offers them to the search beside the dataset's teleports.</p>
+     * Captures, on the client thread, the transports this search may use.
      */
-    private PreparedPathfinder prepare(WorldPoint source, WorldPoint destination,
-                                       RequestPathfinderConfig pathfinderConfig, GlobalPathfinderConfig config) {
-        pathfinderConfig.bank = client.getItemContainer(InventoryID.BANK);
-        pathfinderConfig.refresh();
-        ShortestPathBridge.Injection registeredEdges = transportBridge.apply(config, pathfinderConfig);
-        pathfinderConfig.addUsableTeleports(registeredEdges.getTeleports());
-
-        Set<Integer> targets = new HashSet<>();
-        targets.add(WorldPointUtil.packWorldPoint(destination));
-        pathfinderConfig.filterLocations(targets, true);
-
-        return new PreparedPathfinder(
-                WorldPointUtil.packWorldPoint(source),
-                Collections.unmodifiableSet(targets),
-                pathfinderConfig,
-                registeredEdges);
+    private PreparedSearch prepare(WorldPoint source, WorldPoint destination, CollisionMap map,
+                                   GlobalPathfinderConfig config) {
+        return new PreparedSearch(
+                PackedPoint.pack(source),
+                PackedPoint.pack(destination),
+                map,
+                transportPlanner.plan(config));
     }
 
-    /** Runs the shortest-path graph search over walkable tiles and transport edges. */
-    private SearchState search(int start, Set<Integer> targets, PathfinderConfig config, GlobalPathfinderConfig limits) {
-        CollisionMap map = config.getMap();
-        VisitedTiles visited = new VisitedTiles(map);
+    /**
+     * Runs the graph search over walkable tiles and transport edges.
+     *
+     * <p>Tiles reached by walking wait in a first in, first out queue, which visits them in order
+     * of distance. Tiles reached by a transport wait in a heap ordered by cost, and one is taken
+     * as soon as it is cheaper than the next walked tile. The search ends on the target, or with
+     * the closest tile it found when it runs out of tiles, time or nodes.</p>
+     *
+     * @param start the packed tile to search from
+     * @param target the packed tile to reach
+     * @param network the transports the search may use
+     * @param map the map to walk over
+     * @param limits the time and node limits of the search
+     * @return the route found and how much was explored
+     */
+    SearchState search(int start, int target, TransportNetwork network, CollisionMap map,
+                       GlobalPathfinderConfig limits) {
+        VisitedTiles visited = new VisitedTiles(map.data());
         SearchBudget budget = new SearchBudget(limits.getMaxSearchMillis(), limits.getMaxSearchNodes(), System::nanoTime);
         NodeGraph graph = new BudgetedNodeGraph(budget);
 
         IntDeque boundary = new IntDeque(4096);
         IntMinHeap pending = new IntMinHeap(graph, 256);
-        boolean targetInWilderness = WildernessChecker.isInWilderness(targets);
+        boolean targetInWilderness = WildernessLevels.isInWilderness(target);
 
         int bestDistance = Integer.MAX_VALUE;
         long bestHeuristic = Integer.MAX_VALUE;
-        long cutoffDurationNanos = java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(
-                Math.max(0, config.getCalculationCutoffMillis()));
+        long cutoffDurationNanos = TimeUnit.MILLISECONDS.toNanos(noProgressCutoffMillis(limits));
         long lastProgressNanos = System.nanoTime();
         int wildernessLevel = 31;
         int nodesChecked = 0;
@@ -342,7 +350,7 @@ public class GlobalPathfinder {
 
         try {
             try {
-                boundary.addFirst(graph.createStart(start));
+                boundary.addLast(graph.createStart(start));
                 while (!boundary.isEmpty() || !pending.isEmpty()) {
                     if (budget.exhausted() || System.nanoTime() - lastProgressNanos >= cutoffDurationNanos) break;
                     int boundaryHead = boundary.peekFirst();
@@ -355,11 +363,10 @@ public class GlobalPathfinder {
 
                         if (graph.isDelayedVisit(node)) {
                             int packed = graph.packedPosition(node);
-                            boolean bank = graph.bankVisited(node);
-                            if (visited.get(packed, bank)) {
+                            if (visited.get(packed)) {
                                 continue;
                             }
-                            visited.set(packed, bank);
+                            visited.set(packed);
                         }
                     } else {
                         node = boundary.pollFirst();
@@ -370,50 +377,48 @@ public class GlobalPathfinder {
                     }
 
                     final boolean nodeIsTile = graph.isTile(node);
-                    final int nodePacked = nodeIsTile ? graph.packedPosition(node) : WorldPointUtil.UNDEFINED;
+                    final int nodePacked = nodeIsTile ? graph.packedPosition(node) : PackedPoint.UNDEFINED;
 
+                    // The level only ever drops: once the search has stood outside an area, the
+                    // teleports that work there are open to it.
                     if (nodeIsTile && wildernessLevel > 0) {
-                        if (wildernessLevel > 30 && !WildernessChecker.isInLevel30Wilderness(nodePacked)) {
+                        if (wildernessLevel > 30 && !WildernessLevels.isAboveLevel30(nodePacked)) {
                             wildernessLevel = 30;
                         }
-                        if (wildernessLevel > 20 && !WildernessChecker.isInLevel20Wilderness(nodePacked)) {
+                        if (wildernessLevel > 20 && !WildernessLevels.isAboveLevel20(nodePacked)) {
                             wildernessLevel = 20;
                         }
-                        if (wildernessLevel > 0 && !WildernessChecker.isInWilderness(nodePacked)) {
+                        if (wildernessLevel > 0 && !WildernessLevels.isInWilderness(nodePacked)) {
                             wildernessLevel = 0;
                         }
                     }
 
-                    if (nodeIsTile && targets.contains(nodePacked)) {
+                    if (nodeIsTile && nodePacked == target) {
                         bestLastNode = node;
                         complete = true;
                         break;
                     }
 
                     if (nodeIsTile) {
-                        for (int target : targets) {
-                            int distance = WorldPointUtil.distanceBetween(nodePacked, target);
-                            long heuristic = distance + (long) WorldPointUtil.distanceBetween(nodePacked, target, 2);
-                            if (heuristic < bestHeuristic || (heuristic <= bestHeuristic && distance < bestDistance)) {
-                                bestLastNode = node;
-                                bestDistance = distance;
-                                bestHeuristic = heuristic;
-                                lastProgressNanos = System.nanoTime();
-                            }
+                        int distance = PackedPoint.distance(nodePacked, target);
+                        long heuristic = distance + (long) PackedPoint.manhattanDistance(nodePacked, target);
+                        if (heuristic < bestHeuristic || (heuristic <= bestHeuristic && distance < bestDistance)) {
+                            bestLastNode = node;
+                            bestDistance = distance;
+                            bestHeuristic = heuristic;
+                            lastProgressNanos = System.nanoTime();
                         }
                     }
 
-                    PrimitiveIntList neighbors = map.getNeighbors(node, visited, config, wildernessLevel, targetInWilderness, graph);
+                    IntList neighbors = map.getNeighbors(node, visited, network, wildernessLevel, targetInWilderness, graph);
                     final int count = neighbors.size();
                     for (int i = 0; i < count; i++) {
                         int neighbor = neighbors.get(i);
                         final boolean neighborIsTile = graph.isTile(neighbor);
 
-                        if (nodeIsTile && neighborIsTile) {
-                            final int neighborPacked = graph.packedPosition(neighbor);
-                            if (config.avoidWilderness(nodePacked, neighborPacked, targetInWilderness)) {
-                                continue;
-                            }
+                        if (nodeIsTile && neighborIsTile
+                                && network.avoidWilderness(nodePacked, graph.packedPosition(neighbor), targetInWilderness)) {
+                            continue;
                         }
 
                         final boolean neighborIsTransport = graph.isTransport(neighbor);
@@ -434,12 +439,8 @@ public class GlobalPathfinder {
                 // A neighbor expansion reached a hard limit before allocating another graph node.
             }
 
-            List<PathStep> pathSteps = Collections.emptyList();
-            if (bestLastNode != NodeGraph.NO_NODE) {
-                pathSteps = graph.getPathSteps(bestLastNode);
-            }
-
-            return new SearchState(pathSteps, complete, nodesChecked, transportsChecked);
+            int[] path = bestLastNode != NodeGraph.NO_NODE ? graph.pathTo(bestLastNode) : new int[0];
+            return new SearchState(path, complete, nodesChecked, transportsChecked);
         } finally {
             boundary.clear();
             pending.clear();
@@ -448,22 +449,30 @@ public class GlobalPathfinder {
         }
     }
 
-    /** Converts the final node chain into the API-facing route result object. */
+    /**
+     * Returns how long a search may go without getting closer to its target. The limit is counted
+     * in whole game ticks, and is never less than one.
+     */
+    private static long noProgressCutoffMillis(GlobalPathfinderConfig limits) {
+        long cutoffMillis = Math.max(Constants.GAME_TICK_LENGTH, limits.getCalculationCutoffMillis());
+        long ticks = Math.max(1L, (cutoffMillis + Constants.GAME_TICK_LENGTH - 1) / Constants.GAME_TICK_LENGTH);
+        return ticks * Constants.GAME_TICK_LENGTH;
+    }
+
+    /** Converts the route a search found into the API-facing route result object. */
     private PathResult buildResult(
             WorldPoint source,
             WorldPoint destination,
             GlobalPathfinderConfig config,
-            PathfinderConfig pathfinderConfig,
-            SearchState searchState,
-            ShortestPathBridge.Injection registeredEdges
+            TransportNetwork network,
+            SearchState searchState
     ) {
-        if (searchState.pathSteps == null || searchState.pathSteps.isEmpty()) {
+        if (searchState.path.length == 0) {
             return PathResult.empty(config, source, destination);
         }
 
-        List<PathStep> pathSteps = searchState.pathSteps;
-        List<WorldPoint> densePath = unpackPath(pathSteps);
-        List<TransportUsage> transports = findTransportUsages(pathSteps, pathfinderConfig, registeredEdges);
+        List<WorldPoint> densePath = unpackPath(searchState.path);
+        List<TransportUsage> transports = findTransportUsages(searchState.path, network);
         List<WorldPoint> sparsePath = toSparsePath(densePath, transports, config.getSparsePathWaypointDistance());
         boolean complete = searchState.complete
                 && !densePath.isEmpty()
@@ -482,45 +491,38 @@ public class GlobalPathfinder {
         );
     }
 
-    /** Matches route steps against transport edges so callers can see which hops were used. */
-    private List<TransportUsage> findTransportUsages(
-            List<PathStep> pathSteps,
-            PathfinderConfig pathfinderConfig,
-            ShortestPathBridge.Injection registeredEdges
-    ) {
-        if (pathSteps == null || pathSteps.size() < 2) {
+    /**
+     * Matches route steps against transport edges so callers can see which hops were used.
+     *
+     * @param path the packed tiles of the route
+     * @param network the transports the search could use
+     * @return the transports the route takes, in route order
+     */
+    static List<TransportUsage> findTransportUsages(int[] path, TransportNetwork network) {
+        if (path.length < 2) {
             return Collections.emptyList();
         }
 
         List<TransportUsage> transportUsages = new ArrayList<>();
-        for (int i = 1; i < pathSteps.size(); i++) {
-            PathStep currentStep = pathSteps.get(i - 1);
-            PathStep nextStep = pathSteps.get(i);
-            int origin = currentStep.getPackedPosition();
-            int destination = nextStep.getPackedPosition();
-            boolean bankVisited = currentStep.isBankVisited() || nextStep.isBankVisited();
+        for (int i = 1; i < path.length; i++) {
+            int origin = path[i - 1];
+            int destination = path[i];
 
-            Transport[] fromTile = pathfinderConfig.getTransportsPacked(bankVisited)
-                    .getOrDefault(origin, NO_TRANSPORTS);
-            Transport transport = hopBetween(
-                    fromTile, pathfinderConfig.getUsableTeleports(bankVisited), origin, destination);
-            if (transport == null) {
+            TransportEdge edge = hopBetween(network.from(origin), network.teleports(), origin, destination);
+            if (edge == null) {
                 continue;
             }
 
-            // A registered transport names its own click target; a dataset edge carries the
-            // dataset's.
-            TransportDefinition definition = registeredEdges.definitionOf(transport);
+            TransportDefinition definition = edge.definition;
             transportUsages.add(new TransportUsage(
                     i - 1,
-                    WorldPointUtil.unpackWorldPoint(origin),
-                    WorldPointUtil.unpackWorldPoint(destination),
-                    transport.getType(),
-                    transport.getDisplayInfo(),
-                    definition != null ? definition.getObjectInfo() : transport.getObjectInfo(),
-                    transport.isConsumable(),
-                    transport.getDuration(),
-                    transport,
+                    PackedPoint.unpack(origin),
+                    PackedPoint.unpack(destination),
+                    definition.getCategory(),
+                    definition.getDisplayInfo(),
+                    definition.getObjectInfo(),
+                    definition.isConsumable(),
+                    definition.getDuration(),
                     definition
             ));
         }
@@ -531,65 +533,59 @@ public class GlobalPathfinder {
     /**
      * Whether two packed tiles are a single walking step, including diagonals.
      *
-     * <p>A jewellery teleport is stored with an undefined origin, so it is recovered by matching the
+     * <p>A teleport usable from anywhere has no origin tile, so it is recovered by matching the
      * landing tile. Walking onto that landing tile later must not count as rubbing the ring.</p>
      *
      * @param from packed start tile
      * @param to packed end tile
      * @return true when the hop is on the same plane and at most one tile away
      */
-    public static boolean isWalkNeighbour(int from, int to) {
-        return WorldPointUtil.unpackWorldPlane(from) == WorldPointUtil.unpackWorldPlane(to)
-                && WorldPointUtil.distanceBetween(from, to) <= 1;
+    static boolean isWalkNeighbour(int from, int to) {
+        return PackedPoint.distance(from, to) <= 1;
     }
 
     /**
      * Picks the transport used between two consecutive path tiles.
      *
-     * <p>Edges attached to the origin tile are preferred (doors, gliders, fairy rings). Player-centered
-     * teleports — jewellery, tabs, spells — have an undefined origin and are only used when the hop
-     * is not a walkable neighbour. The first teleport that lands on the destination is taken, so
-     * the caller lists registered teleports ahead of the dataset's.</p>
+     * <p>Edges attached to the origin tile are preferred (doors, gliders, fairy rings). Teleports
+     * usable from anywhere, such as jewellery, tabs and spells, are only used when the hop is not a
+     * walkable neighbour. The first edge that lands on the destination is taken, so the order of
+     * the edges decides between two transports that join the same tiles.</p>
      *
-     * @param fromOrigin transports keyed by the path tile, may be null
-     * @param playerCentered teleports usable from wherever the player stands, may be null
+     * @param fromOrigin transports that leave the path tile, may be null
+     * @param teleports teleports usable from wherever the player stands, may be null
      * @param origin packed path tile the hop leaves
      * @param destination packed path tile the hop lands on
      * @return the matching edge, or null when the hop is ordinary walking
      */
-    public static Transport hopBetween(
-            Transport[] fromOrigin, Transport[] playerCentered, int origin, int destination) {
-        Transport tiled = byDestination(fromOrigin, destination);
+    static TransportEdge hopBetween(TransportEdge[] fromOrigin, TransportEdge[] teleports, int origin, int destination) {
+        TransportEdge tiled = byDestination(fromOrigin, destination);
         if (tiled != null) {
             return tiled;
         }
         if (isWalkNeighbour(origin, destination)) {
             return null;
         }
-        return byDestination(playerCentered, destination);
+        return byDestination(teleports, destination);
     }
 
-    private static Transport byDestination(Transport[] transports, int destination) {
-        if (transports == null) {
+    private static TransportEdge byDestination(TransportEdge[] edges, int destination) {
+        if (edges == null) {
             return null;
         }
-        for (Transport transport : transports) {
-            if (transport != null && transport.getDestination() == destination) {
-                return transport;
+        for (TransportEdge edge : edges) {
+            if (edge != null && edge.destination == destination) {
+                return edge;
             }
         }
         return null;
     }
 
-    /** Unpacks the shortest-path packed coordinate list into world points. */
-    private List<WorldPoint> unpackPath(List<PathStep> pathSteps) {
-        if (pathSteps == null || pathSteps.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<WorldPoint> path = new ArrayList<>(pathSteps.size());
-        for (PathStep pathStep : pathSteps) {
-            path.add(WorldPointUtil.unpackWorldPoint(pathStep.getPackedPosition()));
+    /** Unpacks the packed tiles of a route into world points. */
+    private List<WorldPoint> unpackPath(int[] packedPath) {
+        List<WorldPoint> path = new ArrayList<>(packedPath.length);
+        for (int packed : packedPath) {
+            path.add(PackedPoint.unpack(packed));
         }
         return Collections.unmodifiableList(path);
     }
@@ -642,7 +638,13 @@ public class GlobalPathfinder {
         }
     }
 
-    /** Resolves the local player's current world point on the client thread. */
+    /**
+     * Resolves the local player's current world point on the client thread.
+     *
+     * <p>Inside an instance the tile is the one in the world the instance was copied from, and
+     * aboard a boat it is where the boat is in the world, since those are the tiles the collision
+     * map knows.</p>
+     */
     private WorldPoint resolveLocalPlayerPoint() {
         requireWorkerThread();
         return ctx.runOnClientThread(() -> {
@@ -651,7 +653,11 @@ public class GlobalPathfinder {
                 return null;
             }
 
-            return WorldPointUtil.unpackWorldPoint(WorldPointUtil.fromLocalInstance(client, player));
+            WorldView view = player.getWorldView();
+            LocalPoint local = view != null && view.getId() != WorldView.TOPLEVEL
+                    ? client.getTopLevelWorldView().worldEntities().byIndex(view.getId()).getLocalLocation()
+                    : player.getLocalLocation();
+            return WorldPoint.fromLocalInstance(client, local);
         });
     }
 
@@ -715,92 +721,60 @@ public class GlobalPathfinder {
         }
     }
 
-    /** Describes a single transport edge chosen in the final route. */
+    /** Describes a single transport chosen in the final route. */
     @Getter
     public static final class TransportUsage {
         private final int pathIndex;
         private final WorldPoint origin;
         private final WorldPoint destination;
-        private final TransportType type;
+
+        /** The kind of transport, which is the category of its definition. */
+        private final TransportCategory type;
         private final String displayInfo;
         private final String objectInfo;
         private final boolean consumable;
         private final int duration;
 
         /**
-         * The transport edge this usage was built from, carrying the requirements the planner applied.
-         *
-         * <p>The fields above flatten the edge for display. Anything that has to <em>execute</em> the
-         * transport needs the edge itself, because that is where the item, skill, quest and varbit
-         * requirements live in structured form. May be null when the usage was built without one.</p>
-         *
-         * <p>This exposes a shortest-path type whose shape follows the pinned dependency rather than
-         * Kraken's own compatibility promise.</p>
-         */
-        private final Transport transport;
-
-        /**
-         * The registered definition this step came from, or null when the edge came from the
-         * dataset. A registered transport is planned as the generic {@code TRANSPORT} type, so this
-         * is what says which transport it really is and how to operate it.
+         * The definition of the transport this step takes, which says how it is operated and what
+         * the player needs. It is part of the dataset bundled with the API or was registered with
+         * the transport registry. Null only for a usage built without one.
          */
         private final TransportDefinition definition;
 
         /**
-         * Builds a usage without the underlying edge.
-         *
-         * <p>Retained so that code compiled against the previous all-args constructor keeps working.</p>
+         * Builds a usage that carries no definition, for display.
          *
          * @param pathIndex index into the route where the transport is entered
          * @param origin the tile the transport is entered from
          * @param destination the tile the transport leads to
          * @param type the kind of transport
-         * @param displayInfo human readable description of the transport
-         * @param objectInfo what to interact with, as stored by the dataset
+         * @param displayInfo names the destination for transports that offer a choice
+         * @param objectInfo what to interact with, as one string
          * @param consumable whether using the transport consumes an item
          * @param duration how long the transport takes, in game ticks
          */
-        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
+        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportCategory type,
                               String displayInfo, String objectInfo, boolean consumable, int duration) {
             this(pathIndex, origin, destination, type, displayInfo, objectInfo, consumable, duration, null);
         }
 
         /**
-         * Builds a usage carrying the underlying transport edge.
+         * Builds a usage for a transport.
          *
          * @param pathIndex index into the route where the transport is entered
          * @param origin the tile the transport is entered from
          * @param destination the tile the transport leads to
          * @param type the kind of transport
-         * @param displayInfo human readable description of the transport
-         * @param objectInfo what to interact with, as stored by the dataset
+         * @param displayInfo names the destination for transports that offer a choice
+         * @param objectInfo what to interact with, as one string
          * @param consumable whether using the transport consumes an item
          * @param duration how long the transport takes, in game ticks
-         * @param transport the dataset edge, may be null
+         * @param definition the definition of the transport, may be null
          */
-        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
+        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportCategory type,
                               String displayInfo, String objectInfo, boolean consumable, int duration,
-                              Transport transport) {
-            this(pathIndex, origin, destination, type, displayInfo, objectInfo, consumable, duration, transport, null);
-        }
-
-        /**
-         * Builds a usage for a transport that came from the transport registry.
-         *
-         * @param pathIndex index into the route where the transport is entered
-         * @param origin the tile the transport is entered from
-         * @param destination the tile the transport leads to
-         * @param type the kind of transport
-         * @param displayInfo human readable description of the transport
-         * @param objectInfo what to interact with, as stored by the dataset
-         * @param consumable whether using the transport consumes an item
-         * @param duration how long the transport takes, in game ticks
-         * @param transport the planner's edge, may be null
-         * @param definition the registered definition behind the edge, or null for a dataset edge
-         */
-        public TransportUsage(int pathIndex, WorldPoint origin, WorldPoint destination, TransportType type,
-                              String displayInfo, String objectInfo, boolean consumable, int duration,
-                              Transport transport, TransportDefinition definition) {
+                              TransportDefinition definition) {
             this.pathIndex = pathIndex;
             this.origin = origin;
             this.destination = destination;
@@ -809,205 +783,36 @@ public class GlobalPathfinder {
             this.objectInfo = objectInfo;
             this.consumable = consumable;
             this.duration = duration;
-            this.transport = transport;
             this.definition = definition;
         }
+
+        /**
+         * Reports whether the transport is a teleport usable from wherever the player stands. Its
+         * origin is then the tile the route leaves from, not a place the transport has to be
+         * entered at.
+         *
+         * @return true when the definition has no origin tile
+         */
+        public boolean isTeleport() {
+            return definition != null && definition.isUsableAnywhere();
+        }
     }
 
-    /** Bundles the packed search inputs with the refreshed shortest-path config. */
+    /** Bundles the packed search inputs with the transports captured for the search. */
     @AllArgsConstructor
-    private static final class PreparedPathfinder {
+    private static final class PreparedSearch {
         private final int start;
-        private final Set<Integer> targets;
-        private final PathfinderConfig pathfinderConfig;
-        private final ShortestPathBridge.Injection registeredEdges;
+        private final int target;
+        private final CollisionMap map;
+        private final TransportNetwork network;
     }
 
-    /** Captures the terminal search node and lightweight search metrics. */
+    /** The route a search found and lightweight search metrics. */
     @AllArgsConstructor
-    private static final class SearchState {
-        private final List<PathStep> pathSteps;
-        private final boolean complete;
-        private final int nodesChecked;
-        private final int transportsChecked;
-    }
-
-    /**
-     * Maps the on/off flag to shortest-path's jewellery setting.
-     *
-     * <p>The plugin default is {@code INVENTORY_NON_CONSUMABLE} so an overlay does not burn a glory
-     * charge. A walker should use what is actually carried, matching VitaLite: a Ring of wealth (1)
-     * in the inventory is a Grand Exchange teleport, not a gnome glider.</p>
-     *
-     * @param useTeleportationItems whether item teleports are allowed
-     * @return inventory including charged jewellery, or none
-     */
-    public static TeleportationItem teleportationItemSetting(boolean useTeleportationItems) {
-        return useTeleportationItems ? TeleportationItem.INVENTORY : TeleportationItem.NONE;
-    }
-
-    private static final class ShortestPathConfigAdapter implements ShortestPathConfig {
-        private final GlobalPathfinderConfig config;
-
-        /** Wraps the Kraken config in the shortest-path config interface. */
-        private ShortestPathConfigAdapter(GlobalPathfinderConfig config) {
-            this.config = config;
-        }
-
-        @Override
-        public boolean avoidWilderness() {
-            return config.isAvoidWilderness();
-        }
-
-        @Override
-        public boolean includeBankPath() {
-            return config.isIncludeBankPath();
-        }
-
-        @Override
-        public int currencyThreshold() {
-            return config.getCurrencyThreshold();
-        }
-
-        @Override
-        public int calculationCutoff() {
-            long cutoffMillis = Math.max(Constants.GAME_TICK_LENGTH, config.getCalculationCutoffMillis());
-            return (int) Math.max(1L, Math.round(Math.ceil((double) cutoffMillis / Constants.GAME_TICK_LENGTH)));
-        }
-
-        @Override
-        public boolean useAgilityShortcuts() {
-            return config.isUseAgilityShortcuts();
-        }
-
-        @Override
-        public boolean useGrappleShortcuts() {
-            return config.isUseGrappleShortcuts();
-        }
-
-        @Override
-        public boolean useBoats() {
-            return config.isUseBoats();
-        }
-
-        @Override
-        public boolean useCanoes() {
-            return config.isUseCanoes();
-        }
-
-        @Override
-        public boolean useCharterShips() {
-            return config.isUseCharterShips();
-        }
-
-        @Override
-        public boolean useShips() {
-            return config.isUseShips();
-        }
-
-        @Override
-        public boolean useFairyRings() {
-            return config.isUseFairyRings();
-        }
-
-        @Override
-        public boolean useGnomeGliders() {
-            return config.isUseGnomeGliders();
-        }
-
-        @Override
-        public boolean useHotAirBalloons() {
-            return config.isUseHotAirBalloons();
-        }
-
-        @Override
-        public boolean useMagicCarpets() {
-            return config.isUseMagicCarpets();
-        }
-
-        @Override
-        public boolean useMagicMushtrees() {
-            return config.isUseMagicMushtrees();
-        }
-
-        @Override
-        public boolean useMinecarts() {
-            return config.isUseMinecarts();
-        }
-
-        @Override
-        public boolean useQuetzals() {
-            return config.isUseQuetzals();
-        }
-
-        @Override
-        public boolean useSeasonalTransports() {
-            return config.isUseSeasonalTransports();
-        }
-
-        @Override
-        public boolean useSpiritTrees() {
-            return config.isUseSpiritTrees();
-        }
-
-        @Override
-        public TeleportationItem useTeleportationItems() {
-            return teleportationItemSetting(config.isUseTeleportationItems());
-        }
-
-        @Override
-        public boolean useTeleportationLevers() {
-            return config.isUseTeleportationLevers();
-        }
-
-        @Override
-        public boolean useTeleportationPortals() {
-            return config.isUseTeleportationPortals();
-        }
-
-        @Override
-        public boolean useTeleportationSpells() {
-            return config.isUseTeleportationSpells();
-        }
-
-        @Override
-        public boolean useTeleportationMinigames() {
-            return config.isUseTeleportationMinigames();
-        }
-
-        @Override
-        public boolean useWildernessObelisks() {
-            return config.isUseWildernessObelisks();
-        }
-
-        @Override
-        public boolean usePoh() {
-            return config.isUseTeleportationBoxes() || config.isUseTeleportationPortalsPoh();
-        }
-
-        @Override
-        public boolean useTeleportationPortalsPoh() {
-            return config.isUseTeleportationPortalsPoh();
-        }
-
-        @Override
-        public JewelleryBoxTier pohJewelleryBoxTier() {
-            return config.isUseTeleportationBoxes() ? JewelleryBoxTier.ORNATE : JewelleryBoxTier.NONE;
-        }
-
-        @Override
-        public boolean usePohMountedItems() {
-            return config.isUseTeleportationBoxes();
-        }
-
-        @Override
-        public void setBuiltTeleportationBoxes(String content) {
-            // GlobalPathfinder provides a transient adapter, not persisted plugin config storage.
-        }
-
-        @Override
-        public void setBuiltTeleportationPortalsPoh(String content) {
-            // GlobalPathfinder provides a transient adapter, not persisted plugin config storage.
-        }
+    static final class SearchState {
+        final int[] path;
+        final boolean complete;
+        final int nodesChecked;
+        final int transportsChecked;
     }
 }

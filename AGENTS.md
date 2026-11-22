@@ -61,15 +61,16 @@
   completion. Pause allows an already submitted iteration to finish. See `docs/SCRIPTING.md`.
 - Global pathfinding is worker-only. Each request owns its captured configuration; hard time/node
   limits and cancellation bound graph expansion. See `docs/WALKER.md`.
-- Walker transports that are not in the shortest-path dataset go through `TransportRegistry`
-  (`service/walker/transport/registry`). That package is Kraken owned: only `ShortestPathBridge` may
-  import `shortestpath.*`, so the planner can be replaced without changing what plugins compile against.
+- The walker plans with Kraken's own search (`service/pathfinding`) over a collision map and a
+  transport dataset that ship in `src/main/resources/walker/`. There is no pathfinding dependency,
+  and none may be added back. Every transport is a `TransportDefinition` held by `TransportRegistry`
+  (`service/walker/transport/registry`): the dataset underneath, registered definitions on top.
   A definition without an origin tile is a teleport usable from anywhere (an item or a spell).
 - A correction to a single dataset transport is a hand written row of
   `src/main/resources/walker/transports.json` with `replaces` set, not a special case in the planner
   or the executor. The Al Kharid toll gate (`kraken:al-kharid-gate-*`) and the webs (`kraken:web-*`,
   shape `CLEAR_THEN_WALK`) are such rows, and `HandWrittenTransportsTest` checks them against the
-  pinned dataset.
+  dataset.
 - Tile reachability uses live scene bounds and exact collision snapshots on the client thread.
   Entity menu actions use their owning world view; see `docs/API.md`.
 
@@ -155,10 +156,10 @@ The following files or directories are generated or derived; edit their sources 
   - Source: `src/main/java/com/kraken/api/**`
   - `build/**`
   - Source: Gradle build outputs
-  - Rows of `src/main/resources/walker/transports.json` whose id starts with `kraken:upstream-`
-  - Source: a checkout of upstream shortest-path and a game cache dump
+  - `src/main/resources/walker/dataset.json` and `src/main/resources/walker/collision-map.zip`
+  - Source: a checkout of upstream shortest-path (https://github.com/Skretzo/shortest-path) and, optionally, a game cache dump
   - Regenerate: `python3 scripts/update_walker_transports.py <shortest-path checkout> --cache-dump <dir>`, with the dump
-    written by `scripts/WalkerCacheDump.java` (see `docs/WALKER.md`). Rows under any other id prefix are hand written and kept.
+    written by `scripts/WalkerCacheDump.java` (see `docs/WALKER.md`). `src/main/resources/walker/transports.json` is hand written.
   - `llms.txt`, `llms-full.txt`, `llms-api.txt` (release assets and `kraken-frontend/public/`)
   - Source: `docs/llms/overview.md`, the guides in `docs/*.md` and the public API in `src/main/java/com/kraken/api/**`
   - Regenerate: `VERSION=<release> ./gradlew generateLlmsTxt` (writes `build/llms/`; add `-PllmsOutput=../kraken-frontend/public` to refresh the website copy)
@@ -170,9 +171,9 @@ Do not treat these as hand-edited sources.
 - `docs/API.md` explains the service/query split and should be kept aligned with the code.
 - `docs/INTERACTION.md` covers packet-based interaction and runtime hook behavior.
 - `docs/SHOPS.md` covers `ShopService`, shop price discovery, and buying/selling under limits.
-- `docs/WALKER.md` covers `Walker`, transport execution shapes, which transport kinds are not yet supported, and
-  adding transports at runtime through `TransportRegistry` (including teleports usable from anywhere) and the bundled
-  `src/main/resources/walker/transports.json`, with how its rows are regenerated.
+- `docs/WALKER.md` covers `Walker`, transport execution shapes, which transport kinds are not yet supported,
+  adding transports at runtime through `TransportRegistry` (including teleports usable from anywhere), the row format,
+  and where the bundled collision map and transport dataset come from and how they are regenerated.
 - `docs/MOUSE.md` covers mouse movement strategies.
 - `docs/SCRIPTING.md` covers `Script`, `Task`, and break management.
 - `docs/SIMULATION.md` is the simulation overview; deep dives live in `docs/simulation/`

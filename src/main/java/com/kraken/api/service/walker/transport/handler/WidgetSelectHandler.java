@@ -11,7 +11,7 @@ import com.kraken.api.service.walker.transport.TransportHandler;
 import com.kraken.api.service.walker.transport.WidgetClicks;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
-import shortestpath.transport.TransportType;
+import com.kraken.api.service.walker.transport.registry.TransportCategory;
 
 /**
  * Crosses a hub transport whose destinations are laid out on a dedicated interface.
@@ -41,7 +41,7 @@ public class WidgetSelectHandler implements TransportHandler {
             return false;
         }
 
-        TransportType type = context.getType();
+        TransportCategory type = context.getType();
         WorldPoint before = context.playerLocation();
 
         if (!TransportEntityResolver.interact(context)) {
@@ -62,7 +62,7 @@ public class WidgetSelectHandler implements TransportHandler {
         return awaitTravel(context, before);
     }
 
-    private boolean isOpen(Context ctx, TransportType type, DisplayInfo displayInfo) {
+    private boolean isOpen(Context ctx, TransportCategory type, DisplayInfo displayInfo) {
         if (HubWidgets.hasFixedComponents(type)) {
             int component = HubWidgets.component(type, displayInfo);
             if (component == HubWidgets.NOT_FOUND) {
@@ -75,7 +75,7 @@ public class WidgetSelectHandler implements TransportHandler {
         return findByText(ctx, type, displayInfo) != null;
     }
 
-    private boolean select(Context ctx, TransportType type, DisplayInfo displayInfo) {
+    private boolean select(Context ctx, TransportCategory type, DisplayInfo displayInfo) {
         if (HubWidgets.hasFixedComponents(type)) {
             int component = HubWidgets.component(type, displayInfo);
             if (component == HubWidgets.NOT_FOUND) {
@@ -90,7 +90,7 @@ public class WidgetSelectHandler implements TransportHandler {
     /**
      * Finds a runtime built list entry by the destination name it shows.
      */
-    private WidgetEntity findByText(Context ctx, TransportType type, DisplayInfo displayInfo) {
+    private WidgetEntity findByText(Context ctx, TransportCategory type, DisplayInfo displayInfo) {
         int group = HubWidgets.textInterfaceGroup(type);
         if (group == HubWidgets.NOT_FOUND) {
             return null;

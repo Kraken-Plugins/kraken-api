@@ -42,3 +42,6 @@ build
 .idea
 .env
 .DS_STORE
+
+# The walker plans over this collision map, so it ships with the sources.
+!src/main/resources/walker/collision-map.zip

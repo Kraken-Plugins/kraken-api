@@ -33,9 +33,31 @@ class TransportRegistryTest {
     private final TransportRegistry registry = new TransportRegistry(List.of());
 
     @Test
-    void anEmptyRegistryChangesNoSearch() {
-        assertTrue(registry.snapshot().changesNoSearch());
+    void anEmptyRegistryHoldsNothing() {
         assertTrue(registry.snapshot().getDefinitions().isEmpty());
+        assertTrue(registry.snapshot().getDataset().isEmpty());
+        assertTrue(registry.snapshot().getDisabledEdges().isEmpty());
+    }
+
+    @Test
+    void theDatasetSitsUnderTheRegisteredTransportsAndCannotBeUnregistered() {
+        TransportDefinition datasetDoor = door("kraken:upstream-door").build();
+        TransportRegistry overDataset = new TransportRegistry(List.of(), () -> List.of(datasetDoor));
+        TransportDefinition registered = door("test:door").build();
+        TransportRegistry.Registration registration = overDataset.register(registered);
+
+        assertEquals(List.of(datasetDoor), overDataset.snapshot().getDataset());
+        assertEquals(List.of(registered), overDataset.snapshot().getDefinitions());
+        assertTrue(overDataset.snapshot().holds(datasetDoor));
+        assertTrue(overDataset.snapshot().holds(registered));
+
+        assertFalse(overDataset.unregister("kraken:upstream-door"), "a dataset transport is hidden, not unregistered");
+        assertEquals(0, overDataset.unregisterAll("kraken"));
+        registration.close();
+
+        assertTrue(overDataset.snapshot().holds(datasetDoor));
+        assertFalse(overDataset.snapshot().holds(registered));
+        assertFalse(overDataset.snapshot().holds(null));
     }
 
     @Test
@@ -47,7 +69,6 @@ class TransportRegistryTest {
 
         assertTrue(before.getDefinitions().isEmpty(), "a snapshot a search already took must not change");
         assertEquals(List.of(door), registry.snapshot().getDefinitions());
-        assertFalse(registry.snapshot().changesNoSearch());
     }
 
     @Test
@@ -154,10 +175,11 @@ class TransportRegistryTest {
     }
 
     @Test
-    void aShapeHandlerAloneChangesNoSearch() {
+    void aShapeHandlerRegistersNoTransport() {
         registry.registerHandler(TransportShape.CANOE, context -> true);
 
-        assertTrue(registry.snapshot().changesNoSearch());
+        assertTrue(registry.snapshot().getDefinitions().isEmpty());
+        assertTrue(registry.snapshot().getDisabledEdges().isEmpty());
     }
 
     @Test

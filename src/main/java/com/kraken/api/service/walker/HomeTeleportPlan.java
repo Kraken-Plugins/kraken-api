@@ -9,7 +9,7 @@ import java.time.Instant;
 /**
  * Decides when a Lumbridge home teleport is a better first step than walking from here.
  *
- * <p>The shortest-path dataset includes the spell, but walking is cheaper than its cooldown, so the
+ * <p>The transport dataset includes the spell, but walking is cheaper than its cooldown, so the
  * planner never picks it. The walker injects it when the player is on the standard book, the
  * thirty-minute timer is clear, they are more than fifty tiles from the courtyard, and the dense
  * path from the courtyard is shorter than the walk from here. Farm to the castle bank teleports;

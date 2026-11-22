@@ -3,6 +3,10 @@
 `Walker` (`com.kraken.api.service.walker.Walker`) walks the player anywhere in the game world,
 operating whatever doors, boats, shortcuts and teleports the route needs on the way.
 
+Everything it plans with ships inside the API jar: a collision map of the game world, a dataset of
+some fourteen thousand transports, and the search itself. Nothing is fetched and no other library
+is needed. See [Where the data comes from](#where-the-data-comes-from).
+
 It composes the two pieces that already existed rather than replacing either: `GlobalPathfinder`
 plans a route, `MovementService` sends the clicks, and the walker runs the loop between them —
 plan, walk the part of the route the client has loaded, operate the transport at the end of it,
@@ -30,6 +34,9 @@ Run them from a script loop or another worker. Static resource loading happens o
 live transport eligibility is captured into a separate configuration for each request on the client
 thread. Searches do not hold a monitor while waiting for capture, and another request cannot refresh
 the configuration a search is using. `lastResult` is the last request to finish.
+
+The collision map and the dataset are read from the jar once, by the first search, on its worker.
+That first search pays for it (a few hundred milliseconds). Later searches share what was read.
 
 `GlobalPathfinderConfig` has two hard search limits: `maxSearchMillis` (default 10,000 ms, monotonic)
 and `maxSearchNodes` (default 1,000,000 allocated graph nodes, including queued transports).
@@ -78,8 +85,8 @@ standard-book spells stay available. Plan-only callers of `GlobalPathfinder` are
 they resolve the config themselves.
 
 When teleportation items are on, charged jewellery in inventory or worn is used — a Ring of wealth
-(1) is a Grand Exchange teleport. The shortest-path overlay default is permanent items only, which
-would skip the ring and walk a glider instead. Those item teleports have no origin tile, so a hop
+(1) is a Grand Exchange teleport, although rubbing it uses a charge. Only items the player carries
+or wears count; nothing is fetched from the bank. Those item teleports have no origin tile, so a hop
 that is not a walking neighbour is matched against usable teleports. Without that, the plan is an
 11-tile jump to the GE with `0 transports` and the walker walks north instead of rubbing the ring.
 If the player is already on that island, the landing is walkable: the walker walks rather than
@@ -97,8 +104,8 @@ display info has a colon.
 
 `currencyThreshold` is a willing-to-spend cap on currencies the player already holds, not a substitute
 for the coin purse. The planner already requires the real inventory count for dataset rows that list
-coins (the Shantay pass). The Al Kharid gate is the exception: shortest-path lists it as a free Open,
-so bundled registry rows take its edges over and state VitaLite's 10gp / varp 273 / Prince Ali
+coins (the Shantay pass). The Al Kharid gate is the exception: the dataset lists it as a free Open,
+so hand written rows take its edges over and state VitaLite's 10gp / varp 273 / Prince Ali
 Rescue rule as requirements, checked before search and again at click time (see
 [Hand written rows](#hand-written-rows)).
 
@@ -139,14 +146,17 @@ several meaningfully different causes:
 
 ## How transports are executed
 
-The transport dataset ships with the pinned `shortest-path` dependency and describes twenty six
-kinds of transport. They are operated in far fewer ways, so dispatch is by *shape*
-(`TransportShapes`), not by type:
+Every transport is a `TransportDefinition`, whether it comes from the dataset bundled with the API
+or was registered by a plugin. A definition has a *category*, which says what kind of transport it
+is and which planning option turns it on and off, and a *shape*, which says how it is operated.
+There are more than two dozen categories and far fewer ways to operate a transport, so dispatch is
+by shape. A definition that states no shape takes the usual one of its category:
 
-| Shape | Types | Implemented |
+| Shape | Categories that use it by default | Implemented |
 | --- | --- | --- |
 | `SINGLE_CLICK` | doors, gates, stairs, agility and grapple shortcuts, levers, portals, POH portals, jewellery boxes | yes |
-| `CLEAR_THEN_WALK` | no dataset type; registry rows only (the webs) | yes |
+| `CLEAR_THEN_WALK` | none; single rows only (the webs) | yes |
+| `WALK` | none; single rows only (steps the collision map blocks) | yes |
 | `CLICK_THEN_DIALOGUE` | boats, ships, charter ships, magic carpets | yes |
 | `HUB_DIALOGUE` | wilderness obelisks | yes |
 | `HUB_RESUME_PAUSE` | spirit trees, minecarts | yes |
@@ -157,8 +167,9 @@ kinds of transport. They are operated in far fewer ways, so dispatch is by *shap
 | `CANOE` | canoes | **no** |
 | `GROUPING_TELEPORT` | minigame teleports | **no** |
 
-`TransportShapesTest` asserts every type maps to a shape, so a dependency bump that adds a transport
-kind fails the build instead of failing in-game.
+`TransportCategoryTest` asserts every category has a shape, and `TransportDatasetTest` that every
+row of the dataset carries what its shape works from, so a regenerated dataset that the walker
+cannot operate fails the build instead of failing in-game.
 
 `CLEAR_THEN_WALK` is for an obstacle that is cleared and then walked through. A web is the example:
 slashing it neither moves the player nor reliably works, so `ClearThenWalkHandler` repeats the menu
@@ -166,9 +177,14 @@ action (up to five times) until the far tile is reachable in the live scene and 
 player across. A web someone already slashed offers no `Slash`, so it is walked through without a
 click. The executor never counts such a transport as "already open" on its own, because reporting
 it crossed without moving would leave the next round planning the same edge from the same tile.
-The dataset files its webs under the plain transport type, which maps to `SINGLE_CLICK`, so the
-webs are bundled registry rows that take those edges over (see
-[Hand written rows](#hand-written-rows)).
+The dataset files its webs as ordinary single clicks, so the webs are hand written rows that take
+those edges over (see [Hand written rows](#hand-written-rows)).
+
+`WALK` is for two tiles the game joins by walking where the collision map says they are not joined.
+The dataset has a couple of dozen such rows, which name nothing to click. The planner needs them to
+route across the gap, and `WalkTransportHandler` walks the player onto the far tile when the live
+scene says it is reachable. When it is not, the crossing fails with a reason; a few of these rows
+are automatic crossings several tiles long, which this does not operate.
 
 Ships are a conversation, not a single click. The dataset names a destination option on a specific
 NPC id (`Musa Point Captain Tobias 14979`); the live F2P sailor is often the older `Travel` NPC
@@ -189,11 +205,13 @@ arrival, not only once immediately after interacting.
 
 ### Hub transports
 
-Hub transports store their stops as *nodes*, and the dataset expands them into every permutation —
-56 fairy rings become 3,078 edges. That expansion is also what makes them executable: it fills in
-`Display info` per destination, which the raw rows leave empty. An expanded fairy ring edge carries
-the code of the ring it leads to (`"A L Q"`), and a spirit tree edge carries its menu entry
-(`"6: Prifddinas"`). No separate destination tables are needed.
+Hub transports are stored as their stops. The dataset lists each fairy ring once as a place to
+travel from and once as a place to travel to, and `TransportDataset` pairs every origin with every
+destination far enough away when it loads, so 55 fairy rings in the file become 2,968 transports
+in memory. A pair is clicked the way its origin stop says and carries the display info of its
+destination stop: a fairy ring pair carries the code of the ring it leads to (`"A L Q"`), and a
+spirit tree pair carries its menu entry (`"6: Prifddinas"`). No separate destination tables are
+needed.
 
 `DisplayInfo` parses the three forms this takes — a bare name, a numbered entry, or a ring code.
 
@@ -233,16 +251,18 @@ Both fail immediately with `TRANSPORT_UNSUPPORTED` and a reason, unless a plugin
 handler for the shape (see [Adding transports at runtime](#adding-transports-at-runtime)). `WalkerConfig` turns `useCanoes`
 and `useTeleportationMinigames` off by default so a default walk routes around them instead. A
 custom `GlobalPathfinderConfig` can turn them back on; the walk then fails at fire time if the
-route still uses one. Plan-only callers of `GlobalPathfinder` keep the library defaults (both on).
+route still uses one. Plan-only callers of `GlobalPathfinder` keep the planner's defaults (both on).
 
 ### Turning two strings into a click
 
-A transport's executable detail is stored as unstructured text under a column headed
-`menuOption menuTarget objectID`, for example `Open Door 9398`. Only the trailing integer is
-unambiguous: both the option and the target can contain spaces with no delimiter, so
-`Al Kharid Amulet of Glory 13523` is the option `Al Kharid` on `Amulet of Glory`, not `Al`.
+Upstream writes what a transport clicks as one string, for example `Open Door 9398`. Only the
+trailing integer is unambiguous: both the option and the target can contain spaces with no
+delimiter, so `Al Kharid Amulet of Glory 13523` is the option `Al Kharid` on `Amulet of Glory`,
+not `Al`. Most rows of the dataset no longer need guessing: when the game cache confirms the object
+beside the origin, the row states `menuOption`, `menuTarget` and `entityId` apart. The rest keep
+upstream's string as `objectInfo` (NPCs, and objects the cache could not place).
 
-`ObjectInfo` therefore parses in two stages — extract the id, then re-split the remainder once the
+`ObjectInfo` parses such a string in two stages — extract the id, then re-split the remainder once the
 entity has been resolved and its real name is known. `TransportEntityResolver` also compares menu
 text ignoring hyphens and spacing, because the dataset writes `Climb Down Ladder` where the client's
 action is `Climb-down`. Scenery is found by id within four tiles of the origin, then by name within
@@ -251,11 +271,11 @@ always the live object.
 
 ## Adding transports at runtime
 
-`TransportRegistry` (`com.kraken.api.service.walker.transport.registry`) holds transports and
+`TransportRegistry` (`com.kraken.api.service.walker.transport.registry`) holds every transport the
+walker plans with: the dataset bundled with the API underneath, and on top of it the transports and
 handlers that are added while the client runs. There is one registry per client, shared by every
 plugin, so a transport one plugin registers is planned through and operated by every walk from the
-next search on. Nothing in the registry package uses a shortest-path type except
-`ShortestPathBridge`, so plugins compile against Kraken types only.
+next search on.
 
 ```java
 @Inject
@@ -292,26 +312,29 @@ definition whose id starts with `my-plugin:`.
 | `id` | Stable key written `owner:name`. Registering the same id again replaces the definition. |
 | `origin`, `destination` | The tile the transport is entered from and the tile it leads to. A definition with no origin is a teleport usable from anywhere. |
 | `category` | Which planning option turns it on and off. `BOAT` follows `useBoats`. `GENERAL` is always planned, and is the default for everything except an item teleport, a spell and a minigame teleport, which take the category of their shape. |
-| `shape` | How it is operated, when no handler is given. |
+| `shape` | How it is operated, when no handler is given. Left out, it is the usual shape of the category. |
 | `menuOption`, `menuTarget`, `entityId` | What to click. The id is tried first, then the name. For an item teleport `menuOption` is the action on the item. |
+| `objectInfo` | What to click as one string, `Open Door 9398`, in place of the three fields above. The dataset uses it for clicks the game cache did not confirm. |
 | `displayInfo` | The destination to choose: a chat option, a numbered hub entry, a fairy ring code, or the stop an item lists. For a spell it is the spell's name. |
 | `itemIds` | The items that carry an item teleport. Any one of them works, worn or carried. |
 | `maxWildernessLevel` | The deepest wilderness level a teleport usable from anywhere works at. Defaults to 20. |
 | `duration` | Game ticks. It is the planning cost and sets the arrival timeout. Defaults to 1. |
+| `consumable` | Using it uses up an item or a charge. Informational. |
 | `bidirectional` | Also usable from the destination back to the origin. |
 | `replaces` | Removes the dataset's transports between the same two tiles from every search, including searches where this definition's requirements are not met. |
-| `requirements` | Skill levels, quests, items, varbits, varplayers and members only. |
+| `requirements` | Skill levels, combat and total level, quests, items, varbits, varplayers and members only. See [What a requirement can say](#what-a-requirement-can-say). |
 | `availableWhen` | An extra condition for what requirements cannot express. It runs on the client thread at every search, so keep it quick. |
 | `handler` | A `TransportHandler` that operates this transport in place of the handler for its shape. |
 
 `TransportDefinition.object`, `npc`, `npcDialogue`, `itemTeleport` and `spellTeleport` start a
 builder for the common cases. A definition without a handler is declarative: it reuses the handler
 for its shape, and a click goes through the same `TransportEntityResolver` the dataset rows use.
-`SINGLE_CLICK`, `CLEAR_THEN_WALK`, `CLICK_THEN_DIALOGUE`, `HUB_DIALOGUE`, `HUB_RESUME_PAUSE`,
-`FAIRY_RING`, `ITEM_SUBOP` and `SPELL` work that way. The handlers for the other shapes read detail only the
-dataset carries, so a definition with one of those shapes needs a handler. A fairy ring defined
-this way does not get the staff or diary rule the dataset's rings get; state it in the definition's
-requirements or `availableWhen`.
+`SINGLE_CLICK`, `CLEAR_THEN_WALK`, `WALK`, `CLICK_THEN_DIALOGUE`, `HUB_DIALOGUE`, `HUB_RESUME_PAUSE`,
+`FAIRY_RING`, `ITEM_SUBOP` and `SPELL` work that way from what any definition states.
+`CLICK_THEN_WIDGET` also reads the category to know which interface opens (a glider, a balloon, a
+mushtree or a quetzal), and `CANOE` and `GROUPING_TELEPORT` have no built in handler, so a
+definition with one of those needs a handler. A fairy ring needs a dramen or lunar staff in game;
+the dataset's rings say so in their requirements, and a ring you define has to say so too.
 
 A handler blocks off the client thread, like the built in ones, and only operates the transport.
 Arrival is judged by `TransportExecutor` the same way for every transport. A handler that cannot
@@ -372,6 +395,35 @@ planned, which is the rule the planner applies to its own. A shape that clicks s
 scene needs an origin; without one, give the definition `ITEM_SUBOP`, `SPELL`, `GROUPING_TELEPORT`
 (with a handler registered for that shape) or a handler of its own.
 
+### What a requirement can say
+
+`DefinitionRequirements` is plain data that is checked against one snapshot of the player:
+
+| Requirement | Meaning |
+| --- | --- |
+| `skill(skill, level)` | A boosted level in one skill. |
+| `combatLevel`, `totalLevel` | A combat level and a total level. `MAX_TOTAL_LEVEL` asks for every skill at 99, however many skills there are. |
+| `quest(quest)` | A finished quest. |
+| `item(RequiredItem)` | An amount of one of several interchangeable items, carried or worn. Runes in a carried rune pouch count. |
+| `varbit`, `varPlayer` | A test of one value: `EQUAL`, `NOT_EQUAL`, `AT_LEAST`, `AT_MOST`, `BIT_SET` (a bit index), `ANY_BIT_OF` (a mask), or `COOLDOWN_MINUTES` (the value is the minute something was last used, and more than that many minutes have passed). |
+| `membersOnly` | A members world. |
+
+A `RequiredItem` can name more than a list of ids and a quantity:
+
+- **A quantity of zero** turns it around: none of the items may be held.
+- **`alternatives`** are other ways to meet it, each with its own quantity: one Shantay pass, or five
+  coins to buy one.
+- **`staves`** each stand in for the items however many are needed, the way a staff of air supplies
+  air runes. One staff has to cover every requirement of a transport that is met by a staff, since
+  only one can be wielded.
+- **`offhands`** each stand in the same way, the way a tome of fire does, for one requirement of a
+  transport.
+- **`waivedByVarbit`** is a varbit test that meets the requirement without any item. The fairy ring
+  staff is waived by the Lumbridge elite diary this way.
+
+A search also refuses a fare that asks for more of a currency (coins, trading sticks, ecto-tokens,
+warrior guild tokens) than `currencyThreshold`, even when the player carries enough.
+
 ### Requirements are checked twice
 
 When a search captures state, the registry drops every definition whose category is off, whose
@@ -392,12 +444,15 @@ and closing its handle brings back the one before it.
 
 `disableEdge(origin, destination)` removes the dataset's transports from one tile to another from
 every search until its handle is closed. Registered definitions between those tiles are not
-affected. Use `replaces` on a definition when the point is to take an edge over.
+affected. Use `replaces` on a definition when the point is to take an edge over. This is the only
+way to take a dataset transport out: `unregister` and `unregisterAll` remove registered definitions
+and never touch the dataset.
 
-### Transports bundled with the API
+### The row format
 
-`src/main/resources/walker/transports.json` ships inside the jar and is read through the class
-loader when the registry is created. It is a JSON array of declarative definitions:
+A transport can be written as data. `src/main/resources/walker/transports.json` holds the rows
+written by hand for the API, and a plugin can keep its own in a file of the same format. A file is
+a JSON array of declarative definitions:
 
 ```json
 [
@@ -425,9 +480,10 @@ loader when the registry is created. It is a JSON array of declarative definitio
 ]
 ```
 
-Only `id`, `origin`, `destination`, `shape` and something to click are required. A row without an
-`origin` is a teleport usable from anywhere, and names its `itemIds` or, for a spell, its
-`displayInfo`:
+Only `id`, `origin`, `destination` and something to click are required. A row that states no
+`shape` is operated the usual way for its `category`, and a row that states neither is a single
+click. A row without an `origin` is a teleport usable from anywhere, and names its `itemIds` or,
+for a spell, its `displayInfo`:
 
 ```json
 {
@@ -442,16 +498,26 @@ Only `id`, `origin`, `destination`, `shape` and something to click are required.
 }
 ```
 
+An item requirement can carry the other ways to meet it:
+
+```json
+"items": [
+  {"anyOf": [556, 4695], "quantity": 3, "staves": [1381], "offhands": [20714]},
+  {"anyOf": [1854], "or": [{"anyOf": [995], "quantity": 5}]},
+  {"anyOf": [772, 9084], "waivedByVarbit": {"id": 4498, "comparison": "EQUAL", "value": 1}}
+]
+```
+
 The file is read strictly, because reading around a spelling mistake would load a gated transport
 without its gate. A row is logged and skipped when it has a key the loader does not know, a
 category, shape, skill, quest or comparison that is not a known name, a missing required field, or
 a shape that needs a handler (a file cannot carry one). Each row is judged on its own, so the rest
 still load. `BundledTransportsTest` fails the build when any row of the shipped file is skipped or
-two rows share an id. The two rows above are examples of the format, not shipped data.
+two rows share an id. The rows above are examples of the format, not shipped data.
 
-A plugin can keep its own transports in a file of the same format. `BundledTransports.parse(json)`
-reads such a file into definitions to register, and `BundledTransports.toJson(definition)` writes a
-definition as one row, leaving out whatever the loader fills in by default.
+`BundledTransports.parse(json)` reads such a file into definitions to register, and
+`BundledTransports.toJson(definition)` writes a definition as one row, leaving out whatever the
+loader fills in by default.
 
 ```java
 String json = new String(getClass().getResourceAsStream("/my-transports.json").readAllBytes(), StandardCharsets.UTF_8);
@@ -468,43 +534,19 @@ audit checks every registered transport near the player with `TransportEntityRes
 same lookup a crossing uses, and lists the rows whose object or NPC is gone or no longer offers the
 action.
 
-#### What the bundled file holds
+### Hand written rows
 
-The file ships with the transports that upstream [shortest-path](https://github.com/Skretzo/shortest-path)
-has gained since the fork the walker plans with was pinned, limited to the ones a single click
-operates: stairs, ladders, cave entrances, agility shortcuts, portals, and a few teleport items.
-Each row was checked against the game cache. For an object, the object has to stand within four
-tiles of the origin and offer the menu action, and the row records the id the object is placed
-under, which is the id the walker searches the scene for. For a teleport item, the item's menu has
-to list the stop or one of the usual teleport actions. None of that proves a row in a live game, so
-a walk through a bundled transport can still end in `TRANSPORT_FAILED`.
+`src/main/resources/walker/transports.json` holds a few rows written by hand to correct single
+transports of the dataset. Each sets `replaces`, so the dataset's own edge between the same two
+tiles is hidden from every search. They are registered when the registry is created and belong to
+the owner `kraken`, so `transports.unregisterAll("kraken")` takes them out until the client
+restarts, for every plugin. The walker then falls back to what the dataset says: the Al Kharid gate
+as a free `Open` with no toll check, and each web as one click that is never walked through.
 
-Those generated rows have ids starting with `kraken:upstream-`. To take only them out until the
-client restarts, for every plugin, since the registry is shared:
-
-```java
-for (TransportDefinition definition : transports.snapshot().getDefinitions()) {
-    if (definition.getId().startsWith("kraken:upstream-")) {
-        transports.unregister(definition.getId());
-    }
-}
-```
-
-Every bundled row belongs to the owner `kraken`, so `transports.unregisterAll("kraken")` removes
-the whole file, the hand written rows below included. The walker then falls back to what the
-dataset says for those: the Al Kharid gate as a free `Open` with no toll check, and each web as one
-click that is never walked through.
-
-#### Hand written rows
-
-A few rows are written by hand to correct single transports of the dataset. Each sets `replaces`,
-so the dataset's own edge between the same two tiles is hidden from every search.
-
-**The Al Kharid toll gate.** The dataset lists the gate's four edges as `Open Gate 44050` and
-`44051` with no coins, quest or varp, while the live objects are `44598` and `44599` and charge
-`Pay-toll(10gp)` until varp 273 (the Prince Ali Rescue progress varp) reaches 100 or the quest is
-finished. Three bidirectional rows per gate state the rule (ids
-`kraken:al-kharid-gate-<south|north>-<toll|paid|quest>`):
+**The Al Kharid toll gate.** The dataset lists the gate's four edges as a free `Open` with no
+coins, quest or varp, while the gate charges `Pay-toll(10gp)` until varp 273 (the Prince Ali
+Rescue progress varp) reaches 100 or the quest is finished. Three bidirectional rows per gate state
+the rule (ids `kraken:al-kharid-gate-<south|north>-<toll|paid|quest>`):
 
 | Row | Clicks | Requires |
 | --- | --- | --- |
@@ -512,57 +554,99 @@ finished. Three bidirectional rows per gate state the rule (ids
 | `paid` | `Open` | varp 273 at least 100 |
 | `quest` | `Open` | Prince Ali Rescue finished |
 
-A player who can neither pay nor pass for free has no usable row and no dataset edge, so the
-planner routes around the gate. The toll rows come first in the file: if a toll row and a quest
-row are ever usable together, the later registration is the one operated, which is the free
-`Open`.
+A player who can neither pay nor pass for free has no usable row and no dataset edge, so the walker
+operates nothing there. The collision map has the gate standing open, though, so a route to Al
+Kharid still crosses its tiles, and such a walk ends at the closed gate. The toll rows come first
+in the file: if a toll row and a quest row are ever usable together, the later registration is the
+one operated, which is the free `Open`.
 
 **The webs.** The dataset's fourteen `Slash Web 733` edges are seven bidirectional
-`CLEAR_THEN_WALK` rows (ids `kraken:web-<origin>-to-<destination>`).
+`CLEAR_THEN_WALK` rows (ids `kraken:web-<origin>-to-<destination>`). They ask for the same weapon
+the dataset's webs do: anything that slashes, or a knife.
 
-`HandWrittenTransportsTest` reads the pinned dataset and fails when one of those dataset edges
-moves, disappears, gains its own requirements, or when the dataset gains a web that has no row.
-That is the signal to update or delete the row.
+`HandWrittenTransportsTest` reads the dataset and fails when one of those dataset edges moves,
+disappears, gains its own requirements, or when the dataset gains a web that has no row. That is
+the signal to update or delete the row.
 
-`scripts/update_walker_transports.py` regenerates those rows and says why it leaves the others
-out: hub networks, boats and anything that needs a conversation, objects that offer several
-destinations, obstacles that are cleared instead of crossed (rockfalls, locks, levers),
-requirements the format cannot state, rows upstream marks as unconfirmed, and rows the cache does
-not confirm. Its rows have ids starting with `kraken:upstream-`. A row with any other id is kept as
-it is when the script runs again, ahead of the generated rows and in its existing order, so rows
-written by hand belong under a different prefix. The cleared obstacles could be written as
-`CLEAR_THEN_WALK` rows now, but the script still leaves them out: only the webs have been operated
-that way.
+### How a transport reaches a route
 
-```bash
-# 1. dump the game cache with RuneLite's cache library (see the header of the Java file)
-java -Xmx3g -cp "libs/*" scripts/WalkerCacheDump.java cache-copy cache-dump
-# 2. rewrite the generated rows from a checkout of upstream shortest-path
-python3 scripts/update_walker_transports.py ../shortest-path --cache-dump cache-dump
-# 3. every written row has to load
-./gradlew test --tests '*BundledTransportsTest'
-```
+Each search asks `TransportPlanner` for the transports it may use. The planner takes one immutable
+snapshot of the registry, reads the player's state once, and keeps the definitions that can be used
+right now: the category is turned on, the requirements are met, and the definition's own condition
+holds. It also leaves out seasonal transports on a world that is not seasonal, everything through a
+player owned house when both house options are off, every teleport while the player is aboard a
+boat at sea, and a spell the client reports as not castable. What is left becomes the network that
+one search owns. A registration made while a search is running cannot change that search.
 
-### How a registered transport reaches a route
+The dataset's transports and what their requirements ask about are worked out once and kept, since
+the dataset never changes. A search still judges every one of them, but definitions that share a
+requirements object share one verdict, so that is quick.
 
-`GlobalPathfinder` asks `ShortestPathBridge` to apply the registry after the search's own
-configuration has been refreshed. The bridge takes one immutable
-snapshot of the registry, removes the hidden dataset edges, and adds an edge for each usable
-definition ahead of whatever else leaves its origin tile. A definition without an origin has no
-tile to be filed under. It is compiled as a teleport and handed to the search's own configuration
-(`RequestPathfinderConfig`), which offers it beside the dataset's teleports, registered ones first.
-A registration made while a search is running cannot change that search.
-`TransportUsage.getDefinition()` returns the definition behind a route step, or null for a dataset
-edge. For a teleport usable from anywhere the step's type is a teleport type and its origin is the
-tile the route leaves from.
+`TransportUsage.getDefinition()` returns the definition behind a route step, `getType()` its
+category, and `isTeleport()` whether it is usable from anywhere. For such a teleport the step's
+origin is the tile the route leaves from.
 
 When several transports join the same two tiles, a registered one is operated in preference to the
 dataset's, and the latest registration in preference to an earlier one. A transport that is
 unregistered after a route was planned through it is not operated: the walk ends with
 `TRANSPORT_FAILED` saying so, and the next walk plans without it.
 
-One limit applies today. A registered transport's requirements are checked against what the
-player carries and wears, so `includeBankPath` does not plan a bank visit to fetch an item for it.
+One limit applies. Requirements are checked against what the player carries and wears, so nothing
+plans a bank visit to fetch an item. `includeBankPath` is reserved and changes no route.
+
+## Where the data comes from
+
+The collision map and the transports come from [shortest-path](https://github.com/Skretzo/shortest-path),
+a RuneLite plugin whose data is maintained in public. Kraken ships its own copy and its own search,
+so the API has no dependency on the plugin:
+
+| File | What it is |
+| --- | --- |
+| `walker/collision-map.zip` | Which edges of every tile can be walked across. Copied unchanged. |
+| `walker/dataset.json` | Every transport upstream lists, converted to the row format above. Generated; never edit it. |
+| `walker/transports.json` | The hand written rows that correct single dataset transports. |
+| `walker/NOTICE.txt` | Where the data came from and its licence (BSD 2-Clause). |
+
+`dataset.json` has two parts. `transports` holds one row per transport. `hubs` holds the networks
+whose every stop leads to every other (fairy rings, spirit trees, gliders, balloons, mushtrees,
+minecarts, quetzals and obelisks) as their stops, which are paired up when the file is loaded. Its
+`source` line names the upstream commit the data was taken at.
+
+`scripts/update_walker_transports.py` regenerates the dataset and copies the collision map from a
+checkout of upstream. It writes every row upstream has, with these changes:
+
+- A click the game cache confirms is written with its option, its target and the id the object is
+  *placed* under, which is the id the walker searches the scene for. Upstream often records the id
+  of the form the object shows as. A click the cache does not confirm keeps upstream's string. The
+  cache dump is optional: without it every row keeps upstream's string.
+- Requirements upstream applies in code become data: Fairytale II progress and the dramen or lunar
+  staff for fairy rings, The Grand Tree for gliders, Bone Voyage for mushtrees, Tree Gnome Village
+  for spirit trees.
+- Rows the walker's fixed settings never plan are left out: fairy rings, spirit trees and obelisks
+  inside a player owned house, the mounted amulet of glory, spirit trees the player has to grow
+  first, the Prifddinas respawn (which the client cannot tell from the Lumbridge default), and
+  rows gated on an account unlock the client does not report. The script prints the count of each.
+- Tiles inside a player owned house become the one landing tile the house is planned through.
+
+The script also writes `build/walker-transports-report.tsv`, which lists every row left out and
+notes on rows that were written but may not work as one click: sections upstream marks as
+unconfirmed, one click that leads to several places, obstacles that are cleared and not crossed,
+and clicks the cache does not confirm. None of the data has been checked in a live game by this
+project, so a walk through a dataset transport can still end in `TRANSPORT_FAILED`.
+
+```bash
+# 1. optional: dump the game cache with RuneLite's cache library (see the header of the Java file)
+java -Xmx3g -cp "libs/*" scripts/WalkerCacheDump.java cache-copy cache-dump
+# 2. rewrite the dataset and the collision map from a checkout of upstream shortest-path
+python3 scripts/update_walker_transports.py ../shortest-path --cache-dump cache-dump
+# 3. every written row has to load, and the hand written rows have to still match
+./gradlew test --tests '*TransportDatasetTest' --tests '*HandWrittenTransportsTest'
+```
+
+Not everything upstream does is done here. Seasonal (league) transports are only planned on a
+seasonal world, but the league's region locks are not applied. A route is never planned through a
+bank to fetch an item. Spirit trees the player grew and the house's own fairy ring, spirit tree and
+obelisk are not planned. Transport costs other than duration are not configurable.
 
 ## Doors the planner does not know about
 
@@ -652,22 +736,21 @@ Before operating a transport the walker re-checks its requirements against live 
 state drifts between planning and arrival — a fare gets spent, a tab gets used — and re-checking
 turns a silent failure into `TRANSPORT_REQUIREMENTS_UNMET` naming what is missing.
 
-The Al Kharid gate is not in the dataset as a fare. Bundled registry rows supply that rule (see
+The Al Kharid gate is not in the dataset as a fare. Hand written rows supply that rule (see
 [Hand written rows](#hand-written-rows)): they hide the dataset's four edges, are planned only when
 the player carries 10 coins or the gate is free, and click the live objects, `Pay-toll(10gp)` on
-`44598`/`44599` while it charges and `Open` on those same ids once it is free. The shortest-path TSV
-still says `Open Gate 44050`. `chooseAction` also falls back to `Pay-toll(10gp)` if an `Open` meets
-the live menu, which only matters once the bundled rows have been unregistered. A stale route with
-no coins still aborts with `TRANSPORT_REQUIREMENTS_UNMET`.
+`44598`/`44599` while it charges and `Open` on those same ids once it is free. `chooseAction` also
+falls back to `Pay-toll(10gp)` if an `Open` meets the live menu, which only matters once the hand
+written rows have been unregistered. A stale route with no coins still aborts with
+`TRANSPORT_REQUIREMENTS_UNMET`.
 
-Wilderness is the planner's 0 / 20 / 30 / 31 bucket (`WildernessChecker`), not a y-only level.
+Wilderness is the planner's 0 / 20 / 30 / 31 bucket (`WildernessLevels`), not a y-only level.
 Lunar Isle and Wintertodt sit north of y 3520 and are not wilderness; treating them as deep wildy
 would refuse teleports the planner had already routed.
 
-One requirement is not in the dataset at all: fairy rings need a dramen or lunar staff unless the
-Lumbridge elite diary is complete. The pathfinder hardcodes that in its own config, so
-`TransportRequirements` applies the same rule, or a fairy ring route would pass the check and then
-fail at the ring.
+Fairy rings need a dramen or lunar staff unless the Lumbridge elite diary is complete. Upstream
+applies that rule in code, so the converter writes it into the dataset as an item requirement the
+diary's varbit waives, and it is checked like any other requirement.
 
 ## Related
 

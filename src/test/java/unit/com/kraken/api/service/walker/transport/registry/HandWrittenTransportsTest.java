@@ -1,8 +1,6 @@
 package com.kraken.api.service.walker.transport.registry;
 
-import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.pathfinding.GlobalPathfinderConfig;
-import com.kraken.api.service.walker.transport.ObjectInfo;
 import com.kraken.api.service.walker.transport.TransportRequirements;
 import com.kraken.api.service.walker.transport.TransportShape;
 import net.runelite.api.Quest;
@@ -11,13 +9,7 @@ import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.VarPlayerID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import shortestpath.PrimitiveIntHashMap;
-import shortestpath.WorldPointUtil;
-import shortestpath.transport.Transport;
-import shortestpath.transport.TransportLoader;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,18 +17,16 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Covers the bundled rows that are written by hand to correct single transports of the dataset: the
- * Al Kharid toll gate, which the dataset lists as a free Open on object ids that are no longer in
- * the scene, and the webs, which are slashed and then walked through.
+ * Al Kharid toll gate, which the dataset lists as a free Open, and the webs, which are slashed and
+ * then walked through.
  *
- * <p>Each of these rows takes a dataset edge over with {@code replaces}. The tests read the pinned
- * dataset, so a dependency bump that moves, removes or corrects one of those edges fails here, where
- * the row can be updated or deleted.</p>
+ * <p>Each of these rows takes a dataset transport over with {@code replaces}. The tests read the
+ * bundled dataset, so a regeneration that moves, removes or corrects one of those transports fails
+ * here, where the row can be updated or deleted.</p>
  */
 class HandWrittenTransportsTest {
 
@@ -50,18 +40,20 @@ class HandWrittenTransportsTest {
 
     private static List<TransportDefinition> gates;
     private static List<TransportDefinition> webs;
-    private static List<Transport> dataset;
+    private static List<TransportDefinition> dataset;
 
     @BeforeAll
     static void load() {
         List<TransportDefinition> bundled = BundledTransports.load();
         gates = bundled.stream().filter(row -> row.getId().startsWith(GATE_PREFIX)).collect(Collectors.toList());
         webs = bundled.stream().filter(row -> row.getId().startsWith(WEB_PREFIX)).collect(Collectors.toList());
+        dataset = TransportDataset.bundled();
+    }
 
-        dataset = new ArrayList<>();
-        for (Set<Transport> transports : TransportLoader.loadAllFromResources().values()) {
-            dataset.addAll(transports);
-        }
+    @Test
+    void everyHandWrittenRowIsAGateOrAWeb() {
+        assertEquals(gates.size() + webs.size(), BundledTransports.load().size(),
+                "a new kind of hand written row needs its own checks here");
     }
 
     @Test
@@ -82,21 +74,24 @@ class HandWrittenTransportsTest {
     }
 
     @Test
-    void theDatasetStillListsTheGateAsAFreeOpenOnStaleIds() {
-        List<Transport> edges = datasetEdgesBetween(Set.of(SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST));
+    void theDatasetStillListsTheGateAsAFreeOpen() {
+        List<TransportDefinition> edges = datasetEdgesBetween(Set.of(SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST));
 
         assertEquals(4, edges.size(), "expected the four gate edges; delete the gate rows if the dataset dropped them");
-        for (Transport edge : edges) {
-            ObjectInfo info = ObjectInfo.parse(edge.getObjectInfo());
-            assertEquals("Open", info.getMenuOption(), edge.getObjectInfo());
-            assertTrue(info.getId() == 44050 || info.getId() == 44051,
-                    "the dataset now names " + info.getId() + "; delete the gate rows if it lists the live gate and its toll");
-            assertTrue(edge.getItemRequirements() == null
-                            || edge.getItemRequirements().getRequirements() == null
-                            || edge.getItemRequirements().getRequirements().isEmpty(),
-                    "the dataset now lists a fare for " + edge.getObjectInfo());
-            assertTrue(edge.getQuests() == null || edge.getQuests().isEmpty(),
-                    "the dataset now lists a quest for " + edge.getObjectInfo());
+        for (TransportDefinition edge : edges) {
+            assertEquals("Open", edge.toObjectInfo().getMenuOption(), edge.getObjectInfo());
+            assertTrue(edge.getRequirements().isEmpty(),
+                    "the dataset now states a requirement for " + edge.getId()
+                            + "; delete the gate rows if it is the toll rule");
+        }
+    }
+
+    @Test
+    void theGateRowsHideEveryDatasetEdgeOfTheGate() {
+        Set<TransportRegistry.Edge> hidden = new TransportRegistry(gates).snapshot().getDisabledEdges();
+
+        for (TransportDefinition edge : datasetEdgesBetween(Set.of(SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST))) {
+            assertTrue(hidden.contains(new TransportRegistry.Edge(edge.getOrigin(), edge.getDestination())), edge.getId());
         }
     }
 
@@ -127,57 +122,20 @@ class HandWrittenTransportsTest {
     }
 
     @Test
-    void whenTheQuestIsDoneAndCoinsAreCarriedTheFreeGateIsTheOnePlanned() {
+    void theFreeGateRowsFollowTheTollRowsSoTheyAreTheOnesOperatedWhenBothAreUsable() {
         // The varp is the quest's own progress, so a finished quest with a low varp should not
         // occur. If it did, the toll row and the quest row would both be usable, and the row
-        // registered later is the one operated: the quest rows follow the toll rows in the file.
-        TransportRequirements.PlayerState state =
-                state().item(ItemID.COINS, 1_000).completedQuest(Quest.PRINCE_ALI_RESCUE).build();
-        PrimitiveIntHashMap<Transport[]> packed = new PrimitiveIntHashMap<>(8);
+        // registered later is the one operated.
+        List<TransportDefinition> usable = usableGates(
+                state().item(ItemID.COINS, 1_000).completedQuest(Quest.PRINCE_ALI_RESCUE).build());
 
-        ShortestPathBridge.Injection injection = ShortestPathBridge.inject(usableGates(state), Set.of(), packed, packed);
-
-        for (WorldPoint[] crossing : new WorldPoint[][]{
-                {SOUTH_WEST, SOUTH_EAST}, {SOUTH_EAST, SOUTH_WEST}, {NORTH_WEST, NORTH_EAST}, {NORTH_EAST, NORTH_WEST}}) {
-            TransportDefinition planned = injection.definitionOf(hop(packed, crossing[0], crossing[1]));
-            assertNotNull(planned);
-            assertEquals("Open", planned.getMenuOption(), planned.getId());
+        assertEquals(4, usable.size());
+        for (String gate : new String[]{"south", "north"}) {
+            List<TransportDefinition> rows = usable.stream()
+                    .filter(row -> row.getId().contains("-" + gate + "-"))
+                    .collect(Collectors.toList());
+            assertEquals("Open", rows.get(rows.size() - 1).getMenuOption(), rows.toString());
         }
-    }
-
-    @Test
-    void theDatasetsGateIsHiddenEvenWhenThePlayerCannotCross() {
-        TransportRegistry registry = new TransportRegistry(gates);
-        PrimitiveIntHashMap<Transport[]> packed = packedDataset();
-        List<TransportDefinition> usable = registry.snapshot().usable(DEFAULTS, state().build());
-
-        ShortestPathBridge.inject(usable, registry.snapshot().getDisabledEdges(), packed, packed);
-
-        assertTrue(usable.isEmpty());
-        assertNull(hop(packed, SOUTH_WEST, SOUTH_EAST), "a broke player must not be routed through the gate");
-        assertNull(hop(packed, SOUTH_EAST, SOUTH_WEST));
-        assertNull(hop(packed, NORTH_WEST, NORTH_EAST));
-        assertNull(hop(packed, NORTH_EAST, NORTH_WEST));
-    }
-
-    @Test
-    void aPlayerWhoCanPayIsRoutedThroughTheRegisteredGateAndNotTheDatasets() {
-        TransportRegistry registry = new TransportRegistry(gates);
-        PrimitiveIntHashMap<Transport[]> packed = packedDataset();
-        List<TransportDefinition> usable =
-                registry.snapshot().usable(DEFAULTS, state().item(ItemID.COINS, 10).build());
-
-        ShortestPathBridge.Injection injection =
-                ShortestPathBridge.inject(usable, registry.snapshot().getDisabledEdges(), packed, packed);
-
-        TransportDefinition planned = injection.definitionOf(hop(packed, SOUTH_EAST, SOUTH_WEST));
-        assertNotNull(planned, "the return direction is planned through the same bidirectional row");
-        assertEquals("kraken:al-kharid-gate-south-toll", planned.getId());
-        assertEquals("Pay-toll(10gp) Gate 44598", planned.getObjectInfo());
-        long gateEdges = Arrays.stream(packed.get(WorldPointUtil.packWorldPoint(SOUTH_EAST)))
-                .filter(edge -> edge.getDestination() == WorldPointUtil.packWorldPoint(SOUTH_WEST))
-                .count();
-        assertEquals(1, gateEdges, "the dataset's own edge between the same tiles is gone");
     }
 
     @Test
@@ -189,12 +147,11 @@ class HandWrittenTransportsTest {
             assertEquals("Slash Web 733", web.getObjectInfo(), id);
             assertTrue(web.isBidirectional(), id);
             assertTrue(web.isReplaces(), id + " has to hide the dataset's web, which would be clicked once and left");
-            assertTrue(web.getRequirements().isEmpty(), id);
         }
     }
 
     @Test
-    void theWebRowsAndTheDatasetsWebsAreTheSameEdges() {
+    void theWebRowsAndTheDatasetsWebsAreTheSameEdgesWithTheSameRequirements() {
         Set<TransportRegistry.Edge> registered = new HashSet<>();
         for (TransportDefinition web : webs) {
             registered.add(new TransportRegistry.Edge(web.getOrigin(), web.getDestination()));
@@ -202,14 +159,21 @@ class HandWrittenTransportsTest {
         }
 
         Set<TransportRegistry.Edge> slashed = new HashSet<>();
-        for (Transport edge : dataset) {
-            ObjectInfo info = ObjectInfo.parse(edge.getObjectInfo());
-            if (info != null && "Slash".equalsIgnoreCase(info.getMenuOption())) {
-                assertEquals(4, edge.getDuration(), edge.getObjectInfo());
-                slashed.add(new TransportRegistry.Edge(
-                        WorldPointUtil.unpackWorldPoint(edge.getOrigin()),
-                        WorldPointUtil.unpackWorldPoint(edge.getDestination())));
+        for (TransportDefinition edge : dataset) {
+            if (edge.isUsableAnywhere() || edge.toObjectInfo() == null
+                    || !"Slash".equalsIgnoreCase(edge.toObjectInfo().getMenuOption())) {
+                continue;
             }
+            assertEquals(4, edge.getDuration(), edge.getId());
+            slashed.add(new TransportRegistry.Edge(edge.getOrigin(), edge.getDestination()));
+
+            TransportDefinition row = webs.stream()
+                    .filter(web -> Set.of(web.getOrigin(), web.getDestination())
+                            .equals(Set.of(edge.getOrigin(), edge.getDestination())))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError(edge.getId() + " has no hand written row"));
+            assertEquals(edge.getRequirements().getItems(), row.getRequirements().getItems(),
+                    row.getId() + " replaces the dataset's web, so it has to ask for the same weapon");
         }
 
         assertEquals(14, slashed.size());
@@ -219,27 +183,12 @@ class HandWrittenTransportsTest {
     }
 
     @Test
-    void theDatasetsWebsAreHiddenAndTheRegisteredOnesPlanned() {
-        TransportRegistry registry = new TransportRegistry(webs);
-        PrimitiveIntHashMap<Transport[]> packed = packedDataset();
+    void aWebNeedsSomethingToSlashItWith() {
+        TransportDefinition web = webs.get(0);
 
-        ShortestPathBridge.Injection injection = ShortestPathBridge.inject(
-                registry.snapshot().usable(DEFAULTS, state().build()),
-                registry.snapshot().getDisabledEdges(), packed, packed);
-
-        for (TransportDefinition web : webs) {
-            for (WorldPoint[] crossing : new WorldPoint[][]{
-                    {web.getOrigin(), web.getDestination()}, {web.getDestination(), web.getOrigin()}}) {
-                int origin = WorldPointUtil.packWorldPoint(crossing[0]);
-                int destination = WorldPointUtil.packWorldPoint(crossing[1]);
-                long edges = Arrays.stream(packed.get(origin))
-                        .filter(edge -> edge.getDestination() == destination)
-                        .count();
-
-                assertEquals(1, edges, web.getId() + " shares its tiles with a dataset edge");
-                assertEquals(web, injection.definitionOf(hop(packed, crossing[0], crossing[1])));
-            }
-        }
+        assertFalse(TransportRequirements.unmetReasons(web.getRequirements(), state().build()).isEmpty());
+        assertTrue(TransportRequirements.unmetReasons(
+                web.getRequirements(), state().item(ItemID.BRONZE_AXE, 1).build()).isEmpty());
     }
 
     @Test
@@ -252,6 +201,7 @@ class HandWrittenTransportsTest {
         assertEquals(web.getOrigin(), readBack.getOrigin());
         assertEquals(web.getDestination(), readBack.getDestination());
         assertEquals("Slash Web 733", readBack.getObjectInfo());
+        assertEquals(web.getRequirements().getItems(), readBack.getRequirements().getItems());
         assertTrue(readBack.isBidirectional());
         assertTrue(readBack.isReplaces());
         assertFalse(readBack.isUsableAnywhere());
@@ -265,35 +215,10 @@ class HandWrittenTransportsTest {
         return TransportRequirements.PlayerState.builder();
     }
 
-    private static List<Transport> datasetEdgesBetween(Set<WorldPoint> tiles) {
-        Set<Integer> packed = tiles.stream().map(WorldPointUtil::packWorldPoint).collect(Collectors.toSet());
+    private static List<TransportDefinition> datasetEdgesBetween(Set<WorldPoint> tiles) {
         return dataset.stream()
-                .filter(edge -> packed.contains(edge.getOrigin()) && packed.contains(edge.getDestination()))
+                .filter(edge -> !edge.isUsableAnywhere())
+                .filter(edge -> tiles.contains(edge.getOrigin()) && tiles.contains(edge.getDestination()))
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Builds the planner's origin to edges map from every dataset edge that has an origin tile.
-     */
-    private static PrimitiveIntHashMap<Transport[]> packedDataset() {
-        PrimitiveIntHashMap<Transport[]> packed = new PrimitiveIntHashMap<>(dataset.size());
-        for (Transport edge : dataset) {
-            if (edge.getOrigin() == WorldPointUtil.UNDEFINED) {
-                continue;
-            }
-            Transport[] current = packed.get(edge.getOrigin());
-            Transport[] combined = new Transport[current == null ? 1 : current.length + 1];
-            if (current != null) {
-                System.arraycopy(current, 0, combined, 0, current.length);
-            }
-            combined[combined.length - 1] = edge;
-            packed.put(edge.getOrigin(), combined);
-        }
-        return packed;
-    }
-
-    private static Transport hop(PrimitiveIntHashMap<Transport[]> packed, WorldPoint from, WorldPoint to) {
-        int origin = WorldPointUtil.packWorldPoint(from);
-        return GlobalPathfinder.hopBetween(packed.get(origin), new Transport[0], origin, WorldPointUtil.packWorldPoint(to));
     }
 }

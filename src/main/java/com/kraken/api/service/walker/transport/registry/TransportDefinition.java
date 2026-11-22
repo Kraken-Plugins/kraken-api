@@ -24,6 +24,9 @@ import java.util.function.BooleanSupplier;
  * {@link TransportHandler} runs that handler instead. Only declarative definitions can be stored as
  * data.</p>
  *
+ * <p>Every transport the walker knows is a definition: the ones in the dataset bundled with the
+ * API, and the ones a plugin registers.</p>
+ *
  * <p>A definition without an {@link #origin} is a teleport that can be used from wherever the player
  * stands, such as a teleport tablet or a spell. The planner considers it from every tile of a
  * search, up to its {@link #maxWildernessLevel}.</p>
@@ -42,6 +45,7 @@ public final class TransportDefinition {
     public static final Set<TransportShape> DECLARATIVE_SHAPES = Collections.unmodifiableSet(EnumSet.of(
             TransportShape.SINGLE_CLICK,
             TransportShape.CLEAR_THEN_WALK,
+            TransportShape.WALK,
             TransportShape.CLICK_THEN_DIALOGUE,
             TransportShape.HUB_DIALOGUE,
             TransportShape.HUB_RESUME_PAUSE,
@@ -87,13 +91,16 @@ public final class TransportDefinition {
     private final TransportCategory category;
 
     /**
-     * How the transport is operated. Required unless a {@link #handler} is given.
+     * How the transport is operated. A definition that names a {@link #category} and no shape takes
+     * the usual shape of that category. Otherwise a shape is required unless a {@link #handler} is
+     * given.
      *
-     * <p>The handlers for the {@link #DECLARATIVE_SHAPES} work from what the definition states. The
-     * handlers for the other shapes read detail only the dataset carries, so a definition with one
-     * of those shapes needs a handler of its own or one registered for the shape. A fairy ring
-     * defined here does not get the staff or diary rule the dataset's rings get; state it in
-     * {@link #requirements} or {@link #availableWhen}.</p>
+     * <p>The handlers for the {@link #DECLARATIVE_SHAPES} work from what any definition states.
+     * {@link TransportShape#CLICK_THEN_WIDGET} also reads the category to know which interface
+     * opens, and the canoe and minigame shapes have no built in handler, so a definition with one
+     * of those needs a handler of its own or one registered for the shape. A fairy ring needs a
+     * dramen or lunar staff in game; state that in {@link #requirements}, as the bundled rings
+     * do.</p>
      */
     private final TransportShape shape;
 
@@ -112,6 +119,15 @@ public final class TransportDefinition {
     private final int entityId = ObjectInfo.NO_ID;
 
     /**
+     * What to click, written as one string of menu option, target name and id, such as
+     * {@code Open Door 9398}. The bundled dataset states a click this way when it could not check
+     * it against the game cache, and the walker works out where the option ends and the name
+     * begins once it has found the object. A definition states either this or {@link #menuOption},
+     * {@link #menuTarget} and {@link #entityId}.
+     */
+    private final String objectInfo;
+
+    /**
      * Names the destination for transports that offer a choice: the chat option of a conversation,
      * a numbered hub entry such as {@code "4: Grand Exchange"}, a fairy ring code, or the stop an
      * item lists behind its menu action, such as {@code Edgeville}. For {@link TransportShape#SPELL}
@@ -126,10 +142,13 @@ public final class TransportDefinition {
     /** Whether the transport can also be taken from the destination back to the origin. */
     private final boolean bidirectional;
 
+    /** Whether using the transport uses up an item or a charge, as a teleport tablet does. */
+    private final boolean consumable;
+
     /**
-     * Whether this definition is the authority for its edge. When true, the dataset's own transports
-     * between the same two tiles are removed from every search, including searches where this
-     * definition's requirements are not met.
+     * Whether this definition is the authority for its edge. When true, the transports of the
+     * bundled dataset between the same two tiles are removed from every search, including searches
+     * where the requirements of this definition are not met.
      */
     private final boolean replaces;
 
@@ -173,9 +192,11 @@ public final class TransportDefinition {
                                 String menuOption,
                                 String menuTarget,
                                 int entityId,
+                                String objectInfo,
                                 String displayInfo,
                                 int duration,
                                 boolean bidirectional,
+                                boolean consumable,
                                 boolean replaces,
                                 DefinitionRequirements requirements,
                                 BooleanSupplier availableWhen,
@@ -200,8 +221,15 @@ public final class TransportDefinition {
         if (maxWildernessLevel < 0) {
             throw new IllegalArgumentException(id + ": the wilderness level limit cannot be negative");
         }
+        if (shape == null && category != null) {
+            shape = category.getDefaultShape();
+        }
         if (handler == null && shape == null) {
             throw new IllegalArgumentException(id + ": give a shape to use a built in handler, or a handler");
+        }
+        if (isStated(objectInfo) && (entityId != ObjectInfo.NO_ID || isStated(menuOption) || isStated(menuTarget))) {
+            throw new IllegalArgumentException(id + ": state what to click either as object info or as "
+                    + "a menu option, a menu target and an entity id, not both");
         }
         if (origin == null && (bidirectional || replaces)) {
             throw new IllegalArgumentException(id + ": a teleport usable from anywhere has no origin tile, "
@@ -226,9 +254,11 @@ public final class TransportDefinition {
         this.menuOption = menuOption;
         this.menuTarget = menuTarget;
         this.entityId = entityId;
+        this.objectInfo = isStated(objectInfo) ? objectInfo.trim() : null;
         this.displayInfo = displayInfo;
         this.duration = duration;
         this.bidirectional = bidirectional;
+        this.consumable = consumable;
         this.replaces = replaces;
         this.requirements = requireOneOf(items, requirements != null ? requirements : DefinitionRequirements.NONE);
         this.availableWhen = availableWhen;
@@ -254,9 +284,17 @@ public final class TransportDefinition {
             if (displayInfo == null || displayInfo.trim().isEmpty()) {
                 throw new IllegalArgumentException(id + ": name the spell in the display info");
             }
+        } else if (shape == TransportShape.WALK) {
+            if (toObjectInfo() != null) {
+                throw new IllegalArgumentException(id + ": a transport that is walked across clicks nothing");
+            }
         } else if (!ORIGIN_FREE_SHAPES.contains(shape) && toObjectInfo() == null) {
             throw new IllegalArgumentException(id + ": name what to click with a menu target or an entity id");
         }
+    }
+
+    private static boolean isStated(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 
     /**
@@ -425,20 +463,35 @@ public final class TransportDefinition {
     }
 
     /**
-     * Returns what to click in structured form.
+     * Returns what to click in structured form. For a definition that states its click as one
+     * string, the split between menu option and target name is a first guess, which the walker
+     * corrects once it has found the object and knows its name.
      *
      * @return the click target, or null when the definition names none
      */
     public ObjectInfo toObjectInfo() {
-        return ObjectInfo.of(menuOption, menuTarget, entityId);
+        return objectInfo != null ? ObjectInfo.parse(objectInfo) : ObjectInfo.of(menuOption, menuTarget, entityId);
     }
 
     /**
-     * Returns what to click as the dataset writes it, for logs and overlays.
+     * Reports whether the click is stated as one string of option, target and id, as the bundled
+     * dataset states a click it could not check against the game cache.
+     *
+     * @return true when the definition was given object info and no separate option, target or id
+     */
+    public boolean statesObjectInfo() {
+        return objectInfo != null;
+    }
+
+    /**
+     * Returns what to click as one string, for logs and overlays.
      *
      * @return the menu option, target and id joined by spaces, or null when the definition names none
      */
     public String getObjectInfo() {
+        if (objectInfo != null) {
+            return objectInfo;
+        }
         ObjectInfo info = toObjectInfo();
         if (info == null) {
             return null;
