@@ -2,7 +2,6 @@ package com.kraken.api.service.pathfinding;
 
 import com.kraken.api.Context;
 import com.kraken.api.core.script.ScriptCancellation;
-import com.kraken.api.service.walker.transport.AlKharidGate;
 import com.kraken.api.service.walker.transport.registry.ShortestPathBridge;
 import com.kraken.api.service.walker.transport.registry.TransportDefinition;
 import lombok.AllArgsConstructor;
@@ -10,14 +9,9 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
-import net.runelite.api.Item;
-import net.runelite.api.ItemContainer;
 import net.runelite.api.Player;
-import net.runelite.api.Quest;
-import net.runelite.api.QuestState;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InventoryID;
-import net.runelite.api.gameval.ItemID;
 import shortestpath.*;
 import shortestpath.pathfinder.*;
 import shortestpath.transport.Transport;
@@ -275,7 +269,7 @@ public class GlobalPathfinder {
         }
         SearchState searchState = search(prepared.start, prepared.targets, prepared.pathfinderConfig, resolvedConfig);
         return lastResult = buildResult(source, destination, resolvedConfig, prepared.pathfinderConfig,
-                searchState, prepared.alKharidGateFree, prepared.registeredEdges);
+                searchState, prepared.registeredEdges);
     }
 
     /** Creates a private search configuration; static resource loading must stay on the worker. */
@@ -301,24 +295,15 @@ public class GlobalPathfinder {
     /**
      * Captures live eligibility into a request-owned config on the client thread.
      *
-     * <p>The transport registry is applied last, after the dataset's own transports have been
-     * refreshed and the Al Kharid overlay has run, so a registered transport is never stripped by
-     * either and is found ahead of a dataset edge between the same tiles. Registered teleports
-     * usable from anywhere have no tile to be filed under, so they are handed to the request's
-     * configuration, which offers them to the search beside the dataset's teleports.</p>
+     * <p>The transport registry is applied after the dataset's own transports have been refreshed,
+     * so a registered transport is found ahead of a dataset edge between the same tiles. Registered
+     * teleports usable from anywhere have no tile to be filed under, so they are handed to the
+     * request's configuration, which offers them to the search beside the dataset's teleports.</p>
      */
     private PreparedPathfinder prepare(WorldPoint source, WorldPoint destination,
                                        RequestPathfinderConfig pathfinderConfig, GlobalPathfinderConfig config) {
         pathfinderConfig.bank = client.getItemContainer(InventoryID.BANK);
         pathfinderConfig.refresh();
-        int gateVarp = client.getVarpValue(AlKharidGate.GATE_VARP);
-        boolean princeAliFinished = QuestState.FINISHED.equals(Quest.PRINCE_ALI_RESCUE.getState(client));
-        AlKharidGate.stripIfUnusable(
-                pathfinderConfig.getTransportsPacked(false),
-                pathfinderConfig.getTransportsPacked(true),
-                countCoins(),
-                gateVarp,
-                princeAliFinished);
         ShortestPathBridge.Injection registeredEdges = transportBridge.apply(config, pathfinderConfig);
         pathfinderConfig.addUsableTeleports(registeredEdges.getTeleports());
 
@@ -330,7 +315,6 @@ public class GlobalPathfinder {
                 WorldPointUtil.packWorldPoint(source),
                 Collections.unmodifiableSet(targets),
                 pathfinderConfig,
-                AlKharidGate.isFree(gateVarp, princeAliFinished),
                 registeredEdges);
     }
 
@@ -471,7 +455,6 @@ public class GlobalPathfinder {
             GlobalPathfinderConfig config,
             PathfinderConfig pathfinderConfig,
             SearchState searchState,
-            boolean alKharidGateFree,
             ShortestPathBridge.Injection registeredEdges
     ) {
         if (searchState.pathSteps == null || searchState.pathSteps.isEmpty()) {
@@ -480,8 +463,7 @@ public class GlobalPathfinder {
 
         List<PathStep> pathSteps = searchState.pathSteps;
         List<WorldPoint> densePath = unpackPath(pathSteps);
-        List<TransportUsage> transports =
-                findTransportUsages(pathSteps, pathfinderConfig, alKharidGateFree, registeredEdges);
+        List<TransportUsage> transports = findTransportUsages(pathSteps, pathfinderConfig, registeredEdges);
         List<WorldPoint> sparsePath = toSparsePath(densePath, transports, config.getSparsePathWaypointDistance());
         boolean complete = searchState.complete
                 && !densePath.isEmpty()
@@ -504,7 +486,6 @@ public class GlobalPathfinder {
     private List<TransportUsage> findTransportUsages(
             List<PathStep> pathSteps,
             PathfinderConfig pathfinderConfig,
-            boolean alKharidGateFree,
             ShortestPathBridge.Injection registeredEdges
     ) {
         if (pathSteps == null || pathSteps.size() < 2) {
@@ -527,8 +508,8 @@ public class GlobalPathfinder {
                 continue;
             }
 
-            // A registered transport names its own click target, so the Al Kharid rewrite is kept
-            // for dataset edges only.
+            // A registered transport names its own click target; a dataset edge carries the
+            // dataset's.
             TransportDefinition definition = registeredEdges.definitionOf(transport);
             transportUsages.add(new TransportUsage(
                     i - 1,
@@ -536,9 +517,7 @@ public class GlobalPathfinder {
                     WorldPointUtil.unpackWorldPoint(destination),
                     transport.getType(),
                     transport.getDisplayInfo(),
-                    definition != null
-                            ? definition.getObjectInfo()
-                            : AlKharidGate.liveObjectInfo(transport, alKharidGateFree),
+                    definition != null ? definition.getObjectInfo() : transport.getObjectInfo(),
                     transport.isConsumable(),
                     transport.getDuration(),
                     transport,
@@ -835,29 +814,12 @@ public class GlobalPathfinder {
         }
     }
 
-    /** Totals coins in the inventory. The Al Kharid overlay needs a live count, not a spend cap. */
-    private int countCoins() {
-        ItemContainer inventory = client.getItemContainer(InventoryID.INV);
-        if (inventory == null) {
-            return 0;
-        }
-
-        int coins = 0;
-        for (Item item : inventory.getItems()) {
-            if (item != null && item.getId() == ItemID.COINS) {
-                coins += Math.max(item.getQuantity(), 0);
-            }
-        }
-        return coins;
-    }
-
     /** Bundles the packed search inputs with the refreshed shortest-path config. */
     @AllArgsConstructor
     private static final class PreparedPathfinder {
         private final int start;
         private final Set<Integer> targets;
         private final PathfinderConfig pathfinderConfig;
-        private final boolean alKharidGateFree;
         private final ShortestPathBridge.Injection registeredEdges;
     }
 

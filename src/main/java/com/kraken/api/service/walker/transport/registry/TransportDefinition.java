@@ -41,6 +41,7 @@ public final class TransportDefinition {
      */
     public static final Set<TransportShape> DECLARATIVE_SHAPES = Collections.unmodifiableSet(EnumSet.of(
             TransportShape.SINGLE_CLICK,
+            TransportShape.CLEAR_THEN_WALK,
             TransportShape.CLICK_THEN_DIALOGUE,
             TransportShape.HUB_DIALOGUE,
             TransportShape.HUB_RESUME_PAUSE,
@@ -273,8 +274,11 @@ public final class TransportDefinition {
     /**
      * Picks the category for a definition that names none, so that a teleport follows the planning
      * option for its kind without having to say so.
+     *
+     * @param shape how the definition is operated, may be null
+     * @return the category a definition of that shape takes by default
      */
-    private static TransportCategory categoryOf(TransportShape shape) {
+    static TransportCategory categoryOf(TransportShape shape) {
         if (shape == TransportShape.ITEM_SUBOP) {
             return TransportCategory.TELEPORTATION_ITEM;
         }

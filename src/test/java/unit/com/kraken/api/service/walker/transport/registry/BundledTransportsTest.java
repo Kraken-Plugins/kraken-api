@@ -15,9 +15,11 @@ import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,6 +55,9 @@ class BundledTransportsTest {
             + "  \"varbits\": [{\"id\": 100, \"comparison\": \"AT_LEAST\", \"value\": 7}],"
             + "  \"varPlayers\": [{\"id\": 273, \"comparison\": \"EQUAL\", \"value\": 1}]"
             + "}}";
+
+    /** The id prefix of the rows {@code scripts/update_walker_transports.py} writes. */
+    private static final String GENERATED_ID_PREFIX = "kraken:upstream-";
 
     private static final String MINIMAL_ROW = "{"
             + "\"id\": \"kraken:door\","
@@ -244,13 +249,21 @@ class BundledTransportsTest {
     }
 
     @Test
-    void theBundledFileHoldsOnlyTransportsThatOneClickOperates() {
-        List<TransportDefinition> definitions = BundledTransports.load();
+    void everyBundledRowBelongsToKraken() {
+        for (TransportDefinition definition : BundledTransports.load()) {
+            assertEquals("kraken", definition.getOwner(), definition.getId());
+        }
+    }
 
-        assertFalse(definitions.isEmpty(), "the bundled file ships with transports");
+    @Test
+    void theGeneratedRowsAreOnlyTransportsThatOneClickOperates() {
+        List<TransportDefinition> definitions = BundledTransports.load().stream()
+                .filter(definition -> definition.getId().startsWith(GENERATED_ID_PREFIX))
+                .collect(Collectors.toList());
+
+        assertFalse(definitions.isEmpty(), "the bundled file ships with generated transports");
         for (TransportDefinition definition : definitions) {
             String id = definition.getId();
-            assertEquals("kraken", definition.getOwner(), id);
             assertFalse(definition.isReplaces(), id + " must not hide a dataset transport");
 
             if (definition.isUsableAnywhere()) {
@@ -263,6 +276,113 @@ class BundledTransportsTest {
                 assertFalse(definition.toObjectInfo().getMenuOption().isEmpty(), id + " names no menu option");
                 assertFalse(definition.toObjectInfo().getMenuTarget().isEmpty(), id + " names no object");
             }
+        }
+    }
+
+    @Test
+    void aWrittenRowReadsBackAsTheSameDefinition() {
+        TransportDefinition original = BundledTransports.parse("[" + FULL_ROW + "]").get(0);
+
+        String written = BundledTransports.toJson(original);
+        TransportDefinition readBack = BundledTransports.parse("[" + written + "]").get(0);
+
+        assertEquals(original.getId(), readBack.getId());
+        assertEquals(original.getOrigin(), readBack.getOrigin());
+        assertEquals(original.getDestination(), readBack.getDestination());
+        assertEquals(original.getCategory(), readBack.getCategory());
+        assertEquals(original.getShape(), readBack.getShape());
+        assertEquals(original.getObjectInfo(), readBack.getObjectInfo());
+        assertEquals(original.getDisplayInfo(), readBack.getDisplayInfo());
+        assertEquals(original.getDuration(), readBack.getDuration());
+        assertEquals(original.isBidirectional(), readBack.isBidirectional());
+        assertEquals(original.isReplaces(), readBack.isReplaces());
+        assertEquals(original.getRequirements().getSkillLevels(), readBack.getRequirements().getSkillLevels());
+        assertEquals(original.getRequirements().getQuests(), readBack.getRequirements().getQuests());
+        assertEquals(original.getRequirements().getItems(), readBack.getRequirements().getItems());
+        assertEquals(original.getRequirements().getVarbits(), readBack.getRequirements().getVarbits());
+        assertEquals(original.getRequirements().getVarPlayers(), readBack.getRequirements().getVarPlayers());
+        assertEquals(original.getRequirements().isMembersOnly(), readBack.getRequirements().isMembersOnly());
+        assertEquals(written, BundledTransports.toJson(readBack), "writing is stable over a round trip");
+    }
+
+    @Test
+    void aWrittenRowLeavesOutWhatTheLoaderFillsIn() {
+        TransportDefinition door = BundledTransports.parse("[" + MINIMAL_ROW + "]").get(0);
+
+        assertEquals("{\"id\": \"kraken:door\", \"origin\": {\"x\": 3200, \"y\": 3200, \"plane\": 0}, "
+                + "\"destination\": {\"x\": 3200, \"y\": 3201, \"plane\": 0}, \"shape\": \"SINGLE_CLICK\", "
+                + "\"entityId\": 1535}", BundledTransports.toJson(door));
+    }
+
+    @Test
+    void anItemTeleportIsWrittenWithoutTheHoldingRuleItsItemIdsImply() {
+        TransportDefinition glory = TransportDefinition
+                .itemTeleport("kraken:glory-edgeville", new WorldPoint(3087, 3496, 0), 1712, 1710)
+                .menuOption("Rub")
+                .displayInfo("Edgeville")
+                .maxWildernessLevel(30)
+                .requirements(DefinitionRequirements.builder().quest(Quest.DRAGON_SLAYER_I).build())
+                .build();
+
+        String written = BundledTransports.toJson(glory);
+        TransportDefinition readBack = BundledTransports.parse("[" + written + "]").get(0);
+
+        assertEquals("{\"id\": \"kraken:glory-edgeville\", \"destination\": {\"x\": 3087, \"y\": 3496, \"plane\": 0}, "
+                + "\"shape\": \"ITEM_SUBOP\", \"menuOption\": \"Rub\", \"itemIds\": [1712, 1710], "
+                + "\"displayInfo\": \"Edgeville\", \"maxWildernessLevel\": 30, "
+                + "\"requirements\": {\"quests\": [\"DRAGON_SLAYER_I\"]}}", written);
+        assertEquals(1, readBack.getRequirements().getItems().size(), "the holding rule is added once, on load");
+    }
+
+    @Test
+    void aNameIsWrittenAsPlainAsciiAndReadBackUnchanged() {
+        TransportDefinition odd = TransportDefinition
+                .npc("kraken:odd", new WorldPoint(3200, 3200, 0), new WorldPoint(3300, 3300, 0),
+                        "Café \"owner\" \\ Zoë", "Talk-to")
+                .build();
+
+        String written = BundledTransports.toJson(odd);
+
+        assertTrue(written.chars().allMatch(c -> c >= 0x20 && c <= 0x7e), written);
+        assertEquals("Café \"owner\" \\ Zoë",
+                BundledTransports.parse("[" + written + "]").get(0).getMenuTarget());
+    }
+
+    @Test
+    void aDefinitionThatAFileCannotHoldIsNotWritten() {
+        WorldPoint origin = new WorldPoint(3200, 3200, 0);
+        WorldPoint destination = new WorldPoint(3300, 3300, 0);
+        TransportDefinition withHandler = TransportDefinition.object("test:handler", origin, destination, 1, "Open")
+                .handler(context -> true)
+                .build();
+        TransportDefinition withCondition = TransportDefinition.object("test:condition", origin, destination, 1, "Open")
+                .availableWhen(() -> true)
+                .build();
+        TransportDefinition needsHandler = TransportDefinition.object("test:canoe", origin, destination, 1, "Chop")
+                .shape(TransportShape.CANOE)
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> BundledTransports.toJson(withHandler));
+        assertThrows(IllegalArgumentException.class, () -> BundledTransports.toJson(withCondition));
+        assertThrows(IllegalArgumentException.class, () -> BundledTransports.toJson(needsHandler));
+        assertThrows(IllegalArgumentException.class, () -> BundledTransports.toJson(null));
+    }
+
+    @Test
+    void everyRowOfTheBundledFileIsWrittenBackAsTheFileHasIt() throws Exception {
+        List<String> lines;
+        try (var stream = BundledTransports.class.getResourceAsStream(BundledTransports.RESOURCE_PATH)) {
+            lines = new String(stream.readAllBytes(), StandardCharsets.UTF_8).lines()
+                    .map(String::trim)
+                    .filter(line -> line.startsWith("{"))
+                    .map(line -> line.endsWith(",") ? line.substring(0, line.length() - 1) : line)
+                    .collect(Collectors.toList());
+        }
+        List<TransportDefinition> definitions = BundledTransports.load();
+
+        assertEquals(lines.size(), definitions.size());
+        for (int i = 0; i < lines.size(); i++) {
+            assertEquals(lines.get(i), BundledTransports.toJson(definitions.get(i)));
         }
     }
 

@@ -61,12 +61,6 @@ public class PlayerStateReader {
                     ctx.getVarbitValue(TransportRequirements.FAIRY_RING_DIARY_VARBIT));
         }
 
-        // The Al Kharid gate is a free Open in the dataset, so coins, varp 273 and Prince Ali
-        // Rescue are not listed on the transport. They still decide whether the live gate opens.
-        if (AlKharidGate.matches(transport)) {
-            varPlayers.put(AlKharidGate.GATE_VARP, ctx.getVarpValue(AlKharidGate.GATE_VARP));
-        }
-
         return TransportRequirements.PlayerState.builder()
                 .skillLevels(readSkillLevels())
                 .wildernessLevel(WildernessLevels.of(ctx.players().local().location()))
@@ -140,19 +134,13 @@ public class PlayerStateReader {
 
     private Set<Quest> readCompletedQuests(Transport transport) {
         Set<Quest> required = transport.getQuests();
-        boolean alKharid = AlKharidGate.matches(transport);
-        if ((required == null || required.isEmpty()) && !alKharid) {
+        if (required == null || required.isEmpty()) {
             return Collections.emptySet();
         }
 
         Set<Quest> completed = new HashSet<>();
-        if (required != null) {
-            for (Quest quest : required) {
-                addIfFinished(completed, quest);
-            }
-        }
-        if (alKharid) {
-            addIfFinished(completed, Quest.PRINCE_ALI_RESCUE);
+        for (Quest quest : required) {
+            addIfFinished(completed, quest);
         }
 
         return completed;
@@ -169,9 +157,7 @@ public class PlayerStateReader {
      * Totals the player's items across inventory and equipment when the transport needs any.
      */
     private Map<Integer, Integer> readItems(Transport transport) {
-        if (transport.getItemRequirements() == null
-                && transport.getType() != TransportType.FAIRY_RING
-                && !AlKharidGate.matches(transport)) {
+        if (transport.getItemRequirements() == null && transport.getType() != TransportType.FAIRY_RING) {
             return Collections.emptyMap();
         }
 

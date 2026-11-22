@@ -12,6 +12,14 @@ public enum TransportShape {
     /** One menu action on an object or NPC found from the transport's object info. */
     SINGLE_CLICK,
 
+    /**
+     * An obstacle that is cleared and then walked through, such as a web that is slashed.
+     *
+     * <p>Operating it does not move the player and can fail, so the action is repeated until the far
+     * side is reachable and the player is then walked across.</p>
+     */
+    CLEAR_THEN_WALK,
+
     /** A click that opens a conversation, where the destination or a confirmation is chosen. */
     CLICK_THEN_DIALOGUE,
 

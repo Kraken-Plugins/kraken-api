@@ -98,8 +98,9 @@ display info has a colon.
 `currencyThreshold` is a willing-to-spend cap on currencies the player already holds, not a substitute
 for the coin purse. The planner already requires the real inventory count for dataset rows that list
 coins (the Shantay pass). The Al Kharid gate is the exception: shortest-path lists it as a free Open,
-so `AlKharidGate` overlays VitaLite's 10gp / varp 273 / Prince Ali Rescue rule before search and
-again at click time.
+so bundled registry rows take its edges over and state VitaLite's 10gp / varp 273 / Prince Ali
+Rescue rule as requirements, checked before search and again at click time (see
+[Hand written rows](#hand-written-rows)).
 
 ## Threading
 
@@ -145,6 +146,7 @@ kinds of transport. They are operated in far fewer ways, so dispatch is by *shap
 | Shape | Types | Implemented |
 | --- | --- | --- |
 | `SINGLE_CLICK` | doors, gates, stairs, agility and grapple shortcuts, levers, portals, POH portals, jewellery boxes | yes |
+| `CLEAR_THEN_WALK` | no dataset type; registry rows only (the webs) | yes |
 | `CLICK_THEN_DIALOGUE` | boats, ships, charter ships, magic carpets | yes |
 | `HUB_DIALOGUE` | wilderness obelisks | yes |
 | `HUB_RESUME_PAUSE` | spirit trees, minecarts | yes |
@@ -157,6 +159,16 @@ kinds of transport. They are operated in far fewer ways, so dispatch is by *shap
 
 `TransportShapesTest` asserts every type maps to a shape, so a dependency bump that adds a transport
 kind fails the build instead of failing in-game.
+
+`CLEAR_THEN_WALK` is for an obstacle that is cleared and then walked through. A web is the example:
+slashing it neither moves the player nor reliably works, so `ClearThenWalkHandler` repeats the menu
+action (up to five times) until the far tile is reachable in the live scene and then walks the
+player across. A web someone already slashed offers no `Slash`, so it is walked through without a
+click. The executor never counts such a transport as "already open" on its own, because reporting
+it crossed without moving would leave the next round planning the same edge from the same tile.
+The dataset files its webs under the plain transport type, which maps to `SINGLE_CLICK`, so the
+webs are bundled registry rows that take those edges over (see
+[Hand written rows](#hand-written-rows)).
 
 Ships are a conversation, not a single click. The dataset names a destination option on a specific
 NPC id (`Musa Point Captain Tobias 14979`); the live F2P sailor is often the older `Travel` NPC
@@ -295,16 +307,18 @@ definition whose id starts with `my-plugin:`.
 `TransportDefinition.object`, `npc`, `npcDialogue`, `itemTeleport` and `spellTeleport` start a
 builder for the common cases. A definition without a handler is declarative: it reuses the handler
 for its shape, and a click goes through the same `TransportEntityResolver` the dataset rows use.
-`SINGLE_CLICK`, `CLICK_THEN_DIALOGUE`, `HUB_DIALOGUE`, `HUB_RESUME_PAUSE`, `FAIRY_RING`,
-`ITEM_SUBOP` and `SPELL` work that way. The handlers for the other shapes read detail only the
+`SINGLE_CLICK`, `CLEAR_THEN_WALK`, `CLICK_THEN_DIALOGUE`, `HUB_DIALOGUE`, `HUB_RESUME_PAUSE`,
+`FAIRY_RING`, `ITEM_SUBOP` and `SPELL` work that way. The handlers for the other shapes read detail only the
 dataset carries, so a definition with one of those shapes needs a handler. A fairy ring defined
 this way does not get the staff or diary rule the dataset's rings get; state it in the definition's
 requirements or `availableWhen`.
 
 A handler blocks off the client thread, like the built in ones, and only operates the transport.
-Arrival is judged by `TransportExecutor` the same way for every transport. A registered handler
-that throws fails that one crossing with `TRANSPORT_FAILED` and the exception in the reason. A
-stopping script still unwinds through it.
+Arrival is judged by `TransportExecutor` the same way for every transport. A handler that cannot
+operate its transport returns false, and can say why first with `context.fail("...")`: the walk
+then ends with `TRANSPORT_FAILED` and that reason. A registered handler that throws fails that one
+crossing with `TRANSPORT_FAILED` and the exception in the reason. A stopping script still unwinds
+through it.
 
 ```java
 transports.register(TransportDefinition.builder()
@@ -435,6 +449,25 @@ a shape that needs a handler (a file cannot carry one). Each row is judged on it
 still load. `BundledTransportsTest` fails the build when any row of the shipped file is skipped or
 two rows share an id. The two rows above are examples of the format, not shipped data.
 
+A plugin can keep its own transports in a file of the same format. `BundledTransports.parse(json)`
+reads such a file into definitions to register, and `BundledTransports.toJson(definition)` writes a
+definition as one row, leaving out whatever the loader fills in by default.
+
+```java
+String json = new String(getClass().getResourceAsStream("/my-transports.json").readAllBytes(), StandardCharsets.UTF_8);
+for (TransportDefinition definition : BundledTransports.parse(json)) {
+    registrations.add(transports.register(definition));
+}
+```
+
+The Transports tool of the Kraken Developer Tools plugin writes such rows. It records a transport
+while you use it by hand (the object or NPC, the menu action, both tiles and the duration), lets
+you add the requirements, registers the row in the live registry, walks through it to prove it,
+saves it into a file one line per row, and copies it as a `TransportDefinition` builder call. Its
+audit checks every registered transport near the player with `TransportEntityResolver.locate`, the
+same lookup a crossing uses, and lists the rows whose object or NPC is gone or no longer offers the
+action.
+
 #### What the bundled file holds
 
 The file ships with the transports that upstream [shortest-path](https://github.com/Skretzo/shortest-path)
@@ -444,16 +477,62 @@ Each row was checked against the game cache. For an object, the object has to st
 tiles of the origin and offer the menu action, and the row records the id the object is placed
 under, which is the id the walker searches the scene for. For a teleport item, the item's menu has
 to list the stop or one of the usual teleport actions. None of that proves a row in a live game, so
-a walk through a bundled transport can still end in `TRANSPORT_FAILED`. Every bundled row belongs to
-the owner `kraken`, so `transports.unregisterAll("kraken")` removes them all until the client
-restarts, for every plugin, since the registry is shared.
+a walk through a bundled transport can still end in `TRANSPORT_FAILED`.
+
+Those generated rows have ids starting with `kraken:upstream-`. To take only them out until the
+client restarts, for every plugin, since the registry is shared:
+
+```java
+for (TransportDefinition definition : transports.snapshot().getDefinitions()) {
+    if (definition.getId().startsWith("kraken:upstream-")) {
+        transports.unregister(definition.getId());
+    }
+}
+```
+
+Every bundled row belongs to the owner `kraken`, so `transports.unregisterAll("kraken")` removes
+the whole file, the hand written rows below included. The walker then falls back to what the
+dataset says for those: the Al Kharid gate as a free `Open` with no toll check, and each web as one
+click that is never walked through.
+
+#### Hand written rows
+
+A few rows are written by hand to correct single transports of the dataset. Each sets `replaces`,
+so the dataset's own edge between the same two tiles is hidden from every search.
+
+**The Al Kharid toll gate.** The dataset lists the gate's four edges as `Open Gate 44050` and
+`44051` with no coins, quest or varp, while the live objects are `44598` and `44599` and charge
+`Pay-toll(10gp)` until varp 273 (the Prince Ali Rescue progress varp) reaches 100 or the quest is
+finished. Three bidirectional rows per gate state the rule (ids
+`kraken:al-kharid-gate-<south|north>-<toll|paid|quest>`):
+
+| Row | Clicks | Requires |
+| --- | --- | --- |
+| `toll` | `Pay-toll(10gp)` | 10 coins carried, and varp 273 at most 99 |
+| `paid` | `Open` | varp 273 at least 100 |
+| `quest` | `Open` | Prince Ali Rescue finished |
+
+A player who can neither pay nor pass for free has no usable row and no dataset edge, so the
+planner routes around the gate. The toll rows come first in the file: if a toll row and a quest
+row are ever usable together, the later registration is the one operated, which is the free
+`Open`.
+
+**The webs.** The dataset's fourteen `Slash Web 733` edges are seven bidirectional
+`CLEAR_THEN_WALK` rows (ids `kraken:web-<origin>-to-<destination>`).
+
+`HandWrittenTransportsTest` reads the pinned dataset and fails when one of those dataset edges
+moves, disappears, gains its own requirements, or when the dataset gains a web that has no row.
+That is the signal to update or delete the row.
 
 `scripts/update_walker_transports.py` regenerates those rows and says why it leaves the others
 out: hub networks, boats and anything that needs a conversation, objects that offer several
 destinations, obstacles that are cleared instead of crossed (rockfalls, locks, levers),
 requirements the format cannot state, rows upstream marks as unconfirmed, and rows the cache does
 not confirm. Its rows have ids starting with `kraken:upstream-`. A row with any other id is kept as
-it is when the script runs again, so rows written by hand belong under a different prefix.
+it is when the script runs again, ahead of the generated rows and in its existing order, so rows
+written by hand belong under a different prefix. The cleared obstacles could be written as
+`CLEAR_THEN_WALK` rows now, but the script still leaves them out: only the webs have been operated
+that way.
 
 ```bash
 # 1. dump the game cache with RuneLite's cache library (see the header of the Java file)
@@ -467,7 +546,7 @@ python3 scripts/update_walker_transports.py ../shortest-path --cache-dump cache-
 ### How a registered transport reaches a route
 
 `GlobalPathfinder` asks `ShortestPathBridge` to apply the registry after the search's own
-configuration has been refreshed and the Al Kharid overlay has run. The bridge takes one immutable
+configuration has been refreshed. The bridge takes one immutable
 snapshot of the registry, removes the hidden dataset edges, and adds an edge for each usable
 definition ahead of whatever else leaves its origin tile. A definition without an origin has no
 tile to be filed under. It is compiled as a teleport and handed to the search's own configuration
@@ -573,12 +652,13 @@ Before operating a transport the walker re-checks its requirements against live 
 state drifts between planning and arrival — a fare gets spent, a tab gets used — and re-checking
 turns a silent failure into `TRANSPORT_REQUIREMENTS_UNMET` naming what is missing.
 
-The Al Kharid gate is not in the dataset as a fare. `AlKharidGate` supplies that rule at plan time
-(dropping the four edges when the player has neither 10 coins nor a free gate) and rewrites the
-click to the live objects: `Pay-toll(10gp)` on `44598`/`44599` while it charges, `Open` on those
-same ids once it is free. The shortest-path TSV still says `Open Gate 44050`. Execute uses the
-rewritten string, and `chooseAction` also falls back to `Pay-toll(10gp)` if a leftover `Open` meets
-the live menu. A stale route with no coins still aborts with `TRANSPORT_REQUIREMENTS_UNMET`.
+The Al Kharid gate is not in the dataset as a fare. Bundled registry rows supply that rule (see
+[Hand written rows](#hand-written-rows)): they hide the dataset's four edges, are planned only when
+the player carries 10 coins or the gate is free, and click the live objects, `Pay-toll(10gp)` on
+`44598`/`44599` while it charges and `Open` on those same ids once it is free. The shortest-path TSV
+still says `Open Gate 44050`. `chooseAction` also falls back to `Pay-toll(10gp)` if an `Open` meets
+the live menu, which only matters once the bundled rows have been unregistered. A stale route with
+no coins still aborts with `TRANSPORT_REQUIREMENTS_UNMET`.
 
 Wilderness is the planner's 0 / 20 / 30 / 31 bucket (`WildernessChecker`), not a y-only level.
 Lunar Isle and Wintertodt sit north of y 3520 and are not wilderness; treating them as deep wildy

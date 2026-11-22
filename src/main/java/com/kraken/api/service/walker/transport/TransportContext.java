@@ -2,11 +2,14 @@ package com.kraken.api.service.walker.transport;
 
 import com.kraken.api.Context;
 import com.kraken.api.service.walker.transport.registry.TransportDefinition;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
 import shortestpath.transport.Transport;
 import shortestpath.transport.TransportType;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Everything a {@link TransportHandler} needs to fire one transport.
@@ -37,6 +40,30 @@ public final class TransportContext {
 
     /** The registered definition this crossing came from, or null for a transport from the dataset. */
     private final TransportDefinition definition;
+
+    @Getter(AccessLevel.NONE)
+    private final AtomicReference<String> failureReason = new AtomicReference<>();
+
+    /**
+     * Records why the transport could not be operated, so the walk's result can say more than that
+     * the crossing failed. A handler can end with {@code return context.fail("...")}.
+     *
+     * @param reason readable detail for whoever has to work out what went wrong
+     * @return false, the value a handler returns when it could not operate the transport
+     */
+    public boolean fail(String reason) {
+        failureReason.set(reason);
+        return false;
+    }
+
+    /**
+     * Returns why the handler could not operate the transport, when it said.
+     *
+     * @return the reason last given to {@link #fail(String)}, or null when none was given
+     */
+    public String getFailureReason() {
+        return failureReason.get();
+    }
 
     /**
      * Returns the kind of transport being crossed.

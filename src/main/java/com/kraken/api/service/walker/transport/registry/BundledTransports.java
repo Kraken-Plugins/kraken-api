@@ -18,6 +18,7 @@ import net.runelite.api.coords.WorldPoint;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -25,13 +26,17 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Reads the transports that ship inside the API jar.
+ * Reads the transports that ship inside the API jar, and reads and writes the format they are
+ * stored in.
  *
  * <p>The data lives in {@code src/main/resources/walker/transports.json} and is read through the
  * class loader, so it is available wherever the jar is. Only declarative definitions can be written
  * there, since a file cannot carry a handler or a condition. A row without an {@code origin} is a
  * teleport usable from anywhere, which an item ({@code itemIds}) or a spell ({@code displayInfo})
  * provides.</p>
+ *
+ * <p>{@link #parse(String)} and {@link #toJson(TransportDefinition)} are each other's inverse, so a
+ * plugin can keep its own transports in a file of the same format and register what it parses.</p>
  *
  * <p>The file is read strictly. A row with a key this class does not know, a category or shape that
  * is not a known name, or a requirement it cannot resolve is logged and skipped, because reading
@@ -80,6 +85,221 @@ public final class BundledTransports {
      */
     public static List<TransportDefinition> parse(String json) {
         return toDefinitions(GSON.fromJson(json, JsonArray.class));
+    }
+
+    /**
+     * Writes a definition as one row of the bundled file's format, on a single line and spaced the
+     * way the file's rows are. A value the loader fills in by default is left out, and
+     * {@link #parse(String)} reads the row back into a definition that states the same.
+     *
+     * @param definition a declarative definition
+     * @return the row as JSON text, without indentation or a trailing comma
+     * @throws IllegalArgumentException when the definition carries a handler or a condition, or has
+     *                                  a shape that needs a handler, none of which a file can hold
+     */
+    public static String toJson(TransportDefinition definition) {
+        if (definition == null) {
+            throw new IllegalArgumentException("definition must not be null");
+        }
+
+        String id = definition.getId();
+        if (definition.getHandler() != null) {
+            throw new IllegalArgumentException(id + ": a handler cannot be written to a data file");
+        }
+        if (definition.getAvailableWhen() != null) {
+            throw new IllegalArgumentException(id + ": a condition cannot be written to a data file");
+        }
+        if (!TransportDefinition.DECLARATIVE_SHAPES.contains(definition.getShape())) {
+            throw new IllegalArgumentException(id + ": shape " + definition.getShape()
+                    + " needs a handler, which a data file cannot carry");
+        }
+
+        JsonObject row = new JsonObject();
+        row.addProperty("id", id);
+        if (definition.getOrigin() != null) {
+            row.add("origin", toJson(definition.getOrigin()));
+        }
+        row.add("destination", toJson(definition.getDestination()));
+        if (definition.getCategory() != TransportDefinition.categoryOf(definition.getShape())) {
+            row.addProperty("category", definition.getCategory().name());
+        }
+        row.addProperty("shape", definition.getShape().name());
+        addIfStated(row, "menuOption", definition.getMenuOption());
+        addIfStated(row, "menuTarget", definition.getMenuTarget());
+        if (definition.getEntityId() != ObjectInfo.NO_ID) {
+            row.addProperty("entityId", definition.getEntityId());
+        }
+        if (!definition.getItemIds().isEmpty()) {
+            JsonArray itemIds = new JsonArray();
+            definition.getItemIds().forEach(itemIds::add);
+            row.add("itemIds", itemIds);
+        }
+        addIfStated(row, "displayInfo", definition.getDisplayInfo());
+        if (definition.getDuration() != 1) {
+            row.addProperty("duration", definition.getDuration());
+        }
+        if (definition.getMaxWildernessLevel() != TransportDefinition.DEFAULT_MAX_WILDERNESS_LEVEL) {
+            row.addProperty("maxWildernessLevel", definition.getMaxWildernessLevel());
+        }
+        if (definition.isBidirectional()) {
+            row.addProperty("bidirectional", true);
+        }
+        if (definition.isReplaces()) {
+            row.addProperty("replaces", true);
+        }
+
+        JsonObject requirements = toJson(definition.getRequirements(), definition.getItemIds());
+        if (requirements.size() > 0) {
+            row.add("requirements", requirements);
+        }
+
+        StringBuilder text = new StringBuilder();
+        write(row, text);
+        return text.toString();
+    }
+
+    private static void addIfStated(JsonObject row, String key, String value) {
+        if (value != null && !value.trim().isEmpty()) {
+            row.addProperty(key, value);
+        }
+    }
+
+    private static JsonObject toJson(WorldPoint point) {
+        JsonObject json = new JsonObject();
+        json.addProperty("x", point.getX());
+        json.addProperty("y", point.getY());
+        json.addProperty("plane", point.getPlane());
+        return json;
+    }
+
+    /**
+     * Writes requirements as the file states them.
+     *
+     * <p>A definition that lists item ids requires one of them to be held, and adds that rule to its
+     * requirements itself when it is built. The rule is implied by {@code itemIds} in the file, so
+     * it is not written a second time here.</p>
+     */
+    private static JsonObject toJson(DefinitionRequirements requirements, List<Integer> teleportItemIds) {
+        JsonObject json = new JsonObject();
+
+        if (!requirements.getSkillLevels().isEmpty()) {
+            JsonObject skills = new JsonObject();
+            requirements.getSkillLevels().forEach((skill, level) -> skills.addProperty(skill.name(), level));
+            json.add("skills", skills);
+        }
+
+        if (!requirements.getQuests().isEmpty()) {
+            JsonArray quests = new JsonArray();
+            requirements.getQuests().forEach(quest -> quests.add(quest.name()));
+            json.add("quests", quests);
+        }
+
+        List<DefinitionRequirements.RequiredItem> items = new ArrayList<>(requirements.getItems());
+        int[] implied = teleportItemIds.stream().mapToInt(Integer::intValue).toArray();
+        if (implied.length > 0 && !items.isEmpty()) {
+            DefinitionRequirements.RequiredItem last = items.get(items.size() - 1);
+            if (last.getQuantity() == 1 && Arrays.equals(last.getAnyOf(), implied)) {
+                items.remove(items.size() - 1);
+            }
+        }
+        if (!items.isEmpty()) {
+            JsonArray written = new JsonArray();
+            for (DefinitionRequirements.RequiredItem item : items) {
+                JsonObject entry = new JsonObject();
+                JsonArray anyOf = new JsonArray();
+                for (int itemId : item.getAnyOf()) {
+                    anyOf.add(itemId);
+                }
+                entry.add("anyOf", anyOf);
+                if (item.getQuantity() > 1) {
+                    entry.addProperty("quantity", item.getQuantity());
+                }
+                written.add(entry);
+            }
+            json.add("items", written);
+        }
+
+        addVars(json, "varbits", requirements.getVarbits());
+        addVars(json, "varPlayers", requirements.getVarPlayers());
+
+        if (requirements.isMembersOnly()) {
+            json.addProperty("membersOnly", true);
+        }
+
+        return json;
+    }
+
+    private static void addVars(JsonObject json, String key, List<DefinitionRequirements.RequiredVar> required) {
+        if (required.isEmpty()) {
+            return;
+        }
+
+        JsonArray written = new JsonArray();
+        for (DefinitionRequirements.RequiredVar requirement : required) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("id", requirement.getId());
+            entry.addProperty("comparison", requirement.getComparison().name());
+            entry.addProperty("value", requirement.getValue());
+            written.add(entry);
+        }
+        json.add(key, written);
+    }
+
+    /**
+     * Writes JSON on one line with a space after each comma and colon, which is how the bundled
+     * file's rows are spaced. Gson's own writer offers either no spaces or one value per line.
+     */
+    private static void write(JsonElement element, StringBuilder text) {
+        if (element.isJsonObject()) {
+            text.append('{');
+            String separator = "";
+            for (Map.Entry<String, JsonElement> entry : element.getAsJsonObject().entrySet()) {
+                text.append(separator);
+                writeString(entry.getKey(), text);
+                text.append(": ");
+                write(entry.getValue(), text);
+                separator = ", ";
+            }
+            text.append('}');
+        } else if (element.isJsonArray()) {
+            text.append('[');
+            String separator = "";
+            for (JsonElement entry : element.getAsJsonArray()) {
+                text.append(separator);
+                write(entry, text);
+                separator = ", ";
+            }
+            text.append(']');
+        } else if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+            writeString(element.getAsString(), text);
+        } else {
+            text.append(element);
+        }
+    }
+
+    /**
+     * Writes a JSON string, escaping everything outside printable ASCII so the file stays plain
+     * ASCII whatever a name contains.
+     */
+    private static void writeString(String value, StringBuilder text) {
+        text.append('"');
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '"' || c == '\\') {
+                text.append('\\').append(c);
+            } else if (c == '\n') {
+                text.append("\\n");
+            } else if (c == '\r') {
+                text.append("\\r");
+            } else if (c == '\t') {
+                text.append("\\t");
+            } else if (c < 0x20 || c > 0x7e) {
+                text.append(String.format("\\u%04x", (int) c));
+            } else {
+                text.append(c);
+            }
+        }
+        text.append('"');
     }
 
     private static List<TransportDefinition> toDefinitions(JsonArray rows) {

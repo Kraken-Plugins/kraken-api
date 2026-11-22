@@ -73,6 +73,14 @@ Rows of `transports.json` whose id starts with `kraken:upstream-` are generated 
 (`scripts/WalkerCacheDump.java`). Rerun the script instead of editing those rows; rows under any
 other id prefix are kept by it.
 
+Corrections to single dataset transports are hand written rows in that same file, not code: the Al
+Kharid toll gate (`kraken:al-kharid-gate-*`) and the webs (`kraken:web-*`, shape `CLEAR_THEN_WALK`,
+operated by `ClearThenWalkHandler`). Each sets `replaces` to hide the dataset's edge, and
+`HandWrittenTransportsTest` checks them against the pinned dataset. Add the next such fix as a row
+there instead of a special case in `GlobalPathfinder` or `TransportExecutor`.
+`BundledTransports.toJson` writes a definition as a row, and the Transports tool of the DevTools
+plugin in `kraken-plugins` records, tests and saves rows in a live client.
+
 ### `hooks.json` — the only client-revision-sensitive file
 
 `src/main/resources/hooks.json` holds `reflectionHooks`, `loginHooks`, `securityHooks`, and `packets`. `core/hooks/HooksLoader` parses it in a static initializer into `GameHooks` and friends; everything obfuscation-dependent reads from there. After an OSRS client revision, it will be manually updated by a human. Never update this file directly. Never hardcode obfuscated names elsewhere in the codebase.

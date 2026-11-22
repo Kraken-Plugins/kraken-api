@@ -1,6 +1,5 @@
 package unit.com.kraken.api.service.walker.transport;
 
-import com.kraken.api.service.walker.transport.AlKharidGate;
 import com.kraken.api.service.walker.transport.TransportRequirements;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
@@ -64,8 +63,7 @@ class TransportRequirementsTest {
         Transport open = find(t -> (t.getQuests() == null || t.getQuests().isEmpty())
                 && t.getItemRequirements() == null
                 && (t.getVarRequirements() == null || t.getVarRequirements().isEmpty())
-                && noSkillRequirement(t)
-                && !AlKharidGate.matches(t));
+                && noSkillRequirement(t));
         assertNotNull(open, "expected at least one unrestricted transport");
 
         assertTrue(TransportRequirements.met(open, maxedPlayer().build()));
@@ -216,7 +214,7 @@ class TransportRequirementsTest {
 
     @Test
     void theStaffRuleOnlyAppliesToFairyRings() {
-        Transport door = find(t -> t.getType() == TransportType.TRANSPORT && !AlKharidGate.matches(t));
+        Transport door = find(t -> t.getType() == TransportType.TRANSPORT);
         assertNotNull(door);
 
         List<String> reasons = TransportRequirements.unmetReasons(door, maxedPlayer().build());
@@ -244,16 +242,6 @@ class TransportRequirementsTest {
         List<String> reasons = TransportRequirements.unmetReasons(teleport, maxedPlayer().wildernessLevel(31).build());
 
         assertTrue(reasons.stream().anyMatch(r -> r.contains("wilderness")), reasons.toString());
-    }
-
-    @Test
-    void theAlKharidGateNeedsTenCoinsWhenTheQuestIsUnpaid() {
-        Transport gate = find(AlKharidGate::matches);
-        assertNotNull(gate, "expected the Al Kharid gate in the dataset");
-
-        List<String> reasons = TransportRequirements.unmetReasons(gate, maxedPlayer().build());
-
-        assertTrue(reasons.stream().anyMatch(r -> r.contains("10 coins")), reasons.toString());
     }
 
     /** A fairy ring carrying no requirement of its own, so only the staff rule can block it. */

@@ -2,6 +2,8 @@ package com.kraken.api.service.walker.transport;
 
 import com.kraken.api.core.script.ScriptStoppedException;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
+import com.kraken.api.service.tile.TileService;
+import com.kraken.api.service.walker.transport.handler.ClearThenWalkHandler;
 import com.kraken.api.service.walker.transport.handler.DialogueTransportHandler;
 import com.kraken.api.service.walker.transport.handler.FairyRingHandler;
 import com.kraken.api.service.walker.transport.handler.HubDialogueHandler;
@@ -48,13 +50,16 @@ class TransportExecutorTest {
 
     private final TransportRegistry registry = new TransportRegistry();
     private final ObjectTransportHandler objectHandler = mock(ObjectTransportHandler.class);
+    private final ClearThenWalkHandler clearThenWalkHandler = mock(ClearThenWalkHandler.class);
     private final ItemTeleportHandler itemHandler = mock(ItemTeleportHandler.class);
     private final UnsupportedTransportHandler unsupportedHandler = mock(UnsupportedTransportHandler.class);
     private final PlayerStateReader playerStateReader = mock(PlayerStateReader.class);
+    private final TileService tileService = mock(TileService.class);
 
     private final TransportExecutor executor = new TransportExecutor(
             registry,
             objectHandler,
+            clearThenWalkHandler,
             mock(DialogueTransportHandler.class),
             mock(HubDialogueHandler.class),
             mock(HubResumePauseHandler.class),
@@ -69,6 +74,10 @@ class TransportExecutorTest {
         Field field = TransportExecutor.class.getDeclaredField("playerStateReader");
         field.setAccessible(true);
         field.set(executor, playerStateReader);
+
+        Field tiles = TransportExecutor.class.getDeclaredField("tileService");
+        tiles.setAccessible(true);
+        tiles.set(executor, tileService);
     }
 
     @Test
@@ -95,6 +104,33 @@ class TransportExecutorTest {
         TransportDefinition door = TransportDefinition.object("test:door", ORIGIN, DESTINATION, 1535, "Open").build();
 
         assertSame(objectHandler, executor.resolveHandler(door, door.getShape()));
+    }
+
+    @Test
+    void anObstacleThatIsClearedThenWalkedThroughHasItsOwnHandler() {
+        TransportDefinition web = TransportDefinition.object("test:web", ORIGIN, DESTINATION, 733, "Slash")
+                .shape(TransportShape.CLEAR_THEN_WALK)
+                .build();
+
+        assertSame(clearThenWalkHandler, executor.resolveHandler(web, web.getShape()));
+        assertSame(clearThenWalkHandler, executor.resolveHandler(null, TransportShape.CLEAR_THEN_WALK));
+        assertTrue(TransportDefinition.DECLARATIVE_SHAPES.contains(TransportShape.CLEAR_THEN_WALK),
+                "a data file can hold such a row, since the handler works from the row's click target");
+    }
+
+    @Test
+    void anOpenDoorNeedsNoClickButAnOpenWebIsStillHandedToItsHandler() {
+        WorldPoint here = new WorldPoint(3200, 3200, 0);
+        WorldPoint next = new WorldPoint(3200, 3201, 0);
+        when(tileService.isTileReachable(next)).thenReturn(true);
+
+        assertTrue(executor.needsNoOperating(TransportShape.SINGLE_CLICK, here, next, false));
+        assertFalse(executor.needsNoOperating(TransportShape.CLEAR_THEN_WALK, here, next, false),
+                "the handler walks the player through; skipping it would leave them where they stand");
+        assertFalse(executor.needsNoOperating(TransportShape.SINGLE_CLICK, here, next, true),
+                "a teleport is always operated");
+        assertFalse(executor.needsNoOperating(TransportShape.SINGLE_CLICK, here, DESTINATION, false),
+                "a destination further than the next tile is not an open door");
     }
 
     @Test
@@ -179,6 +215,22 @@ class TransportExecutorTest {
         assertTrue(result.isSupported());
         assertTrue(result.getReason().contains("test:door") && result.getReason().contains("plugin fault"),
                 result.getReason());
+    }
+
+    @Test
+    void aHandlerThatSaysWhyItFailedHasItsReasonReported() {
+        TransportContext context = TransportContext.builder().build();
+
+        TransportExecutor.Result explained = executor.operate(
+                crossing -> crossing.fail("operated Slash Web 733 5 times but the way never opened"),
+                context, "kraken:web", "Slash Web 733");
+        TransportExecutor.Result unexplained = executor.operate(crossing -> false, CONTEXT, "kraken:web", "Slash Web 733");
+
+        assertFalse(explained.isCrossed());
+        assertTrue(explained.isSupported());
+        assertTrue(explained.getReason().equals("kraken:web: operated Slash Web 733 5 times but the way never opened"),
+                explained.getReason());
+        assertTrue(unexplained.getReason().equals("could not operate kraken:web (Slash Web 733)"), unexplained.getReason());
     }
 
     @Test

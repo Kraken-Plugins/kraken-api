@@ -65,6 +65,11 @@
   (`service/walker/transport/registry`). That package is Kraken owned: only `ShortestPathBridge` may
   import `shortestpath.*`, so the planner can be replaced without changing what plugins compile against.
   A definition without an origin tile is a teleport usable from anywhere (an item or a spell).
+- A correction to a single dataset transport is a hand written row of
+  `src/main/resources/walker/transports.json` with `replaces` set, not a special case in the planner
+  or the executor. The Al Kharid toll gate (`kraken:al-kharid-gate-*`) and the webs (`kraken:web-*`,
+  shape `CLEAR_THEN_WALK`) are such rows, and `HandWrittenTransportsTest` checks them against the
+  pinned dataset.
 - Tile reachability uses live scene bounds and exact collision snapshots on the client thread.
   Entity menu actions use their owning world view; see `docs/API.md`.
 

@@ -4,10 +4,10 @@ import com.kraken.api.Context;
 import com.kraken.api.core.ClientThreadException;
 import com.kraken.api.core.script.ScriptStoppedException;
 import com.kraken.api.service.magic.MagicService;
-import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.tile.TileService;
 import com.kraken.api.service.util.SleepService;
+import com.kraken.api.service.walker.transport.handler.ClearThenWalkHandler;
 import com.kraken.api.service.walker.transport.handler.DialogueTransportHandler;
 import com.kraken.api.service.walker.transport.handler.FairyRingHandler;
 import com.kraken.api.service.walker.transport.handler.HubDialogueHandler;
@@ -59,12 +59,6 @@ public class TransportExecutor {
      */
     private static final long IDLE_BEFORE_CLICK_MS = 8_000;
 
-    /** How many times to slash a web before giving up; a slash can fail and leave it standing. */
-    private static final int WEB_SLASH_ATTEMPTS = 5;
-
-    /** How long one slash attempt gets to open the web: walking to it plus the slash animation. */
-    private static final long WEB_SLASH_RESOLVE_MS = 6_000;
-
     @Inject
     private Context ctx;
 
@@ -74,9 +68,6 @@ public class TransportExecutor {
     @Inject
     private TileService tileService;
 
-    @Inject
-    private MovementService movementService;
-
     private final TransportRegistry transportRegistry;
 
     private final Map<TransportShape, TransportHandler> handlers = new EnumMap<>(TransportShape.class);
@@ -84,6 +75,7 @@ public class TransportExecutor {
     @Inject
     TransportExecutor(TransportRegistry transportRegistry,
                       ObjectTransportHandler objectHandler,
+                      ClearThenWalkHandler clearThenWalkHandler,
                       DialogueTransportHandler dialogueHandler,
                       HubDialogueHandler hubDialogueHandler,
                       HubResumePauseHandler hubResumePauseHandler,
@@ -94,6 +86,7 @@ public class TransportExecutor {
                       UnsupportedTransportHandler unsupportedHandler) {
         this.transportRegistry = transportRegistry;
         handlers.put(TransportShape.SINGLE_CLICK, objectHandler);
+        handlers.put(TransportShape.CLEAR_THEN_WALK, clearThenWalkHandler);
         handlers.put(TransportShape.CLICK_THEN_DIALOGUE, dialogueHandler);
         handlers.put(TransportShape.HUB_DIALOGUE, hubDialogueHandler);
         handlers.put(TransportShape.HUB_RESUME_PAUSE, hubResumePauseHandler);
@@ -148,9 +141,10 @@ public class TransportExecutor {
      * what stalled on the tunnel origin. Teleports are not skipped this way either. The player is
      * waited to idle before the click so a last approach tile is not a second Cross mid-step.</p>
      *
-     * <p>A slashable web is crossed by {@link #crossWeb}: a slash can fail and needs re-clicking,
-     * and even a successful one leaves the player standing beside the open web, so it is handled
-     * apart from the shape dispatch.</p>
+     * <p>An obstacle that is cleared and then walked through, such as a web, is always handed to
+     * its handler, including when the way is already open: the handler is what walks the player
+     * across, and counting an open web as crossed without moving would leave the next round planning
+     * the same edge from the same tile.</p>
      *
      * <p>A transport that came from the {@link TransportRegistry} takes its shape, its click target
      * and its requirements from its definition rather than from the dataset. That includes a
@@ -194,7 +188,7 @@ public class TransportExecutor {
         } else {
             TransportRequirements.PlayerState state = playerStateReader.read(transport);
             unmet = TransportRequirements.unmetReasons(transport, state);
-            objectInfo = ObjectInfo.parse(AlKharidGate.liveObjectInfo(transport, state));
+            objectInfo = ObjectInfo.parse(transport.getObjectInfo());
         }
         if (!unmet.isEmpty()) {
             return Result.unmet(label + " unusable: " + String.join("; ", unmet));
@@ -214,12 +208,7 @@ public class TransportExecutor {
                 .definition(definition)
                 .build();
 
-        if (isSlashWeb(objectInfo)) {
-            return crossWeb(context, usage);
-        }
-
-        if (TransportArrival.skipOperating(
-                before, destination, destination != null && tileService.isTileReachable(destination), teleport)) {
+        if (needsNoOperating(shape, before, destination, teleport)) {
             log.info("Walker: {} already reachable at {}, skipping {}", destination, before, describe(usage));
             return Result.crossed();
         }
@@ -244,12 +233,37 @@ public class TransportExecutor {
     }
 
     /**
+     * Reports whether a transport can be counted as crossed without operating it, because its
+     * destination is the next tile and already reachable, as with a door someone left open.
+     *
+     * <p>That shortcut never applies to an obstacle that is cleared and then walked through. Its
+     * handler is what walks the player across, and an open web that was counted as crossed while
+     * the player stood still would be planned again from the same tile.</p>
+     *
+     * @param shape how the transport is operated, may be null
+     * @param here where the player stands
+     * @param destination where the transport leads, may be null
+     * @param teleport true when the transport is a teleport, which is always operated
+     * @return true when nothing should be clicked
+     */
+    boolean needsNoOperating(TransportShape shape, WorldPoint here, WorldPoint destination, boolean teleport) {
+        if (shape == TransportShape.CLEAR_THEN_WALK) {
+            return false;
+        }
+        return TransportArrival.skipOperating(
+                here, destination, destination != null && tileService.isTileReachable(destination), teleport);
+    }
+
+    /**
      * Runs a handler and turns a refusal or a fault into a result.
      *
      * <p>A handler that came from the registry is someone else's code, so an exception it throws
      * ends this crossing with a failure instead of escaping into the walk. Two exceptions always
      * pass through, whoever threw them: a stopping script has to unwind, and a client thread call
      * whose outcome is unknown must not be reported as a plain failure.</p>
+     *
+     * <p>A handler that could not operate the transport may have said why through
+     * {@link TransportContext#fail(String)}; that reason is reported in place of the general one.</p>
      *
      * @param handler the handler to run
      * @param context the crossing to operate
@@ -277,7 +291,11 @@ public class TransportExecutor {
         if (handler instanceof UnsupportedTransportHandler) {
             return Result.unsupported(label + " has no destination chooser implemented");
         }
-        return Result.failed("could not operate " + label + " (" + description + ")");
+
+        String reason = context.getFailureReason();
+        return Result.failed(reason != null
+                ? label + ": " + reason
+                : "could not operate " + label + " (" + description + ")");
     }
 
     /**
@@ -393,62 +411,6 @@ public class TransportExecutor {
             boolean reachable = destination != null && tileService.isTileReachable(destination);
             return TransportArrival.arrived(before, now, destination, reachable);
         }, timeout);
-    }
-
-    /**
-     * Crosses a slashable web.
-     *
-     * <p>A web is the one transport whose operation neither moves the player nor reliably works: a
-     * slash can fail, leaving the web intact and waiting for another click, and even a successful
-     * slash only opens the way while the player stays put. So the web is slashed until the far side
-     * becomes reachable, retrying failed attempts, and then walked through before the crossing is
-     * reported. A web someone already slashed is walked through without clicking — a slashed web
-     * offers no {@code Slash} action, and reporting it crossed without moving would leave the next
-     * round planning the same edge from the same tile.</p>
-     *
-     * @param context the transport being crossed, used to resolve and click the web
-     * @param usage the transport edge chosen by the planner
-     * @return crossed once the player stands on the far side, or a failure naming what went wrong
-     */
-    private Result crossWeb(TransportContext context, GlobalPathfinder.TransportUsage usage) {
-        WorldPoint destination = usage.getDestination();
-        if (destination == null) {
-            return Result.failed("web transport at " + usage.getOrigin() + " carries no destination");
-        }
-
-        for (int attempt = 1; !tileService.isTileReachable(destination); attempt++) {
-            if (attempt > WEB_SLASH_ATTEMPTS) {
-                return Result.failed("slashed " + describe(usage) + " " + WEB_SLASH_ATTEMPTS
-                        + " times but it never opened");
-            }
-
-            SleepService.sleepUntil(() -> ctx.players().local().isIdle(), IDLE_BEFORE_CLICK_MS);
-            log.info("Walker: slashing {} toward {} (attempt {}/{})",
-                    describe(usage), destination, attempt, WEB_SLASH_ATTEMPTS);
-            if (!TransportEntityResolver.interact(context)) {
-                return Result.failed("could not slash " + describe(usage));
-            }
-
-            SleepService.sleepUntil(() -> tileService.isTileReachable(destination), WEB_SLASH_RESOLVE_MS);
-        }
-
-        log.info("Walker: {} is open; walking through to {}", describe(usage), destination);
-        if (!movementService.traversePath(ctx.getClient(), Collections.singletonList(destination), 0)) {
-            return Result.failed("opened " + describe(usage) + " but could not walk through to " + destination);
-        }
-
-        return Result.crossed();
-    }
-
-    /**
-     * Whether this transport is a slashable web. {@code Slash} is the menu option the dataset uses
-     * for web rows and nothing else, so the option alone identifies them.
-     *
-     * @param info the parsed object info, may be null
-     * @return true when the transport is operated by slashing
-     */
-    private static boolean isSlashWeb(ObjectInfo info) {
-        return info != null && "Slash".equalsIgnoreCase(info.getMenuOption());
     }
 
     private String describe(GlobalPathfinder.TransportUsage usage) {

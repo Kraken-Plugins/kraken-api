@@ -5,12 +5,17 @@ import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.query.npc.NpcQuery;
 import com.kraken.api.query.tileobject.TileObjectEntity;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
+import net.runelite.api.ObjectComposition;
 import net.runelite.api.coords.WorldPoint;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -78,9 +83,7 @@ public final class TransportEntityResolver {
         TileObjectEntity object = findObject(ctx, info, anchor, context.playerLocation());
         if (object != null) {
             ObjectInfo refined = info.withEntityName(object.getName());
-            String chosen = action != null ? action
-                    : chooseAction(refined, object.getObjectComposition() != null
-                            ? object.getObjectComposition().getActions() : null);
+            String chosen = action != null ? action : chooseAction(refined, objectActions(object));
             if (chosen == null) {
                 log.debug("No usable action on object {}", refined.getId());
                 return false;
@@ -103,6 +106,130 @@ public final class TransportEntityResolver {
 
         log.debug("Could not find anything matching '{}' near {}", info, anchor);
         return false;
+    }
+
+    /**
+     * Finds what a click target refers to near a tile, the way a crossing does, without clicking
+     * it. A tool can use this to check that a transport's object or NPC is still in the scene and
+     * still offers its menu action.
+     *
+     * <p>Scenery is tried first, by id within four tiles and then by name within ten, and an NPC
+     * after that within ten. A crossing also searches around the player when the search around the
+     * origin finds nothing; this searches around the given tile only, so a miss here can still be a
+     * transport the walker manages to operate. Call it off the client thread.</p>
+     *
+     * @param ctx the API context
+     * @param info what to click, as a transport states it
+     * @param anchor the tile to search around, which for a crossing is the transport's origin
+     * @return what was found, or null when nothing in the scene matches
+     */
+    public static Located locate(Context ctx, ObjectInfo info, WorldPoint anchor) {
+        if (ctx == null || info == null || anchor == null) {
+            return null;
+        }
+
+        TileObjectEntity object = findObjectNear(ctx, info, anchor);
+        if (object != null) {
+            String[] actions = objectActions(object);
+            return new Located(false, object.getId(), object.getName(),
+                    ctx.runOnClientThread(object::getWorldLocation, null),
+                    actions, chooseAction(info.withEntityName(object.getName()), actions));
+        }
+
+        NpcEntity npc = findNpc(ctx, info, anchor);
+        if (npc != null) {
+            String[] actions = npcActions(ctx, npc);
+            return new Located(true, npc.getId(), npc.getName(),
+                    ctx.runOnClientThread(npc::getWorldLocation, null),
+                    actions, chooseAction(info.withEntityName(npc.getName()), actions));
+        }
+
+        return null;
+    }
+
+    /**
+     * The object or NPC a click target resolved to, and what a crossing would click on it.
+     */
+    @Getter
+    public static final class Located {
+
+        /** True when the target is an NPC, false when it is scenery. */
+        private final boolean npc;
+
+        /** The id the entity has in the scene. For scenery this is the id it is placed under. */
+        private final int id;
+
+        /** The entity's name as the client reports it. */
+        private final String name;
+
+        /** The tile the entity stands on, or null when it could not be read. */
+        private final WorldPoint location;
+
+        /** The menu actions the entity offers right now, without the empty slots. */
+        private final List<String> actions;
+
+        /**
+         * The menu action a crossing would send, or null when it would send none. This is not always
+         * an action the entity offers: an option the entity lacks is sent as written when no
+         * fallback applies, and the click then fails.
+         */
+        private final String chosenAction;
+
+        /**
+         * Describes an entity found in the scene.
+         *
+         * @param npc true for an NPC, false for scenery
+         * @param id the id the entity has in the scene
+         * @param name the entity's name
+         * @param location the tile the entity stands on, may be null
+         * @param actions the entity's menu actions, which may hold empty slots, or null for none
+         * @param chosenAction the action a crossing would send, may be null
+         */
+        public Located(boolean npc, int id, String name, WorldPoint location, String[] actions, String chosenAction) {
+            this.npc = npc;
+            this.id = id;
+            this.name = name;
+            this.location = location;
+            this.actions = offered(actions);
+            this.chosenAction = chosenAction;
+        }
+
+        /**
+         * Reports whether the entity offers a menu action, ignoring case.
+         *
+         * @param action the action to look for, may be null
+         * @return true when the entity's menu has it
+         */
+        public boolean offers(String action) {
+            if (action == null) {
+                return false;
+            }
+            for (String offered : actions) {
+                if (offered.equalsIgnoreCase(action.trim())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static List<String> offered(String[] actions) {
+            if (actions == null) {
+                return List.of();
+            }
+
+            List<String> offered = new ArrayList<>(actions.length);
+            for (String action : actions) {
+                if (action != null && !action.isEmpty()) {
+                    offered.add(action);
+                }
+            }
+            return Collections.unmodifiableList(offered);
+        }
+    }
+
+    private static String[] objectActions(TileObjectEntity object) {
+        ObjectComposition composition = object.getObjectComposition();
+        return composition != null ? composition.getActions() : null;
     }
 
     /**
