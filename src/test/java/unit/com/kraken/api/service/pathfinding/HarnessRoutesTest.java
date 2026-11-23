@@ -156,8 +156,11 @@ class HarnessRoutesTest {
         GlobalPathfinder.PathResult free = route(PORT_SARIM_DOCK, MUSA_POINT, FREE_TRAVEL);
         GlobalPathfinder.PathResult spending = route(PORT_SARIM_DOCK, MUSA_POINT, SPENDING_TRAVEL);
 
+        // With nothing spent on the ship, the way across is the Fight Pit teleport into the volcano,
+        // which costs a cooldown and no item.
         assertFalse(kinds(free).contains(TransportCategory.SHIP), ids(free).toString());
-        assertFalse(free.isComplete(), "with nothing spent on the ship there is no way across: " + ids(free));
+        assertTrue(kinds(free).contains(TransportCategory.TELEPORTATION_MINIGAME), ids(free).toString());
+        assertTrue(free.getTransports().stream().noneMatch(HarnessRoutesTest::spendsAnItem), ids(free).toString());
         assertTrue(kinds(spending).contains(TransportCategory.SHIP), ids(spending).toString());
         assertTrue(spending.isComplete());
     }

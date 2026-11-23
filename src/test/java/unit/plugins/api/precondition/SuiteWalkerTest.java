@@ -111,14 +111,14 @@ class SuiteWalkerTest {
     }
 
     @Test
-    void aTripNeverPlansWhatTheWalkerCannotOperate() {
-        // The planner's own defaults turn canoes and minigame teleports on. A trip has to start
-        // from the walker's defaults, which leave them out.
+    void aTripPlansCanoesAndMinigameTeleportsLikeAnyWalk() {
+        // Neither uses anything up: a canoe is built with an axe the player keeps, and a minigame
+        // teleport costs its cooldown. A trip takes them whether or not consumables are allowed.
         for (boolean allowConsumables : new boolean[]{false, true}) {
             GlobalPathfinderConfig planning = SuiteWalker.travelConfig(allowConsumables).getPathfinderConfig();
 
-            assertFalse(planning.isUseCanoes());
-            assertFalse(planning.isUseTeleportationMinigames());
+            assertTrue(planning.isUseCanoes());
+            assertTrue(planning.isUseTeleportationMinigames());
         }
     }
 

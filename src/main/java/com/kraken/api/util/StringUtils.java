@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * String helpers for matching and formatting game text: term lookup, color tags and AES encryption.
@@ -67,6 +68,29 @@ public class StringUtils {
     public static String addColTags(String text) {
         if (text == null || text.isEmpty()) return text;
         return "<col=ff9040>" + text + "</col>";
+    }
+
+    /**
+     * Reduces text to its letters and digits in lower case, so that two spellings of one name
+     * compare equal whatever their case, spacing and punctuation: {@code "The Clock Tower"} and
+     * {@code "The Clocktower"} both become {@code "theclocktower"}.
+     *
+     * @param text the text to reduce, may be null
+     * @return the letters and digits of the text in lower case, empty when the text is null
+     */
+    public static String lettersAndDigits(String text) {
+        if (text == null) {
+            return "";
+        }
+
+        StringBuilder builder = new StringBuilder(text.length());
+        for (char character : text.toLowerCase(Locale.ROOT).toCharArray()) {
+            if (Character.isLetterOrDigit(character)) {
+                builder.append(character);
+            }
+        }
+
+        return builder.toString();
     }
 
     /**

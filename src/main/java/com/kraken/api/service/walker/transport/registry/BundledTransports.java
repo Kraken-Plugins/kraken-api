@@ -372,8 +372,8 @@ public final class BundledTransports {
      * @param element the row
      * @param declarativeOnly true to refuse a shape whose built in handler cannot work from a row
      *                        alone, which is the rule for a file a person writes. The dataset
-     *                        turns it off, because its canoes and minigame teleports are planned
-     *                        even though only a registered handler can operate them
+     *                        turns it off, because its gliders, balloons, mushtrees and quetzals
+     *                        have the one shape whose handler also reads the row's category
      */
     static TransportDefinition toDefinition(JsonElement element, boolean declarativeOnly) {
         if (element == null || !element.isJsonObject()) {

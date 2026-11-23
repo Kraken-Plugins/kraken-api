@@ -10,6 +10,7 @@ import com.kraken.api.service.util.SleepService;
 import com.kraken.api.service.walker.HomeTeleportPlan;
 import com.kraken.api.service.walker.transport.TransportContext;
 import com.kraken.api.service.walker.transport.TransportHandler;
+import com.kraken.api.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
@@ -17,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -185,17 +185,6 @@ public class SpellTeleportHandler implements TransportHandler {
 
     /** Spell names differ from display info in punctuation and spacing more than in wording. */
     private static String normalise(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        StringBuilder builder = new StringBuilder();
-        for (char c : value.toLowerCase(Locale.ROOT).toCharArray()) {
-            if (Character.isLetterOrDigit(c)) {
-                builder.append(c);
-            }
-        }
-
-        return builder.toString();
+        return StringUtils.lettersAndDigits(value);
     }
 }

@@ -29,7 +29,7 @@ public enum WalkOutcome {
     /** A transport could not be operated, for example because its object was not in the scene. */
     TRANSPORT_FAILED,
 
-    /** A transport on the route is of a kind the walker cannot yet operate. */
+    /** A step of the route carries no transport that a handler operates. */
     TRANSPORT_UNSUPPORTED,
 
     /** The player's position could not be read. */

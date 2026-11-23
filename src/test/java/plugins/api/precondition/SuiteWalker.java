@@ -102,8 +102,8 @@ public class SuiteWalker {
      *
      * <p>Without consumables the planner is kept away from teleport items and teleport spells, and
      * from every fare, by allowing it to spend nothing of any currency. What is left costs nothing:
-     * doors, stairs, shortcuts, free rides and the home teleport. The wilderness is avoided either
-     * way.</p>
+     * doors, stairs, shortcuts, free rides, canoes, and the home and minigame teleports. The
+     * wilderness is avoided either way.</p>
      *
      * @param allowConsumables whether a trip may use up runes, charges, tablets and coins
      * @return the settings to walk with

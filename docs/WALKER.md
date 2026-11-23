@@ -74,13 +74,14 @@ walker.walkTo(destination, WalkerConfig.builder()
 ```
 
 `WalkerConfig` carries the `GlobalPathfinderConfig` deliberately: the two have to agree. Turning a
-transport type off there stops the planner proposing it, which is how a transport the walker cannot
-operate is kept out of a route rather than failing mid-walk. Canoes and minigame teleports default
-off for that reason; a custom pathfinder config can turn them back on, and the walk then fails with
-`TRANSPORT_UNSUPPORTED` if the route still uses one.
+transport type off there stops the planner proposing it, which is how a kind of transport a walk
+should not use is kept out of its route. Every type is on by default, canoes and minigame teleports
+included. Turn `useCanoes` off for a walk that should not stop to build a canoe, and
+`useTeleportationMinigames` off for one that should not spend the minigame teleport's twenty minute
+cooldown.
 
 On a free-to-play world `PathfinderLiveConfig` also turns off members-only types (agility shortcuts,
-fairy rings, jewellery, canoes, and the rest) even if the caller left them on. Boats, ships and
+fairy rings, jewellery, canoes, minigame teleports and the rest) even if the caller left them on. Boats, ships and
 standard-book spells stay available. Plan-only callers of `GlobalPathfinder` are not adjusted unless
 they resolve the config themselves.
 
@@ -138,7 +139,7 @@ several meaningfully different causes:
 | `SUCCESS` | The player reached the destination. |
 | `NO_ROUTE` | The pathfinder found no complete route. An incomplete stub (closest land across water, for example) is not walked. |
 | `TRANSPORT_REQUIREMENTS_UNMET` | A transport needs an item, level, quest or world state the player lacks. The reason names it. |
-| `TRANSPORT_UNSUPPORTED` | The route needs a transport kind the walker cannot yet operate. |
+| `TRANSPORT_UNSUPPORTED` | A step of the route carries no transport definition to operate. Every shape has a built in handler, so a planned route does not end this way. |
 | `TRANSPORT_FAILED` | A transport was attempted but the player did not get through. |
 | `STALLED` | The player stopped making progress, or a door/gate on the route could not be opened. The reason names the tile and the object. |
 | `TIMED_OUT` | The time or round budget ran out. |
@@ -164,8 +165,8 @@ by shape. A definition that states no shape takes the usual one of its category:
 | `FAIRY_RING` | fairy rings | yes |
 | `ITEM_SUBOP` | teleport items, quetzal whistle, seasonal transports | yes |
 | `SPELL` | teleport spells and home teleports | yes |
-| `CANOE` | canoes | **no** |
-| `GROUPING_TELEPORT` | minigame teleports | **no** |
+| `CANOE` | canoes | yes |
+| `GROUPING_TELEPORT` | minigame teleports | yes |
 
 `TransportCategoryTest` asserts every category has a shape, and `TransportDatasetTest` that every
 row of the dataset carries what its shape works from, so a regenerated dataset that the walker
@@ -239,19 +240,67 @@ the text it shows. `HubWidgets` also holds the small translation tables for the 
 dataset and the interface disagree on a name — a glider stop is `"Ta Quir Priw"` in the dataset and
 `GRANDTREE` in the interface. `HubWidgetsTest` sweeps every stop of every such hub.
 
-### Still unsupported
+### Canoes
 
-**Canoes** are not a destination choice but a build sequence: fell a tree, shape the log into one of
-four hulls, then float it, gated on a woodcutting level and an axe. 45 edges.
+A canoe is a build sequence before it is a destination choice. A canoe station is one object that
+takes a different form at each stage and offers one action per form: `Chop-down` on the standing
+tree, nothing while the tree falls, `Shape-Canoe` on the trunk, `Float Log` or `Float Canoe` on the
+shaped hull, and `Paddle Log` or `Paddle Canoe` once it is afloat. `CanoeHandler` reads the action
+(`CanoeStage`), uses it and waits for the station to move on, until the canoe is afloat. The stage
+is kept per player, so a station left part way along is carried on from where it stands. Felling
+and shaping take as long as the axe and the level make them, so a stage is waited on for as long as
+the player is at work. It is given up once the player has stood idle for thirty seconds without the
+station moving on, and the whole build after two minutes.
 
-**Minigame teleports** are driven from the grouping tab, which `InterfaceTab` does not name. 21
-edges, and every destination is reachable another way.
+Shaping opens an interface with one layer per hull. The game puts a `Make` button on a layer only
+at the woodcutting level that hull needs (12 for a log, 27 for a dugout, 42 for a stable dugout, 57
+for a waka), and the handler takes the largest hull on offer. A larger hull reaches every stop a
+smaller one does, so that hull is enough whenever the player's level allows the trip at all, and
+the choice does not depend on the dataset stating the right level for a pair of stations.
 
-Both fail immediately with `TRANSPORT_UNSUPPORTED` and a reason, unless a plugin has registered a
-handler for the shape (see [Adding transports at runtime](#adding-transports-at-runtime)). `WalkerConfig` turns `useCanoes`
-and `useTeleportationMinigames` off by default so a default walk routes around them instead. A
-custom `GlobalPathfinderConfig` can turn them back on; the walk then fails at fire time if the
-route still uses one. Plan-only callers of `GlobalPathfinder` keep the planner's defaults (both on).
+Paddling opens a map of the river the station stands on: `CanoeMapLum` for the River Lum and
+`CanoeMapDougne` for the river through Ardougne. A stop the floating canoe reaches offers
+`Travel to` and its name, and a stop it does not reach offers nothing. The handler finds the
+destination by that action (`CanoeWidgets`), comparing names without case, spacing or punctuation,
+because the dataset writes `The Clock Tower` where the map has `The Clocktower`. `CanoeWidgetsTest`
+sweeps every canoe of the dataset against the actions of both maps. When the map does not offer the
+destination, the crossing fails and says the canoe does not reach it. That is what happens when a
+smaller canoe was left afloat at the station earlier, and it has to be paddled away by hand first.
+
+The 45 canoe rows of the dataset ask for an axe and the woodcutting level of the hull the trip
+needs, so a player who cannot build the canoe is never routed to one. The dataset's duration covers
+the ride and not the build, so a canoe costs the planner less than it takes.
+
+### Minigame teleports
+
+A minigame teleport is clicked on the grouping tab, the fourth sub tab of the chat channel side
+panel. Its teleport button goes to whichever activity is selected in the list above it, and the
+game tells the activities apart by an id. `GroupingTeleportHandler` works in four steps:
+
+1. It reads the activity from the display info (`GroupingTeleport`): the dataset writes
+   `Castle Wars Minigame Teleport`. It looks the id up by that name in the game's own table of
+   minigame teleports (`DBTableID.MinigameTeleport`), comparing names without punctuation, because
+   the dataset writes `Giant's Foundry` where the game writes `Giants' Foundry`.
+2. It opens the chat channel side panel and clicks the sub tab that offers `Grouping`. Group
+   ironman accounts get a larger panel with one more sub tab, and the button is found by its action
+   on either.
+3. It selects the activity by running client script 124 with the id, which is the script the
+   activity list runs when an entry is picked. The list itself opens on a click listener and not on
+   a menu action, so it cannot be operated the way a button is.
+4. It clicks `Teleport to` and the activity's name. The teleport button is one child per activity
+   id, and only the child of the selected activity carries the action, so the click cannot land on
+   an activity that was selected earlier.
+
+The rat pits have four landings and ask which one in a chat menu after the click. The display info
+names it (`Rat Pits Minigame Teleport: 2. Varrock`), and the handler answers by name, or by
+position when no option has that name, while it waits for the teleport to land. The teleport
+channels for about as long as a home teleport.
+
+The 289 minigame rows of the dataset (24 landings, with a row for each animation the teleport can
+play, since the animation decides how long it channels) state what each activity asks of the
+player and the twenty minute cooldown as requirements, so a teleport that is cooling down is not
+planned. They work at wilderness level 0 only. `GroupingTeleportTest` sweeps every one of them
+against the names the game lists.
 
 ### Turning two strings into a click
 
@@ -315,7 +364,7 @@ definition whose id starts with `my-plugin:`.
 | `shape` | How it is operated, when no handler is given. Left out, it is the usual shape of the category. |
 | `menuOption`, `menuTarget`, `entityId` | What to click. The id is tried first, then the name. For an item teleport `menuOption` is the action on the item. |
 | `objectInfo` | What to click as one string, `Open Door 9398`, in place of the three fields above. The dataset uses it for clicks the game cache did not confirm. |
-| `displayInfo` | The destination to choose: a chat option, a numbered hub entry, a fairy ring code, or the stop an item lists. For a spell it is the spell's name. |
+| `displayInfo` | The destination to choose: a chat option, a numbered hub entry, a fairy ring code, the stop an item lists, or the stop a canoe is paddled to. For a spell it is the spell's name, and for a minigame teleport the minigame as the grouping tab lists it. |
 | `itemIds` | The items that carry an item teleport. Any one of them works, worn or carried. |
 | `maxWildernessLevel` | The deepest wilderness level a teleport usable from anywhere works at. Defaults to 20. |
 | `duration` | Game ticks. It is the planning cost and sets the arrival timeout. Defaults to 1. |
@@ -330,11 +379,12 @@ definition whose id starts with `my-plugin:`.
 builder for the common cases. A definition without a handler is declarative: it reuses the handler
 for its shape, and a click goes through the same `TransportEntityResolver` the dataset rows use.
 `SINGLE_CLICK`, `CLEAR_THEN_WALK`, `WALK`, `CLICK_THEN_DIALOGUE`, `HUB_DIALOGUE`, `HUB_RESUME_PAUSE`,
-`FAIRY_RING`, `ITEM_SUBOP` and `SPELL` work that way from what any definition states.
-`CLICK_THEN_WIDGET` also reads the category to know which interface opens (a glider, a balloon, a
-mushtree or a quetzal), and `CANOE` and `GROUPING_TELEPORT` have no built in handler, so a
-definition with one of those needs a handler. A fairy ring needs a dramen or lunar staff in game;
-the dataset's rings say so in their requirements, and a ring you define has to say so too.
+`FAIRY_RING`, `ITEM_SUBOP`, `SPELL`, `CANOE` and `GROUPING_TELEPORT` work that way from what any
+definition states. `CLICK_THEN_WIDGET` also reads the category to know which interface opens (a
+glider, a balloon, a mushtree or a quetzal), so a definition with that shape names one of those
+categories or brings a handler. A fairy ring needs a dramen or lunar staff in game, and a canoe an
+axe and a woodcutting level; the dataset's rows say so in their requirements, and one you define
+has to say so too.
 
 A handler blocks off the client thread, like the built in ones, and only operates the transport.
 Arrival is judged by `TransportExecutor` the same way for every transport. A handler that cannot
@@ -389,11 +439,16 @@ the spell as castable (`MagicService.castRefusal`), which already accounts for s
 rune pouch and combination runes, and the walker asks again before it casts. The name has to match
 a spell in the `Standard`, `Ancient`, `Lunar` or `Arceuus` enums.
 
+A minigame teleport is a definition with the shape `GROUPING_TELEPORT` whose `displayInfo` names the
+minigame as the grouping tab lists it, such as `Castle Wars`. Nothing about the teleport is checked
+for it, so state the twenty minute cooldown and whatever the minigame asks of the player as
+requirements, the way the dataset's rows do (`COOLDOWN_MINUTES` of 20 on varplayer 888).
+
 A teleport usable from anywhere cannot be `bidirectional` and cannot `replace` a dataset
 transport, since both need an origin tile. While the player is aboard a boat at sea no teleport is
 planned, which is the rule the planner applies to its own. A shape that clicks something in the
 scene needs an origin; without one, give the definition `ITEM_SUBOP`, `SPELL`, `GROUPING_TELEPORT`
-(with a handler registered for that shape) or a handler of its own.
+or a handler of its own.
 
 ### What a requirement can say
 
@@ -435,10 +490,10 @@ throws counts as false, so one plugin's fault cannot stop every walk.
 
 ### Handlers for a whole shape
 
-`registerHandler(shape, handler)` replaces the built in handler for a shape. That is how canoes or
-minigame teleports can be supplied without changing the API: with a handler registered for `CANOE`,
-a route through a canoe no longer ends with `TRANSPORT_UNSUPPORTED`. The latest registration wins,
-and closing its handle brings back the one before it.
+`registerHandler(shape, handler)` replaces the built in handler for a shape, for every transport of
+that shape and for every plugin: with a handler registered for `CANOE`, every canoe is built by that
+handler from the next crossing on. The latest registration wins, and closing its handle brings back
+the one before it, down to the built in handler.
 
 ### Hiding a dataset transport
 
@@ -511,7 +566,8 @@ An item requirement can carry the other ways to meet it:
 The file is read strictly, because reading around a spelling mistake would load a gated transport
 without its gate. A row is logged and skipped when it has a key the loader does not know, a
 category, shape, skill, quest or comparison that is not a known name, a missing required field, or
-a shape that needs a handler (a file cannot carry one). Each row is judged on its own, so the rest
+the shape `CLICK_THEN_WIDGET`, whose handler works from more than a row states. Each row is judged
+on its own, so the rest
 still load. `BundledTransportsTest` fails the build when any row of the shipped file is skipped or
 two rows share an id. The rows above are examples of the format, not shipped data.
 

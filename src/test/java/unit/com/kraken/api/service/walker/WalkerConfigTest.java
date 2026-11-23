@@ -13,18 +13,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class WalkerConfigTest {
 
     @Test
-    void aDefaultWalkDoesNotPlanUnimplementedTransports() {
+    void aDefaultWalkPlansCanoesAndMinigameTeleports() {
         GlobalPathfinderConfig config = WalkerConfig.builder().build().getPathfinderConfig();
-
-        assertFalse(config.isUseCanoes());
-        assertFalse(config.isUseTeleportationMinigames());
-    }
-
-    @Test
-    void thePathfinderLibraryStillDefaultsThoseKindsOn() {
-        GlobalPathfinderConfig config = GlobalPathfinderConfig.builder().build();
 
         assertTrue(config.isUseCanoes());
         assertTrue(config.isUseTeleportationMinigames());
+    }
+
+    @Test
+    void aWalkCanLeaveThoseKindsOut() {
+        GlobalPathfinderConfig config = WalkerConfig.builder()
+                .pathfinderConfig(GlobalPathfinderConfig.builder()
+                        .useCanoes(false)
+                        .useTeleportationMinigames(false)
+                        .build())
+                .build()
+                .getPathfinderConfig();
+
+        assertFalse(config.isUseCanoes());
+        assertFalse(config.isUseTeleportationMinigames());
     }
 }

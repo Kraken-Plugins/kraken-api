@@ -182,12 +182,55 @@ class BundledTransportsTest {
     void aRowThatStatesNoShapeIsOperatedTheUsualWayForItsCategory() {
         String door = MINIMAL_ROW.replace("\"shape\": \"SINGLE_CLICK\",", "");
         String boat = door.replace("\"entityId\"", "\"category\": \"BOAT\", \"entityId\"");
-        String canoe = door.replace("\"entityId\"", "\"category\": \"CANOE\", \"entityId\"");
+        String canoe = door.replace("\"entityId\"",
+                "\"category\": \"CANOE\", \"displayInfo\": \"Edgeville\", \"entityId\"");
+        String glider = door.replace("\"entityId\"", "\"category\": \"GNOME_GLIDER\", \"entityId\"");
 
         assertEquals(TransportShape.SINGLE_CLICK, BundledTransports.parse("[" + door + "]").get(0).getShape());
         assertEquals(TransportShape.CLICK_THEN_DIALOGUE, BundledTransports.parse("[" + boat + "]").get(0).getShape());
-        assertTrue(BundledTransports.parse("[" + canoe + "]").isEmpty(),
-                "a canoe has no built in handler, so a file a person writes cannot hold one");
+        assertEquals(TransportShape.CANOE, BundledTransports.parse("[" + canoe + "]").get(0).getShape());
+        assertTrue(BundledTransports.parse("[" + glider + "]").isEmpty(),
+                "the handler for a glider's shape reads more than a row a person writes is trusted to state");
+    }
+
+    @Test
+    void aCanoeAndAMinigameTeleportCanBeWrittenAsRowsAndReadBack() {
+        WorldPoint station = new WorldPoint(3243, 3237, 0);
+        WorldPoint edgeville = new WorldPoint(3128, 3503, 0);
+        TransportDefinition canoe = TransportDefinition.builder()
+                .id("test:canoe")
+                .origin(station)
+                .destination(edgeville)
+                .category(TransportCategory.CANOE)
+                .menuTarget("Canoe Station")
+                .entityId(12163)
+                .displayInfo("Edgeville")
+                .duration(30)
+                .requirements(DefinitionRequirements.builder().skill(Skill.WOODCUTTING, 42).build())
+                .build();
+        TransportDefinition teleport = TransportDefinition.builder()
+                .id("test:castle-wars")
+                .destination(new WorldPoint(2442, 3093, 0))
+                .shape(TransportShape.GROUPING_TELEPORT)
+                .displayInfo("Castle Wars")
+                .duration(24)
+                .maxWildernessLevel(0)
+                .build();
+
+        TransportDefinition canoeRead = BundledTransports.parse("[" + BundledTransports.toJson(canoe) + "]").get(0);
+        TransportDefinition teleportRead = BundledTransports.parse("[" + BundledTransports.toJson(teleport) + "]").get(0);
+
+        assertEquals(TransportShape.CANOE, canoeRead.getShape());
+        assertEquals(TransportCategory.CANOE, canoeRead.getCategory());
+        assertEquals("Edgeville", canoeRead.getDisplayInfo());
+        assertEquals(12163, canoeRead.getEntityId());
+        assertEquals(42, canoeRead.getRequirements().getSkillLevels().get(Skill.WOODCUTTING));
+
+        assertEquals(TransportShape.GROUPING_TELEPORT, teleportRead.getShape());
+        assertEquals(TransportCategory.TELEPORTATION_MINIGAME, teleportRead.getCategory());
+        assertTrue(teleportRead.isUsableAnywhere());
+        assertEquals("Castle Wars", teleportRead.getDisplayInfo());
+        assertEquals(0, teleportRead.getMaxWildernessLevel());
     }
 
     @Test
@@ -411,8 +454,9 @@ class BundledTransportsTest {
         TransportDefinition withCondition = TransportDefinition.object("test:condition", origin, destination, 1, "Open")
                 .availableWhen(() -> true)
                 .build();
-        TransportDefinition needsHandler = TransportDefinition.object("test:canoe", origin, destination, 1, "Chop")
-                .shape(TransportShape.CANOE)
+        TransportDefinition needsHandler = TransportDefinition.object("test:glider", origin, destination, 1, "Glider")
+                .category(TransportCategory.GNOME_GLIDER)
+                .shape(TransportShape.CLICK_THEN_WIDGET)
                 .build();
 
         assertThrows(IllegalArgumentException.class, () -> BundledTransports.toJson(withHandler));
