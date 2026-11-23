@@ -12,14 +12,14 @@ class PacketPayloadTest {
     @Test
     void bundledPacketWireBytesArePinned() {
         assertArrayEquals(new byte[]{1}, encode("EVENT_APPLET_FOCUS", 1, 1));
-        // EVENT_MOUSE_CLICK: 0, mouseInfo (add 128, then high byte), mouseY (little-endian), mouseX (add 128, then high byte).
-        assertArrayEquals(new byte[]{0, 82, 4, 19, 1, (byte) 222, 1},
+        // EVENT_MOUSE_CLICK: mouseX (little endian), mouseY (high byte, then add 128), 0 plus 128, mouseInfo (high byte, then add 128).
+        assertArrayEquals(new byte[]{94, 1, 1, (byte) 147, (byte) 128, 4, 82},
                 encode("EVENT_MOUSE_CLICK", 7, 1234, 350, 275, 0));
         assertArrayEquals(new byte[]{0, 15, 66, 64}, encode("RESUME_COUNTDIALOG", 4, 1_000_000));
         assertArrayEquals(new byte[]{3, (byte) 227}, encode("RESUME_OBJDIALOG", 2, 995));
         assertArrayEquals(new byte[]{5, 'T', 'e', 's', 't', 0}, encode("RESUME_STRINGDIALOG", -1, 5, "Test"));
-        // MOVE_GAMECLICK: one-byte body length, negated modifier, X (big-endian), Y (high byte, then add 128).
-        assertArrayEquals(new byte[]{5, (byte) 255, 12, (byte) 149, 12, 18},
+        // MOVE_GAMECLICK: one byte body length, X (big endian), Y (add 128, then high byte), modifier plus 128.
+        assertArrayEquals(new byte[]{5, 12, (byte) 149, 18, 12, (byte) 129},
                 encode("MOVE_GAMECLICK", -1, 3221, 3218, 1, 5));
     }
 

@@ -310,9 +310,16 @@ public final class DefinitionRequirements {
      * How a live varbit or varplayer value is compared with a required one.
      */
     public enum Comparison {
+        /** The live value equals the required value. */
         EQUAL,
+
+        /** The live value differs from the required value. */
         NOT_EQUAL,
+
+        /** The live value is greater than or equal to the required value. */
         AT_LEAST,
+
+        /** The live value is less than or equal to the required value. */
         AT_MOST,
 
         /** The bit at the required index is set in the live value. */
