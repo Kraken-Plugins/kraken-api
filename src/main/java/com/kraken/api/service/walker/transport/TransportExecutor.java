@@ -7,15 +7,16 @@ import com.kraken.api.service.magic.MagicService;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.tile.TileService;
 import com.kraken.api.service.util.SleepService;
+import com.kraken.api.service.walker.transport.handler.CanoeHandler;
 import com.kraken.api.service.walker.transport.handler.ClearThenWalkHandler;
 import com.kraken.api.service.walker.transport.handler.DialogueTransportHandler;
 import com.kraken.api.service.walker.transport.handler.FairyRingHandler;
+import com.kraken.api.service.walker.transport.handler.GroupingTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.HubDialogueHandler;
 import com.kraken.api.service.walker.transport.handler.HubResumePauseHandler;
 import com.kraken.api.service.walker.transport.handler.ItemTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.ObjectTransportHandler;
 import com.kraken.api.service.walker.transport.handler.SpellTeleportHandler;
-import com.kraken.api.service.walker.transport.handler.UnsupportedTransportHandler;
 import com.kraken.api.service.walker.transport.handler.WalkTransportHandler;
 import com.kraken.api.service.walker.transport.handler.WidgetSelectHandler;
 import com.kraken.api.service.walker.transport.registry.TransportDefinition;
@@ -84,7 +85,8 @@ public class TransportExecutor {
                       ItemTeleportHandler itemHandler,
                       SpellTeleportHandler spellHandler,
                       WidgetSelectHandler widgetSelectHandler,
-                      UnsupportedTransportHandler unsupportedHandler) {
+                      CanoeHandler canoeHandler,
+                      GroupingTeleportHandler groupingTeleportHandler) {
         this.transportRegistry = transportRegistry;
         handlers.put(TransportShape.SINGLE_CLICK, objectHandler);
         handlers.put(TransportShape.CLEAR_THEN_WALK, clearThenWalkHandler);
@@ -96,8 +98,8 @@ public class TransportExecutor {
         handlers.put(TransportShape.ITEM_SUBOP, itemHandler);
         handlers.put(TransportShape.SPELL, spellHandler);
         handlers.put(TransportShape.CLICK_THEN_WIDGET, widgetSelectHandler);
-        handlers.put(TransportShape.GROUPING_TELEPORT, unsupportedHandler);
-        handlers.put(TransportShape.CANOE, unsupportedHandler);
+        handlers.put(TransportShape.CANOE, canoeHandler);
+        handlers.put(TransportShape.GROUPING_TELEPORT, groupingTeleportHandler);
     }
 
     /**
@@ -281,9 +283,6 @@ public class TransportExecutor {
 
         if (operated) {
             return null;
-        }
-        if (handler instanceof UnsupportedTransportHandler) {
-            return Result.unsupported(label + " has no destination chooser implemented");
         }
 
         String reason = context.getFailureReason();

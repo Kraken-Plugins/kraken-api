@@ -53,6 +53,7 @@ Other controls in the General section:
 | **Stop Run**                | Cancels the run in progress. Interrupts the worker, so it stops mid-walk rather than finishing the current test.                                                              |
 | **Establish Preconditions** | On by default. Turn it off to run a test exactly as it stands — the fastest way to tell whether a red is a real regression or the setup putting the world in the wrong state. |
 | **Bank PIN**                | Needed for automated setup if you have one; otherwise every bank test is skipped rather than hanging on the keypad.                                                           |
+| **Travel Uses Consumables** | Off by default, so the walk between tests only takes transports that cost nothing. Turn it on to let that walk break tablets, cast rune teleports, rub jewellery and pay fares. |
 
 Ticking any individual test's checkbox still runs just that test, now with its preconditions
 established too.
@@ -61,6 +62,29 @@ established too.
 a known-empty state. Bank anything you care about first. A full pass takes roughly 25–45 minutes;
 `WorldQueryTest` and `GrandExchangeServiceTest` are excluded from bulk runs because they hop worlds
 and spend real coins respectively, and stay available individually.
+
+## Travel between tests
+
+The runner moves between the places tests run with `Walker`, the same walker `WalkerTest` and
+`TransportTest` exercise. Every trip is planned over the bundled collision map and transport
+dataset, the planned route is logged with each transport it names, and the walker operates
+whatever the route needs. The walk between two tests is coverage of its own that way:
+
+| Trip                                 | What it exercises                                                                                                                              |
+|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| Between the Varrock stops and the GE | Planning across the city and opening the doors on the way. No transport is needed.                                                             |
+| Varrock to Lumbridge                 | The Lumbridge home teleport when it is off cooldown, since it costs nothing. Otherwise a walk of about 280 tiles.                              |
+| Lumbridge to Varrock                 | The long walk, in several plan and walk rounds as the scene shifts.                                                                            |
+| Back from Emir's Arena               | On a members world, an account with the quests for them is flown by gnome glider and may ride the spirit tree to the GE. Otherwise it walks. |
+
+When a trip does not arrive, the test that needed it is skipped and the reason carries the walker's
+outcome, for example `could not travel to Grand Exchange: STALLED (...)`. Read that as a walker or
+transport problem first, and run `WalkerTest` or `TransportTest` to confirm it.
+
+A trip spends nothing unless **Travel Uses Consumables** is on. Items are set up before the trip to
+where a test runs, so a tablet, a rune or a coin the route used could be the one the test is about
+to assert on. With the setting off the planner is kept away from teleport items, teleport spells
+and every fare, which leaves doors, stairs, shortcuts, free rides and the home teleport.
 
 ## Start here after a client update: `SelfCheckTest`
 
@@ -87,14 +111,16 @@ first. If it passes, the harness can drive the client and other failures are rea
 
 ## Where to stand
 
-The suite is deliberately concentrated into **two locations** so that sequenced runs spend as little
-time walking as possible:
+The suite is deliberately concentrated around **Varrock**, with one trip to **Lumbridge** at the
+end, so that sequenced runs spend as little time walking as possible:
 
 | Stop                                                       | Covers                                                                                                                                                                                                                                                                       |
 |------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Varrock East Bank** (the hub)                            | Everything except the three below. Bank booths, bankers, guards and men for combat/NPC tests, and the Varrock Square fountain a few tiles north for `WidgetTargetGameObjectTest`. The Varrock teleport also lands here, so `SpellServiceTest` returns to the hub on its own. |
 | **Grand Exchange** (~90 tiles north west)                  | `GrandExchangeServiceTest`, plus `DepositBoxTest` and `DepositBoxServiceTest` — the GE has bankers, clerks *and* a deposit box, so all three share one trip.                                                                                                                 |
 | **Varrock general store** (~40 tiles west, off the Square) | `ShopServiceTest`. The nearest shopkeeper to the hub that reliably stocks and buys back a cheap item.                                                                                                                                                                        |
+| **Lumbridge Castle** courtyard                             | `TransportTest`, which climbs to the castle bank and back down. The home teleport lands here.                                                                                                                                                                                |
+| **Lumbridge graveyard** (~35 tiles south east of the castle) | `TileServiceTest`, which enters Death's Office from here.                                                                                                                                                                                                                    |
 
 Several tests used to require their own location for reasons unrelated to what they actually verify.
 Those dependencies have been removed rather than automated around:
@@ -208,10 +234,24 @@ The following items must be present in your **Bank**:
 - **Location**: Anywhere outside an instance. The walker refuses to plan from instanced coordinates, which do not match the static collision map.
 - **State**: Pick the destination in **Walker Destination** on the plugin config (Grand Exchange, Varrock East Bank, Lumbridge Castle bank, Al Kharid, Karamja, Falador East Bank, Draynor Village, Edgeville, Tree Gnome Stronghold, East Ardougne, Castle Wars), or leave it on **Manual** and shift right click "Walk here" then "Set" on a tile. A named place always uses that tile, even if a Set tile is still stored. With destination left on **Manual** and no tile picked, the test waits 30 seconds, then falls back to the declared nearby tile so an unattended run still has somewhere to go. Leave it on Manual for **Run All** — a named dest such as Karamja would send the whole suite across the map.
 - **Items**: Whatever the route needs. A fairy ring route wants a dramen or lunar staff unless the Lumbridge elite diary is done; a boat route (Karamja) wants the fare; a teleport route wants the item or runes. The walker re-checks these before it clicks and aborts naming what is missing, so a shortfall reads as `TRANSPORT_REQUIREMENTS_UNMET` rather than a hang.
-- **What to watch**: The log lists every transport the planner intends to use, with its type, origin, destination and the raw `objectInfo` / `displayInfo`, before the walk starts. That listing uses the same `WalkerConfig` as the walk itself (canoes off, F2P members types off), so it is not a more optimistic library-default route. Lumbridge Castle bank is upstairs (plane 2), so the route should include stairs. See [WALKER.md](WALKER.md).
-- **Note**: Canoes and minigame teleports are not implemented. A default `WalkerConfig` turns
-  `useCanoes` and `useTeleportationMinigames` off so the planner routes around them. Opt them back
-  in on a custom pathfinder config if you want to hit `TRANSPORT_UNSUPPORTED` instead.
+- **What to watch**: The log lists every transport the planner intends to use, with its type, origin, destination and the raw `objectInfo` / `displayInfo`, before the walk starts. That listing uses the same `WalkerConfig` as the walk itself (F2P members types off), so it is not a more optimistic library-default route. Lumbridge Castle bank is upstairs (plane 2), so the route should include stairs. See [WALKER.md](WALKER.md).
+- **Note**: A default `WalkerConfig` plans canoes and minigame teleports. On a members world a far
+  destination can start with a minigame teleport while its twenty minute cooldown is clear: Castle
+  Wars is one teleport from anywhere. A walk along a river takes a canoe when an axe is carried and
+  the woodcutting level allows the hull the trip needs (12, 27, 42 or 57). Neither has been run in a
+  live client yet, so watch these two closely.
+
+### `TransportTest`
+- **Location**: The **Lumbridge Castle** courtyard. The runner walks or home teleports there. The route is free to play and needs no item, level or quest.
+- **What it does**: Plans the route from the courtyard to the bank on the top floor of the castle, two flights of stairs up, and checks it before anything is clicked. It then walks up, plans the way back down to the foot of the stairs, and walks down.
+- **Checks**:
+  - The planned route reaches the bank, and it goes from plane 0 to plane 2 by transports entered in the scene.
+  - A transport registered with `TransportRegistry.register` is planned through by the next search and is gone from the search after its handle is closed. The made up transport joins the courtyard and the bank in one step and is never operated.
+  - A dataset edge hidden with `TransportRegistry.disableEdge` is left out of the next search, the stairs are still climbed from the tile beside it, and the edge is planned again once the handle is closed.
+  - Each walk ends with `SUCCESS` on the destination's plane within the walker's tolerance. No teleport lands on the top floor, so arriving there proves both flights were climbed.
+- **Note**: The way down ends at the foot of the stairs and not in the courtyard. The home teleport lands in the courtyard, and the planner prefers it to two flights of stairs whenever it is off cooldown, which would leave the stairs down untested.
+- **State**: Keep other Kraken plugins that walk idle during the run. The made up transport sits in the registry every plugin shares for the length of one search.
+- **Offline**: `HarnessRoutesTest` plans the same routes over the bundled data in `./gradlew test`, so a dataset or planner change that breaks them fails the build first.
 
 ### `MouseTest`
 - **Configuration**: If using `REPLAY` strategy, a recording named "test" must exist. If using `LINEAR`, no specific setup is needed other than valid targets nearby.

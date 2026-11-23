@@ -82,6 +82,20 @@ public interface ApiTestConfig extends Config {
     }
 
     @ConfigItem(
+            name = "Travel Uses Consumables",
+            keyName = "travelUsesConsumables",
+            description = "Let the walk between tests use teleport items, teleport spells and fares. <br>" +
+                    "Off by default: the runner then only takes transports that cost nothing, such as doors, <br>" +
+                    "stairs, shortcuts and the home teleport, so setup never uses up runes, charges or coins <br>" +
+                    "a test is about to need.",
+            position = -992,
+            section = general
+    )
+    default boolean travelUsesConsumables() {
+        return false;
+    }
+
+    @ConfigItem(
             keyName = "showDebugInfo",
             name = "Show Debug Info",
             description = "Display additional debug information in overlays and within the logs.",

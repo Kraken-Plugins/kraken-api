@@ -8,8 +8,8 @@ import lombok.Getter;
  * Tuning for a walk.
  *
  * <p>The pathfinder config is carried here rather than passed separately because the two have to
- * agree: turning off a transport type stops the planner proposing it, which is how a transport the
- * walker cannot operate is kept out of a route in the first place.</p>
+ * agree: turning off a transport type stops the planner proposing it, which is how a kind of
+ * transport a walk should not use is kept out of its route in the first place.</p>
  */
 @Getter
 @Builder(toBuilder = true)
@@ -42,14 +42,11 @@ public class WalkerConfig {
     /**
      * Planning options, including which transport types may be used.
      *
-     * <p>Canoes and minigame teleports default off because the walker cannot operate them yet.
-     * Turning them off here keeps the planner from proposing a route that would then fail with
-     * {@code TRANSPORT_UNSUPPORTED}. Plan-only callers can still enable them on a
-     * {@link GlobalPathfinderConfig} of their own.</p>
+     * <p>Every type is on by default, because the walker operates every kind of transport the
+     * planner proposes. A walk that should not build canoes or spend the minigame teleport's
+     * twenty minute cooldown turns {@code useCanoes} or {@code useTeleportationMinigames} off
+     * here.</p>
      */
     @Builder.Default
-    private final GlobalPathfinderConfig pathfinderConfig = GlobalPathfinderConfig.builder()
-            .useCanoes(false)
-            .useTeleportationMinigames(false)
-            .build();
+    private final GlobalPathfinderConfig pathfinderConfig = GlobalPathfinderConfig.builder().build();
 }

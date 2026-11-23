@@ -53,9 +53,16 @@ public enum TransportShape {
     /** A teleport spell cast from the spellbook. */
     SPELL,
 
-    /** The grouping tab's minigame teleport. */
+    /**
+     * The grouping tab's minigame teleport, which goes to the activity selected on that tab and is
+     * clicked from anywhere.
+     */
     GROUPING_TELEPORT,
 
-    /** A canoe, which has to be felled and shaped before it can be sailed. */
+    /**
+     * A canoe, built at a canoe station before it is paddled: the tree is felled, the trunk shaped
+     * into a hull and the hull pushed into the water, and the destination is then chosen on a map
+     * of the river.
+     */
     CANOE
 }

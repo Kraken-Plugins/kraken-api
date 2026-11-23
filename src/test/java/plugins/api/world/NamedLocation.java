@@ -67,6 +67,14 @@ public enum NamedLocation {
             6,
             EnumSet.of(Facility.OTHER_PLAYERS)),
 
+    /** The castle courtyard, where the home teleport lands and the walk to the stairs begins. */
+    LUMBRIDGE_CASTLE(
+            "Lumbridge Castle",
+            new WorldPoint(3222, 3218, 0),
+            new WorldArea(3218, 3213, 9, 11, 0),
+            4,
+            EnumSet.noneOf(Facility.class)),
+
     ANYWHERE("Anywhere", null, null, 0, EnumSet.noneOf(Facility.class));
 
     private final String displayName;

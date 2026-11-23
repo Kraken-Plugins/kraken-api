@@ -1,12 +1,12 @@
 package com.kraken.api.service.walker.transport;
 
+import com.kraken.api.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.gameval.InterfaceID;
 import com.kraken.api.service.walker.transport.registry.TransportCategory;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -137,17 +137,6 @@ public final class HubWidgets {
 
     /** Destination names are compared without case, spacing or punctuation. */
     private static String key(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        StringBuilder builder = new StringBuilder(value.length());
-        for (char c : value.toLowerCase(Locale.ROOT).toCharArray()) {
-            if (Character.isLetterOrDigit(c)) {
-                builder.append(c);
-            }
-        }
-
-        return builder.toString();
+        return StringUtils.lettersAndDigits(value);
     }
 }

@@ -51,7 +51,9 @@ public final class TransportDefinition {
             TransportShape.HUB_RESUME_PAUSE,
             TransportShape.FAIRY_RING,
             TransportShape.ITEM_SUBOP,
-            TransportShape.SPELL));
+            TransportShape.SPELL,
+            TransportShape.CANOE,
+            TransportShape.GROUPING_TELEPORT));
 
     /**
      * The shapes that are operated without anything in the scene, which is what a teleport usable
@@ -97,10 +99,9 @@ public final class TransportDefinition {
      *
      * <p>The handlers for the {@link #DECLARATIVE_SHAPES} work from what any definition states.
      * {@link TransportShape#CLICK_THEN_WIDGET} also reads the category to know which interface
-     * opens, and the canoe and minigame shapes have no built in handler, so a definition with one
-     * of those needs a handler of its own or one registered for the shape. A fairy ring needs a
-     * dramen or lunar staff in game; state that in {@link #requirements}, as the bundled rings
-     * do.</p>
+     * opens, so a definition with that shape names one of the hub categories or brings a handler
+     * of its own. A fairy ring needs a dramen or lunar staff in game, and a canoe an axe and a
+     * woodcutting level; state those in {@link #requirements}, as the bundled transports do.</p>
      */
     private final TransportShape shape;
 
@@ -131,7 +132,10 @@ public final class TransportDefinition {
      * Names the destination for transports that offer a choice: the chat option of a conversation,
      * a numbered hub entry such as {@code "4: Grand Exchange"}, a fairy ring code, or the stop an
      * item lists behind its menu action, such as {@code Edgeville}. For {@link TransportShape#SPELL}
-     * it is the name of the spell, such as {@code Varrock Teleport}.
+     * it is the name of the spell, such as {@code Varrock Teleport}. For
+     * {@link TransportShape#CANOE} it is the stop the canoe is paddled to, and for
+     * {@link TransportShape#GROUPING_TELEPORT} the minigame as the grouping tab lists it, such as
+     * {@code Castle Wars}, followed by a colon and a landing when the minigame has several.
      */
     private final String displayInfo;
 
@@ -273,7 +277,8 @@ public final class TransportDefinition {
 
     /**
      * Checks that a declarative definition says what its shape's handler works from: the items for
-     * an item teleport, the spell for a spell, and a click target for everything else.
+     * an item teleport, the spell for a spell, the activity for a minigame teleport, and a click
+     * target for everything else. A canoe also names the stop it is paddled to.
      */
     private void requireSomethingToUse() {
         if (shape == TransportShape.ITEM_SUBOP) {
@@ -281,8 +286,12 @@ public final class TransportDefinition {
                 throw new IllegalArgumentException(id + ": list the item ids that carry the teleport");
             }
         } else if (shape == TransportShape.SPELL) {
-            if (displayInfo == null || displayInfo.trim().isEmpty()) {
+            if (!isStated(displayInfo)) {
                 throw new IllegalArgumentException(id + ": name the spell in the display info");
+            }
+        } else if (shape == TransportShape.GROUPING_TELEPORT) {
+            if (!isStated(displayInfo)) {
+                throw new IllegalArgumentException(id + ": name the minigame in the display info");
             }
         } else if (shape == TransportShape.WALK) {
             if (toObjectInfo() != null) {
@@ -290,6 +299,8 @@ public final class TransportDefinition {
             }
         } else if (!ORIGIN_FREE_SHAPES.contains(shape) && toObjectInfo() == null) {
             throw new IllegalArgumentException(id + ": name what to click with a menu target or an entity id");
+        } else if (shape == TransportShape.CANOE && !isStated(displayInfo)) {
+            throw new IllegalArgumentException(id + ": name the stop the canoe is paddled to in the display info");
         }
     }
 

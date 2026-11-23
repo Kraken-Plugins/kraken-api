@@ -3,15 +3,16 @@ package com.kraken.api.service.walker.transport;
 import com.kraken.api.core.script.ScriptStoppedException;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.tile.TileService;
+import com.kraken.api.service.walker.transport.handler.CanoeHandler;
 import com.kraken.api.service.walker.transport.handler.ClearThenWalkHandler;
 import com.kraken.api.service.walker.transport.handler.DialogueTransportHandler;
 import com.kraken.api.service.walker.transport.handler.FairyRingHandler;
+import com.kraken.api.service.walker.transport.handler.GroupingTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.HubDialogueHandler;
 import com.kraken.api.service.walker.transport.handler.HubResumePauseHandler;
 import com.kraken.api.service.walker.transport.handler.ItemTeleportHandler;
 import com.kraken.api.service.walker.transport.handler.ObjectTransportHandler;
 import com.kraken.api.service.walker.transport.handler.SpellTeleportHandler;
-import com.kraken.api.service.walker.transport.handler.UnsupportedTransportHandler;
 import com.kraken.api.service.walker.transport.handler.WalkTransportHandler;
 import com.kraken.api.service.walker.transport.handler.WidgetSelectHandler;
 import com.kraken.api.service.walker.transport.registry.DefinitionRequirements;
@@ -27,6 +28,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,7 +60,8 @@ class TransportExecutorTest {
     private final ClearThenWalkHandler clearThenWalkHandler = mock(ClearThenWalkHandler.class);
     private final WalkTransportHandler walkHandler = mock(WalkTransportHandler.class);
     private final ItemTeleportHandler itemHandler = mock(ItemTeleportHandler.class);
-    private final UnsupportedTransportHandler unsupportedHandler = mock(UnsupportedTransportHandler.class);
+    private final CanoeHandler canoeHandler = mock(CanoeHandler.class);
+    private final GroupingTeleportHandler groupingTeleportHandler = mock(GroupingTeleportHandler.class);
     private final PlayerStateReader playerStateReader = mock(PlayerStateReader.class);
     private final TileService tileService = mock(TileService.class);
 
@@ -74,7 +77,8 @@ class TransportExecutorTest {
             itemHandler,
             mock(SpellTeleportHandler.class),
             mock(WidgetSelectHandler.class),
-            unsupportedHandler);
+            canoeHandler,
+            groupingTeleportHandler);
 
     @BeforeEach
     void injectCollaborators() throws Exception {
@@ -91,8 +95,16 @@ class TransportExecutorTest {
     void aShapeIsOperatedByItsBuiltInHandler() {
         assertSame(objectHandler, executor.resolveHandler(null, TransportShape.SINGLE_CLICK));
         assertSame(walkHandler, executor.resolveHandler(null, TransportShape.WALK));
-        assertSame(unsupportedHandler, executor.resolveHandler(null, TransportShape.CANOE));
+        assertSame(canoeHandler, executor.resolveHandler(null, TransportShape.CANOE));
+        assertSame(groupingTeleportHandler, executor.resolveHandler(null, TransportShape.GROUPING_TELEPORT));
         assertNull(executor.resolveHandler(null, null));
+    }
+
+    @Test
+    void everyShapeHasABuiltInHandler() {
+        for (TransportShape shape : TransportShape.values()) {
+            assertNotNull(executor.resolveHandler(null, shape), shape + " has no handler");
+        }
     }
 
     @Test
@@ -128,7 +140,7 @@ class TransportExecutorTest {
         assertSame(objectHandler, executor.resolveHandler(null, TransportShape.SINGLE_CLICK));
 
         registration.close();
-        assertSame(unsupportedHandler, executor.resolveHandler(null, TransportShape.CANOE));
+        assertSame(canoeHandler, executor.resolveHandler(null, TransportShape.CANOE));
     }
 
     @Test
@@ -283,14 +295,17 @@ class TransportExecutorTest {
     }
 
     @Test
-    void onlyTheBuiltInPlaceholderReportsATransportAsUnsupported() {
-        TransportExecutor.Result builtIn = executor.operate(unsupportedHandler, CONTEXT, "CANOE", "no description");
+    void aBuiltInHandlerThatRefusesIsAFailedCrossingAndNotAnUnsupportedOne() {
+        when(canoeHandler.execute(any())).thenReturn(false);
+
+        TransportExecutor.Result builtIn = executor.operate(canoeHandler, CONTEXT, "CANOE", "no description");
         TransportExecutor.Result registered = executor.operate(context -> false, CONTEXT, "CANOE", "no description");
 
-        assertFalse(builtIn.isSupported());
-        assertTrue(registered.isSupported());
-        assertFalse(registered.isCrossed());
-        assertTrue(registered.getReason().contains("could not operate CANOE"), registered.getReason());
+        for (TransportExecutor.Result result : List.of(builtIn, registered)) {
+            assertTrue(result.isSupported());
+            assertFalse(result.isCrossed());
+            assertTrue(result.getReason().contains("could not operate CANOE"), result.getReason());
+        }
     }
 
     private static GlobalPathfinder.TransportUsage usage(TransportDefinition definition) {

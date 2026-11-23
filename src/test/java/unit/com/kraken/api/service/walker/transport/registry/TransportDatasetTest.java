@@ -3,6 +3,7 @@ package com.kraken.api.service.walker.transport.registry;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.kraken.api.service.walker.transport.GroupingTeleport;
 import com.kraken.api.service.walker.transport.TransportShape;
 import com.kraken.api.service.walker.transport.handler.SpellTeleportHandler;
 import net.runelite.api.coords.WorldPoint;
@@ -160,6 +161,12 @@ class TransportDatasetTest {
             if (shape == TransportShape.ITEM_SUBOP) {
                 assertFalse(definition.getItemIds().isEmpty(), id);
             }
+            if (shape == TransportShape.CANOE) {
+                assertFalse(definition.getDisplayInfo().trim().isEmpty(), id + " names no stop to paddle to");
+            }
+            if (shape == TransportShape.GROUPING_TELEPORT) {
+                assertNotNull(GroupingTeleport.parse(definition.getDisplayInfo()), id + " names no minigame");
+            }
             assertTrue(definition.getDuration() >= 0, id);
         }
     }
@@ -253,14 +260,15 @@ class TransportDatasetTest {
     }
 
     @Test
-    void aDatasetRowMayHaveAShapeOnlyARegisteredHandlerOperates() {
-        String canoe = "{\"transports\": [{\"id\": \"test:canoe\", \"origin\": {\"x\": 3243, \"y\": 3235, \"plane\": 0},"
-                + " \"destination\": {\"x\": 3202, \"y\": 3343, \"plane\": 0}, \"category\": \"CANOE\","
-                + " \"objectInfo\": \"Chop-down Canoe Station 12163\", \"displayInfo\": \"Champions' Guild\"}]}";
+    void aDatasetRowMayHaveTheShapeAFileAPersonWritesCannot() {
+        String glider = "{\"transports\": [{\"id\": \"test:glider\", \"origin\": {\"x\": 2465, \"y\": 3501, \"plane\": 3},"
+                + " \"destination\": {\"x\": 2848, \"y\": 3497, \"plane\": 0}, \"category\": \"GNOME_GLIDER\","
+                + " \"objectInfo\": \"Glider Captain Errdo 10467\", \"displayInfo\": \"Sindarpos\"}]}";
 
-        TransportDataset.Result result = TransportDataset.parse(canoe);
+        TransportDataset.Result result = TransportDataset.parse(glider);
 
         assertEquals(List.of(), result.getProblems());
-        assertEquals(TransportShape.CANOE, result.getDefinitions().get(0).getShape());
+        assertEquals(TransportShape.CLICK_THEN_WIDGET, result.getDefinitions().get(0).getShape());
+        assertTrue(BundledTransports.parse(glider.substring(glider.indexOf('['), glider.lastIndexOf(']') + 1)).isEmpty());
     }
 }

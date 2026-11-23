@@ -52,6 +52,23 @@ public final class WidgetClicks {
         return raw != null && ctx.getInteractionManager().interact(raw, 0);
     }
 
+    /**
+     * Returns the child a client script created at an index of a layer, such as a button the game
+     * builds inside a component that is otherwise empty.
+     *
+     * @param parent the layer, may be null
+     * @param index the index the script created the child at
+     * @return the child, or null when the layer has no child at that index
+     */
+    public static Widget childAt(Widget parent, int index) {
+        if (parent == null || index < 0) {
+            return null;
+        }
+
+        Widget[] children = parent.getChildren();
+        return children != null && index < children.length ? children[index] : null;
+    }
+
     private static boolean hasAction(Widget raw, String wanted) {
         if (raw == null || raw.getActions() == null || wanted == null) {
             return false;

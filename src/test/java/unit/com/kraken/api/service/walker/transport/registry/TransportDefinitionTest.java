@@ -205,6 +205,54 @@ class TransportDefinitionTest {
     }
 
     @Test
+    void aMinigameTeleportIsUsableFromAnywhereAndNamesItsMinigame() {
+        TransportDefinition teleport = TransportDefinition.builder()
+                .id("test:castle-wars")
+                .destination(DESTINATION)
+                .shape(TransportShape.GROUPING_TELEPORT)
+                .displayInfo("Castle Wars")
+                .build();
+
+        assertTrue(teleport.isUsableAnywhere());
+        assertEquals(TransportCategory.TELEPORTATION_MINIGAME, teleport.getCategory());
+        assertNull(teleport.getHandler(), "the handler for the shape operates it");
+        assertThrows(IllegalArgumentException.class, () -> TransportDefinition.builder()
+                .id("test:no-minigame")
+                .destination(DESTINATION)
+                .shape(TransportShape.GROUPING_TELEPORT)
+                .build());
+    }
+
+    @Test
+    void aCanoeNamesItsStationAndTheStopItIsPaddledTo() {
+        TransportDefinition canoe = TransportDefinition.builder()
+                .id("test:canoe")
+                .origin(ORIGIN)
+                .destination(DESTINATION)
+                .category(TransportCategory.CANOE)
+                .menuTarget("Canoe Station")
+                .displayInfo("Edgeville")
+                .build();
+
+        assertEquals(TransportShape.CANOE, canoe.getShape());
+        assertTrue(TransportDefinition.DECLARATIVE_SHAPES.contains(canoe.getShape()));
+        assertThrows(IllegalArgumentException.class, () -> TransportDefinition.builder()
+                .id("test:no-stop")
+                .origin(ORIGIN)
+                .destination(DESTINATION)
+                .category(TransportCategory.CANOE)
+                .menuTarget("Canoe Station")
+                .build());
+        assertThrows(IllegalArgumentException.class, () -> TransportDefinition.builder()
+                .id("test:no-station")
+                .origin(ORIGIN)
+                .destination(DESTINATION)
+                .category(TransportCategory.CANOE)
+                .displayInfo("Edgeville")
+                .build());
+    }
+
+    @Test
     void aTeleportWithItsOwnHandlerNeedsNothingElse() {
         TransportDefinition custom = TransportDefinition.builder()
                 .id("test:custom-teleport")
