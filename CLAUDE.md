@@ -16,6 +16,8 @@ Kraken API is a Java 17 library that extends the RuneLite (Old School RuneScape)
 ./gradlew test                           # JUnit 5 suite (src/test/java/unit/**), ~10s
 ./gradlew test --tests '*PlannerTest'    # single test class
 ./gradlew test --tests '*PlannerTest.plansAgainstBusyWaveWithinBudget'
+./gradlew :simulation:test               # the simulation module's tests, the recorded wave gate included
+./gradlew :simulation:simulationBenchmark   # JMH rollout benchmarks (rollouts per 15 ms = 15,000,000 / ns per op)
 ./gradlew clean build publishToMavenLocal shadowJar   # full build + install to ~/.m2
 VERSION=1.0.0-SNAPSHOT-LOCAL ./gradlew clean build publishToMavenLocal shadowJar
 VERSION=5.1.5 ./gradlew generateLlmsTxt          # llms.txt / llms-full.txt / llms-api.txt -> build/llms (-PllmsOutput=<dir> to redirect)
@@ -29,8 +31,6 @@ Most API behavior can only be validated inside a live game client. Run the main 
 
 ```
 plugins.api.ApiTestPlugin --developer-mode        # API test suite plugin
-plugins.simulation.SimulationPlugin               # simulation example
-plugins.colosseum.AutoColosseumPlugin             # colosseum engine debug plugin
 ```
 
 `PluginRunnerTest` treats `args[0]` as a plugin class name, loads it via `ExternalPluginManager.loadBuiltin`, and passes the rest to `RuneLite.main`. `./gradlew runelite` launches `plugins.api.ApiTestPlugin` that way; use the IDE when you want a different plugin or a debugger attached.
@@ -98,10 +98,13 @@ plugin in `kraken-plugins` records, tests and saves rows in a live client.
 
 `Script` (abstract, implements `Scriptable`) drives a `loop()` returning a delay in ms, ticked off RuneLite's `GameTick` with lifecycle (`start`/`stop`/`pause`/`resume`, `onStart`/`onStop`) and break handling (`script/breakhandler`). `loop()` runs off the client thread — anything touching client state must go through `Context.runOnClientThread(...)`. Reusable steps belong behind `Task` / `AbstractTask` / `PriorityTask` / `RunnableTask` or a service, not inside plugin event handlers.
 
-### Simulation — two separate engines
+### Simulation: the `simulation` module
 
-- `src/test/java/colosim/` — a Java port of the community Colosseum line-of-sight simulator, shipped in the published jar, with its own GUI.
-- `src/test/java/plugins/colosseum/simulation/` — the real-time bit-packed Fortis Colosseum tick engine and budgeted `Planner` (waves 1–11). It was deliberately moved *out* of the published API into the test source set (commits `10129331`, `fa1d9bdd`); do not move it back. `docs/SIMULATION.md` documents its design, and `unit/com/kraken/api/simulation/colosseum/TickParityTest` parity-checks it against `colosim`.
+- `simulation/` is a Gradle subproject (`settings.gradle` includes it) holding the simulation core, `com.kraken.api.simulation.{geom,world,move,hits,player,npc,tick,data,query,trace}`: a deterministic, allocation free tick model with no planner and no scoring. Its compile classpath is Gson and Lombok only, so a RuneLite, Guice or Kraken import fails its build; keep it that way. The root build shades it into `kraken-api.jar` (`implementation project(':simulation')`) and adds its sources to the sources and javadoc jars.
+- Encounter mechanics come from content packs: per type `NpcBehavior`s and world `PackRules` (both abstract classes), state in `SimState`'s lanes, tables loaded by `MechanicsData.load(owner, root, binder)`. The Colosseum pack is a parity copy in `simulation/src/test/java/com/kraken/api/simulation/colosseum/` (Auto Colosseum V2 owns it); it is not shipped.
+- `com.kraken.api.simulation.live` in the root project is the RuneLite side: region anchor, collision capture, server tiles, NPC indexer, animation stamping, hp ledger, corpses, the live trace recorder.
+- Gates: `RecordedWaveGateTest` replays the seven recorded waves under `simulation/src/test/resources/colosseum/traces/` and may not get worse; `ThroughputGateTest` and `./gradlew :simulation:simulationBenchmark` (JMH, `simulation/src/jmh`) measure rollouts. Hooks are virtual calls the JIT may not inline, so add per tick hooks with care and measure. `docs/SIMULATION.md` documents the module, the pack contract and the trace format.
+- `src/test/java/colosim/` is a separate Java port of the community Colosseum line of sight simulator with its own GUI, kept in the test sources for reference.
 
 ### Test source layout
 
@@ -113,7 +116,7 @@ plugin in `kraken-plugins` records, tests and saves rows in a live client.
 
 ## Dependency rules
 
-RuneLite, guice, guava, gson, slf4j, and lombok are `compileOnly` on purpose — RuneLite supplies them at runtime, and bundling them causes classloader/version conflicts. The API has no `implementation` dependency at all, so the shaded jar holds only Kraken's own classes and resources. Do not promote a `compileOnly` dependency to `implementation`, and think hard before adding any new runtime dependency.
+RuneLite, guice, guava, gson, slf4j, and lombok are `compileOnly` on purpose — RuneLite supplies them at runtime, and bundling them causes classloader/version conflicts. The only `implementation` dependency is the repository's own `simulation` project, so the shaded jar holds only Kraken's own classes and resources. Do not promote a `compileOnly` dependency to `implementation`, and think hard before adding any new runtime dependency.
 
 ## Conventions
 

@@ -52,21 +52,21 @@ public final class LlmsGenerator {
         GUIDES.put("SHOPS.md", "Opening NPC shops, reading stock and buying or selling under limits");
         GUIDES.put("MOUSE.md", "VirtualMouse and the instant, linear, Bezier, wind and replay movement strategies");
         GUIDES.put("UTILITIES.md", "Overlay and utility helpers for plugins");
+        GUIDES.put("SIMULATION.md", "The simulation module: the tick model, content packs, live capture and wave traces");
 
         CONTRIBUTOR_GUIDES.put("UPDATING.md", "Updating the API after RuneLite releases and client revisions");
         CONTRIBUTOR_GUIDES.put("TESTS.md", "Running the in-client API test harness");
-        CONTRIBUTOR_GUIDES.put("SIMULATION.md", "The Colosseum simulators kept in the API repository");
     }
 
     /**
      * Entry point.
-     * @param args {@code --source <dir> --docs <dir> --classpath <path> --output <dir> --version <version>
-     *             [--git-ref <ref>] [--site-url <url>]}
+     * @param args {@code --source <dirs> --docs <dir> --classpath <path> --output <dir> --version <version>
+     *             [--git-ref <ref>] [--site-url <url>]}, the source directories joined by the platform's path separator
      * @throws IOException When a source or output file cannot be read or written
      */
     public static void main(String[] args) throws IOException {
         Map<String, String> options = parseOptions(args);
-        Path sourceDirectory = Path.of(require(options, "--source"));
+        String sourcePath = require(options, "--source");
         Path docsDirectory = Path.of(require(options, "--docs"));
         Path outputDirectory = Path.of(require(options, "--output"));
         String classpath = require(options, "--classpath");
@@ -76,7 +76,7 @@ public final class LlmsGenerator {
 
         Files.createDirectories(outputDirectory);
         Path signaturesFile = outputDirectory.resolve("llms-api.txt");
-        String signatures = generateSignatures(sourceDirectory, classpath, signaturesFile);
+        String signatures = generateSignatures(sourcePath, classpath, signaturesFile);
 
         String overview = Files.readString(docsDirectory.resolve("llms").resolve("overview.md"), StandardCharsets.UTF_8)
                 .replace("{{VERSION}}", version)
@@ -104,11 +104,11 @@ public final class LlmsGenerator {
         System.out.println("Wrote llms.txt, llms-full.txt and llms-api.txt for Kraken API " + version + " to " + outputDirectory);
     }
 
-    private static String generateSignatures(Path sourceDirectory, String classpath, Path signaturesFile) throws IOException {
+    private static String generateSignatures(String sourcePath, String classpath, Path signaturesFile) throws IOException {
         DocumentationTool tool = ToolProvider.getSystemDocumentationTool();
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
         List<String> options = List.of(
-                "--source-path", sourceDirectory.toString(),
+                "--source-path", sourcePath,
                 "-classpath", classpath,
                 "-subpackages", "com.kraken.api",
                 "-protected",

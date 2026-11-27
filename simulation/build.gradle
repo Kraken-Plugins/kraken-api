@@ -1,0 +1,64 @@
+plugins {
+    id 'java-library'
+    id 'me.champeau.jmh' version '0.7.2'
+}
+
+// The simulation core (docs/SIMULATION.md). Its compile classpath holds Gson and Lombok only, so an import of a
+// RuneLite, Guice or Kraken type fails the build. The root project shades the classes into kraken-api.jar
+// through implementation project(':simulation'); this module publishes nothing of its own.
+
+version = rootProject.version
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+dependencies {
+    compileOnly 'com.google.code.gson:gson:2.8.5'
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.30'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
+    testImplementation 'com.google.code.gson:gson:2.8.5'
+    testImplementation 'junit:junit:4.13.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.0'
+
+    jmh 'com.google.code.gson:gson:2.8.5'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// The benchmarks run the core on the Colosseum pack, which lives in the test source set.
+jmh {
+    includeTests = true
+    warmupIterations = 3
+    warmup = '2s'
+    iterations = 5
+    timeOnIteration = '2s'
+    fork = 1
+}
+
+// The JMH plugin's jar spec holds the Project, which the configuration cache cannot store; builds that run the
+// benchmarks run without the cache.
+['jmh', 'jmhJar', 'jmhRunBytecodeGenerator', 'jmhCompileGeneratedClasses'].each { name ->
+    tasks.matching { it.name == name }.configureEach {
+        notCompatibleWithConfigurationCache('the JMH plugin is not configuration cache compatible')
+    }
+}
+
+tasks.register('simulationBenchmark') {
+    group = 'verification'
+    description = 'Runs the simulation JMH benchmarks (AdvanceTickBenchmark, RolloutBenchmark)'
+    dependsOn 'jmh'
+}

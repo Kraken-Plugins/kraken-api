@@ -1,0 +1,31 @@
+{
+  "_provenance": "Per-tier parameters for every wave modifier. capture = the RSProx capture analysis section 11 (MRobertEvers/oldschool-clientc, branch v3, docs/rsprox-analysis/colosseum/README.md), wiki = https://oldschool.runescape.wiki/w/Fortis_Colosseum/Modifiers. Internal ids follow the modifier-select script 4931 bitmask (community plugin): mantimayhem 0, reentry 1, bees 2, volatility 3, blasphemy 4, relentless 5, quartet 6, totemic 7, doom 8, dynamicDuo 9, solarflare 10, myopia 11, frailty 12, redFlag 13. Values marked VERIFY-INGAME in src are unconfirmed.",
+  "myopia": {"rangeDelta": [2, 4, 6]},
+  "relentless": {"maxHitBonus": [1, 3, 6], "expectedFactorAdd1000": [50, 100, 0], "tier3ExpectedFactor1000": 500},
+  "blasphemy": {"drainPctOfDamage": [20, 40, 60]},
+  "doom": {"stackCap": [15, 10, 5]},
+  "frailty": {"hpReductionPct": [10, 20, 40]},
+  "bees": {"swarms": [1, 2, 3], "moveEveryTicks": 2, "contactMaxDamage": [10, 10, 20], "contactExpectedDamage": [7, 7, 15], "respawnTicks": 55},
+  "reentry": {"sandDamagePerTick": 5},
+  "solarflare": {"sideGapTicks": [2, 2, 1], "cornerGapTicks": [7, 2, 2], "contactDamage": [10, 14, 18], "tier3DisablesPrayers": true},
+  "totemic": {"spawnBelowHpPct": 50, "totemHp": 1, "healPctOfMax": 30, "healMax": 75, "firstHealTicks": 7, "healEveryTicks": 6, "healFlightTicks": 6, "respawnTicks": 200},
+  "volatility": {"radiusBeyondSize": [1, 2, 2], "blastMaxHit": 30, "tier3LeavesSand": true, "damagesNpcs": true},
+  "src": {
+    "myopia.rangeDelta": "wiki (manual casts unaffected; applied to weapon range only)",
+    "relentless.maxHitBonus": "capture and wiki (+1/+3/+6, the extra only on a hit that lands)",
+    "relentless.expectedFactor": "VERIFY-INGAME (tiers I/II bypass 33/66% defence -> accuracy proxy bump; tier III skips accuracy -> expected = maxHit/2)",
+    "blasphemy.drainPctOfDamage": "capture (prayer drained by floor(damage x 20 x level / 100) of an unprayed hit)",
+    "doom.stackCap": "wiki (death at 15/10/5 stacks; stacks clear on wave end)",
+    "frailty.hpReductionPct": "wiki (base HP -10/20/40%, overhealing disabled)",
+    "bees.swarms": "capture (one / two / three swarms)",
+    "bees.moveEveryTicks": "capture (the swarm steps on add+1, then every 2: 54/58)",
+    "bees.contactDamage": "capture (stings every tick the player is under its 2x2: 5..10, 10..20 at III; the expected value is the middle of that range)",
+    "bees.respawnTicks": "capture (hidden 3 ticks after the kill on its add tile, back 55 ticks after the kill, crawling 5 ticks after that)",
+    "reentry.sandDamagePerTick": "VERIFY-INGAME (molten sand contact damage per tick)",
+    "reentry.tiles": "capture: I the landing tile for the wave, II and III one / two more thrown to neighbours and permanent; modeled as I the tile, II + SW, III + W (VERIFY-INGAME: the capture's neighbour order is (-1,-1), (-1,0), (-1,1), (0,-1)...)",
+    "solarflare.gaps": "capture section 11 and 12c: four flares from wave tick 0, one per pillar, each circling the 5x5 square round its pillar clockwise from the corner tile nearest the arena centre; a step every 2 ticks along a side and 7 on leaving a corner at I, 2 everywhere at II, 1 along a side and 2 at a corner at III. The first step's timing after the add is inferred (taken as leaving a corner)",
+    "solarflare.contactDamage": "VERIFY-INGAME (more damage at higher tiers)",
+    "totemic": "capture section 11: a totem per monster at half health or less on the tile SW of its SW tile, healing it at add+7 and every 6 by 30% of its max capped at 75, the heal landing 6 ticks on; 1 hitpoint; respawn VERIFY-INGAME",
+    "volatility": "capture: the blast comes on the dying NPC's [del] tick (corpse removal), centred on its centre tile; radius and damage VERIFY-INGAME"
+  }
+}

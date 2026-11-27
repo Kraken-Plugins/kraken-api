@@ -14,6 +14,9 @@ def runeLiteVersion = '1.13.8' // latest.release
 version = projectVersion
 project.version = projectVersion
 
+// The simulation module's sources join this project's sources and javadoc jars, which reads its source sets.
+evaluationDependsOn(':simulation')
+
 repositories {
     mavenCentral()
     maven {
@@ -33,6 +36,10 @@ dependencies {
     compileOnly("com.google.guava:guava:31.1-jre")
     compileOnly("com.google.inject:guice:4.2.2")
     compileOnly("net.runelite:client:${runeLiteVersion}")
+
+    // The simulation core. Shadow folds its classes into kraken-api.jar, so plugins and the bootstrap need no new
+    // artifact; it adds no runtime dependency (its own Gson and Lombok are compileOnly).
+    implementation project(':simulation')
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
@@ -75,6 +82,7 @@ tasks.register('generateLlmsTxt', JavaExec) {
     def outputDirectory = project.findProperty('llmsOutput') ?: layout.buildDirectory.dir('llms').get().asFile.path
 
     inputs.dir('src/main/java')
+    inputs.dir('simulation/src/main/java')
     inputs.dir('docs')
     inputs.property('version', projectVersion)
     outputs.files(['llms.txt', 'llms-full.txt', 'llms-api.txt'].collect { new File(outputDirectory as File, it) })
@@ -82,7 +90,7 @@ tasks.register('generateLlmsTxt', JavaExec) {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
     classpath = sourceSets.llms.runtimeClasspath
     mainClass = 'com.kraken.llms.LlmsGenerator'
-    args '--source', file('src/main/java').path,
+    args '--source', [file('src/main/java').path, file('simulation/src/main/java').path].join(File.pathSeparator),
             '--docs', file('docs').path,
             '--classpath', sourceSets.main.compileClasspath.asPath,
             '--output', file(outputDirectory).path,
@@ -102,6 +110,17 @@ jar {
     archiveBaseName = 'kraken-api'
     archiveVersion = projectVersion
     archiveClassifier = 'unshaded'
+}
+
+def simulationMain = project(':simulation').sourceSets.main
+
+tasks.named('sourcesJar') {
+    from simulationMain.allSource
+}
+
+tasks.named('javadoc') {
+    source simulationMain.allJava
+    classpath += simulationMain.compileClasspath
 }
 
 // The RuneLite version and game revision hooks.json was mapped for, both written by kraken-updater. They go in the

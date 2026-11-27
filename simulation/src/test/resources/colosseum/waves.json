@@ -1,0 +1,32 @@
+{
+  "_provenance": "Wave sets and reinforcements: the RSProx capture analysis section 1.1 (every completed wave, identical to the LlemonDuck/fortis-colosseum community table). Every wave 1-11 spawns the warband trio (plus one extra under Quartet); reinforcements are added on wave tick 66. Coordinates are region local (template world minus 1792, 3072), the frame live capture uses. Gates (capture section 1.2, 69/69 waves): all of a wave's reinforcements come from the north gate (y 48, world z 3120) when the player's y at the start of tick 66 is 34 or more (world z 3106), else the south gate (y 20, world z 3092), at x 31 to 33 (world 1823 to 1825), distinct for each and random (traces: the jaguar on 31, 31, 33, 31, 31, 32 and the shaman on 33 twice; the model takes 31 then 33). Pillars (capture section 5f): x 24..26 and 39..41 by y 26..28 and 41..43. The arena box is colosim's 34 by 34 frame offset by (16, 18).",
+  "waves": [
+    {"wave": 1, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "serpent_shaman"], "reinforcements": ["jaguar_warrior"]},
+    {"wave": 2, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "serpent_shaman", "javelin_colossus"], "reinforcements": ["jaguar_warrior"]},
+    {"wave": 3, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "serpent_shaman", "javelin_colossus", "javelin_colossus"], "reinforcements": ["jaguar_warrior"]},
+    {"wave": 4, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "serpent_shaman", "manticore"], "reinforcements": ["jaguar_warrior", "serpent_shaman_reinforcement"]},
+    {"wave": 5, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "serpent_shaman", "javelin_colossus", "manticore"], "reinforcements": ["jaguar_warrior", "serpent_shaman_reinforcement"]},
+    {"wave": 6, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "serpent_shaman", "javelin_colossus", "javelin_colossus", "manticore"], "reinforcements": ["jaguar_warrior", "serpent_shaman_reinforcement"]},
+    {"wave": 7, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "javelin_colossus", "manticore", "shockwave_colossus"], "reinforcements": ["minotaur"]},
+    {"wave": 8, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "javelin_colossus", "javelin_colossus", "manticore", "shockwave_colossus"], "reinforcements": ["minotaur"]},
+    {"wave": 9, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "javelin_colossus", "manticore", "manticore"], "reinforcements": ["minotaur"]},
+    {"wave": 10, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "javelin_colossus", "javelin_colossus", "manticore", "manticore"], "reinforcements": ["minotaur", "serpent_shaman_reinforcement"]},
+    {"wave": 11, "spawns": ["warband_berserker", "warband_archer", "warband_seer", "javelin_colossus", "manticore", "manticore", "shockwave_colossus"], "reinforcements": ["minotaur", "serpent_shaman_reinforcement"]}
+  ],
+  "quartetExtra": "warband_berserker",
+  "northGate": {"x": 32, "y": 48},
+  "southGate": {"x": 32, "y": 20},
+  "reinforcementTick": 67,
+  "_reinforcementTickSrc": "capture: reinforcements are added on wave tick 66 exactly; the pack spawns them in the housekeeping of the tick before this value (t + 1 >= 67), stamping spawn tick 66 (V2 pipeline.json)",
+  "northWhenPlayerYAtLeast": 34,
+  "reinforcementXs": [31, 33, 32],
+  "arena": {"minX": 16, "minY": 18, "maxX": 49, "maxY": 51},
+  "_spawnsSrc": "capture section 1.2 (451 waves): the shaman, javelin, manticore and shockwave each take one of twelve spawn points (SW tiles) at random, no point twice, from the points at least 5 tiles (Chebyshev) from the player's tile; the trio is a fixed formation, the berserker at B uniform over x 29..35 by y 34..40 with the archer at B+(-1,-1) and the seer at B+(+1,-1), and a Quartet member at B+(0,-2). Only the synthetic boards (headless harness, modifier advisor) use these; live spawns come from observation",
+  "spawnPoints": [[19, 32], [19, 37], [25, 34], [29, 31], [29, 37], [32, 27], [33, 42], [35, 31], [35, 37], [40, 35], [44, 32], [44, 37]],
+  "spawnMinPlayerDistance": 5,
+  "trioAnchor": {"minX": 29, "minY": 34, "maxX": 35, "maxY": 40},
+  "trioArcher": {"x": -1, "y": -1},
+  "trioSeer": {"x": 1, "y": -1},
+  "trioQuartet": {"x": 0, "y": -2},
+  "pillars": [{"x": 24, "y": 26}, {"x": 24, "y": 41}, {"x": 39, "y": 26}, {"x": 39, "y": 41}]
+}

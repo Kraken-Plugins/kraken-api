@@ -133,10 +133,12 @@ This section is the working guide for AI systems and humans asking AI systems to
   - `service` for higher-level game actions and system helpers
   - `input` for mouse and keyboard handling
   - `overlay` for reusable RuneLite overlays
-  - `simulation` for the Java port of the community Colosseum line-of-sight simulator
-    (`simulation.colosim`); the Fortis Colosseum real-time engine (bit-packed tick
-    simulation, budgeted planner, live capture/executor) lives in the test source set
-    under `plugins.colosseum.simulation` - see `docs/SIMULATION.md`
+  - `simulation.live` for the RuneLite side of the simulation module (capture and trace
+    recording); the simulation core itself is the `simulation/` Gradle subproject
+    (`simulation/src/main/java/com/kraken/api/simulation/`), which may import only Java,
+    Gson and Lombok and is shaded into the jar. Content packs (the Colosseum's parity
+    copy lives in its test tree) plug in through `NpcBehavior` and `PackRules`; see
+    `docs/SIMULATION.md`
   - `util` for shared math, random, string, and helper utilities
 - Naming expectations:
   - Keep service names specific to the domain they own, for example `BankService`, `PrayerService`, `MovementService`.
@@ -176,8 +178,9 @@ Do not treat these as hand-edited sources.
   and where the bundled collision map and transport dataset come from and how they are regenerated.
 - `docs/MOUSE.md` covers mouse movement strategies.
 - `docs/SCRIPTING.md` covers `Script`, `Task`, and break management.
-- `docs/SIMULATION.md` is the simulation overview; deep dives live in `docs/simulation/`
-  (tick engine, planner, live plugin).
+- `docs/SIMULATION.md` covers the simulation module: the tick pipeline, the content pack contract (tables,
+  behaviours, world rules, lanes), the live layer, the wave trace format, and the tests and gates
+  (`./gradlew :simulation:test`, `./gradlew :simulation:simulationBenchmark`).
 - `docs/TESTS.md` documents the client-based test harness and environment requirements.
 - `docs/UPDATING.md` is the reference for packet and reflection updates after client revisions.
   Packet preflight also requires the live packet length field/multiplier and vetted factory capacities;

@@ -1,0 +1,19 @@
+{
+  "allowSameTickMoveAttack": false,
+  "hazardsAfterMove": true,
+  "underfootEscape": true,
+  "gateMoveTick": 1,
+  "gateLosTick": 2,
+  "gateAttackTick": 3,
+  "attackAnimationLagTicks": 0,
+  "unprayedExpectedFactor1000": 300,
+  "src": {
+    "allowSameTickMoveAttack": "A2: a new click replaces the current interaction (prior); the spec's freely-composable claim is behind this flag",
+    "warband": "capture and traces: each member attacks only on its tick of a 6-tick cycle fixed at its spawn (berserker +3, seer +4, archer +5) and only from its own side of the player (npcs.json colosseum.warband)",
+    "hazardsAfterMove": "A14: ground-hazard contact applies to the tile the player ends the tick on",
+    "underfootEscape": "traces (waves 1-5): an NPC covering the player takes 1-tile cardinal steps each tick until clear (~13 observed steps, none diagonal, occasional stand-stills consistent with a blocked pick); direction distribution VERIFY-INGAME - the engine substitutes a deterministic tick/slot hash and the replayer mirrors live positions through these episodes",
+    "gates": "capture section 5e and traces (22/22 non-warband, 21/21 warband): every monster first steps at add+1 even with the player in reach, the trio at add+2 (npcs.json gateMoveTick); sight holds a monster from add+2; the first attack at add+3 (capture: shaman, javelin, shockwave, jaguar, minotaur; the manticore's first charge animation at add+7 = add+3 plus 4). Replaying the seven traces: 562 of 2,783 position ticks differed with 2/3/3, 235 with 1/2/3",
+    "attackAnimationLagTicks": "A28 VERIFY-INGAME (cbartram): damage/prayer for an NPC attack is resolved before the animation is reactable - prayers must be dispatched the tick before the animation. 0 encodes animation tick == resolution tick (the command latency already forces the one-tick-early dispatch); flip to 1 if telemetry shows resolution a full tick before the animation",
+    "unprayedExpectedFactor1000": "A9 (V2 eval.json): an unprayed hit books 30% of its max in the expected channel; Relentless adjusts it through the frame's damage modifiers"
+  }
+}

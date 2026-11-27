@@ -251,6 +251,13 @@ detailed [mouse movement guide](docs/MOUSE.md)
 The Kraken API also ships with a variety of useful utilities for plugins from logging, mouse, and table overlays to
 custom RuneLite events, randomization, math and string methods! To learn more about Kraken's extra utilities, check out [this doc](docs/UTILITIES.md).
 
+## Simulation
+
+The API ships a deterministic, allocation free tick model of OSRS encounters (`com.kraken.api.simulation`): NPC
+movement, line of sight, attack cadence, hits in flight and the player's turn, with encounter mechanics supplied by
+content packs, plus a wave trace format to replay recorded fights against it and the live capture helpers in
+`com.kraken.api.simulation.live`. See the [simulation guide](docs/SIMULATION.md).
+
 ### Colosseum Simulator 
 
 There is a separate port of the [Colosseum Line of Sight Simulation](https://los.colosim.com/) to Java contained in the repository's test sources for reference

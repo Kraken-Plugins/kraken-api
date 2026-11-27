@@ -3,3 +3,6 @@ plugins {
 }
 
 rootProject.name = 'kraken-api'
+
+// The simulation core: a RuneLite free tick model shaded into kraken-api.jar (docs/SIMULATION.md).
+include 'simulation'
